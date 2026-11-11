@@ -1,0 +1,121 @@
+# The table
+
+A shared table for Hollow stories (Glimmer, Bunkum): move paper and roll dice without anyone
+noticing the software. v1 supports play at the table: draggable images, dice rolling, and fancy
+draggable sheets of paper and cards. No deep game integration yet (no XP calculation and the like).
+
+## Look
+
+- The one bold thing is **the paper**. Cards, stickies, pools and chips look like the printed
+  components, in the print's colors: card white with a grey border; sticky yellow (`#FFF200`) with
+  a folded corner; chip green (`#93C47D`) and red (`#E06666`); pool slots blue (`#CFE2F3`), Stagger
+  pink (`#F4CCCC`), Bias red, Affliction dark violet, Injury a bandage tan.
+- The table surface is **oiled walnut** with a faint grain.
+- **Caveat** for everything handwritten (card fields, stickies, notes); **PT Mono** for reference
+  cards and the little chrome there is; **Sancreek** once, for the wordmark.
+- Motion only in answer to a hand: a lift shadow while dragging, a flip, dice. No ambient
+  animation.
+- Paper is tilted slightly at random, and squares up while you are writing on it (editing tilted
+  text in Chrome smears the lines).
+- Pool slot labels use the print's mat lettering (or PT Mono), in sentence case: "Stagger", then
+  "opposition only". No system sans serif, no all-caps labels.
+
+## Feel
+
+- **Every control is a thing at the table.** Buttons are register keys, tags, tabs, glyphs and pages
+  of a book, never web buttons, pills, dropdowns or floating panels. A panel opens as the object it
+  belongs to (the Ledger as a ledger page, Boot Hill as its graveyard list).
+- **Say it once, on paper.** Instructions are not permanent chrome. They live on a "How to play the
+  table" reference card, taken from the supplies like any other paper and put away when known.
+- **One shape, one job.** Controls that do different things look different, even when they are
+  small and sit side by side on one card.
+- **Nothing depends on colour alone.** Where colour carries meaning (green and red chips, Bias, Affliction and Injury),
+  a sign or a word carries it too.
+- **Empty takes no room.** Something waiting to be filled in shrinks to its name and opens when
+  you reach for it: a pool's empty slots, a card back's empty columns.
+- **The quality floor:** visible keyboard focus, reduced motion respected, and **every shift-click has
+  a long-press equivalent** for touch. Shift-click lowers, releases, opens and deletes; a tablet has
+  no shift key.
+
+## The surface
+
+- The table fills the window. Drag empty table to pan; the wheel zooms.
+- Mats pass clicks through their empty space (beside the name) to the table.
+- Labels, slot rows, drawer tools, the roll row, the register and the bar don't select as text.
+
+## The bar
+
+The bar runs along the top. It holds:
+
+- **Supplies**: a character, a sticky note, loose text, an image, the "How to play the table"
+  reference card, and chips (2, 4, 6 and +1 in each colour). Drag one onto the table to take one;
+  dropped back on the bar, nothing is made.
+- The people at the table (see `network.md`).
+- The cash register, the Ledger and Boot Hill, at the right end.
+- **Putting away:** dropping something on the bar puts it away. Characters, stickies, loose writing,
+  images and roll receipts are buried on Boot Hill (see `boothill.md`); plain chips just vanish;
+  Influence cards go home to their drawer.
+
+## Pieces
+
+Everything on the table is a piece: a character's pool and card, a sticky, loose text, an image, a
+chip, a torn-off roll of receipts.
+
+- **Character card**: a rounded index card with two faces, edited in place and flipped at the
+  corner. The front holds name and Rank, `Cha Int Wis`, Fields and Skills, and a right column
+  (actions, Defend, Sparked/Grains, Resources). The back holds Biases (and Afflictions) by
+  Mild/Min/Sig/Maj with a checkbox per extra Slot, and ruled Notes lines. Slot boxes toggle.
+- **An empty column on a card's back collapses** to its name at the top (Bill, 11-11). Empty means
+  nothing written and no box checked. Clicking anywhere in the column opens it so a slot can be
+  filled in; left empty, it closes again at the next click elsewhere.
+- **Sticky note**: yellow, handwritten, edited in place.
+- **Loose text**: handwriting straight on the table.
+- **Image**: dropped from the bar's image supply (a file picker). Images belong to the game and
+  survive a reload.
+- Stickies, text and images can pin to a card and travel with it.
+
+## Card text
+
+Text on cards, stickies and loose writing is handwriting with **marks**: a very small markup that
+says what a run of text *is* in the game, instead of how it looks (Bill, 11-11). There is no bold,
+italic or underline.
+
+| Mark | Marks | The table reads |
+|---|---|---|
+| `<act>` | an action line | Base, Yellows and bonus; gets a die |
+| `<res>` | a Resource | `Name +Level`; gets a tap glyph; its Level is rewritten when spent |
+| `<inf>` | a named Influence | `Name ±Level` |
+| `<bias>` | a Bias line | Level and name; tap glyph and Slot boxes |
+| `<aff>` | an Affliction line | Level and name; tap glyph and Slot boxes |
+| `<inj>` | an Injury | Level and name; tap glyph |
+| `<def>` | the Defend line | mental and psych Defend |
+| `<head>` | a section heading | nothing; drawn like the printed headings |
+
+- The table reads game meaning **only from marks**, never by guessing from plain text.
+- **Marking is done with highlighter pens**, one per mark, in place of a formatting toolbar: select
+  text, pick a pen. A pen on marked text unmarks it.
+- **The table offers.** When a line typed in plain text matches a mark's grammar (an action line,
+  `Name +Level` after "Resources"), the table offers that pen for it; nobody needs to know the tags.
+- **Marks are a closed set.** Tags carry no attributes. Anything else in the text is shown as plain
+  text and kept exactly as written. Text from another page is read the same way, so it can carry
+  nothing runnable.
+
+## Characters and pools
+
+- Each party in a Contest has a **pool** (an Influence Pool mat), NPCs included: Bonus, Main, Edge,
+  Stagger (opposition only), Bias, Affliction and Injury slots, Injury last as the least used
+  (Bill, 11-11), with the character's name, a die button, and a drawer of Influence cards below.
+- **Empty slots narrow** to a strip **1em wide** showing the first letter of the slot's name (Bill,
+  11-11): B M E S B A I. Bonus and Bias share a letter and are told apart by place (Bonus is always
+  first, Bias fifth) and by colour; the full name shows on hover. A pool takes only the room its
+  contents need; a slot holding anything is full width. When a chip or Influence card is carried **near** a
+  pool, that pool's slots widen, before the pointer reaches them, so the layout has settled by the
+  time you aim; the pool stays anchored at its left edge. Only the pool being approached widens.
+  It narrows again if the drop goes elsewhere. Clicking or tapping a tab widens that slot too (so a
+  +1 can be added by click), until the next click elsewhere.
+- **A character is a card tied to its pool.** Dragging a pool brings its card; a card dragged on its
+  own moves alone and is no longer gathered. A **gathered** card stays snapped under its drawer as
+  the drawer grows or shrinks. **Gather** snaps it back. The scene starts gathered.
+- Dropping the bar's **character** supply pops its pool out above the new card, linked and
+  gathered, owned by whoever made it (the GM's are GM-owned). A pool never pops out under the bar:
+  with no room above, the card slides down under it.

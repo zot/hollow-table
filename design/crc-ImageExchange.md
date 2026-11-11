@@ -1,0 +1,21 @@
+# ImageExchange
+**Requirements:** R194, R195
+
+Images peer to peer: bytes stay in each page's BlobStore; a page missing one asks the table by hash.
+
+## Knows
+- missing: hashes shown on the table but not in the BlobStore.
+- RETRY_MS: 10 s.
+
+## Does
+- want(hash): asks the table; the first answer whose bytes hash right is kept (BlobStore.accept),
+  so this page can answer the next asker.
+- answer(hash): sends the bytes if this page has them.
+- sweep(): every RETRY_MS, asks again for what is still missing; the image shows striped and marked
+  missing with why until then.
+
+## Collaborators
+- Wire, BlobStore
+
+## Sequences
+- seq-images.md
