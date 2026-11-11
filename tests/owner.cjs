@@ -1,0 +1,42 @@
+// Ownership: GM (default, locked) / open (anyone claims, everyone sees) / player.
+const { chromium } = require('/home/deck/work/HollowStuff/HollowWorld/node_modules/playwright');
+(async () => {
+  const b = await chromium.connectOverCDP('http://localhost:9333');
+  const p = await (await b.newContext()).newPage(); await p.setViewportSize({ width: 1600, height: 950 });
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto('http://127.0.0.1:8765/index.html?' + Date.now()); await p.waitForTimeout(900);
+  const log = (k, v) => console.log(k.padEnd(50), JSON.stringify(v));
+  const dev = () => p.evaluate(() => { const m = document.getElementById('mat3'); return { owner: m.dataset.owner ?? '(default GM)', die: m.querySelector('.die-own').textContent, secret: m.classList.contains('secret'), roll: document.getElementById('roller').closest('.mat')?.id || 'nowhere' }; });
+  const as = who => p.selectOption('#me', who);
+  log('start (GM view): Devreux', await dev());
+  await as('Player 1'); await p.click('#mat3 .die-own');
+  log('P1 clicks Devreux\'s die: locked to GM', await dev());
+  await as('GM'); await p.click('#mat3 .die-own', { modifiers: ['Shift'] });
+  log('GM shift-clicks: open', await dev());
+  await as('Player 2');
+  log('P2 sees the open character', await dev());
+  await p.click('#mat3 .die-own');
+  log('P2 clicks: claims it', await dev());
+  await p.click('#mat3 .die-own');
+  log('P2 clicks again: roll row docks', await dev());
+  await as('Player 1');
+  log('P1 view: hidden, roll row not there', await dev());
+  await p.click('#mat3 .die-own');
+  log('P1 clicks P2\'s character: nothing', await dev());
+  await as('Player 2'); await p.click('#mat3 .die-own', { modifiers: ['Shift'] });
+  log('P2 shift-clicks: open again', await dev());
+  await as('GM'); await p.click('#mat3 .die-own');
+  log('GM clicks the open one: takes it back', await dev());
+  await as('Player 1'); await p.click('#mat1 .die-own');
+  log('P1 clicks own Sam: roll row docks', await p.evaluate(() => document.getElementById('roller').closest('.mat')?.id));
+  await as('GM'); await p.click('#mat1 .die-own');
+  log('GM clicks P1\'s Sam: docks, still P1\'s', [await p.evaluate(() => document.getElementById('mat1').dataset.owner), await p.evaluate(() => document.getElementById('roller').closest('.mat')?.id)]);
+  await p.click('#mat1 .die-own', { modifiers: ['Shift'] }); await p.click('#mat1 .die-own');
+  log('GM shift-click then click: takes Sam', await p.evaluate(() => document.getElementById('mat1').dataset.owner));
+  // new character as GM is the GM's
+  await p.click('#roller .res-dice').catch(() => {});
+  log('Difference menu: words then dice', await p.evaluate(() => { const b = document.querySelector('.advmenu button'); return b ? [...b.children].map(c => c.className) : 'menu not open'; }));
+  await p.screenshot({ path: process.argv[2] + '/own.png' });
+  log('errors', errs);
+  await p.close(); process.exit(0);
+})().catch(e => { console.log('FAIL', e.message); process.exit(1); });

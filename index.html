@@ -1,0 +1,2652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollow Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=PT+Mono&family=Sancreek&display=swap" rel="stylesheet">
+<style>
+/* Throwaway sketch (code as sketchpad). Colors are taken from Bill's printed components. */
+:root {
+  --walnut: #3e2c22;
+  --walnut-dark: #2b1e17;
+  --walnut-light: #5a4030;
+  --paper: #ffffff;
+  --paper-edge: #888;
+  --ink: #1d1d1d;
+  --rule: #a9a9a9;
+  --sticky: #fff200;
+  --chip-green: #93c47d;
+  --chip-red: #e06666;
+  --mat-blue: #cfe2f3;
+  --mat-pink: #f4cccc;
+  --die-white: #f6f6f2;
+  --die-green: #6aa84f;
+  --die-red: #cc4125;
+  --die-blue: #3d85c6;
+  --die-yellow: #f1c232;
+  --hand: "Caveat", cursive;
+  --mono: "PT Mono", monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut); color: var(--ink); }
+body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
+body.panning { cursor: grabbing; }
+
+/* ---- the table: oiled walnut, lamp-lit ---- */
+#table {
+  position: fixed; inset: 92px 0 0 0; overflow: hidden; touch-action: none; cursor: grab;
+  background:
+    radial-gradient(ellipse 70% 60% at 45% 35%, rgba(255,210,150,.10), transparent 70%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.35) 100%),
+    repeating-linear-gradient(93deg, rgba(0,0,0,.05) 0 2px, transparent 2px 9px, rgba(255,255,255,.025) 9px 10px, transparent 10px 23px),
+    repeating-linear-gradient(91deg, rgba(0,0,0,.07) 0 1px, transparent 1px 57px),
+    linear-gradient(180deg, #45311f, var(--walnut) 40%, #382719);
+}
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; z-index: 1; }
+
+/* ---- every object on the table ---- */
+.obj { position: absolute; transform: rotate(var(--tilt, 0deg)); transition: box-shadow .15s, transform .15s; }
+/* An image on its way from another page */
+.image img.fetching, .image img.missing { min-width: 120px; min-height: 90px; background: repeating-linear-gradient(45deg, #d9ccb4 0 8px, #e6dcc8 8px 16px); }
+.image img.missing { background: repeating-linear-gradient(45deg, #e3c9c0 0 8px, #efe0da 8px 16px); }
+/* Another page moved it: slide to where it went. A move arrives about every 100 ms while someone drags. */
+.obj.glide { transition: box-shadow .15s, transform .15s, left .12s linear, top .12s linear; }
+.obj.lifted { transform: rotate(0deg) scale(1.03); z-index: 100000 !important; }
+/* Paper squares up while you write on it: rotated text repaints badly mid-edit in Chrome. */
+.obj:focus-within { transform: rotate(0deg); }
+.obj.lifted.card, .obj.lifted.sticky, .obj.lifted.receipt, .obj.lifted.image { box-shadow: 0 18px 30px rgba(0,0,0,.45); }
+
+/* ---- character card: two-sided index card ---- */
+.card { width: 430px; height: 316px; perspective: 1400px; }
+.card .flipper { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .5s; }
+.card.flipped .flipper { transform: rotateY(180deg); }
+.face {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: var(--paper); border: 1.5px solid var(--paper-edge); border-radius: 22px;
+  box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 14px 18px; font-family: var(--hand);
+  font-size: 16px; line-height: 1.1;
+}
+.face.back { transform: rotateY(180deg); }
+.front .cols { display: grid; grid-template-columns: 1.05fr 1fr; gap: 10px; height: 100%; }
+.front .col { outline: none; overflow: hidden; }
+.front h3 { font-size: 21px; font-weight: 700; margin: 0; }
+.front b { font-weight: 700; }
+.front i { font-style: normal; padding-left: .9em; display: inline-block; }
+.front .sec { font-weight: 700; font-size: 18px; letter-spacing: .02em; margin-top: 4px; display: block; }
+.flipcorner {
+  position: absolute; right: -1px; bottom: -1px; width: 30px; height: 30px; border: none; padding: 0;
+  background: linear-gradient(135deg, transparent 50%, #e6e6e6 50%); border-bottom-right-radius: 22px;
+  cursor: pointer; z-index: 2; opacity: .55;
+}
+.flipcorner:hover, .flipcorner:focus-visible { opacity: 1; }
+.flipcorner:focus-visible { outline: 2px solid var(--die-blue); }
+.card > .flipcorner { display: none; }
+.back .slots { display: grid; grid-template-columns: 34px 46px 1fr 1fr; column-gap: 6px; row-gap: 2px; align-items: end; }
+.back .hd { font-weight: 700; font-size: 19px; }
+.back .lvl { font-weight: 600; text-decoration: underline; }
+.back .boxes { display: flex; gap: 3px; justify-content: flex-end; padding-bottom: 3px; }
+.box { width: 13px; height: 13px; border: 2px solid var(--ink); background: #fff; padding: 0; cursor: pointer; position: relative; }
+.box.on::after { content: "✕"; position: absolute; inset: -5px 0 0 0; font: 700 14px/1 var(--hand); text-align: center; }
+.line { border-bottom: 1px solid var(--rule); min-height: 21px; display: flex; align-items: flex-end; overflow: hidden; }
+.line .lt { flex: 1; min-width: 0; outline: none; white-space: nowrap; overflow: hidden; }
+.line .glyph { display: none; margin-bottom: 3px; }
+.line.filled .glyph { display: inline-block; }
+.line .spent { font: 12px/1 var(--mono); color: #a33; padding-bottom: 4px; }
+.box.spent { opacity: .35; }
+.box.nope { animation: nope .3s; }
+@keyframes nope { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.notes-hd { font-weight: 700; font-size: 19px; margin-top: 10px; }
+.notes { outline: none; min-height: 84px; line-height: 26px; font-size: 18px;
+  background-image: repeating-linear-gradient(transparent 0 25px, var(--rule) 25px 26px); }
+[contenteditable]:focus { background-color: rgba(61,133,198,.06); border-radius: 4px; }
+
+/* ---- reference card (monospace, as printed) ---- */
+.refcard { width: 430px; height: 316px; background: var(--paper); border: 1.5px solid var(--paper-edge); border-radius: 22px;
+  box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 16px 20px; font: 13.5px/1.35 var(--mono); }
+.refcard .rhd { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 8px; }
+.refcard .rhd em { font-style: italic; }
+.refcard p { margin: 0 0 7px; }
+
+/* ---- sticky note ---- */
+.sticky {
+  width: 230px; min-height: 150px; background: var(--sticky); font: 600 19px/1.15 var(--hand);
+  padding: 12px 14px 26px; box-shadow: 2px 4px 7px rgba(0,0,0,.35);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+}
+.sticky::after { content: ""; position: absolute; right: 0; bottom: 0; width: 22px; height: 22px;
+  background: linear-gradient(315deg, transparent 50%, #c9bf00 50%); }
+.sticky .txt { outline: none; min-height: 100px; white-space: pre-wrap; }
+.sticky.big { width: 330px; min-height: 300px; }
+
+/* ---- loose handwriting on the table ---- */
+.text { font: 600 22px/1.2 var(--hand); color: #f3e9d8; min-width: 80px; padding: 2px 6px; outline: none; white-space: pre-wrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+
+/* ---- image ---- */
+.image { background: #fff; padding: 8px 8px 10px; box-shadow: 0 4px 9px rgba(0,0,0,.45); }
+.image img { display: block; width: 240px; height: auto; pointer-events: none; }
+
+/* ---- influence pool mat ---- */
+.mat { padding: 0; pointer-events: none; }            /* empty space beside the name falls through to the table */
+.mat .head, .mat .row, .mat .tray { pointer-events: auto; }
+.mat .head { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 6px 4px; }
+.mat .die-own { min-width: 30px; height: 26px; border-radius: 6px; border: 1.5px solid #222; background: var(--die-white); font: 700 12px/1 var(--mono);
+  cursor: pointer; box-shadow: 0 2px 0 #0006; padding: 0 5px; }
+.mat .gather { height: 22px; border-radius: 4px; border: 1px solid #8a7458; background: transparent; color: #e6d6bd; font: 11px/1 var(--mono); cursor: pointer; }
+.mat .die-own:focus-visible, .mat .gather:focus-visible { outline: 2px solid #fff; }
+.mat .who { font: 700 26px/1 var(--hand); color: #9fe08a; margin: 0; outline: none; min-width: 60px; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.mat .row { display: flex; gap: 6px; background: #fff; padding: 6px; border-radius: 4px; box-shadow: 0 3px 6px rgba(0,0,0,.35); }
+.slot { width: 72px; height: 132px; border: 1.3px solid #333; border-radius: 10px; background: var(--mat-blue);
+  position: relative; font: 700 13px/1.1 Arial, sans-serif; text-align: center; }
+.slot.stagger { width: 92px; background: var(--mat-pink); }
+.slot.bias { background: var(--chip-red); }
+.slot .lbl { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); pointer-events: none; color: #111; }
+.slot .lbl small { display: block; font: italic 700 8.5px/1.1 Arial, sans-serif; margin-top: 3px; }
+.slot .stack { position: absolute; left: 0; right: 0; display: flex; align-items: center; }
+.slot .stack.pos { top: 6px; flex-direction: column; }          /* positive Influence stacks down from the top */
+.slot .stack.neg { bottom: 6px; flex-direction: column-reverse; } /* negative stacks up from the bottom */
+.slot .stack > .chip { position: relative !important; left: auto !important; top: auto !important; flex: none; }
+.slot .stack > .pile { position: relative; flex: none; }
+.slot .stack.pos > * + * { margin-top: -18px; }
+.slot .stack.neg > * + * { margin-bottom: -18px; }
+.chip.rolled { animation: rollup .45s ease-out; }
+@keyframes rollup { 0% { transform: scale(1.6); box-shadow: 0 0 0 6px #fff8; } 100% { transform: none; } }
+.slot.over { outline: 3px solid #fff8; outline-offset: 2px; }
+
+/* ---- Influence cards: a card at home in its mat's drawer, a chip in a pool ---- */
+.tray { margin-top: 6px; width: 416px; display: flex; gap: 8px; align-items: flex-start; padding: 7px;
+  background: linear-gradient(180deg, #22170f, #2e2117); border-radius: 3px 3px 10px 10px;
+  box-shadow: inset 0 3px 7px rgba(0,0,0,.7), 0 2px 0 #5a4030; }
+.tray.over { outline: 3px solid #fff8; }
+.tray .cards { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px; }
+.tray .tools { display: flex; gap: 5px; }
+.newinf { width: 26px; height: 40px; border-radius: 6px; background: transparent; font: 700 20px/1 var(--hand); cursor: pointer; border: 1.5px dashed; }
+.newinf.g { border-color: var(--chip-green); color: var(--chip-green); }
+.newinf.r { border-color: var(--chip-red); color: var(--chip-red); }
+.newinf:focus-visible { outline: 2px solid #fff; }
+.killbox { width: 46px; height: 40px; border: 1.5px solid #8a7458; border-radius: 4px; color: #e6d6bd; font: 11px/1 var(--mono);
+  display: grid; place-items: center; background: repeating-linear-gradient(45deg, #3a2a1f 0 5px, #2a1d14 5px 10px); }
+.killbox.over { outline: 3px solid var(--chip-red); }
+
+/* ---- secrecy: drawers and character cards you don't own are face-down ---- */
+.mat.secret .tray .cards { pointer-events: none; }
+.mat.secret .tray .cards > .infl, .chip.infl.cf.secret { background: repeating-linear-gradient(45deg, #7a2e24 0 4px, #5e2219 4px 8px) !important;
+  border-color: #3a120d; min-width: 60px; }
+.mat.secret .tray .cards > .infl .face, .chip.infl.cf.secret .face { visibility: hidden; }
+.card.secret .flipper { visibility: hidden; }
+.card.secret::before { content: "Hollow"; position: absolute; inset: 0; border-radius: 22px; display: grid; place-items: center;
+  font: 44px/1 "Sancreek", serif; color: #e9d5b3; border: 1.5px solid #2b1a12; box-shadow: 0 3px 6px rgba(0,0,0,.35);
+  background: radial-gradient(circle, #6b2a20 0 55%, #4d1c15 100%), #5e2219;
+  background-image: repeating-linear-gradient(45deg, #ffffff0a 0 6px, transparent 6px 12px), radial-gradient(circle, #6b2a20 0 55%, #4d1c15 100%); }
+.me { display: grid; gap: 3px; color: #d9c9b2; }
+.me[hidden] { display: none; }
+#build { display: block; font: 10px/1 var(--mono); letter-spacing: 0; color: #a8957b; text-align: center; margin-top: 2px;
+  user-select: text; -webkit-user-select: text; cursor: text; }   /* select it to copy it into a bug report */
+/* Who is at the table: a name tag per person, lit while they're heard from */
+#folks { display: flex; flex-wrap: wrap; gap: 4px; max-width: 220px; align-content: center; }
+#folks .folk { font: 600 15px/1 var(--hand); padding: 3px 8px 3px 18px; border-radius: 10px; background: #3a2b1d; color: #a8957b; position: relative; white-space: nowrap; }
+#folks .folk::before { content: ""; position: absolute; left: 6px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: #6a5a48; }
+#folks .folk.live { color: #f3e1c2; }
+#folks .folk.live::before { background: #7bd389; box-shadow: 0 0 6px #7bd389; }
+#folks .folk.gm { background: #4a2a2a; }
+#folks .folk.me { outline: 1px solid #a8957b; }
+#folks .folk.gm.me { cursor: pointer; }
+#folks .folk.warn { background: var(--chip-red); color: #fff; padding-left: 8px; }
+#folks .folk.warn::before { display: none; }
+#folks .invite { font: 11px/1 var(--mono); padding: 4px 7px; border-radius: 10px; border: 1px solid #a8957b; background: none; color: #f3e1c2; cursor: pointer; }
+#folks .invite:hover { background: #3a2b1d; }
+.me select { font: 12px var(--mono); background: #efe3cf; color: #221; border: 1px solid #000; border-radius: 4px; padding: 4px 6px; }
+
+.mat.popped { animation: popout .35s ease-out; }
+@keyframes popout { from { opacity: 0; transform: translateY(24px) scale(.96); } }
+
+/* ---- chips ---- */
+.chip { width: 42px; height: 42px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,.55);
+  display: grid; place-items: center; font: 700 19px/1 Arial, sans-serif; color: #111;
+  box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 -3px 0 rgba(0,0,0,.12); cursor: pointer; user-select: none; -webkit-user-select: none; }
+/* chips and pools take the pointing finger: its tip sits off to the side, so the number stays visible */
+.slot, .supply.chip { cursor: pointer; }
+.chip.g { background: var(--chip-green); }
+.chip.r { background: var(--chip-red); }
+.chip.odd { width: 28px; height: 28px; font-size: 12px; }
+.chip > .chip.odd { position: absolute !important; left: auto !important; top: -9px !important; right: -12px; }
+.chip.over { outline: 3px solid #fff; }
+.chip.infl { box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 0 0 3px rgba(255,255,255,.65); }
+.chip.infl .face { display: none; }
+.chip.infl.g { --band: var(--chip-green); } .chip.infl.r { --band: var(--chip-red); }
+.chip.infl.home { position: relative !important; left: auto !important; top: auto !important; }
+.chip.infl.cf { width: auto; height: auto; min-height: 40px; border-radius: 6px; background: #fff; display: flex; align-items: center;
+  gap: 6px; padding: 4px 8px 4px 9px; border: 1px solid #777; border-left: 7px solid var(--band); font: 600 18px/1 var(--hand);
+  box-shadow: 0 2px 3px rgba(0,0,0,.4); }
+.chip.infl.cf .num { display: none; }
+.chip.infl.cf .face { display: contents; }
+.chip.infl.cf:not(.home) { cursor: pointer; }
+/* the tiny card glyph: on a Resource it is a handle to tap; on an Influence card it marks one made from Resources */
+.glyph, .cg { display: inline-block; width: 11px; height: 14px; border: 1.5px solid #2a2a2a; border-radius: 2px; background: #fff;
+  box-shadow: 1.5px 1.5px 0 #2a2a2a; margin: 0 5px 0 2px; vertical-align: -2px; flex: none; }
+/* Taps aim with the fingertip: the pointing finger on the handle and for the whole drag. */
+.glyph, .box.on { cursor: pointer; }
+body.tapping, body.tapping * { cursor: pointer !important; }
+.glyph:hover { background: #fff6a8; }
+.glyph.dry { opacity: .3; cursor: not-allowed; }
+.infl:not([data-res]) .cg { display: none; }
+.chip.infl[data-res]:not(.cf)::before { content: ""; position: absolute; left: -3px; top: -4px; width: 9px; height: 12px; border: 1.5px solid #2a2a2a;
+  border-radius: 2px; background: #fff; }
+.rent { white-space: nowrap; }
+.infl .nm { outline: none; min-width: 24px; max-width: 160px; white-space: nowrap; overflow: hidden; cursor: text; }
+.infl .lv { font-weight: 700; cursor: pointer; padding: 1px 3px; border-radius: 4px; white-space: nowrap; }
+.infl .lv:hover { background: #0000000f; }
+
+/* ---- used Influences ---- */
+.chip.infl.used:not(.cf) { filter: saturate(.35) brightness(.92); }
+.chip.infl.used:not(.cf)::after { content: "used"; position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); font: 9px/1 var(--mono);
+  background: #222; color: #eee; padding: 1px 3px; border-radius: 3px; }
+.usedpile { position: relative; }
+.usedpile .uhead { height: 40px; min-width: 44px; border-radius: 4px; border: 1.5px solid #8a7458; background: #3a2a1f; color: #e6d6bd; font: 11px/1.1 var(--mono); cursor: pointer; }
+.usedpile .uhead b { display: block; font-size: 14px; }
+.usedpile .list { position: absolute; right: 0; top: 46px; z-index: 95; background: #fbfaf6; padding: 8px; border-radius: 8px; min-width: 220px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.usedpile .list[hidden], .mat.secret .usedpile .list { display: none; }
+.mat.secret .usedpile .uhead { pointer-events: none; }
+.usedpile .list p { margin: 0; font: 12px var(--mono); color: #555; }
+.usedpile .list .infl { cursor: pointer; }
+
+/* ---- a pile: three equal Influences that Roll Up and act as one ---- */
+.pile.g { --pc: var(--chip-green); } .pile.r { --pc: var(--chip-red); }
+.pile > .disc { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font: 700 19px/1 Arial, sans-serif;
+  background: var(--pc); border: 1.5px solid rgba(0,0,0,.55); cursor: pointer; position: relative; z-index: 1;
+  box-shadow: 0 3px 0 -1px var(--pc), 0 4px 0 -1px rgba(0,0,0,.55), 0 7px 0 -2px var(--pc), 0 8px 0 -2px rgba(0,0,0,.55), 0 9px 5px rgba(0,0,0,.35); }
+.pile > .disc:focus-visible { outline: 2px solid #fff; }
+.pile > .members { display: none; }
+.pile.open > .members { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; position: absolute; left: 50%; top: 50px;
+  transform: translateX(-50%); background: #fbfaf6; padding: 8px 10px; border-radius: 8px; box-shadow: 0 6px 14px rgba(0,0,0,.5);
+  z-index: 90; min-width: 190px; }
+.pile.open > .members > * { position: relative !important; left: auto !important; top: auto !important; margin: 0 !important; }
+.members .chip.infl::after { content: attr(data-name); position: absolute; left: 50px; top: 50%; transform: translateY(-50%);
+  font: 600 18px/1 var(--hand); white-space: nowrap; color: var(--ink); }
+.pile.rolled > .disc { animation: rollup .45s ease-out; }
+.card.over > .flipper .face { outline: 3px solid #fff8; }
+
+/* ---- dice receipt ---- */
+.receipt { width: 300px; background: #fbfaf6; font: 13px/1.4 var(--mono); padding: 10px 12px 14px;
+  box-shadow: 0 3px 7px rgba(0,0,0,.4);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 95% calc(100% - 5px), 90% 100%, 85% calc(100% - 5px), 80% 100%, 75% calc(100% - 5px), 70% 100%, 65% calc(100% - 5px), 60% 100%, 55% calc(100% - 5px), 50% 100%, 45% calc(100% - 5px), 40% 100%, 35% calc(100% - 5px), 30% 100%, 25% calc(100% - 5px), 20% 100%, 15% calc(100% - 5px), 10% 100%, 5% calc(100% - 5px), 0 100%); }
+.receipt .who { font: 700 20px/1 var(--hand); outline: none; }
+.receipt .rhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.receipt time { font: 11px/1 var(--mono); color: #666; white-space: nowrap; }
+.receipt .dice { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+.receipt .outcome { font-weight: 700; font-size: 14px; margin-top: 4px; }
+.receipt .by { font: 600 15px/1 var(--hand); color: #666; margin: -2px 0 2px; }
+.receipt.sent time::after { content: " ✓"; color: #2f5a41; }   /* your roll went out to the table */
+.receipt.missed { color: #a33; font-style: italic; }
+.receipt { overflow-wrap: anywhere; }   /* a long unbroken name must not widen the tape */
+.die { width: 28px; height: 28px; border-radius: 6px; border: 1.5px solid rgba(0,0,0,.6); display: grid; place-items: center;
+  font: 700 15px/1 var(--mono); color: #111; position: relative; }
+.die.W { background: var(--die-white); } .die.G { background: var(--die-green); }
+.die.R { background: var(--die-red); color: #fff; } .die.B { background: var(--die-blue); color: #fff; }
+.die.Y { background: var(--die-yellow); }
+.die.added { border-style: dashed; }
+.die.dropped { opacity: .35; }
+.die.dropped::after { content: ""; position: absolute; left: -2px; right: -2px; top: 50%; border-top: 2px solid #000; transform: rotate(-35deg); }
+.die.tumble { animation: tumble .45s ease-out both; }
+@keyframes tumble { from { transform: translateY(-14px) rotate(-200deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---- Boot Hill ---- */
+#boothill { flex: none; position: relative; width: 58px; height: 70px; border: none; background: none; cursor: pointer; padding: 0; }
+#boothill .stone { position: absolute; inset: 6px 6px 0 6px; border-radius: 22px 22px 3px 3px; background: linear-gradient(160deg, #9c988f, #6f6b63);
+  box-shadow: inset 0 -4px 0 #57534c, 0 2px 0 #1a120c; color: #2b2925; font: 13px/1.05 "Sancreek", serif; display: grid; place-items: center; text-align: center; }
+#boothill .n { position: absolute; right: 0; top: 0; min-width: 20px; height: 20px; border-radius: 10px; background: var(--chip-red); color: #fff;
+  font: 700 12px/20px var(--mono); text-align: center; }
+#boothill .n:empty { display: none; }
+#boothill.empty .stone { opacity: .55; }
+#boothill:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+#graves { position: fixed; right: 12px; top: 96px; z-index: 5; width: 260px; max-height: calc(100vh - 120px); background: #fbfaf6; border-radius: 8px;
+  padding: 10px; box-shadow: 0 8px 18px rgba(0,0,0,.5); font: 13px/1.3 var(--mono); display: flex; flex-direction: column; gap: 8px; }
+#graves[hidden] { display: none; }
+/* The ledger: a green cloth-bound book beside Boot Hill; its panel lists checkpoints and games */
+#ledgerbtn { flex: none; width: 44px; height: 62px; border: none; padding: 0; cursor: pointer; border-radius: 3px 6px 6px 3px;
+  background: linear-gradient(90deg, #1f3a2b 0 7px, #2f5a41 7px); box-shadow: inset -3px 0 0 #e9e1cc, 0 2px 4px rgba(0,0,0,.5); }
+#ledgerbtn span { display: block; transform: rotate(-90deg); font: 600 15px/1 var(--hand); color: #e6c878; }
+#ledgerbtn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+#ledger { position: fixed; right: 80px; top: 96px; z-index: 5; width: 300px; max-height: calc(100vh - 120px); overflow-y: auto; background: #fbfaf6;
+  border-radius: 8px; padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.45); display: grid; gap: 8px; align-content: start; }
+#ledger[hidden] { display: none; }
+.mat.peek { z-index: 99999 !important; }   /* your open used list or pile, above everything (for you only) */
+#ledger .gname { font: 600 22px/1.1 var(--hand); border: none; border-bottom: 1px solid #bbb; background: transparent; padding: 2px 4px; }
+#ledger .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+#ledger .acts button { font: 13px/1 var(--mono); padding: 6px 8px; border: 1px solid #bbb; border-radius: 5px; background: #fff; cursor: pointer; }
+#ledger .acts button:hover { background: #f1ead9; }
+#ledger h4 { margin: 4px 0 0; font: 600 17px/1 var(--hand); color: #555; }
+#ledger .cps, #ledger .games { display: grid; gap: 4px; }
+#ledger .cps button, #ledger .games button { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; text-align: left;
+  font: 600 17px/1.15 var(--hand); background: none; border: 1px solid #ddd; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+#ledger .cps button:hover, #ledger .games button:hover:not(:disabled) { background: #f1ead9; }
+#ledger time { font: 11px/1 var(--mono); color: #777; white-space: nowrap; }
+#ledger .auto span { color: #666; font-weight: 400; }
+#ledger .current { border-color: #2f5a41; cursor: default; color: inherit; }
+#ledger p { margin: 0; color: #555; font-size: 13px; }
+#ledger .status { font: 11px/1.3 var(--mono); color: #2f5a41; min-height: 1em; }
+
+#graves p { margin: 0; color: #555; }
+#graves .items { display: grid; gap: 6px; overflow-y: auto; min-height: 0; align-content: start; }   /* the list scrolls; the header stays */
+#graves .yard { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #ddd; padding-bottom: 8px; flex: none; }
+#graves .yard button { font: 700 18px/1 var(--mono); width: 30px; height: 28px; padding: 0; text-align: center; cursor: pointer; }
+#graves .yard button:disabled { opacity: .3; cursor: default; }
+#graves .yname { flex: 1; min-width: 0; font: 600 19px/1.1 var(--hand); border: none; border-bottom: 1px solid #bbb; background: transparent; padding: 2px 4px; }
+#boothill .to { position: absolute; right: 64px; top: 28px; white-space: nowrap; font: 11px/1 var(--mono); color: #f3e1c2; display: none; }
+#drawer.toss.bury #boothill .to { display: block; }
+#graves button { font: 600 20px/1.1 var(--hand); text-align: left; background: none; border: 1px solid #ccc; border-radius: 6px; padding: 4px 10px; cursor: grab; touch-action: none; }
+#graves button:hover { background: #f1ead9; }
+#graves .doom { background: var(--chip-red) !important; color: #fff !important; }
+
+/* ---- the paper tape: every roll prints here, newest at the top; drag one off to keep it ---- */
+/* the tape lies on the table UNDER pools and cards (z 0 < the world's 1) and rises over them (z 2)
+   when it has something new or is pressed; pressing anything else lowers it again */
+#tape { position: fixed; top: 89px; z-index: 0; width: 250px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
+#tape.raised { z-index: 2; }
+#tape.empty { display: none; }
+#tape .strip { max-height: 380px; overflow-y: auto; overscroll-behavior: contain; background: #fbfaf6; padding: 0 0 10px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 95% calc(100% - 5px), 90% 100%, 85% calc(100% - 5px), 80% 100%, 75% calc(100% - 5px), 70% 100%, 65% calc(100% - 5px), 60% 100%, 55% calc(100% - 5px), 50% 100%, 45% calc(100% - 5px), 40% 100%, 35% calc(100% - 5px), 30% 100%, 25% calc(100% - 5px), 20% 100%, 15% calc(100% - 5px), 10% 100%, 5% calc(100% - 5px), 0 100%);
+  transition: max-height .25s ease-out; }
+#tape.up .strip { max-height: 16px; overflow: hidden; }
+#tape .receipt { position: relative; width: auto; box-shadow: none; clip-path: none; transform: none; touch-action: none;
+  border-bottom: 1.5px dashed #c9c2ae; padding: 9px 12px 10px; }
+#tape .strip:hover { background: #f3eedf; }
+#tape .strip { cursor: grab; }
+/* a torn-off roll on the table: one long strip of receipts that scrolls inside */
+.tornroll { width: 250px; background: #fbfaf6; box-shadow: 0 3px 7px rgba(0,0,0,.4); padding-bottom: 8px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 95% calc(100% - 5px), 90% 100%, 85% calc(100% - 5px), 80% 100%, 75% calc(100% - 5px), 70% 100%, 65% calc(100% - 5px), 60% 100%, 55% calc(100% - 5px), 50% 100%, 45% calc(100% - 5px), 40% 100%, 35% calc(100% - 5px), 30% 100%, 25% calc(100% - 5px), 20% 100%, 15% calc(100% - 5px), 10% 100%, 5% calc(100% - 5px), 0 100%); }
+.tornroll .rolls { max-height: 520px; overflow-y: auto; overscroll-behavior: contain; }
+.tornroll .receipt { position: relative; width: auto; box-shadow: none; clip-path: none; transform: none; border-bottom: 1.5px dashed #c9c2ae; padding: 9px 12px 10px; }
+.obj.lifted.tornroll { box-shadow: 0 18px 30px rgba(0,0,0,.45); }
+#tape .receipt.printing { animation: print .35s ease-out; }
+@keyframes print { from { margin-top: -60px; opacity: 0; } }
+.register .paperroll { border: none; padding: 0; cursor: pointer; }
+.register .paperroll:active { transform: none; box-shadow: inset 0 0 0 2px #5a3412; }   /* keys sink when pressed; the roll mustn't jump */
+.register .paperroll:focus-visible { outline: 2px solid #fff; }
+/* labels and chrome are not text to select */
+.slot, .slot *, .tray .tools, .tray .tools *, #drawer, .roller, .register, #tape .receipt .dice { user-select: none; -webkit-user-select: none; }
+
+/* ---- the drawer (the only chrome) ---- */
+#drawer { position: fixed; left: 0; right: 0; top: 0; height: 92px; display: flex; align-items: center; gap: 22px; padding: 0 18px;
+  background: linear-gradient(0deg, var(--walnut-dark), #21170f); border-bottom: 3px solid #1a120c;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4); z-index: 2; font: 12px/1.3 var(--mono); color: #d9c9b2; overflow-x: auto; }
+#drawer.toss { background: linear-gradient(0deg, #4a1f1a, #2a110e); }
+.mark { font: 30px/1 "Sancreek", serif; color: #e9d5b3; white-space: nowrap; letter-spacing: .02em; }
+.group { display: flex; align-items: center; gap: 8px; }
+.supply { cursor: grab; display: grid; place-items: center; text-align: center; touch-action: none; }
+.supply.paper { width: 68px; height: 40px; background: #fff; border: 1px solid #888; border-radius: 7px; color: #222; font: 700 15px/1 var(--hand); box-shadow: 2px 2px 0 #ddd, 4px 4px 0 #bbb; }
+.supply.sticky-s { width: 46px; height: 42px; background: var(--sticky); color: #222; font: 700 15px/1 var(--hand); box-shadow: 2px 2px 0 #d6cb00; }
+.supply.matmini { width: 64px; height: 34px; display: flex; align-items: stretch; gap: 2px; padding: 3px; background: #fff; border-radius: 3px; }
+.supply.matmini span { flex: 1; border-radius: 3px; background: var(--mat-blue); border: 1px solid #555; }
+.supply.matmini span:nth-child(4) { background: var(--mat-pink); } .supply.matmini span:nth-child(5) { background: var(--chip-red); }
+.supply.textmini { color: #f3e9d8; font: 700 24px/1 var(--hand); width: 40px; }
+.supply.chip { box-shadow: 0 2px 0 rgba(0,0,0,.5), 0 4px 0 rgba(0,0,0,.25); }
+.chips-supply { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 6px; align-items: center; }
+.chips-supply .chip { width: 30px; height: 30px; font-size: 13px; }
+.chips-supply .chip.odd { width: 22px; height: 22px; font-size: 10px; }
+/* ---- the roll row: the dice you are about to roll, docked on a pool ---- */
+.roller { display: flex; align-items: center; gap: 10px; width: 416px; margin: 0 0 6px; padding: 6px 8px; border-radius: 4px;
+  background: linear-gradient(180deg, #2e2117, #22170f); box-shadow: inset 0 2px 5px rgba(0,0,0,.6); pointer-events: auto; color: #f3e1c2; }
+.roller .die { width: 24px; height: 24px; border-radius: 5px; font-size: 0; box-shadow: inset -2px -2px 0 rgba(0,0,0,.18); }
+.roller { position: relative; }
+.advmenu { position: absolute; left: 4px; top: 40px; z-index: 96; background: #fbfaf6; color: #222; border-radius: 8px; padding: 6px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.5); display: grid; gap: 2px; min-width: 250px; }
+.advmenu[hidden] { display: none; }
+.advmenu button { display: flex; align-items: center; gap: 6px; background: none; border: none; border-radius: 5px; padding: 4px 6px; cursor: pointer;
+  font: 12px/1 var(--mono); text-align: left; color: #222; }
+.advmenu button:hover, .advmenu button:focus-visible { background: #efe6d2; outline: none; }
+.advmenu button.on { background: #e2d6b8; font-weight: 700; }
+.advmenu .die { width: 16px; height: 16px; border-radius: 3px; font-size: 0; flex: none; }
+.advmenu .lbl { flex: 1; }
+.advmenu .dice { display: flex; gap: 3px; width: 66px; align-items: center; justify-content: flex-start; }   /* White lines up in a column */
+.advmenu .dice b { font-size: 11px; }
+.rollinfo .base { font: 600 17px/1 var(--hand); cursor: pointer; white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.rollinfo .base:empty { display: none; }
+.rollinfo .base b { font: 700 16px/1 var(--mono); margin-left: 4px; }
+.rollinfo .base { cursor: pointer; }
+.rollinfo { display: inline-flex; align-items: baseline; gap: 10px; color: #f3e1c2; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.rollinfo .base { max-width: 220px !important; }
+.rollinfo .vs { font: 600 16px/1 var(--hand); color: #f6c6a8; cursor: pointer; white-space: nowrap; }
+.rollinfo .vs:empty { display: none; }
+.rollinfo .vs b { font: 700 14px/1 var(--mono); margin-left: 3px; }
+.mat.aimed .row { outline: 3px dashed #ffd36b; outline-offset: 3px; }
+/* the current opponent: a solid amber ring and a target mark by the name */
+.mat.targeted .row { outline: 3px solid #f0a040; outline-offset: 3px; }
+.mat.targeted .who::after { content: " ⌖"; color: #f0a040; }
+#defchoice { position: fixed; z-index: 200; background: #fbfaf6; border-radius: 8px; padding: 6px; box-shadow: 0 8px 18px rgba(0,0,0,.5); display: grid; gap: 4px; }
+#defchoice[hidden] { display: none; }
+#defchoice p { margin: 0 4px 2px; font: 12px var(--mono); color: #555; }
+#defchoice button { font: 600 18px/1.1 var(--hand); text-align: left; background: none; border: 1px solid #ccc; border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+#defchoice button:hover, #defchoice button:focus-visible { background: #efe6d2; outline: none; }
+/* an action line's die button: click it to fill in the roll row */
+.actbtn { display: inline-block; width: 12px; height: 12px; margin: 0 4px 0 0; vertical-align: -1px; border-radius: 3px; border: 1.5px solid #2a2a2a;
+  background: radial-gradient(circle at 50% 50%, #2a2a2a 0 1.6px, transparent 2px), #fff; cursor: pointer; box-shadow: 1px 1px 0 #2a2a2a; }
+.actbtn:hover { background-color: #fff6a8; }
+/* the action in use: a highlighter-marker swish over its line */
+.actline.on { margin: 0 -.25em; padding: 0 .25em; border-radius: .8em .3em .9em .4em; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  background:
+    linear-gradient(104deg, #ffe44d00 .9%, #ffe44df0 2.4%, #ffd633d0 5.8%, #ffe44d99 93%, #ffe44de0 96%, #ffe44d00 98%),
+    linear-gradient(183deg, #ffe44d00 0%, #ffe44d66 7.9%, #ffe44d00 15%); }
+.roller .res-dice, .roller .ydice { display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 3px; border-radius: 6px; }
+.roller .res-dice:hover, .roller .ydice:hover, .roller .bonus:hover { background: #ffffff14; }
+.roller.lockrow .res-dice { cursor: default; }
+.roller.lockrow .res-dice:hover { background: none; }
+.roller .extra:not(.G):not(.R) { display: none; }
+.roller .mod { font: 700 14px/1 var(--mono); }
+.roller .mod.outclass { font: 700 13px/1 var(--hand); font-size: 17px; }
+.roller .ydice .ghost { width: 24px; height: 24px; border-radius: 5px; border: 1.5px dashed var(--die-yellow); }
+.roller .bonus { font: 700 18px/1 var(--mono); cursor: pointer; padding: 3px 6px; border-radius: 6px; min-width: 38px; text-align: center; }
+.roller .bonus.zero { opacity: .45; }
+.roller .roll { margin-left: auto; font: 700 13px var(--mono); background: var(--die-blue); color: #fff; padding: 7px 14px; border: 1px solid #12324f; border-radius: 4px; cursor: pointer; }
+.roller .priv { margin-left: auto; font: 11px/1 var(--mono); padding: 5px 7px; border-radius: 10px; border: 1px solid #ffffff55; background: none; color: #ffffffcc; cursor: pointer; }
+.roller .priv.on { background: #2a1d14; border-color: #000; color: #e6c878; }
+.roller .priv:not([hidden]) + .roll { margin-left: 0; }
+.receipt .privnote { font: 600 15px/1 var(--hand); color: #7a5a2a; margin-top: 4px; }
+.roller .roll:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* ---- the cash register (round counter): quartersawn oak, a nickel-bezelled glass window, red and
+        white enamel keys, a paper roll at the right end ---- */
+.register { margin-left: auto; flex: none; position: relative; display: flex; align-items: center; gap: 8px; padding: 5px 30px 5px 16px; border-radius: 10px 10px 4px 4px;
+  background:
+    repeating-linear-gradient(97deg, #ffffff10 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(83deg, #00000018 0 1px, transparent 1px 7px),
+    radial-gradient(ellipse 40% 60% at 30% 40%, #f0b26a33, transparent 70%),
+    linear-gradient(180deg, #b0692c, #8a4b1d 55%, #6e3913);
+  box-shadow: inset 0 1px 0 #e8a565, inset 0 -3px 0 #4a2409, 0 2px 0 #1a120c; }
+.register .paperroll { position: absolute; right: 6px; top: calc(50% - 17px); width: 18px; height: 34px; border-radius: 9px / 6px;
+  background: linear-gradient(90deg, #d9d2bd, #fbf8ee 40%, #cfc7b0); box-shadow: inset 0 0 0 2px #5a3412, 0 1px 0 #2a1608; }
+.register .paperroll::after { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: #5a3412; }
+.register .rslot { position: absolute; left: 5px; top: 18px; bottom: 18px; width: 4px; border-radius: 2px; background: #1e0f05; box-shadow: inset 1px 0 2px #000; }
+/* the glass case on top: the current round stands up in it as a pop-up tab, like a "$5" card */
+.register .window { position: relative; overflow: hidden; /* tabs are 33-36px tall, leaving room for their points */ width: 84px; height: 48px; border-radius: 3px;
+  border: 2px solid; border-color: #f2f1ec #8e8d86 #77766f #cfcec8;
+  background: linear-gradient(115deg, transparent 0 30%, #ffffff55 32%, transparent 40%), linear-gradient(180deg, #e9efef, #b4bfc0 55%, #7d898b);
+  box-shadow: inset 0 2px 5px #0006; }
+.register .window::after { content: ""; position: absolute; left: 2px; right: 2px; bottom: 0; height: 7px; z-index: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 7V3h3.5L5.5 0.5 6.5 3H10v4z' fill='%23f1ecdc' stroke='%23857f6e' stroke-width='.6'/%3E%3C/svg%3E") repeat-x left bottom; }
+.register .rtab, .register .tab { z-index: 1; }
+.register .window small { position: absolute; left: 5px; top: 3px; font: italic 10px/1 Georgia, serif; color: #2c3436; }
+.register .rtab, .register .tab { position: absolute; bottom: 0; transition: transform .16s ease-out; border-radius: 6px 6px 0 0; }
+.register .rtab::before, .register .tab::before { content: ""; position: absolute; left: 50%; top: -5px; width: 12px; height: 6px; margin-left: -6px;
+  background: inherit; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.register .rtab { right: 7px; width: 38px; height: 33px; padding-top: 1px; display: grid; place-items: center; background: linear-gradient(180deg, #fffdf6, #ece6d4);
+  color: #111; font: 900 21px/1 Georgia, "Times New Roman", serif; box-shadow: inset 0 -3px 0 #c9c1a8; }
+.register .rtab.down { transform: translateY(105%); transition-duration: .1s; }
+.register .tab { left: 3px; right: 3px; height: 36px; padding: 2px 4px 0; display: grid; place-items: center; text-align: center;
+  background: linear-gradient(180deg, #f08a3a, #d8661c); color: #1a0d04; font: 700 12px/1.1 var(--mono); transform: translateY(110%); }
+.register.armed .tab { transform: none; }
+.register .keys { display: grid; grid-template-columns: auto auto; gap: 4px; justify-items: center; }
+.register button { width: 24px; height: 24px; border-radius: 50%; border: 3px solid #d8d6cf; background: radial-gradient(circle at 40% 35%, #f06a5a, #b8261c);
+  color: #111; font: 700 10px/1 var(--mono); cursor: pointer; padding: 0; box-shadow: 0 2px 0 #3a1c08, inset 0 0 0 1px #00000055; }
+.register #rend { background: radial-gradient(circle at 40% 35%, #fffbee, #e6dcc2); border-color: #1d1d1b; }
+.register button:active { transform: translateY(1px); box-shadow: 0 1px 0 #55544f; }
+.register #rend { grid-column: span 2; width: auto; height: 22px; border-radius: 11px; padding: 0 9px; }
+
+.register button:focus-visible { outline: 2px solid #fff; }
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper output { min-width: 18px; text-align: center; font-weight: 700; color: #fff; }
+.hint { max-width: 300px; color: #a8957b; font-size: 11px; }
+@media (prefers-reduced-motion: reduce) { #tape .receipt.printing { animation: none; } #tape .strip { transition: none; } .register .tab, .register .rtab { transition: none; } .register .flag.pop, .mat.popped { animation: none; } .obj, .card .flipper { transition: none; } .die.tumble, .chip.rolled, .pile.rolled > .disc { animation: none; } }
+</style>
+</head>
+<body>
+<div id="table"><div id="tape" class="empty" aria-label="Roll tape"><div class="strip"></div></div><div id="world"></div></div>
+
+<div id="drawer" aria-label="Supplies">
+  <div class="mark" aria-hidden="true">Hollow<span id="build" title="Which build this is: publish.sh stamps the time it was published; a locally served page says dev">dev</span></div>
+  <div class="group">
+    <div class="supply paper" data-make="card" title="A new character: card and pool">character</div>
+    <div class="supply sticky-s" data-make="sticky" title="Sticky note">note</div>
+    <div class="supply textmini" data-make="text" title="Write on the table">Aa</div>
+    <div class="supply paper" data-make="image" title="Add an image" style="font-size:13px">image</div>
+  </div>
+  <div class="chips-supply" title="Influence chips: drag one out">
+    <div class="supply chip g" data-make="chip" data-c="g" data-v="2">2</div>
+    <div class="supply chip g" data-make="chip" data-c="g" data-v="4">4</div>
+    <div class="supply chip g" data-make="chip" data-c="g" data-v="6">6</div>
+    <div class="supply chip g odd" data-make="chip" data-c="g" data-v="+1">+1</div>
+    <div class="supply chip r" data-make="chip" data-c="r" data-v="2">2</div>
+    <div class="supply chip r" data-make="chip" data-c="r" data-v="4">4</div>
+    <div class="supply chip r" data-make="chip" data-c="r" data-v="6">6</div>
+    <div class="supply chip r odd" data-make="chip" data-c="r" data-v="+1">+1</div>
+  </div>
+  <div id="folks" aria-label="Who is at the table" aria-live="polite"></div>
+  <label class="me">You are
+    <select id="me"><option>GM</option><option>Player 1</option><option>Player 2</option></select>
+  </label>
+  <div class="hint">Drag supplies out; drop things here to put them away. Click a pool to add a +1 (shift: −1); click a chip to raise it, shift-click to lower. Drag a little card glyph to tap a Resource.</div>
+  <div class="register" aria-label="Round counter">
+    <span class="rslot" aria-hidden="true"></span>
+    <div class="window" title="Round"><small>Round</small>
+      <span class="rtab" id="rtab" aria-live="polite">0</span>
+      <span class="tab" aria-live="polite">End conflict?</span></div>
+    <div class="keys"><button id="rup" title="Next round">▲</button><button id="rdown" title="Previous round">▼</button>
+      <button id="rend" title="End the Conflict: reset the round, recharge Biases and Afflictions, empty the used piles">End</button></div>
+    <button class="paperroll" id="paperroll" title="Roll the paper tape up or down"></button>
+  </div>
+  <button id="ledgerbtn" title="The ledger: save checkpoints, export or import this game, or open another"><span>Ledger</span></button>
+  <button id="boothill" title="Boot Hill: everything put away. Click to see what's buried here."><span class="stone">Boot<br>Hill</span><span class="n"></span><span class="to"></span></button>
+  <input type="file" id="file" accept="image/*" hidden>
+</div>
+<div id="graves" hidden></div>
+<div id="ledger" hidden></div>
+<div id="defchoice" hidden></div>
+<div id="rollhome" hidden>
+  <span class="rollinfo" id="rollinfo"><span class="base" title="The action and its Base (from a card line). Click to clear; drag onto an opponent to aim."></span><span class="vs" title="Click to stop aiming at this opponent"></span></span>
+  <div class="roller" id="roller">
+    <span class="res-dice" title=""><span class="die W"></span><span class="die extra"></span><span class="mod"></span></span>
+    <div class="advmenu" hidden></div>
+    <span class="die B" title="Blue: always rolled"></span>
+    <span class="ydice" title="Yellow dice: click to add one, shift-click to remove one"></span>
+    <span class="bonus" title="Success Bonus: click to raise, shift-click to lower"></span>
+    <button class="priv" hidden></button>
+    <button class="roll" id="roll">Roll</button>
+  </div>
+</div>
+
+<script>
+const table = document.getElementById('table');
+const world = document.getElementById('world');
+const drawer = document.getElementById('drawer');
+const view = { x: 0, y: 0, z: 1 };
+let zTop = 10;
+
+function applyView() { world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.z})`; saveSeat(); }
+function toWorld(sx, sy) { const r = table.getBoundingClientRect(); return { x: (sx - r.left - view.x) / view.z, y: (sy - r.top - view.y) / view.z }; }
+const tilt = () => `${(Math.random() * 2.4 - 1.2).toFixed(2)}deg`;
+
+function place(el, x, y, opts = {}) {
+  el.classList.add('obj');
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  if (opts.tilt !== false) el.style.setProperty('--tilt', tilt());
+  el.style.zIndex = ++zTop;
+  (opts.parent || world).appendChild(el);
+  return el;
+}
+function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+
+/* ---------- object makers ---------- */
+function backFace(boxes = { Mild: 0, Min: 1, Sig: 0, Maj: 0 }, afflictions = true) {
+  const rows = ['Mild', 'Min', 'Sig', 'Maj'].map(l => `
+    <div class="boxes" data-row="${l}">${'<button class="box" aria-label="extra slot"></button>'.repeat(boxes[l] || 0)}</div>
+    <div class="lvl">${l}</div>
+    <div class="line bias" data-row="${l}"><span class="glyph" title="Drag to tap this Bias"></span><span class="lt" contenteditable></span><span class="spent"></span></div>
+    <div class="line aff" data-row="${l}"><span class="glyph" title="Drag to tap this Affliction"></span><span class="lt" contenteditable></span><span class="spent"></span></div>`).join('');
+  return `<div class="face back">
+    <div class="slots"><div></div><div class="hd" style="grid-column: span 2">Biases</div><div class="hd">${afflictions ? 'Afflictions' : ''}</div>${rows}</div>
+    <div class="notes-hd">Notes</div><div class="notes" contenteditable></div>
+    <button class="flipcorner" aria-label="Flip card"></button></div>`;
+}
+function makeCard(x, y, left, right, boxes, notes = '') {
+  const el = h(`<div class="card"><div class="flipper">
+      <div class="face front"><div class="cols">
+        <div class="col" contenteditable>${left}</div>
+        <div class="col" contenteditable>${right}</div></div>
+        <button class="flipcorner" aria-label="Flip card"></button></div>
+      ${backFace(boxes)}
+    </div></div>`);
+  if (notes) el.querySelector('.notes').innerHTML = notes;
+  return place(el, x, y);
+}
+function makeBlankCard(x, y) {
+  return makeCard(x, y,
+    `<h3>Name, Rank _</h3>Cha _ &nbsp; Int _ &nbsp; Wis _<br><br><b>Field _ (_XP)</b><br><i>Skill</i><br><i>Skill</i>`,
+    `<b>Mental Atk / Req:</b> _<br><b>Infer:</b> _<br><b>Impress:</b> _<br><b>Defend:</b> _<br><span class="sec">Resources</span>`);
+}
+function makeSticky(x, y, text = '', big = false) {
+  const el = h(`<div class="sticky${big ? ' big' : ''}"><div class="txt" contenteditable></div></div>`);
+  el.querySelector('.txt').innerHTML = text;
+  return place(el, x, y);
+}
+function makeText(x, y, text = 'Write here') {
+  const el = h(`<div class="text" contenteditable></div>`); el.textContent = text;
+  return place(el, x, y, { tilt: false });
+}
+function makeMat(x, y, who = 'Name') {
+  const el = h(`<div class="mat"><div class="head"><div class="who" contenteditable></div>
+    <button class="die-own" title="Click to claim this character; shift-click to release it"></button>
+    <button class="gather" title="Bring this character's card back under its pool">gather</button></div><div class="row">
+    <div class="slot" data-pool="Bonus"><div class="lbl">Bonus</div><div class="stack pos"></div><div class="stack neg"></div></div>
+    <div class="slot" data-pool="Main"><div class="lbl">Main</div><div class="stack pos"></div><div class="stack neg"></div></div>
+    <div class="slot" data-pool="Edge"><div class="lbl">Edge</div><div class="stack pos"></div><div class="stack neg"></div></div>
+    <div class="slot stagger" data-pool="Stagger"><div class="lbl">Stagger<small>OPPOSITION<br>ONLY</small></div><div class="stack pos"></div><div class="stack neg"></div></div>
+    <div class="slot bias" data-pool="Bias"><div class="lbl">Bias</div><div class="stack pos"></div><div class="stack neg"></div></div>
+  </div>
+  <div class="tray"><div class="cards"></div><div class="tools">
+    <button class="newinf g" data-c="g" title="Write a new positive Influence card">+</button>
+    <button class="newinf r" data-c="r" title="Write a new negative Influence card">−</button>
+    <div class="usedpile"><button class="uhead" title="Used Influence cards: click to see them, click one to put it back">used<b>0</b></button><div class="list" hidden></div></div>
+    <div class="killbox" title="Drop an Influence card here to destroy it">kill</div></div></div>
+  </div>`);
+  el.querySelector('.who').textContent = who;
+  // The GM's page numbers its characters; a player's page can't know the GM's count, so it picks a
+  // number the GM's (counting up from 1) won't reach.
+  el.id = realMe === 'GM' ? 'mat' + (++matSeq) : 'mat' + (100000 + Math.floor(Math.random() * 900000));
+  place(el, x, y, { tilt: false });
+  regather.observe(el);
+  return el;
+}
+let matSeq = 0;
+
+/* An Influence card: one object with two forms. At home in its mat's drawer it is a small card
+   (name and Level); in a pool it is a chip with its value in the middle. It is never lost:
+   dropped anywhere but a pool slot it goes home, and only the kill box destroys it. */
+const LEVEL = { 2: 'Min', 4: 'Sig', 6: 'Maj', 8: 'Ext', 10: 'Exq' };
+function makeInfl(c, v, name, mat, loose) {
+  const el = h(`<div class="chip infl ${c} cf${loose ? '' : ' home'}" data-c="${c}" data-v="${v}"><span class="num"></span>
+    <span class="face"><span class="cg"></span><span class="nm" contenteditable spellcheck="false"></span><span class="lv" title="Click to raise, shift-click to lower"></span></span></div>`);
+  el.querySelector('.nm').textContent = name;
+  el.classList.add('obj');
+  if (mat) el.dataset.home = mat.id;
+  syncInfl(el);
+  if (loose) world.appendChild(el); else mat.querySelector('.tray .cards').appendChild(el);
+  return el;
+}
+function syncInfl(el) {
+  const name = el.querySelector('.nm').textContent.trim() || 'Influence';
+  const lv = (el.dataset.c === 'g' ? '+' : '−') + (LEVEL[el.dataset.v] || el.dataset.v);
+  el.dataset.name = name;
+  el.title = `${name} ${lv}`;
+  el.querySelector('.num').textContent = el.dataset.v;
+  el.querySelector('.lv').textContent = lv;
+}
+function setValue(chip, v) {
+  chip.dataset.v = String(v);
+  if (chip.classList.contains('infl')) syncInfl(chip); else chip.firstChild.nodeValue = String(v);
+}
+function goHome(card) {
+  const mat = document.getElementById(card.dataset.home);
+  card.classList.add('cf');
+  if (!mat) return;                       // no home (its mat was put away): it lies on the table as a card
+  card.classList.add('home');
+  card.style.left = card.style.top = ''; card.style.setProperty('--tilt', '0deg');
+  mat.querySelector('.tray .cards').appendChild(card);
+}
+function makeChip(c, v) {
+  const el = h(`<div class="chip ${c}${v === '+1' ? ' odd' : ''}" data-c="${c}" data-v="${v}">${v}</div>`);
+  el.classList.add('obj');
+  el.style.zIndex = ++zTop;
+  return el;
+}
+function makeImage(x, y, src, file) {
+  const el = h(`<div class="image"><img alt="" src="${src}"></div>`);
+  if (file) keepImage(el.querySelector('img'), file);   // the bytes, so the image outlives the page
+  return place(el, x, y);
+}
+function makeRef(x, y) {
+  return place(h(`<div class="refcard">
+    <div class="rhd"><span>SKILL USE</span><em>ACTIONS</em></div>
+    <p><b>CREATE INFLUENCE</b></p>
+    <p><b>ATTACK</b>: Create a <b>Bias</b> or <b>Conviction</b></p>
+    <p><b>INFER</b>: Find out an NPC's <b>Skills</b>, <b>Resources</b>, <b>Motivations</b>, <b>Opinions</b>, or information on another character</p>
+    <p><b>IMPRESS</b>: change an NPC's <b>Opinions</b></p>
+    <p><b>REQUEST</b>: get an NPC to transfer a <b>Resource</b> or perform a task</p></div>`), x, y);
+}
+
+/* ---------- the opening scene: the 11-08 playtest ---------- */
+function scene() {
+  makeMat(40, 20, 'Sam').dataset.owner = 'Player 1';
+  const beau = makeMat(500, 20, 'Beauford');
+  beau.dataset.owner = 'Player 2';
+  makeMat(960, 20, 'Devreux');
+  beau.querySelector('[data-pool=Stagger] .neg').appendChild(makeChip('r', '2'));
+  const dev = document.getElementById('mat3');
+  makeInfl('g', 4, 'Keep the Peace', dev);
+  makeInfl('g', 4, 'Self-Preservation', dev);
+  makeInfl('g', 2, 'Old Sympathy for Sparkers', dev);
+
+  linkCard('mat1').card = makeCard(40, 300,
+    `<h3>Samuel Diamond, Rank 3</h3>Cha 2 &nbsp; Int 2 &nbsp; Wis 4<br>
+     <b>Private Investigator 2 (5XP)</b><br><i>Investigation (x2)</i><br><i>Advocacy (x2)</i><br><i>Fighting† (guns)</i><br>
+     <b>Sparker 2 (6XP)</b><br><i>✓ Glimmersense (x2) 3</i><br><i>Glimmer Lore (x2)</i><br><i>Composure</i><br>
+     Skills 1: Suasion (Detective), Tact, Lock Picking, Fire Starting, Wilderness Survival`,
+    `<b>Mental Atk / Req:</b> 2, +2<br><b>Psych Atk / Req:</b> 3, +2<br><b>Shoot:</b> 4, +2 (unfr, x 2)<br><b>Infer:</b> 4, +2<br>
+     <b>Impress:</b> 4, +2<br><b>Defend:</b> mental 2 / psych 4<br><b>Sparked:</b> 46 &nbsp;<b>Grains:</b> 14<br>
+     <span class="sec">Hollow Memories</span>Wicked deeds and hanging<br><span class="sec">Resources</span>Money +Maj<br>Ammo +Sig`,
+    { Min: 2 },
+    'Fire tools. Lantern. 6 Candles.<br>Pocket knife. Bedroll. Canteen.<br>Rope. Notebook and pencil.');
+
+  linkCard('mat2').card = makeCard(500, 300,
+    `<h3>Beauford T. Winkums, Rnk 3</h3>Cha 2 &nbsp; Int 3 &nbsp; Wis 1<br>
+     <b>Snakeoil Salesman 3 (5XP)</b><br><i>Rhetoric (Salesman) (x2)</i><br><i>Finesse (x2, Rhetoric)</i><br><i>✓ Rationalization 4</i><br>
+     <b>Medicineshow Occultist 2 (6XP)</b><br><i>✓ Glimmer Lore (x2) 3</i><br><i>Medicinals (x2)</i><br><i>Composure (x2)</i><br>
+     <span class="sec">Resources</span>Money +Min, Liquid Courage +Maj`,
+    `<b>Mental Atk / Req:</b> 5, 1d<br><i>Tricky -Min: 5, 2d</i><br><b>Psych Atk / Req:</b> 2, 1d<br><b>Infer:</b> 2, 1d<br>
+     <b>Impress:</b> 2, 1d<br><b>Defend:</b> mental 2 / psych 4<br><b>Sparked:</b> 55 &nbsp;<b>Grains:</b> 5<br>
+     <span class="sec">Hollow Memories</span>Saw your child kidnapped<br><span class="sec">Items</span>Horse &amp; wagon<br>Dice token: Farkas, uses 20`,
+    { Min: 1 });
+
+  linkCard('mat3').card = makeCard(960, 300,
+    `<h3>Mistress Devreux</h3>Saloon Proprietor, Rank 3<br>Cha 3 &nbsp; Int 1 &nbsp; Wis 3<br>
+     <b>Skills 3:</b> Savvy, Profession (Saloon Keeper), Streetwise<br><b>Skills 2:</b> Musician, Composure, Gambling, Etiquette, Bargaining, Tact<br>
+     <b>Skills 1:</b> Suasion (Charm)<br><span class="sec">Motivations</span>Keep the Peace +Sig<br>Self-Preservation +Sig<br>Old Sympathy for Sparkers +Min`,
+    `<b>Attack:</b> 4 (Suasion, Charm), +1<br><b>Defend:</b> 6 / 5<br><b>Slots:</b> Mild, Min ×3, Sig, Maj<br>
+     <span class="sec">Resources</span>Saloon Gossip +Maj<br>Money +Sig<br><span class="sec">Items</span>Dead Man's Die<br>(Free Token, 9 uses)`,
+    { Min: 2 });
+
+  makeSticky(1430, 20,
+    `Find: How did Trudy get infected?<br>Answer: started less than a month ago, before she lost her doll<br><br>Level 3<br><br>
+     0. Obed found Trudy in the forest as an infant<br>0. She had her doll at that time and was dressed in rags<br>
+     0. She's very clever and athletic<br>0. The doll is wooden, carved, extremely ugly, and disturbing<br><br>
+     Q1: What is the doll?<br>A1: *super* important to Trudy.<br><br>Next session: first day in town, late at night at the hotel`, true);
+
+  makeRef(1430, 650);
+}
+
+// linkCard('mat1').card = el  ties a character card to its mat (the setter does the work).
+function linkCard(matId) { return { set card(el) { el.dataset.mat = matId; } }; }
+
+/* ---------- view: pan and zoom ---------- */
+function fit() {
+  const w = 1880, hgt = 990, r = table.getBoundingClientRect();
+  view.z = Math.min(1, (r.width - 40) / w, (r.height - 30) / hgt);
+  view.x = (r.width - w * view.z) / 2; view.y = 14;
+  applyView();
+}
+table.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = table.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top;
+  const nz = Math.min(2.5, Math.max(0.25, view.z * Math.exp(-e.deltaY * 0.0012)));
+  view.x = sx - (sx - view.x) * (nz / view.z); view.y = sy - (sy - view.y) * (nz / view.z); view.z = nz;
+  applyView();
+}, { passive: false });
+
+/* ---------- dragging ---------- */
+let press = null;   // a pointer that may become a drag
+let drag = null;    // an object in hand
+let pan = null;
+let suppressClick = false;
+let aiming = false;          // dragging from the Base to point at an opponent   // a drag ends in a click; don't let it count as one
+
+table.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;
+  const obj = e.target.closest('.obj');
+  if (!obj) {
+    if (document.activeElement && document.activeElement.isContentEditable) document.activeElement.blur();
+    pan = { sx: e.clientX, sy: e.clientY, x: view.x, y: view.y }; document.body.classList.add('panning'); return;
+  }
+  if (e.target.closest('#rollinfo .base') && act) { e.preventDefault(); press = { aim: true, sx: e.clientX, sy: e.clientY }; return; }   // no text selection
+  const handle = e.target.closest('.glyph, .box.on');
+  if (handle) {                           // a press on a Resource handle becomes a tap if it moves
+    if (handle.classList.contains('glyph')) e.preventDefault();
+    press = { tap: handle, sx: e.clientX, sy: e.clientY };
+    return;
+  }
+  if (e.target.closest('button, select, input, .pile > .disc')) return;
+  const ed = e.target.closest('[contenteditable]');
+  if (ed && ed === document.activeElement) return;    // already writing: let the pen select text
+  press = { obj, sx: e.clientX, sy: e.clientY };
+});
+
+function lift(obj, cx, cy) {
+  const from = obj.parentElement && obj.parentElement.closest('.stack');
+  const wasOnTable = obj.parentElement === world, wasLeft = obj.style.left, wasTop = obj.style.top;
+  const shrink = obj.classList.contains('cf');
+  const r = obj.getBoundingClientRect();
+  const w = toWorld(r.left, r.top);
+  if (shrink) obj.classList.remove('cf', 'home');
+  obj.classList.remove('glide');
+  world.appendChild(obj);
+  obj.style.left = w.x + 'px'; obj.style.top = w.y + 'px';
+  obj.style.zIndex = ++zTop;
+  obj.classList.add('lifted');
+  if (obj.classList.contains('chip')) document.body.classList.add('tapping');   // the finger while dragging a chip
+  const p = toWorld(cx, cy);
+  drag = shrink ? { obj, dx: 21, dy: 21, from } : { obj, dx: p.x - w.x, dy: p.y - w.y, from };
+  if (shrink) { obj.style.left = (p.x - 21) + 'px'; obj.style.top = (p.y - 21) + 'px'; }
+  if (from) settle(from);
+  // A pool brings its character card along; a card moves alone (and is no longer gathered).
+  const card = obj.classList.contains('mat') && document.querySelector(`.card[data-mat="${obj.id}"]`);
+  if (card) drag.follow = { el: card, ox: parseFloat(card.style.left) - parseFloat(obj.style.left), oy: parseFloat(card.style.top) - parseFloat(obj.style.top) };
+  if (obj.classList.contains('card')) delete obj.dataset.gathered;
+  drag.origin = [{ el: obj, left: wasOnTable ? wasLeft : w.x + 'px', top: wasOnTable ? wasTop : w.y + 'px' }];
+  if (card) drag.origin.push({ el: card, left: card.style.left, top: card.style.top });
+  document.body.classList.add('dragging');
+  if (document.activeElement && document.activeElement.isContentEditable) document.activeElement.blur();
+  window.getSelection().removeAllRanges();
+}
+
+window.addEventListener('pointermove', e => {
+  if (pan) { view.x = pan.x + e.clientX - pan.sx; view.y = pan.y + e.clientY - pan.sy; applyView(); return; }
+  if (press && !drag && Math.hypot(e.clientX - press.sx, e.clientY - press.sy) > 4) {
+    if (press.tap) { if (!startTap(press.tap, e.clientX, e.clientY)) press = null; }
+    else if (press.aim) { aiming = true; document.body.classList.add('tapping', 'dragging'); getSelection().removeAllRanges(); }
+    else lift(press.obj, press.sx, press.sy);
+  }
+  if (aiming) { aimAt(e.clientX, e.clientY, false); return; }
+  if (!drag) return;
+  e.preventDefault();
+  const p = toWorld(e.clientX, e.clientY);
+  drag.obj.style.left = (p.x - drag.dx) + 'px'; drag.obj.style.top = (p.y - drag.dy) + 'px';
+  if (drag.follow) { drag.follow.el.style.left = (p.x - drag.dx + drag.follow.ox) + 'px'; drag.follow.el.style.top = (p.y - drag.dy + drag.follow.oy) + 'px'; }
+  window.onDragMove?.(inHand());
+  highlight(target(e.clientX, e.clientY));
+  drawer.classList.toggle('toss', overDrawer(e.clientY));
+  drawer.classList.toggle('bury', overDrawer(e.clientY) && drag.obj.matches('.mat, .card, .sticky, .text, .image, .receipt, .tornroll'));
+});
+
+window.addEventListener('pointerup', e => {
+  if (aiming) { aiming = false; document.body.classList.remove('tapping', 'dragging'); aimAt(e.clientX, e.clientY, true); press = null;
+    suppressClick = true; setTimeout(() => { suppressClick = false; }, 0); return; }
+  if (pan) { pan = null; document.body.classList.remove('panning'); }
+  if (drag) { const els = inHand(); drop(e.clientX, e.clientY); window.onDragEnd?.(els); }
+  press = null; drag = null;
+});
+
+// What's in hand: the object, and the card that follows its pool.
+const inHand = () => drag ? [drag.obj, drag.follow && drag.follow.el].filter(Boolean) : [];
+const overDrawer = cy => cy < drawer.getBoundingClientRect().bottom;
+let lit = null;
+function highlight(t) { if (lit) lit.classList.remove('over'); lit = t && t.el; if (lit) lit.classList.add('over'); }
+
+// What would the object in hand attach to, if dropped here?
+function target(cx, cy) {
+  const obj = drag.obj;
+  obj.style.pointerEvents = 'none';
+  const under = document.elementsFromPoint(cx, cy);
+  obj.style.pointerEvents = '';
+  for (const el of under) {
+    if (obj.contains(el)) continue;
+    if (obj.classList.contains('chip')) {
+      const kill = el.closest('.killbox');
+      if (kill) return { kind: 'kill', el: kill };
+      if (obj.classList.contains('infl')) {
+        // A card made from Resources takes a new tap wherever it sits, even at home in a drawer,
+        // so this is checked before "dropped on a drawer". Resources only feed such a card.
+        const into = el.closest('.infl[data-res]');
+        if (obj.dataset.res && into && into !== obj && !into.dataset.used && into.dataset.c === obj.dataset.c && !into.closest('.mat.secret')) return { kind: 'merge', el: into };
+        const tray = el.closest('.tray'); if (tray) return { kind: 'home', el: tray };
+      }
+      const odd = obj.classList.contains('odd');
+      const chip = el.closest('.chip:not(.odd)');
+      if (odd && chip && !chip.querySelector('.odd') && chip.closest('#world')) return { kind: 'ride', el: chip };
+      const slot = el.closest('.slot');
+      if (slot) return { kind: 'slot', el: slot };
+    } else if (/(^| )(sticky|text|image)( |$)/.test(obj.className)) {
+      const card = el.closest('.card');
+      if (card) return { kind: 'pin', el: card };
+    }
+  }
+  return null;
+}
+
+function drop(cx, cy) {
+  const obj = drag.obj;
+  obj.classList.remove('lifted');
+  document.body.classList.remove('dragging', 'tapping');
+  drawer.classList.remove('toss', 'bury');
+  const t = target(cx, cy);
+  highlight(null);
+  suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+  const infl = obj.classList.contains('infl');
+  if (obj.dataset.newChar) {
+    delete obj.dataset.newChar;
+    if (!overDrawer(cy)) popPool(obj);
+  }
+  if (t && t.kind === 'kill') { refundAll(obj); obj.remove(); return; }
+  if (t && t.kind === 'home') { obj.dataset.home = t.el.closest('.mat').id; goHome(obj); applyVisibility(); return; }
+  if (t && t.kind === 'merge') { mergeInto(obj, t.el); return; }
+  if (infl && drag.fresh && !overDrawer(cy) && (!t || t.kind !== 'slot')) { obj.classList.add('cf'); return; }  // a new tap waits on the table
+  if (overDrawer(cy) && (obj.matches('.mat, .card, .sticky, .text, .image, .receipt, .tornroll'))) {
+    for (const o of drag.origin || []) { o.el.style.left = o.left; o.el.style.top = o.top; }
+    bury(obj); return;
+  }
+  if (overDrawer(cy) || (!t && infl) || (infl && t.kind !== 'slot')) { if (infl) goHome(obj); else if (overDrawer(cy)) obj.remove(); return; }
+  if (!t) return;
+  if (t.kind === 'slot') {
+    const stack = t.el.querySelector(obj.classList.contains('g') ? '.pos' : '.neg');
+    stack.appendChild(obj); obj.style.setProperty('--tilt', '0deg');
+    settle(stack);
+  }
+  if (t.kind === 'ride') {
+    t.el.appendChild(obj); obj.style.setProperty('--tilt', '0deg');
+    if (t.el.classList.contains('infl')) syncInfl(t.el);
+    const stack = t.el.closest('.stack'); if (stack) settle(stack);
+  }
+  if (t.kind === 'pin') {
+    const or = obj.getBoundingClientRect(), cr = t.el.getBoundingClientRect();
+    t.el.appendChild(obj);
+    obj.style.left = (or.left - cr.left) / view.z + 'px'; obj.style.top = (or.top - cr.top) / view.z + 'px';
+  }
+}
+
+/* ---------- Roll Up (Hollow Folks, INFLUENCE ROLL UP) ----------
+   Three Influences of the same value in one pool Roll Up and act as one of the next Level, and
+   that may complete another three. An odd Influence (a chip carrying a +1) Rolls Up as if one
+   point lower, so it counts at its face value. Three anonymous chips simply merge into one chip.
+   If any of the three is an Influence card, they form a PILE instead: the cards keep their
+   names, and the pile shows the value they act as. A pile whose members stop matching breaks up. */
+const rider = u => u.querySelector(':scope > .odd');
+const isUnit = u => (u.classList.contains('chip') && !u.classList.contains('odd')) || u.classList.contains('pile');
+const anonymous = u => u.classList.contains('chip') && !u.classList.contains('infl');
+
+function settle(stack) {
+  if (!stack.isConnected) return;
+  breakBadPiles(stack);
+  rollUp(stack);
+  if (rollReady && (stack.closest('.mat') === roller.closest('.mat') || (act && act.vs && stack.closest('.mat')?.id === act.vs.mat))) refreshRoll();
+}
+let rollReady = false;   // the roll row exists (settle can run before it is built)
+function breakBadPiles(container) {
+  for (const p of [...container.children].filter(x => x.classList.contains('pile'))) {
+    const members = p.querySelector(':scope > .members');
+    breakBadPiles(members);
+    const ms = [...members.children];
+    const ok = ms.length === 3 && ms.every(m => isUnit(m) && +m.dataset.v === +p.dataset.v - 2 && m.dataset.c === p.dataset.c);
+    if (!ok) { ms.forEach(m => container.insertBefore(m, p)); p.remove(); }
+  }
+}
+function rollUp(stack) {
+  for (;;) {
+    const byValue = {};
+    [...stack.children].filter(isUnit).forEach(u => (byValue[u.dataset.v] ||= []).push(u));
+    const v = Object.keys(byValue).map(Number).sort((a, b) => a - b).find(n => byValue[n].length >= 3);
+    if (v === undefined) return tidy(stack);
+    const group = byValue[v];
+    const plain = group.filter(anonymous).sort((a, b) => !!rider(a) - !!rider(b));
+    const at = group[0], c = at.dataset.c;
+    if (plain.length >= 3) {
+      const up = makeChip(c, String(v + 2));
+      stack.insertBefore(up, plain[0]);
+      plain.slice(0, 3).forEach(ch => ch.remove());
+      up.classList.add('rolled');
+      up.addEventListener('animationend', () => up.classList.remove('rolled'), { once: true });
+    } else {
+      const three = [...plain, ...group.filter(u => !anonymous(u))].slice(0, 3);
+      const pile = h(`<div class="pile ${c}" data-c="${c}" data-v="${v + 2}"><button class="disc" title="Click to open or close the pile">${v + 2}</button><div class="members"></div></div>`);
+      stack.insertBefore(pile, three[0]);
+      three.forEach(u => pile.querySelector('.members').appendChild(u));
+      pile.title = three.map(u => u.dataset.name || u.dataset.v).join(', ') + ` act as ${v + 2}`;
+      pile.classList.add('rolled');
+      pile.addEventListener('animationend', () => pile.classList.remove('rolled'), { once: true });
+    }
+  }
+}
+
+// Only the strongest Influence of each sign applies, so it sits nearest the edge and is drawn on
+// top; weaker ones tuck under it. A chip carrying a +1 counts one higher; loose +1s go last.
+function tidy(stack) {
+  const worth = u => u.classList.contains('odd') ? 1 : +u.dataset.v + (rider(u) ? 1 : 0);
+  [...stack.children].sort((a, b) => worth(b) - worth(a)).forEach((u, i) => { stack.appendChild(u); u.style.zIndex = 50 - i; });
+}
+
+/* ---------- taking from the drawer ---------- */
+drawer.addEventListener('pointerdown', e => {
+  const s = e.target.closest('.supply'); if (!s || e.button !== 0) return;
+  e.preventDefault();
+  const kind = s.dataset.make;
+  if (kind === 'image') { document.getElementById('file').click(); return; }
+  const p = toWorld(e.clientX, e.clientY);
+  let obj;
+  if (kind === 'card') { obj = makeBlankCard(p.x - 200, p.y - 140); obj.dataset.newChar = '1'; }
+  if (kind === 'sticky') obj = makeSticky(p.x - 110, p.y - 70);
+  if (kind === 'text') obj = makeText(p.x - 40, p.y - 15);
+  if (kind === 'chip') { obj = makeChip(s.dataset.c, s.dataset.v); world.appendChild(obj); }
+  const r = obj.getBoundingClientRect();
+  lift(obj, r.left + r.width / 2, r.top + r.height / 2);
+  const q = toWorld(e.clientX, e.clientY);
+  obj.style.left = (q.x - drag.dx) + 'px'; obj.style.top = (q.y - drag.dy) + 'px';
+});
+
+/* ---------- images: from the drawer or dropped from the desktop ---------- */
+function centre() { const r = table.getBoundingClientRect(); return toWorld(r.left + r.width / 2, r.top + r.height / 2); }
+document.getElementById('file').addEventListener('change', e => {
+  const c = centre();
+  [...e.target.files].forEach((f, i) => makeImage(c.x - 120 + i * 24, c.y - 100 + i * 24, URL.createObjectURL(f), f));
+  e.target.value = '';
+});
+table.addEventListener('dragover', e => e.preventDefault());
+table.addEventListener('drop', e => {
+  e.preventDefault();
+  const p = toWorld(e.clientX, e.clientY);
+  [...e.dataTransfer.files].filter(f => f.type.startsWith('image/')).forEach((f, i) => makeImage(p.x + i * 24, p.y + i * 24, URL.createObjectURL(f), f));
+});
+
+// Opening a pool's used list or a pile lifts the pool to the front, for you only. Raising its
+// z-index would reorder the table for everyone, and z-order is shared (it's in the records).
+function peek(mat) { if (mat) mat.classList.toggle('peek', !!mat.querySelector('.usedpile .list:not([hidden]), .pile.open')); }
+
+/* ---------- clicks: flip, Slot boxes, new Influence cards, piles, raise and lower ---------- */
+table.addEventListener('click', e => {
+  if (suppressClick) return;
+  const flip = e.target.closest('.flipcorner');
+  if (flip) { flip.closest('.card').classList.toggle('flipped'); return; }
+  const box = e.target.closest('.box');
+  if (box) {                               // a box is checked only once its row's Bias has a name
+    const named = box.closest('.card').querySelector(`.line.bias[data-row="${box.closest('.boxes').dataset.row}"] .lt`).textContent.trim();
+    if (!box.classList.contains('on') && !named) { box.classList.remove('nope'); void box.offsetWidth; box.classList.add('nope'); return; }
+    box.classList.toggle('on'); box.classList.remove('spent'); delete box.dataset.spent;
+    return;
+  }
+  const actBtn = e.target.closest('.actbtn');
+  if (actBtn) { useAction(actBtn); return; }
+  if (e.target.closest('#rollinfo .base')) { act = null; refreshRoll(); return; }
+  if (e.target.closest('#rollinfo .vs')) { if (act) { delete act.vs; delete act.advManual; refreshRoll(); } return; }
+  const own = e.target.closest('.die-own');
+  if (own) {                              // shift: release; yours: bring the roll row here; otherwise: claim
+    const mat = own.closest('.mat');
+    if (e.shiftKey || e.ctrlKey || e.altKey) claim(mat, true);
+    else if (ownerOf(mat) !== '' && rollsFor(mat)) {   // yours, or the GM working a player's
+      if (roller.closest('.mat') === mat) { act = null; advI = 4; steps.y = 1; steps.b = 0; adj = { y: 0, b: 0 }; refreshRoll(); }   // the row is here: start fresh
+      else dock(mat);
+    }
+    else claim(mat, false);
+    return;
+  }
+  const uh = e.target.closest('.uhead');
+  if (uh) { uh.nextElementSibling.hidden = !uh.nextElementSibling.hidden; peek(uh.closest('.mat')); saveSeat(); return; }
+  const usedCard = e.target.closest('.usedpile .infl');
+  if (usedCard) { restore(usedCard); return; }
+  const ga = e.target.closest('.gather');
+  if (ga) { gather(ga.closest('.mat')); return; }
+  const nw = e.target.closest('.newinf');
+  if (nw) {
+    const card = makeInfl(nw.dataset.c, 2, 'Influence', nw.closest('.mat'));
+    const nm = card.querySelector('.nm'); nm.focus();
+    const range = document.createRange(); range.selectNodeContents(nm);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    return;
+  }
+  const disc = e.target.closest('.pile > .disc');
+  if (disc) { disc.parentElement.dataset.uid ||= newOid(); disc.parentElement.classList.toggle('open'); peek(disc.closest('.mat')); saveSeat(); return; }
+  const chip = e.target.closest('.chip');
+  if (!chip) {                             // a pool's empty space: click adds a +1, shift-click a −1
+    const slot = e.target.closest('.slot');
+    if (slot && !e.target.closest('.pile')) {
+      const down = e.shiftKey || e.ctrlKey || e.altKey;
+      const stack = slot.querySelector(down ? '.neg' : '.pos');
+      const c = makeChip(down ? 'r' : 'g', '+1'); c.style.setProperty('--tilt', '0deg');
+      stack.appendChild(c);
+      settle(stack);
+    }
+    return;
+  }
+  if (chip.classList.contains('odd')) {   // a loose +1: click makes it a 2, shift-click removes it; a rider belongs to its chip
+    const down = e.shiftKey || e.ctrlKey || e.altKey, host = chip.parentElement.closest('.chip');
+    const stack = chip.parentElement.closest('.stack');
+    if (down) { chip.remove(); if (host && host.classList.contains('infl')) syncInfl(host); if (stack) settle(stack); }
+    else if (!host) { chip.classList.remove('odd'); setValue(chip, 2); pop(chip); if (stack) settle(stack); }
+    return;
+  }
+  if (chip.classList.contains('home') && !e.target.closest('.lv')) return;   // in a drawer, only the Level badge
+  if (chip.classList.contains('cf') && e.target.closest('.nm')) return;      // writing its name
+  const down = e.shiftKey || e.ctrlKey || e.altKey;
+  // Resources feed only an unused tap; once used, click and shift-click are Create Influence (replace).
+  if (chip.dataset.res && !chip.dataset.used) transfer(chip, down ? -1 : 1); else bump(chip, down ? -2 : 2);
+});
+table.addEventListener('input', e => {
+  const c = e.target.closest('.infl'); if (c) syncInfl(c);
+  const line = e.target.closest('.line'); if (line) line.classList.toggle('filled', !!line.querySelector('.lt').textContent.trim());
+});
+table.addEventListener('focusout', e => { const col = e.target.closest && e.target.closest('.col'); if (col) { decorateResources(col); decorateActions(col); } });
+
+function pop(el) { el.classList.remove('rolled'); void el.offsetWidth; el.classList.add('rolled'); el.addEventListener('animationend', () => el.classList.remove('rolled'), { once: true }); }
+// Click raises an Influence one Level (+2), with no ceiling; shift-click lowers it. A plain chip
+// lowered to 0 is gone (its +1 stays behind as a loose odd point). An Influence card stops at
+// Min: only the kill box destroys it.
+function bump(chip, d) {
+  const stack = chip.parentElement && chip.parentElement.closest('.stack');
+  const n = +chip.dataset.v + d;
+  if (n <= 0) {
+    if (chip.classList.contains('infl')) return;
+    const r = rider(chip);
+    if (!r && n === 0 && d === -2) {       // a plain 2 lowered becomes a loose +1, not nothing
+      chip.classList.add('odd'); chip.dataset.v = '+1'; chip.firstChild.nodeValue = '+1';
+      if (stack) settle(stack);
+      return;
+    }
+    if (r) { chip.parentElement.insertBefore(r, chip); r.style.left = chip.style.left; r.style.top = chip.style.top; }
+    chip.remove();
+    if (stack) settle(stack);
+    return;
+  }
+  setValue(chip, n);
+  chip.classList.remove('rolled'); void chip.offsetWidth; chip.classList.add('rolled');
+  chip.addEventListener('animationend', () => chip.classList.remove('rolled'), { once: true });   // or it replays when the chip moves
+  if (stack) settle(stack);
+}
+
+/* ---------- Resources and tapping (Hollow Folks, TAPPING RESOURCES) ----------
+   A Resource is a handwritten entry after "Resources" on a card (split at commas and line breaks),
+   a named Bias or Affliction line on its back, or a checked box (another, nameless Bias at that
+   row's Level). Each gets a glyph. Dragging a glyph spends one Level of the Resource and pops an
+   Influence card born at Min, with its own glyph under the pointer. Click moves another Level from
+   the card's current source; shift-click gives one back, never more than that source put in (the
+   card keeps a ledger per Resource). Dropping a new tap onto a card made from Resources merges it
+   and makes that Resource the current source. Resources never feed a plain Influence card. */
+const WORD = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
+const WORD_OF = ['0', 'Min', 'Sig', 'Maj', 'Ext', 'Exq'];
+const ROW = { Mild: 1, Min: 1, Sig: 2, Maj: 3 };          // Mild is worth Min (Bill, 11-09)
+const ENTRY = /^(.*?)\s*([+\-−])\s*(Min|Sig|Maj|Ext|Exq|\d+)\s*$/i;
+let ridSeq = 0;
+const rid = el => el.dataset.rid ||= 'r' + (++ridSeq);
+const resById = id => document.querySelector(`[data-rid="${id}"]`);
+
+function resInfo(el) {                     // -> { name, c, levels } or null
+  if (el.classList.contains('rent')) {
+    const m = el.textContent.trim().match(ENTRY); if (!m) return null;
+    const lv = /^\d+$/.test(m[3]) ? +m[3] : WORD[m[3][0].toUpperCase() + m[3].slice(1, 3).toLowerCase()];
+    return { name: m[1].trim(), c: m[2] === '+' ? 'g' : 'r', levels: lv };
+  }
+  const row = (el.closest('[data-row]') || el).dataset.row;
+  const spent = +(el.dataset.spent || 0);
+  if (el.classList.contains('line')) {
+    const name = el.querySelector('.lt').textContent.trim(); if (!name) return null;
+    return { name, c: 'r', levels: ROW[row] - spent };
+  }
+  if (el.classList.contains('box')) {
+    if (!el.classList.contains('on')) return null;
+    const named = el.closest('.card').querySelector(`.line.bias[data-row="${row}"] .lt`).textContent.trim();
+    return { name: named || `${row} Bias`, c: 'r', levels: ROW[row] - spent };
+  }
+  return null;
+}
+function resSpend(el, n) {                 // n > 0 spends Levels, n < 0 returns them
+  if (el.classList.contains('rent')) {
+    const m = el.textContent.trim().match(ENTRY);
+    const lv = resInfo(el).levels - n;
+    setRentText(el, `${m[1].trim()} ${m[2]}${WORD_OF[lv] ?? lv}`);
+  } else {
+    el.dataset.spent = +(el.dataset.spent || 0) + n;
+    if (el.classList.contains('line')) el.querySelector('.spent').textContent = +el.dataset.spent ? `−${el.dataset.spent}` : '';
+    if (el.classList.contains('box')) el.classList.toggle('spent', +el.dataset.spent >= ROW[el.closest('.boxes').dataset.row]);
+  }
+  markDry(el);
+}
+function markDry(el) {
+  const g = el.classList.contains('box') ? null : el.querySelector('.glyph');
+  const info = resInfo(el);
+  if (g) g.classList.toggle('dry', !info || info.levels < 1);
+}
+function setRentText(el, text) {
+  [...el.childNodes].filter(n => n.nodeType === 3).forEach(n => n.remove());
+  el.appendChild(document.createTextNode(text));
+}
+
+// Wrap each entry after "Resources" in a span with a glyph, keeping its id across edits.
+function decorateResources(col) {
+  const sec = [...col.querySelectorAll('.sec')].find(x => /^resources\b/i.test(x.textContent.trim()));
+  if (!sec) return;
+  const nodes = [];
+  for (let n = sec.nextSibling; n && !(n.nodeType === 1 && n.classList.contains('sec')); n = n.nextSibling) nodes.push(n);
+  const end = nodes.length ? nodes[nodes.length - 1].nextSibling : sec.nextSibling;
+  const keep = {};
+  let text = '';
+  for (const n of nodes) {
+    if (n.nodeType === 1 && n.tagName === 'BR') text += '\n';
+    else {
+      if (n.nodeType === 1 && n.classList.contains('rent') && n.dataset.rid) {
+        const info = n.textContent.trim().match(ENTRY);
+        keep[(info ? info[1] : n.textContent).trim().toLowerCase()] = { rid: n.dataset.rid, spent: n.dataset.spentLv };
+      }
+      text += n.textContent;
+    }
+    n.remove();
+  }
+  const frag = document.createDocumentFragment();
+  for (const piece of text.split(/(,|\n)/)) {
+    if (piece === ',') frag.append(', ');
+    else if (piece === '\n') frag.append(document.createElement('br'));
+    else if (piece.trim()) {
+      const span = h(`<span class="rent"><span class="glyph" contenteditable="false" title="Drag to tap this Resource"></span></span>`);
+      setRentText(span, piece.trim());
+      const m = piece.trim().match(ENTRY);
+      const old = keep[(m ? m[1] : piece).trim().toLowerCase()];
+      if (old) span.dataset.rid = old.rid;
+      frag.append(span);
+      markDry(span);
+    }
+  }
+  col.insertBefore(frag, end && end.parentNode === col ? end : null);
+}
+
+/* Action lines: `Label: N [stuff], [Nd][±N] [stuff]`. N is the Base; `Nd` is that many Yellows and
+   `±N` the bonus (cards already apply Hollow Folks' rule: a Yellow per 3 full points of Success Bonus,
+   the rest added directly). The split is at the first comma outside parentheses, since lines like
+   `Attack: 4 (Suasion, Charm), +1` and `Shoot: 4, +2 (unfr, x 2)` have commas inside them. */
+function parseAction(text) {
+  const m = text.trim().match(/^([^:]+):\s*([+\-−]?\d+)(.*)$/); if (!m) return null;
+  let depth = 0, at = -1;
+  for (let i = 0; i < m[3].length; i++) {
+    const ch = m[3][i];
+    if (ch === '(') depth++; else if (ch === ')') depth--; else if (ch === ',' && depth === 0) { at = i; break; }
+  }
+  if (at < 0) return null;
+  const tail = m[3].slice(at + 1).trim().replace(/−/g, '-');
+  const d = tail.match(/^(?:([+-]?\d+)\s*d)?\s*([+-]\s*\d+)?/);
+  if (!d || (d[1] === undefined && d[2] === undefined)) return null;
+  return { label: m[1].trim(), base: +m[2].replace('−', '-'), y: d[1] ? Math.max(0, +d[1]) : 0, b: d[2] ? +d[2].replace(/\s/g, '') : 0 };
+}
+// The lines of a card column, as groups of nodes. Lines end at <br>, headings, and section labels;
+// a <div> or <p> (what Enter makes while editing) is a line, or several, of its own. Structural, so
+// it reads face-down (hidden) cards too.
+function linesOf(col) {
+  const lines = []; let line = [];
+  const flush = () => { if (line.length) lines.push(line); line = []; };
+  const walk = parent => {
+    for (const n of [...parent.childNodes]) {
+      if (n.nodeType === 1 && (n.tagName === 'DIV' || n.tagName === 'P')) { flush(); walk(n); flush(); continue; }
+      if (n.nodeType === 1 && (n.tagName === 'BR' || n.classList.contains('sec') || n.tagName === 'H3')) { flush(); continue; }
+      line.push(n);
+    }
+  };
+  walk(col); flush();
+  return lines;
+}
+function decorateActions(col) {
+  col.querySelectorAll('.actbtn').forEach(b => b.remove());
+  col.querySelectorAll('.actline').forEach(l => l.replaceWith(...l.childNodes));
+  for (const line of linesOf(col)) {
+    const text = line.map(n => n.textContent).join('');
+    const a = parseAction(text);
+    if (a) {
+      const btn = h(`<span class="actbtn" contenteditable="false" title="Roll this: ${a.label}"></span>`);
+      Object.assign(btn.dataset, { label: a.label, base: a.base, y: a.y, b: a.b });
+      const wrap = h(`<span class="actline"></span>`);
+      line[0].parentNode.insertBefore(wrap, line[0]);
+      wrap.append(btn, ...line);
+    }
+  }
+  if (rollReady) markAction();
+}
+/* Pointing at an opponent. Drag from the Base onto another character's pool or card. Their
+   Defend comes from their card's `Defend:` line (`Defend: 2`, `mental 2 / psych 4`, or `6 / 5`,
+   read mental / psych); the dragger chooses mental or psych. Their total is Defend + Main + Edge +
+   Bias + Stagger (they are the opposition). The Difference picks the White row, live, until the
+   roller picks a row by hand. Players can't aim at characters hidden from them (no probing for
+   weaknesses between sessions); only the GM can, working the PC's roll row. */
+function matUnder(cx, cy) {
+  for (const el of document.elementsFromPoint(cx, cy)) {
+    const m = el.closest('.mat'); if (m) return m;
+    const c = el.closest('.card'); if (c && c.dataset.mat) return document.getElementById(c.dataset.mat);
+  }
+  return null;
+}
+function aimAt(cx, cy, done) {
+  const own = roller.closest('.mat'), m = matUnder(cx, cy);
+  document.querySelectorAll('.mat.aimed').forEach(x => x.classList.remove('aimed'));
+  const ok = m && m !== own;
+  if (!done) { if (ok && !m.classList.contains('secret')) m.classList.add('aimed'); return; }
+  if (!ok) return;
+  if (m.classList.contains('secret')) {          // no probing hidden characters: only the GM aims at them
+    const box = document.getElementById('defchoice');
+    box.innerHTML = `<p>Only the GM can aim at ${m.querySelector('.who').textContent.trim() || 'a hidden character'}.</p>`;
+    box.style.left = Math.min(cx + 8, innerWidth - 260) + 'px'; box.style.top = Math.min(cy + 8, innerHeight - 60) + 'px';
+    box.hidden = false; setTimeout(() => { box.hidden = true; }, 2200);
+    return;
+  }
+  const card = document.querySelector(`.card[data-mat="${m.id}"]`), def = defendOf(card), hidden = false;
+  const name = m.querySelector('.who').textContent.trim() || 'opponent';
+  const kinds = Object.keys(def);
+  const pick = kind => { act.vs = { mat: m.id, kind, name }; delete act.advManual; refreshRoll(); };
+  if (kinds.length <= 1) return pick(kinds[0] || '');
+  const box = document.getElementById('defchoice');
+  box.innerHTML = `<p>Against ${name}'s Defend</p>`;
+  for (const k of kinds) {
+    const b = h(`<button></button>`); b.textContent = (k === 'mental' ? 'Mental' : 'Psych') + (hidden ? '' : ' ' + def[k]);
+    b.addEventListener('click', () => { box.hidden = true; pick(k); });
+    box.append(b);
+  }
+  box.style.left = Math.min(cx + 8, innerWidth - 160) + 'px'; box.style.top = Math.min(cy + 8, innerHeight - 120) + 'px';
+  box.hidden = false;
+  box.querySelector('button').focus();
+}
+document.addEventListener('pointerdown', e => { const box = document.getElementById('defchoice'); if (!box.hidden && !e.target.closest('#defchoice')) box.hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('defchoice').hidden = true; });
+function defendOf(card) {
+  if (!card) return {};
+  const line = [...card.querySelectorAll('.front .col')].flatMap(linesOf).map(l => l.map(n => n.textContent).join('').trim()).find(l => /^Defend\s*:/i.test(l));
+  if (!line) return {};
+  const t = line.replace(/^Defend\s*:\s*/i, '').replace(/−/g, '-');
+  let m = t.match(/mental\s*(-?\d+).*?psych\s*(-?\d+)/i);
+  if (m) return { mental: +m[1], psych: +m[2] };
+  m = t.match(/(-?\d+)\s*\/\s*(-?\d+)/);
+  if (m) return { mental: +m[1], psych: +m[2] };
+  m = t.match(/-?\d+/);
+  return m ? { any: +m[0] } : {};
+}
+const rowFor = d => d >= 10 ? 0 : d >= 7 ? 1 : d >= 5 ? 2 : d >= 3 ? 3 : d >= -2 ? 4 : d >= -4 ? 5 : d >= -6 ? 6 : d >= -9 ? 7 : 8;
+
+// Highlight the action in use on its character's card.
+function markAction() {
+  document.querySelectorAll('.actline.on').forEach(l => l.classList.remove('on'));
+  const mat = roller.closest('.mat');
+  if (!act || !mat) return;
+  const btn = [...document.querySelectorAll(`.card[data-mat="${mat.id}"] .actbtn`)].find(b => b.dataset.label === act.label);
+  if (btn) btn.closest('.actline').classList.add('on');
+}
+function useAction(btn) {
+  // Read the button before blurring: leaving the column rebuilds its buttons, detaching this one.
+  const card = btn.closest('.card'), mat = card && document.getElementById(card.dataset.mat || '');
+  const chosen = { label: btn.dataset.label, base: +btn.dataset.base, y: +btn.dataset.y, b: +btn.dataset.b };
+  if (document.activeElement && document.activeElement.isContentEditable) document.activeElement.blur();
+  if (!mat || !rollsFor(mat)) { btn.animate([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); return; }
+  dock(mat);
+  act = chosen;
+  adj = { y: 0, b: 0 };
+  refreshRoll();
+}
+
+// Begin a tap: spend a Level and pop a card with its glyph under the pointer.
+function startTap(handle, cx, cy) {
+  const src = handle.classList.contains('box') ? handle : handle.closest('.rent, .line');
+  const info = src && resInfo(src);
+  if (!info || info.levels < 1) return false;
+  const character = src.closest('.card');
+  const mat = character && document.getElementById(character.dataset.mat || '');
+  const card = makeInfl(info.c, 2, info.name, mat, true);
+  card.dataset.res = '1';
+  card.dataset.ledger = JSON.stringify({ [rid(src)]: 1 });
+  card.dataset.src = rid(src);
+  resSpend(src, 1);
+  card.style.zIndex = ++zTop;
+  card.classList.add('lifted');
+  const g = card.querySelector('.cg').getBoundingClientRect(), r = card.getBoundingClientRect();
+  const dx = (g.left + g.width / 2 - r.left) / view.z, dy = (g.top + g.height / 2 - r.top) / view.z;
+  const p = toWorld(cx, cy);
+  card.style.left = (p.x - dx) + 'px'; card.style.top = (p.y - dy) + 'px';
+  drag = { obj: card, dx, dy, fresh: true };
+  document.body.classList.add('dragging', 'tapping');
+  applyVisibility();
+  return true;
+}
+const ledger = card => JSON.parse(card.dataset.ledger || '{}');
+// Move one Level between a card and its current source Resource (+1 from it, -1 back to it).
+function transfer(card, d) {
+  const src = resById(card.dataset.src); if (!src) return;
+  const l = ledger(card), id = card.dataset.src;
+  if (d > 0 && resInfo(src).levels < 1) return;
+  if (d < 0 && !(l[id] > 0)) return;            // only back down to what this source put in
+  l[id] = (l[id] || 0) + d;
+  resSpend(src, d);
+  card.dataset.ledger = JSON.stringify(l);
+  const total = Object.values(l).reduce((a, b) => a + b, 0);
+  const stack = card.parentElement && card.parentElement.closest('.stack');
+  if (total <= 0) { card.remove(); if (stack) settle(stack); return; }   // every Level given back: the tap is undone
+  setValue(card, 2 * total);
+  card.classList.remove('rolled'); void card.offsetWidth; card.classList.add('rolled');
+  card.addEventListener('animationend', () => card.classList.remove('rolled'), { once: true });
+  if (stack) settle(stack);
+}
+function mergeInto(fresh, into) {
+  const a = ledger(into), b = ledger(fresh);
+  for (const [id, n] of Object.entries(b)) a[id] = (a[id] || 0) + n;
+  into.dataset.ledger = JSON.stringify(a);
+  into.dataset.src = fresh.dataset.src;
+  setValue(into, 2 * Object.values(a).reduce((x, y) => x + y, 0));
+  fresh.remove();
+  const stack = into.parentElement && into.parentElement.closest('.stack'); if (stack) settle(stack);
+}
+function refundAll(card) {                       // a tapped card destroyed before use returns its Levels
+  for (const [id, n] of Object.entries(ledger(card))) { const src = resById(id); if (src && n) resSpend(src, -n); }
+}
+
+/* ---------- players, ownership, secrecy, and gathering ---------- */
+/* Who you are vs who you're viewing as. Your real identity comes from your connection (in the
+   mockup, `?as=Player%201` stands in for a player's browser; no parameter means the GM). Only a
+   real GM gets the "You are" chooser, and keeps it whoever they view as; a player's page is fixed. */
+// Who you are: the GM opens the page plain; an invite link (?room=) makes you a player under the name
+// this browser remembers (asked once). ?as= overrides both, for testing.
+const realMe = (() => {
+  const q = new URLSearchParams(location.search);
+  if (q.get('as')) return q.get('as');
+  if (!q.get('room')) return 'GM';
+  let n = null; try { n = localStorage.getItem('glimmer.name'); } catch {}
+  while (!n || !n.trim() || n.trim() === 'GM') n = prompt('Your name at the table', n || '') || 'Player';
+  n = n.trim().slice(0, 32);
+  try { localStorage.setItem('glimmer.name', n); } catch {}
+  return n;
+})();
+if (realMe !== 'GM') {
+  const sel = document.getElementById('me');
+  if (![...sel.options].some(o => o.value === realMe)) sel.add(new Option(realMe));
+  sel.value = realMe;
+  sel.closest('.me').hidden = true;
+}
+const me = () => document.getElementById('me').value;
+/* Ownership. A character belongs to the GM (the default for NPCs: only the GM sees it and players
+   can't take it), to a player (that player and the GM see it), or is OPEN (everyone sees it, anyone
+   may claim it, like a pregen waiting to be picked up). Clicking an open die claims it. Shift-click
+   opens your own; the GM can open any, so taking one from a player is open-then-claim. The GM can
+   also work any character's roll row without taking it (to aim a PC at a hidden NPC). */
+function claim(mat, release) {
+  const owner = ownerOf(mat);
+  if (release) { if (owner === me() || me() === 'GM') mat.dataset.owner = ''; }
+  else if (owner === '') mat.dataset.owner = me();          // only an open character can be claimed
+  applyVisibility();
+}
+function applyVisibility() {
+  for (const mat of document.querySelectorAll('.mat')) {
+    const owner = ownerOf(mat);
+    const mine = me() === 'GM' || owner === me() || owner === '';   // what you may see
+    mat.classList.toggle('secret', !mine);
+    mat.querySelector('.die-own').textContent = owner === '' ? 'open' : owner.replace('Player ', 'P');
+    mat.querySelector('.die-own').title = owner === me() ? 'Click to roll for this character; shift-click to open it for someone else'
+      : owner === '' ? 'Open: click to claim this character'
+      : me() === 'GM' ? `Click to roll for ${owner}'s character; shift-click to open it (then click to take it)` : 'Belongs to ' + owner;
+    if (owner !== me() && me() !== 'GM' && roller.closest('.mat') === mat) undock();
+    const card = document.querySelector(`.card[data-mat="${mat.id}"]`);
+    if (card) card.classList.toggle('secret', !mine);
+    mat.querySelector('.gather').disabled = !card;
+    for (const c of document.querySelectorAll(`.infl[data-home="${mat.id}"]`)) {
+      c.classList.toggle('secret', !mine);
+      c.title = mine ? `${c.dataset.name} ${c.querySelector('.lv').textContent}` : '';
+    }
+  }
+  if (typeof rollReady !== 'undefined' && rollReady) refreshRoll();
+}
+document.getElementById('me').addEventListener('change', () => { applyVisibility(); saveSeat(); });
+// Could this person see that character? (the GM sees all; open characters are public)
+const canSee = (who, mat) => who === 'GM' || ownerOf(mat) === who || ownerOf(mat) === '';
+// "−5 to −6: Red" → "Red": the dice, not the Difference ("+1" alone reads as a number: "White + 1")
+const diceOnly = a => { const d = a.l.split(': ')[1]; return /^[+−]1$/.test(d) ? 'White ' + d[0] + ' 1' : d; };
+// A new character's pool pops out above its card, linked, with the card gathered beneath it.
+// Whoever makes the character owns it (the GM's characters are unclaimed).
+function popPool(card) {
+  const mat = makeMat(parseFloat(card.style.left), 0, 'Name');
+  mat.dataset.owner = me();
+  const visibleTop = toWorld(0, table.getBoundingClientRect().top).y + 10;   // never pop out under the top bar
+  mat.style.top = Math.max(visibleTop, parseFloat(card.style.top) - mat.offsetHeight - 14) + 'px';
+  card.dataset.mat = mat.id;
+  gather(mat);
+  mat.classList.add('popped');
+  mat.addEventListener('animationend', () => mat.classList.remove('popped'), { once: true });
+  applyVisibility();
+}
+function gather(mat) {
+  const card = document.querySelector(`.card[data-mat="${mat.id}"]`); if (!card) return;
+  card.style.left = mat.style.left;
+  card.style.top = (parseFloat(mat.style.top) + mat.offsetHeight + 14) + 'px';
+  card.dataset.gathered = '1';
+}
+// A gathered card stays snapped under its pool as the drawer grows or shrinks.
+const regather = new ResizeObserver(entries => {
+  for (const { target: mat } of entries) {
+    const card = document.querySelector(`.card[data-mat="${mat.id}"]`);
+    if (card && card.dataset.gathered) gather(mat);
+  }
+});
+
+/* ---------- Boot Hill: graveyards of put-away things ----------
+   Putting away a pool or its character card buries both (with everything on them); stickies,
+   writing, images, and receipts are buried too. Burials go to the CURRENT graveyard. The Boot
+   Hill list shows the current graveyard, with its name and ‹ › at the bottom: › on the last
+   graveyard makes a new "Graveyard N" only if this one holds something (or has a name of its own).
+   Names are editable. A graveyard that is empty and nameless (a name never changed counts as
+   nameless) disappears: when its last item is dragged out, its name erased, or it is left.
+   There is always at least one; a new one is numbered one past the highest in use. Dragging a name out brings it back under the pointer. */
+// A new graveyard is numbered one past the highest "Graveyard N" in use (never filling a gap
+// below it), and flipping › ‹ doesn't count up because the throwaway one is gone by then.
+const yards = [];
+function newYard() {
+  const used = yards.map(y => (y.name.trim().match(/^Graveyard (\d+)$/) || [])[1]).filter(Boolean).map(Number);
+  return { name: 'Graveyard ' + (Math.max(0, ...used) + 1), named: false, items: [] };
+}
+yards.push(newYard());
+let cur = 0;
+const nameless = y => !y.named || !y.name.trim();
+function prune(i) {                         // drop graveyard i if it is empty and nameless; true if dropped
+  if (yards.length < 2 || yards[i].items.length || !nameless(yards[i])) return false;
+  yards.splice(i, 1);
+  if (cur > i || cur >= yards.length) cur = Math.max(0, cur - 1);
+  return true;
+}
+function graveName(el) {
+  const first = t => (t || '').trim().split('\n')[0].slice(0, 28) || '…';
+  if (el.classList.contains('mat')) return el.querySelector('.who').textContent.trim() || 'Nameless';
+  if (el.classList.contains('sticky')) return 'Note: ' + first(el.querySelector('.txt').innerText);
+  if (el.classList.contains('text')) return 'Writing: ' + first(el.innerText);
+  if (el.classList.contains('receipt')) return first(el.querySelector('.who').textContent);
+  if (el.classList.contains('tornroll')) { const n = el.querySelectorAll('.receipt').length; return `Tape: ${n} roll${n === 1 ? '' : 's'}, last ${first(el.querySelector('.receipt .who').textContent)}`; }
+  return 'Image';
+}
+function bury(obj) {
+  const mat = obj.classList.contains('mat') ? obj : obj.classList.contains('card') && document.getElementById(obj.dataset.mat || '');
+  const card = mat && document.querySelector(`.card[data-mat="${mat.id}"]`);
+  const els = mat ? [mat, card].filter(Boolean) : [obj];
+  yards[cur].items.push({ els, name: graveName(mat || obj) });
+  els.forEach(el => el.remove());
+  renderBootHill();
+}
+// Drag something out: it comes up under the pointer (a character by its pool, its card following
+// at the same offset) and the list closes so the table is clear.
+function exhume(i, cx, cy) {
+  const [g] = yards[cur].items.splice(i, 1);
+  prune(cur);
+  const lead = g.els[0], ox = parseFloat(lead.style.left) || 0, oy = parseFloat(lead.style.top) || 0;
+  const p = toWorld(cx, cy), gx = lead.classList.contains('mat') ? 30 : 20, gy = 14;
+  for (const el of g.els) {
+    world.appendChild(el); el.style.zIndex = ++zTop;
+    el.style.left = (p.x - gx + (parseFloat(el.style.left) || 0) - ox) + 'px';
+    el.style.top = (p.y - gy + (parseFloat(el.style.top) || 0) - oy) + 'px';
+    if (el.classList.contains('mat')) regather.observe(el);
+  }
+  applyVisibility();
+  renderBootHill();
+  graveList.hidden = true;
+  lift(lead, cx, cy);
+}
+function step(d) {
+  const leaving = cur;
+  if (d < 0) { if (cur === 0) return; cur--; prune(leaving); }
+  else if (cur < yards.length - 1) { cur++; if (prune(leaving)) cur = leaving; }
+  else if (yards[cur].items.length || !nameless(yards[cur])) { yards.push(newYard()); cur = yards.length - 1; }
+  renderBootHill();
+}
+const bootHill = document.getElementById('boothill'), graveList = document.getElementById('graves');
+function renderBootHill() {
+  const total = yards.reduce((n, y) => n + y.items.length, 0);
+  bootHill.querySelector('.n').textContent = total || '';
+  bootHill.classList.toggle('empty', !total);
+  const yardLabel = y => y.name.trim() || 'Unnamed graveyard';
+  bootHill.querySelector('.to').textContent = '→ ' + yardLabel(yards[cur]);
+  const y = yards[cur];
+  graveList.innerHTML = '';
+  const list = h(`<div class="items"></div>`);
+  if (!y.items.length) list.append(h(`<p>Nothing is buried here.</p>`));
+  y.items.forEach((g, i) => {
+    const b = h(`<button title="Drag this back onto the table. Shift-click twice to delete it forever."></button>`);
+    b.textContent = g.name;
+    b.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      if (e.shiftKey) doom(b, `Delete forever? Shift-click again`, () => { yards[cur].items.splice(i, 1); prune(cur); renderBootHill(); });
+      else exhume(i, e.clientX, e.clientY);
+    });
+    list.append(b);
+  });
+  const nav = h(`<div class="yard"><button class="prev" aria-label="Previous graveyard">‹</button>
+    <input class="yname" aria-label="Graveyard name" spellcheck="false" title="Rename this graveyard. Shift-click twice to delete everything in it."><button class="next" aria-label="Next graveyard">›</button></div>`);
+  const input = nav.querySelector('.yname');
+  input.value = y.name; input.placeholder = 'Unnamed graveyard';
+  nav.querySelector('.prev').disabled = cur === 0;
+  nav.querySelector('.prev').addEventListener('click', () => step(-1));
+  nav.querySelector('.next').addEventListener('click', () => step(1));
+  input.addEventListener('pointerdown', e => {
+    if (!e.shiftKey || !y.items.length) return;
+    e.preventDefault();
+    doom(input, '', () => { y.items = []; prune(cur); renderBootHill(); }, `Delete everything here? Shift-click again`);
+  });
+  input.addEventListener('input', () => { y.name = input.value; y.named = true; saveSoon(); bootHill.querySelector('.to').textContent = '→ ' + yardLabel(y); });
+  input.addEventListener('change', () => { if (prune(cur)) renderBootHill(); });
+  graveList.append(nav, list);
+  saveSoon(); saveSeat();
+}
+bootHill.addEventListener('click', () => { renderBootHill(); graveList.hidden = !graveList.hidden; saveSeat(); });
+/* Deleting forever is the one thing that can't be undone, so it takes two shift-clicks: the first
+   arms (the item turns red and says so), the second within 3 s destroys; otherwise it reverts. */
+let doomed = null;
+function doom(el, label, destroy, placeholder) {
+  if (doomed && doomed.el === el) { clearTimeout(doomed.t); doomed = null; destroy(); return; }
+  if (doomed) doomed.undo();
+  const was = el.tagName === 'INPUT' ? el.value : el.textContent;
+  el.classList.add('doom');
+  if (el.tagName === 'INPUT') { el.dataset.was = was; el.value = placeholder; el.readOnly = true; } else el.textContent = label;
+  const undo = () => { el.classList.remove('doom'); if (el.tagName === 'INPUT') { el.value = was; el.readOnly = false; } else el.textContent = was; };
+  doomed = { el, undo, t: setTimeout(() => { undo(); doomed = null; }, 3000) };
+}
+renderBootHill();
+
+/* ---------- the paper tape ----------
+   Every roll prints onto a tape that comes out of the register's slot and hangs over the table,
+   newest at the top; about three show and the rest scroll. The paper roll at the register's right
+   end rolls it up to a sliver and back. The tape lies UNDER pools and cards; a new roll or a press
+   raises it over them, and pressing anything else lowers it again (like windows on a desktop).
+   Dragging it tears off the whole roll onto the table (drop that on the bar to bury it). */
+const tape = document.getElementById('tape'), strip = tape.querySelector('.strip');
+function placeTape() { const r = document.querySelector('.register').getBoundingClientRect(); tape.style.left = Math.max(8, Math.min(r.left + 2, innerWidth - 258)) + 'px'; }   // stays in the window
+function printTape(el) {
+  strip.prepend(el);
+  tape.classList.remove('empty', 'up');
+  tape.classList.add('raised');            // something new: bring it up to read
+  strip.scrollTop = 0;
+  el.classList.add('printing');
+  el.addEventListener('animationend', () => el.classList.remove('printing'), { once: true });
+  placeTape();
+}
+function tidyTape() { tape.classList.toggle('empty', !strip.querySelector('.receipt')); }
+document.getElementById('paperroll').addEventListener('click', () => { tape.classList.toggle('up'); saveSeat(); });
+// Pressing anything else on the table lowers the tape back under your pools and cards.
+document.addEventListener('pointerdown', e => { if (!e.target.closest('#tape, #paperroll, #roll')) tape.classList.remove('raised'); }, true);
+document.getElementById('paperroll').addEventListener('click', () => { if (!tape.classList.contains('up')) tape.classList.add('raised'); });
+// Dragging anywhere on the tape tears off the WHOLE roll as one strip; the next roll starts a fresh tape.
+let tapePress = null;
+strip.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || !strip.querySelector('.receipt')) return;
+  e.stopPropagation();                     // the tape is on the table: don't start a pan
+  if (e.target.closest('[contenteditable]') && e.target.closest('[contenteditable]') === document.activeElement) return;
+  e.preventDefault();
+  tape.classList.add('raised');
+  tapePress = { x: e.clientX, y: e.clientY };
+});
+addEventListener('pointermove', e => {
+  if (!tapePress || Math.hypot(e.clientX - tapePress.x, e.clientY - tapePress.y) < 5) return;
+  tapePress = null;
+  tearRoll(e);
+});
+addEventListener('pointerup', () => { tapePress = null; });
+strip.addEventListener('wheel', e => e.stopPropagation());   // scroll the tape, don't zoom the table
+function tearRoll(e) {
+  const rect = strip.getBoundingClientRect(), p = toWorld(e.clientX, e.clientY);
+  const dx = (e.clientX - rect.left) / view.z, dy = (e.clientY - rect.top) / view.z;
+  const roll = h(`<div class="tornroll"><div class="rolls"></div></div>`);
+  strip.querySelectorAll('.receipt').forEach(r => { r.classList.remove('printing'); roll.firstChild.appendChild(r); });
+  roll.classList.add('obj'); roll.style.setProperty('--tilt', tilt());
+  roll.style.left = (p.x - dx) + 'px'; roll.style.top = (p.y - dy) + 'px';
+  world.appendChild(roll);
+  tidyTape();
+  tape.classList.remove('raised');
+  lift(roll, e.clientX, e.clientY);
+}
+// A torn roll scrolls inside; the wheel scrolls it rather than zooming the table while it can.
+table.addEventListener('wheel', e => {
+  const r = e.target.closest('.tornroll .rolls'); if (!r) return;
+  const canScroll = e.deltaY < 0 ? r.scrollTop > 0 : r.scrollTop + r.clientHeight < r.scrollHeight - 1;
+  if (canScroll) e.stopImmediatePropagation();
+}, { capture: true });
+addEventListener('resize', placeTape);
+document.fonts && document.fonts.ready.then(placeTape);
+
+/* ---------- dice (Hollow Folks: Difference → Dice, resolve, explode) ---------- */
+const ADV = [
+  { l: '+10 or more: Outclass', auto: 'success' },
+  { l: '+7 to +9: Green + 1', d: 'G', m: 1 },
+  { l: '+5 to +6: Green', d: 'G' },
+  { l: '+3 to +4: +1', m: 1 },
+  { l: '−2 to +2: White' },
+  { l: '−3 to −4: −1', m: -1 },
+  { l: '−5 to −6: Red', d: 'R' },
+  { l: '−7 to −9: Red − 1', d: 'R', m: -1 },
+  { l: '−10 or less: Outclassed', auto: 'fail' },
+];
+/* The roll row: the dice you are about to roll, docked on the pool you are rolling for (your own
+   view only). White carries the Advantage row: click for more advantage, shift-click for less,
+   walking the Difference table (a Green or Red die appears, ±1 shows, Outclass is written out).
+   Blue is always rolled. Yellows: click adds one, shift-click removes one. The bonus: click raises,
+   shift-click lowers. The dice are blank; the receipt on the table records the numbers. */
+const roller = document.getElementById('roller'), rollhome = document.getElementById('rollhome');
+const rollinfo = document.getElementById('rollinfo');   // the action and opponent, shown in the docked pool's header
+/* With an action chosen, the roll row is live: Yellows and bonus come from the action plus the
+   character's Bonus pool, recomputed whenever a pool changes. A pool's value is its best positive
+   minus its worst negative (after Roll Up). With an empty Bonus pool the card is taken as written
+   (`2d+3` stays 2 Yellows +3); once the pool adds points, the bonus total regroups by Hollow Folks'
+   rule: a Yellow per 3 full points, the rest added; a negative total adds no dice. Hand edits to
+   the Yellows and bonus are kept as an adjustment on top, until the next action is chosen. */
+let act = null, adj = { y: 0, b: 0 };
+function poolValue(mat, pool) {
+  const slot = mat.querySelector(`.slot[data-pool="${pool}"]`); if (!slot) return 0;
+  const worth = u => u.classList.contains('odd') ? 1 : +u.dataset.v + (rider(u) ? 1 : 0);
+  const best = st => Math.max(0, ...[...slot.querySelector(st).children].map(worth));
+  return best('.pos') - best('.neg');
+}
+/* What a roll would be for this character with this action, from THIS page's records: the Yellows and
+   bonus (the action's, the Bonus pool's, and the hand adjustment), the Total Influence, and against an
+   opponent their total and the Difference. The roll row shows it; the GM's page resolves players'
+   intents with it, so a player's numbers never have to travel. */
+function rowSpec(mat, a, adj = { y: 0, b: 0 }) {
+  const P = poolValue(mat, 'Bonus');
+  let y = a.y, b = a.b;
+  if (P) { const t = b + P; if (t >= 0) { y += Math.floor(t / 3); b = t % 3; } else b = t; }
+  // Total Influence = Base + Main + Edge + Bias pools (Bill, 11-09). Stagger counts only when this
+  // character is the opposition.
+  const parts = { Main: poolValue(mat, 'Main'), Edge: poolValue(mat, 'Edge'), Bias: poolValue(mat, 'Bias') };
+  const total = a.base + parts.Main + parts.Edge + parts.Bias;
+  let opp = null;
+  const el = a.vs && document.getElementById(a.vs.mat);
+  if (el) {
+    const def = defendOf(document.querySelector(`.card[data-mat="${el.id}"]`))[a.vs.kind] ?? 0;
+    const oppTotal = def + ['Main', 'Edge', 'Bias', 'Stagger'].reduce((n, k) => n + poolValue(el, k), 0);
+    opp = { el, def, oppTotal, diff: total - oppTotal };
+  }
+  return { P, parts, total, opp, y: Math.max(0, Math.min(9, y + adj.y)), b: Math.max(-9, Math.min(9, b + adj.b)) };
+}
+function refreshRoll() {
+  const mat = roller.closest('.mat');
+  document.querySelectorAll('.mat.targeted').forEach(m => m.classList.remove('targeted'));
+  const target = act && act.vs && mat && document.getElementById(act.vs.mat);
+  if (target) target.classList.add('targeted');
+  markAction();
+  roller.classList.remove('lockrow');
+  if (!act || !mat) { delete roller.dataset.label; delete roller.dataset.base; delete roller.dataset.total; delete roller.dataset.vs;
+    rollinfo.querySelector('.base').title = ''; rollinfo.querySelector('.vs').innerHTML = ''; return renderRoller(); }
+  if (act.vs && !document.getElementById(act.vs.mat)) delete act.vs;
+  const sp = rowSpec(mat, act, adj), P = sp.P, parts = sp.parts, total = sp.total;
+  steps.y = sp.y; steps.b = sp.b;
+  roller.dataset.label = act.label; roller.dataset.base = act.base; roller.dataset.total = total;
+  const vs = rollinfo.querySelector('.vs');
+  vs.innerHTML = ''; delete roller.dataset.vs;
+  const opp = sp.opp && sp.opp.el;
+  if (opp) {
+    const { def, oppTotal, diff } = sp.opp;
+    // The row is the rolling character's: it shows only what that character's owner may know, even on
+    // the GM's screen (the player is watching). The row is still picked by whoever can see the opponent.
+    const viewerSees = !opp.classList.contains('secret'), hidden = !canSee(ownerOf(mat), opp);
+    roller.classList.toggle('lockrow', !viewerSees);   // a player can't re-pick what the GM set
+    if (viewerSees && !act.advManual) advI = rowFor(diff);
+    vs.innerHTML = hidden ? `vs ${act.vs.name}` : `vs ${act.vs.name}<b>${oppTotal} (${diff >= 0 ? '+' : ''}${diff})</b>`;
+    vs.title = hidden ? `Only the GM knows ${act.vs.name}'s numbers. Click to stop aiming.`
+      : `${act.vs.name}: ${act.vs.kind && act.vs.kind !== 'any' ? act.vs.kind + ' ' : ''}Defend ${def}, plus Main, Edge, Bias and Stagger = ${oppTotal}. Difference ${diff}. Click to stop aiming.`;
+    roller.dataset.vs = hidden ? `vs ${act.vs.name}` : `vs ${act.vs.name} (${act.vs.kind && act.vs.kind !== 'any' ? act.vs.kind + ' ' : ''}${oppTotal}), Difference ${diff >= 0 ? '+' : ''}${diff}`;
+  }
+  rollinfo.querySelector('.base').title = `Total Influence ${total}: Base ${act.base}` +
+    Object.entries(parts).filter(([, v]) => v).map(([k, v]) => `, ${k} ${v > 0 ? '+' : ''}${v}`).join('') + '. Click to clear.';
+  roller.querySelector('.bonus').title = `From ${act.label}: ${act.y}d${act.b >= 0 ? '+' : ''}${act.b}` + (P ? `; Bonus pool ${P > 0 ? '+' : ''}${P}` : '') +
+    (adj.y || adj.b ? `; your adjustment ${adj.y ? adj.y + 'd ' : ''}${adj.b ? (adj.b > 0 ? '+' : '') + adj.b : ''}` : '') + '. Click to raise, shift-click to lower.';
+  renderRoller();
+}
+let advI = 4;
+const steps = { y: 1, b: 0 };
+const ownerOf = mat => mat.dataset.owner ?? 'GM';        // 'GM', '' (open), or a player
+const mine = mat => ownerOf(mat) === me();
+const rollsFor = mat => mine(mat) || me() === 'GM';   // the GM can work any character's roll row
+function dock(mat) {
+  if (roller.closest('.mat') !== mat) act = null;
+  mat.insertBefore(roller, mat.querySelector('.row'));
+  mat.querySelector('.head').appendChild(rollinfo);
+  refreshRoll();
+}
+function undock() { rollhome.append(roller, rollinfo); act = null; markAction(); saveSeat(); }
+// The GM may roll behind the screen: a private roll prints on the GM's tape and goes nowhere else.
+// The GM's own choice, kept in the seat; players never see the switch. (Bill, 11-09)
+var privateRoll = false;
+function renderRoller() {
+  saveSeat();
+  const pv = roller.querySelector('.priv');
+  pv.hidden = realMe !== 'GM';
+  pv.classList.toggle('on', privateRoll);
+  pv.textContent = privateRoll ? 'private' : 'to table';
+  pv.title = privateRoll ? 'Behind the screen: this roll prints on your tape only. Click to show rolls to the table.'
+    : 'Rolls go to everyone at the table (what they would see: the dice and the result). Click to roll behind the screen.';
+  const a = ADV[advI];
+  const rd = roller.querySelector('.res-dice'), extra = rd.querySelector('.extra'), mod = rd.querySelector('.mod');
+  rd.title = roller.classList.contains('lockrow') ? diceOnly(a) + ' (set by the GM)' : 'Difference ' + a.l + '. Click to choose the row.';   // hover: the GM may see it
+  extra.className = 'die extra' + (a.d ? ' ' + a.d : '');
+  mod.className = 'mod' + (a.auto ? ' outclass' : '');
+  mod.textContent = a.auto ? (a.auto === 'success' ? 'Outclass' : 'Outclassed') : a.m ? (a.m > 0 ? '+1' : '−1') : '';
+  roller.querySelector('.ydice').innerHTML = steps.y ? '<span class="die Y"></span>'.repeat(steps.y) : '<span class="ghost"></span>';
+  const base = rollinfo.querySelector('.base');
+  const tb = roller.dataset.base, tt = roller.dataset.total;
+  base.innerHTML = roller.dataset.label ? `${roller.dataset.label}<b>${tt !== undefined && tt !== tb ? `${tb} → ${tt}` : tb}</b>` : '';
+  const bn = roller.querySelector('.bonus');
+  bn.textContent = (steps.b < 0 ? '−' : '+') + Math.abs(steps.b);
+  bn.classList.toggle('zero', !steps.b);
+}
+// White opens the Difference table as a menu; each row shows the dice it rolls.
+const advMenu = roller.querySelector('.advmenu');
+function openAdvMenu() {
+  if (!advMenu.hidden) { advMenu.hidden = true; return; }
+  advMenu.innerHTML = '';
+  ADV.forEach((a, i) => {
+    const dice = a.auto ? `<b>${a.auto === 'success' ? 'auto ✓' : 'auto ✗'}</b>`
+      : `<span class="die W"></span>${a.d ? `<span class="die ${a.d}"></span>` : ''}${a.m ? `<b>${a.m > 0 ? '+1' : '−1'}</b>` : ''}`;
+    const b = h(`<button class="${i === advI ? 'on' : ''}"><span class="lbl"></span><span class="dice">${dice}</span></button>`);
+    b.firstElementChild.textContent = a.l;
+    b.addEventListener('click', ev => { ev.stopPropagation(); advI = i; if (act && act.vs) act.advManual = true; advMenu.hidden = true; renderRoller(); });
+    advMenu.append(b);
+  });
+  advMenu.hidden = false;
+  const m = roller.closest('.mat'); if (m) m.style.zIndex = ++zTop;
+}
+document.addEventListener('pointerdown', e => { if (!advMenu.hidden && !e.target.closest('.advmenu, .res-dice')) advMenu.hidden = true; });
+roller.addEventListener('click', e => {
+  const down = e.shiftKey || e.ctrlKey || e.altKey;
+  if (e.target.closest('.advmenu')) return;
+  if (e.target.closest('.priv')) { privateRoll = !privateRoll; return renderRoller(); }
+
+  if (e.target.closest('.res-dice')) { if (!roller.classList.contains('lockrow')) openAdvMenu(); return; }
+  else if (e.target.closest('.ydice')) { if (act) { adj.y += down ? -1 : 1; return refreshRoll(); } steps.y = Math.max(0, Math.min(9, steps.y + (down ? -1 : 1))); }
+  else if (e.target.closest('.bonus')) { if (act) { adj.b += down ? -1 : 1; return refreshRoll(); } steps.b = Math.max(-9, Math.min(9, steps.b + (down ? -1 : 1))); }
+  else return;
+  renderRoller();
+});
+renderRoller();
+rollReady = true;
+
+/* Used Influences. A roll uses the Influence cards in that character's pools: Resources can no
+   longer feed them. At the character's NEXT roll, cards still used from before are swept into the
+   drawer's used pile first ("removed right before the character's next Action"); click one there
+   to put it back where it was, for an Influence that lasts longer. Plain chips are untouched. */
+const poolCards = mat => [...mat.querySelectorAll('.row .infl')];
+function sweep(mat) {
+  const list = mat.querySelector('.usedpile .list'), touched = new Set();
+  for (const c of poolCards(mat).filter(c => c.dataset.used && !c.dataset.keep)) {
+    c.dataset.wasPool = c.closest('.slot').dataset.pool;
+    touched.add(c.closest('.stack'));
+    c.classList.add('cf', 'home');
+    list.appendChild(c);
+  }
+  touched.forEach(settle);
+  renderUsed(mat);
+}
+function markUsed(mat) {
+  for (const c of poolCards(mat)) { c.dataset.used = '1'; c.classList.add('used'); delete c.dataset.keep; }
+}
+function restore(card) {
+  const mat = card.closest('.mat');
+  const slot = mat.querySelector(`.slot[data-pool="${card.dataset.wasPool || 'Main'}"]`);
+  const stack = slot.querySelector(card.classList.contains('g') ? '.pos' : '.neg');
+  card.classList.remove('cf', 'home');
+  card.dataset.keep = '1';                 // back for the next roll; it stays used (no Resource feeding)
+  stack.appendChild(card);
+  settle(stack);
+  renderUsed(mat);
+}
+function renderUsed(mat) {
+  const list = mat.querySelector('.usedpile .list'), n = list.querySelectorAll('.infl').length;
+  mat.querySelector('.usedpile .uhead b').textContent = n;
+  const p = list.querySelector('p');
+  if (!n && !p) list.prepend(h('<p>Nothing used yet.</p>')); else if (n && p) p.remove();
+}
+
+/* The cash register: the round, with ▲ ▼ and End. End (pressed twice to confirm) ends the
+   Conflict: round back to 00, Biases and Afflictions recharge, used piles empty (plain cards go
+   home, tapped cards are spent and gone), and nothing in a pool counts as used any more. */
+let round = 0, armed = null;
+// A new round drops the old tab and pops up the new one.
+function renderRound(pop) {
+  saveSoon();
+  const tab = document.getElementById('rtab');
+  if (tab.textContent === String(round)) return;
+  if (!pop || matchMedia('(prefers-reduced-motion: reduce)').matches) { tab.textContent = round; return; }
+  tab.classList.add('down');
+  setTimeout(() => { tab.textContent = round; tab.classList.remove('down'); }, 110);
+}
+document.getElementById('rup').addEventListener('click', () => { round = Math.min(99, round + 1); renderRound(true); });
+document.getElementById('rdown').addEventListener('click', () => { round = Math.max(0, round - 1); renderRound(true); });
+const rend = document.getElementById('rend');
+rend.addEventListener('click', () => {
+  if (!armed) { rend.closest('.register').classList.add('armed'); armed = setTimeout(disarm, 3000); return; }
+  disarm(); endConflict();
+});
+function disarm() { clearTimeout(armed); armed = null; rend.closest('.register').classList.remove('armed'); }
+function endConflict() {
+  checkpoint(`End of conflict, round ${round}`, true);   // the conflict as it stood, before the reset
+  round = 0; renderRound(true);
+  for (const l of document.querySelectorAll('.line')) { delete l.dataset.spent; l.querySelector('.spent').textContent = ''; markDry(l); }
+  for (const b of document.querySelectorAll('.box')) { delete b.dataset.spent; b.classList.remove('spent'); }
+  for (const c of document.querySelectorAll('.usedpile .infl')) {
+    if (c.dataset.res) { c.remove(); continue; }
+    delete c.dataset.used; delete c.dataset.keep; c.classList.remove('used'); goHome(c);
+  }
+  for (const c of document.querySelectorAll('.infl.used')) { delete c.dataset.used; delete c.dataset.keep; c.classList.remove('used'); }
+  document.querySelectorAll('.mat').forEach(renderUsed);
+}
+renderRound();
+
+const d6 = () => 1 + Math.floor(Math.random() * 6);
+const levelName = n => n < 5 ? 'Minor' : n < 10 ? 'Significant' : n < 15 ? 'Major' : n < 20 ? 'Extreme' : 'Exquisite';
+let rolls = 0;
+/* ---------- rolling: one resolver, on the page that holds the game (Bill, 11-09) ----------
+   "Delegate the actual rolls to the GM's peer. That way the GM's peer has all the information,
+   controls the algorithm, and the results." On a player's page at a table, Roll sends an intent that
+   NAMES things (character, action line, opponent and Defend, hand adjustments, a hand-picked White
+   row); the GM's page looks both sides up in its own records, rolls, and publishes the result. The
+   roller's page adds what its owner may know; everyone else prints the table view. The GM's own
+   rolls, and a page with no table, resolve right here. One codebase: every page carries the resolver. */
+
+// The dice, given the Difference row, the Yellows, and the bonus.
+function rollDice(row, ys, bn) {
+  const a = ADV[row], dice = [];
+  const W = d6(); dice.push({ c: 'W', v: W });
+  let res = W, resWhy = `White ${W}`;
+  if (a.d) { const v = d6(); dice.push({ c: a.d, v }); res = a.d === 'G' ? Math.max(W, v) : Math.min(W, v); resWhy = `${a.d === 'G' ? 'higher' : 'lower'} of White ${W} and ${a.d === 'G' ? 'Green' : 'Red'} ${v}`; }
+  if (a.m) { res += a.m; resWhy += ` ${a.m > 0 ? '+' : '−'} 1`; }
+  const outcome = a.auto === 'success' ? 'success' : a.auto === 'fail' ? 'fail' : res <= 2 ? 'fail' : res === 3 ? 'cost' : 'success';
+  if (a.auto) resWhy = a.auto === 'success' ? 'Outclass: automatic success' : 'Outclassed: automatic failure';
+  const blue = { c: 'B', v: d6() }; dice.push(blue);
+  const yellows = Array.from({ length: ys }, () => ({ c: 'Y', v: d6() }));
+  yellows.forEach(y => { if (outcome === 'fail') y.dropped = true; dice.push(y); });
+  // Every 6 on Blue or a remaining Yellow adds a new Yellow, chaining.
+  const live = [blue, ...yellows.filter(y => !y.dropped)];
+  for (let i = 0; i < live.length; i++) if (live[i].v === 6) { const n = { c: 'Y', v: d6(), added: true }; dice.push(n); live.push(n); }
+  const raw = live.reduce((t, d) => t + d.v, 0);
+  const bonus = outcome === 'fail' ? 0 : bn;
+  const total = Math.max(1, raw + bonus);
+  return {
+    a, dice: dice.map(d => ({ c: d.c, v: d.v, added: !!d.added, dropped: !!d.dropped })), resolution: resWhy,
+    level: `${live.map(d => d.v).join(' + ')}${bonus ? ` ${bonus > 0 ? '+' : '−'} ${Math.abs(bonus)} bonus` : ''}`,
+    outcome: outcome === 'fail' ? `Failure ${total}, ${levelName(total)} Stagger`
+      : outcome === 'cost' ? `Success at cost ${total}, ${levelName(total)}` : `Success ${total}, ${levelName(total)}`,
+  };
+}
+const stamp = d => d.toLocaleString('en-US', { month: 'short', day: 'numeric' }) + ', ' +   // 24-hour with seconds: short beside the title
+  d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+
+/* Every receipt, ours or from the room, is built here from plain values with textContent: nothing a
+   peer sends is ever parsed as HTML. o: { rid, at, title, by, dice, influence, vs, row, resolution,
+   level, outcome, priv } -- missing lines are left out. */
+const DIE_NAME = { W: 'White', G: 'Green', R: 'Red', B: 'Blue', Y: 'Yellow' };
+function makeReceipt(o) {
+  const el = h(`<div class="receipt"><div class="rhead"><div class="who" contenteditable></div><time></time></div>
+    <div class="by"></div><div class="dice"></div><div class="infl"></div><div class="vs"></div><div class="row"></div>
+    <div class="res"></div><div class="lvl"></div><div class="outcome"></div><div class="privnote">Private: not shown to the table</div></div>`);
+  const at = new Date(o.at);
+  el.dataset.rid = o.rid; el.dataset.when = o.at;
+  if (o.priv) el.classList.add('private');
+  const set = (sel, t) => { const x = el.querySelector(sel); if (t) x.textContent = t; else x.remove(); };
+  set('.who', o.title); set('.by', o.by && 'rolled by ' + o.by); set('.infl', o.influence); set('.vs', o.vs); set('.row', o.row);
+  set('.res', 'Resolution: ' + o.resolution); set('.lvl', 'Level: ' + o.level); set('.outcome', o.outcome);
+  if (!o.priv) el.querySelector('.privnote').remove();
+  el.querySelector('time').dateTime = o.at; el.querySelector('time').textContent = stamp(at);
+  o.dice.forEach((d, i) => {
+    const s = h(`<span class="die tumble"></span>`);
+    s.classList.add(d.c); if (d.added) s.classList.add('added'); if (d.dropped) s.classList.add('dropped');
+    s.style.animationDelay = i * 60 + 'ms';
+    s.title = DIE_NAME[d.c] + (d.added ? ', exploded' : '') + (d.dropped ? ', removed on failure' : '');
+    s.textContent = d.v;
+    el.querySelector('.dice').append(s);
+  });
+  return el;
+}
+// The table view: what everyone at a real table sees of a roll, and none of the numbers the cards keep
+// hidden (Total Influence, base, Difference). This is what goes on the wire.
+const tableView = (rid, at, character, label, vsName, r) => ({ rid, at, character, action: label || '', vs: vsName ? 'vs ' + vsName : '',
+  row: diceOnly(r.a), dice: r.dice, resolution: r.resolution, level: r.level, outcome: r.outcome });
+
+// Resolve a roll on this page: the GM's own, or any roll on a page with no table.
+function rollHere(mat) {
+  const now = new Date(), rid = newOid(), priv = realMe === 'GM' && privateRoll;
+  // Read the row before anything moves: sweeping the used cards refreshes it.
+  const { label, total, base } = roller.dataset, vsLine = roller.dataset.vs, vsName = act && act.vs && act.vs.name;
+  const oppMat = act && act.vs && document.getElementById(act.vs.mat);
+  // A public record: if the rolling character's owner can't see the opponent, it shows the opponent
+  // and the dice, not the Difference.
+  const secretVs = !!oppMat && !canSee(ownerOf(mat), oppMat);
+  sweep(mat);
+  const r = rollDice(advI, steps.y, steps.b);
+  const name = mat.querySelector('.who').textContent.trim() || 'Roll';
+  printTape(makeReceipt({ rid, at: now.toISOString(), title: `${name}, roll ${++rolls}`, dice: r.dice, priv,
+    influence: label && `${label}: Total Influence ${total} (base ${base})`,
+    vs: vsLine && (secretVs ? `vs ${vsName}` : vsLine), row: secretVs ? diceOnly(r.a) : r.a.l,
+    resolution: r.resolution, level: r.level, outcome: r.outcome }));
+  markUsed(mat);
+  if (!priv) window.tableRoll?.(tableView(rid, now.toISOString(), name, label, vsName, r));
+}
+
+// A player's Roll at a table: name the roll, ask the GM's page, and wait for the result.
+async function rollViaGm(mat) {
+  const btn = document.getElementById('roll');
+  const intent = { mat: mat.id, act: act ? { label: act.label, vs: act.vs ? { mat: act.vs.mat, kind: act.vs.kind || '' } : null } : null,
+    adj: { y: adj.y, b: adj.b }, y: steps.y, b: steps.b, row: advI, rowManual: !!(act && act.advManual) || !(act && act.vs) };
+  // What this page's owner may know goes on their own receipt; it never travels.
+  const oppMat = act && act.vs && document.getElementById(act.vs.mat);
+  const secretVs = !!oppMat && !canSee(ownerOf(mat), oppMat);
+  const mine = { influence: roller.dataset.label && `${roller.dataset.label}: Total Influence ${roller.dataset.total} (base ${roller.dataset.base})`,
+    vs: roller.dataset.vs && (secretVs ? `vs ${act.vs.name}` : roller.dataset.vs) };
+  btn.disabled = true; btn.textContent = 'GM…'; btn.title = 'Waiting for the GM\'s page to roll';
+  try {
+    const r = await window.askGm(intent);
+    sweep(mat);
+    const el = makeReceipt({ ...r, title: `${r.character}, roll ${++rolls}`, by: '', ...mine });   // your own: no byline
+    el.classList.add('sent');                    // the GM's page rolled it: it went out
+    printTape(el);
+    markUsed(mat);
+  } catch (err) {
+    printNote(err.message);
+  } finally { btn.disabled = false; btn.textContent = 'Roll'; btn.title = ''; }
+}
+
+document.getElementById('roll').addEventListener('click', () => {
+  const mat = roller.closest('.mat'); if (!mat) return;
+  if (realMe !== 'GM' && window.askGm) rollViaGm(mat); else rollHere(mat);
+});
+
+/* The GM's page resolves a player's intent from its own records. Only names and adjustments are taken
+   from the intent; the action line, both sides' pools, and the Difference are looked up here. Returns
+   { roll } for the room, or { refused } saying why. */
+function resolveIntent(i, who) {
+  const mat = document.getElementById(i.mat);
+  if (!mat || !mat.matches('.mat')) return { refused: `The GM's table has no such character` };
+  const owner = ownerOf(mat), name = mat.querySelector('.who').textContent.trim() || 'Roll';
+  if (!who) return { refused: `Another computer holds your name at the GM's table` };
+  if (owner !== who && owner !== '') return { refused: `On the GM's table, ${name} isn't ${who}'s to roll` };
+  let a = null, sp = null, row = i.row, ys = i.y, bn = i.b;
+  if (i.act) {
+    const btn = [...document.querySelectorAll(`.card[data-mat="${mat.id}"] .actbtn`)].find(x => x.dataset.label === i.act.label);
+    if (!btn) return { refused: `On the GM's table, ${name} has no ${i.act.label} line` };
+    a = { label: btn.dataset.label, base: +btn.dataset.base, y: +btn.dataset.y, b: +btn.dataset.b };
+    const o = i.act.vs && document.getElementById(i.act.vs.mat);
+    if (o && o.matches('.mat') && o !== mat) a.vs = { mat: o.id, kind: i.act.vs.kind, name: o.querySelector('.who').textContent.trim() || 'opponent' };
+    sp = rowSpec(mat, a, i.adj);
+    ys = sp.y; bn = sp.b;
+    if (sp.opp && !i.rowManual) row = rowFor(sp.opp.diff);   // the GM's page knows the Difference
+  }
+  const now = new Date(), rid = newOid();
+  sweep(mat);
+  const r = rollDice(row, ys, bn);
+  markUsed(mat);
+  // The GM's tape gets everything; the GM may see it all.
+  printTape(makeReceipt({ rid, at: now.toISOString(), title: `${name}, roll ${++rolls}`, by: who, dice: r.dice,
+    influence: a && `${a.label}: Total Influence ${sp.total} (base ${a.base})`,
+    vs: a && a.vs && sp.opp && `vs ${a.vs.name} (${a.vs.kind ? a.vs.kind + ' ' : ''}${sp.opp.oppTotal}), Difference ${sp.opp.diff >= 0 ? '+' : ''}${sp.opp.diff}`,
+    row: r.a.l, resolution: r.resolution, level: r.level, outcome: r.outcome }));
+  return { roll: tableView(rid, now.toISOString(), name, a && a.label, a && a.vs && a.vs.name, r) };
+}
+
+// Someone else's roll, from the room (already checked field by field in net/presence.js).
+function printTableRoll(r, by) {
+  if (strip.querySelector(`.receipt[data-rid="${r.rid}"]`)) return;   // already on the tape
+  printTape(makeReceipt({ ...r, title: r.character, by, influence: r.action }));   // the action, without its numbers
+}
+// Your own roll went out to the table.
+function rollEchoed(rid) { strip.querySelector(`.receipt[data-rid="${rid}"]`)?.classList.add('sent'); }
+// A line on the tape that isn't a roll: a roll that didn't arrive, or one the GM's page couldn't make.
+function printNote(text) {
+  const el = h(`<div class="receipt missed"><div class="rhead"><div class="who"></div><time></time></div></div>`);   // .who: Boot Hill and torn rolls read it
+  el.querySelector('.who').textContent = text;
+  el.querySelector('time').textContent = clock(new Date());
+  printTape(el);
+}
+// Someone's roll counter skipped: say so rather than let a roll vanish. A forged number could claim
+// any count, so a big gap just says many.
+const printMissed = (n, by) => printNote(n > 20 ? `Many rolls from ${by} didn't arrive` : `${n} roll${n === 1 ? '' : 's'} from ${by} didn't arrive`);
+
+/* ---------- persistence: a write-through store in IndexedDB ----------
+   Lost wax (Bill, 11-09, option (a)). The DOM is still the state. Each top-level thing on the
+   table is one record holding its HTML, keyed by a stable data-oid; the tape, Boot Hill, and the
+   counters are records too. A MutationObserver notices any change, and after a short pause the
+   records that differ from what was last written are put (and vanished ones deleted). Images are
+   Blobs keyed by SHA-256, a content address pages ask each other for. A checkpoint is a
+   named copy of every record. IndexedDB, not localStorage: localStorage holds ~5 MB of strings,
+   and two photos would fill it. localStorage keeps only which game was open.
+   HTML records are a stand-in. HTML from a peer or an imported file can carry script, so
+   networking needs structured records; until then, import only files you trust. */
+const idb = (() => {
+  let db = null;
+  const req = r => new Promise((ok, no) => { r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+  return {
+    open: () => new Promise((ok, no) => {
+      const r = indexedDB.open('glimmer', 1);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        d.createObjectStore('games', { keyPath: 'id' });
+        d.createObjectStore('records');                 // key [game, rid]
+        d.createObjectStore('blobs');                   // key: SHA-256 hex
+        d.createObjectStore('checkpoints', { keyPath: 'id', autoIncrement: true }).createIndex('game', 'game');
+      };
+      r.onsuccess = () => { db = r.result; ok(db); }; r.onerror = () => no(r.error);
+    }),
+    get ready() { return !!db; },
+    get: (store, key) => req(db.transaction(store).objectStore(store).get(key)),
+    all: (store, q) => req(db.transaction(store).objectStore(store).getAll(q)),
+    byGame: (store, game) => store === 'records'
+      ? req(db.transaction(store).objectStore(store).getAll(IDBKeyRange.bound([game, ''], [game, '\uffff'])))
+      : req(db.transaction(store).objectStore(store).index('game').getAll(game)),
+    // fn issues its requests synchronously on the transaction; resolves when it commits
+    run: (stores, fn) => new Promise((ok, no) => {
+      const t = db.transaction(stores, 'readwrite');
+      fn(name => t.objectStore(name));
+      t.oncomplete = () => ok(); t.onerror = t.onabort = () => no(t.error);
+    }),
+  };
+})();
+const lsGet = k => { try { return localStorage.getItem(k); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const newOid = () => 'o' + crypto.randomUUID().slice(0, 8);
+const recRange = g => IDBKeyRange.bound([g, ''], [g, '\uffff']);
+
+/* Images: the bytes go to the blob store under their hash; the <img> carries data-blob. */
+const blobUrls = new Map();
+async function hashBlob(b) {
+  const d = await crypto.subtle.digest('SHA-256', await b.arrayBuffer());
+  return [...new Uint8Array(d)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+async function keepImage(img, file) {
+  if (!idb.ready) return;
+  const hash = await hashBlob(file);
+  await idb.run(['blobs'], s => s('blobs').put(file, hash));
+  blobUrls.set(hash, img.src);
+  img.dataset.blob = hash;                              // the mutation triggers the save
+  shareImage(img, file);
+}
+// Images peer to peer (11-11, was IPFS): the bytes stay in this page's blob store, and another page
+// asks the room for them by hash (net/table.js, net/wire.js). Nothing to do when one is added.
+// (Pieces from the IPFS days still carry a data-cid; it's ignored.)
+function shareImage(img) { img.classList.remove('unshared'); }
+// Fetch an image this browser doesn't have, and keep it only if its bytes hash to the name the
+// piece gave them.
+const fetching = new Map();                             // hash -> Promise<Blob|null>
+function fetchImage(hash) {
+  if (!window.askBlob || !/^[0-9a-f]{64}$/.test(hash)) return Promise.resolve(null);
+  if (!fetching.has(hash)) fetching.set(hash, (async () => {
+    try {
+      const b = await window.askBlob(hash);
+      if (!b) return null;
+      if (await hashBlob(b) !== hash) return null;
+      if (idb.ready) await idb.run(['blobs'], s => s('blobs').put(b, hash));
+      return b;
+    } catch { return null; }
+  })().then(b => { setTimeout(() => fetching.delete(hash), b ? 30000 : 0); return b; }));   // a miss is asked again at the next try (net/table.js, every 10 s)
+  return fetching.get(hash);
+}
+async function showBlobs(root) {
+  await Promise.all([...root.querySelectorAll('img[data-blob]')].map(async img => {
+    const hash = img.dataset.blob;
+    if (!blobUrls.has(hash)) {
+      let b = idb.ready ? await idb.get('blobs', hash) : null;
+      if (!b && window.askBlob) { img.classList.add('fetching'); img.title = 'Asking the table for this image'; b = await fetchImage(hash); img.classList.remove('fetching'); }
+      if (b && !blobUrls.has(hash)) blobUrls.set(hash, URL.createObjectURL(b));
+    }
+    if (blobUrls.has(hash)) { img.src = blobUrls.get(hash); img.classList.remove('missing'); if (!img.classList.contains('unshared')) img.title = ''; return; }
+    // Not here (yet): say why, and net/table.js tries again every 10 s
+    img.classList.add('missing');
+    img.title = !window.askBlob ? 'This page can\'t fetch images: it isn\'t at a table'
+      : 'Nobody at the table has sent this image yet (the page that has it may be closed); trying again';
+  }));
+}
+
+/* Freezing: clone, then drop what belongs to this moment or this viewer, not to the game. */
+const TRANSIENT = ['aimed', 'dragging', 'lifted', 'nope', 'over', 'panning', 'popped', 'printing', 'rolled',
+  'tapping', 'targeted', 'doom', 'secret', 'peek', 'glide', 'fetching', 'missing', 'unshared'];
+function freeze(el) {
+  const c = el.cloneNode(true);
+  c.querySelectorAll('#roller, #rollinfo').forEach(x => x.remove());
+  for (const k of TRANSIENT) { c.classList.remove(k); c.querySelectorAll('.' + k).forEach(x => x.classList.remove(k)); }
+  c.querySelectorAll('.actline.on').forEach(x => x.classList.remove('on'));
+  [c, ...c.querySelectorAll('.pile.open')].forEach(x => x.matches('.pile') && x.classList.remove('open'));   // your seat's
+  c.querySelectorAll('.usedpile .list').forEach(x => { x.hidden = true; });
+  c.querySelectorAll('img[data-blob]').forEach(x => x.removeAttribute('src'));
+  return c.outerHTML;
+}
+function snapshot() {
+  const recs = new Map();
+  for (const el of world.children) {
+    el.dataset.oid ||= newOid();
+    recs.set('o:' + el.dataset.oid, { rid: 'o:' + el.dataset.oid, html: freeze(el) });
+  }
+  const tapeHtml = [...strip.children].map(freeze).join('');
+  recs.set('tape', { rid: 'tape', html: tapeHtml });
+  recs.set('yards', { rid: 'yards', yards: yards.map(y => ({ name: y.name, named: y.named,
+    items: y.items.map(g => ({ name: g.name, html: g.els.map(freeze) })) })) });
+  recs.set('meta', { rid: 'meta', round, rolls, matSeq, ridSeq, zTop });
+  recs.set('book', { rid: 'book', ...book });
+  return recs;
+}
+// Put records back on the table. The roller is undocked first, or clearing the world takes it along.
+function thaw(recs) {
+  undock();
+  world.replaceChildren();
+  strip.replaceChildren();
+  const objs = Object.values(recs).filter(r => r.rid.startsWith('o:')).map(r => h(r.html))
+    .sort((a, b) => (+a.style.zIndex || 0) - (+b.style.zIndex || 0));
+  world.append(...objs);
+  const t = recs.tape;
+  if (t) strip.innerHTML = t.html;
+  tidyTape();
+  const y = recs.yards;
+  yards.length = 0;
+  if (y && y.yards.length) {
+    y.yards.forEach(g => yards.push({ name: g.name, named: g.named, items: g.items.map(i => ({ name: i.name, els: i.html.map(h) })) }));
+    cur = Math.min(cur, yards.length - 1);
+  } else { yards.push(newYard()); cur = 0; }
+  book = { ...newBook(recs.book), gv: Math.max(book.gv, recs.book?.gv || 0) };   // the version never goes back (a restored checkpoint, say)
+  const m = recs.meta || {};
+  round = m.round || 0; rolls = m.rolls || 0; matSeq = m.matSeq || 0; ridSeq = m.ridSeq || 0;
+  zTop = Math.max(m.zTop || 10, ...objs.map(o => +o.style.zIndex || 0));
+  document.getElementById('rtab').textContent = round;
+  document.querySelectorAll('.mat').forEach(mat => regather.observe(mat));
+  document.querySelectorAll('.card .col').forEach(c => { decorateResources(c); decorateActions(c); });
+  document.querySelectorAll('.mat').forEach(renderUsed);
+  applyVisibility();
+  renderBootHill();
+  showBlobs(document);
+  yards.forEach(y => y.items.forEach(g => g.els.forEach(showBlobs)));
+}
+
+/* The GM's book (11-10): what the GM's page decides for the table and never sends. Who plays under
+   each name (claims: name -> the browser that holds it, net/ident.js), the table's version (gv: the number of the
+   latest batch the GM's page sent), and when pieces were deleted (tomb: rid -> gv) and Boot Hill last
+   changed (yardsGv), so a copy from before can't bring them back. net/table.js keeps it. */
+const newBook = b => { const { rid, ...rest } = b || {}; return { claims: {}, gv: 0, tomb: {}, yardsGv: 0, ...rest }; };
+var book = newBook();
+/* Your seat at the table: what you were looking at and what you had set up to roll — the view,
+   the docked roll row with its action, opponent, White row and dice, "You are", the tape rolled up
+   or down, which graveyard you're browsing, and what you've opened. It lives in this browser only
+   (localStorage, per game and per viewer) and never in the game's records, so it is never
+   checkpointed, exported, or sent to the other players (Bill, 11-09). */
+var seatTimer = null;           // var: applyView and renderRoller can run before this section
+const seatKey = () => `glimmer.seat.${game}.${realMe}`;
+function saveSeat() { if (!game || muted) return; clearTimeout(seatTimer); seatTimer = setTimeout(writeSeat, 200); }
+function writeSeat() {
+  clearTimeout(seatTimer);
+  if (!game) return;
+  const mat = roller.closest('.mat');
+  lsSet(seatKey(), JSON.stringify({
+    view: { x: view.x, y: view.y, z: view.z }, me: realMe === 'GM' ? me() : undefined,
+    dock: mat ? mat.id : null, act, adj, advI, steps: { y: steps.y, b: steps.b }, priv: privateRoll,
+    tapeUp: tape.classList.contains('up'), cur, graves: !graveList.hidden,
+    piles: [...document.querySelectorAll('.pile.open')].map(x => x.dataset.uid).filter(Boolean),
+    used: [...document.querySelectorAll('.usedpile .list:not([hidden])')].map(l => l.closest('.mat')?.id).filter(Boolean),
+  }));
+}
+// Run while muted, right after a thaw; anything that has since vanished is skipped.
+function restoreSeat() {
+  let s = null;
+  try { s = JSON.parse(lsGet(seatKey()) || 'null'); } catch {}
+  if (!s) return;
+  if (s.view) { Object.assign(view, s.view); applyView(); }
+  privateRoll = !!s.priv;
+  if (s.me && realMe === 'GM') {
+    const sel = document.getElementById('me');
+    if (![...sel.options].some(o => o.value === s.me)) sel.add(new Option(s.me));
+    sel.value = s.me;
+  }
+  applyVisibility();
+  tape.classList.toggle('up', !!s.tapeUp);
+  if (Number.isInteger(s.cur)) cur = Math.max(0, Math.min(s.cur, yards.length - 1));
+  renderBootHill();
+  graveList.hidden = !s.graves;
+  for (const id of s.piles || []) document.querySelector(`.pile[data-uid="${id}"]`)?.classList.add('open');
+  for (const id of s.used || []) { const l = document.getElementById(id)?.querySelector('.usedpile .list'); if (l) l.hidden = false; }
+  document.querySelectorAll('.mat').forEach(peek);
+  const mat = s.dock && document.getElementById(s.dock);
+  if (mat && rollsFor(mat)) {
+    dock(mat);
+    act = s.act || null; adj = s.adj || { y: 0, b: 0 }; advI = s.advI ?? 4;
+    if (s.steps) { steps.y = s.steps.y; steps.b = s.steps.b; }
+    refreshRoll();
+  }
+}
+
+/* The write-through. `saved` mirrors exactly what the database holds for this game. */
+// var, not let: renderRound and renderBootHill call saveSoon before this section runs
+var game = null, saved = new Map(), saveTimer = null, saving = Promise.resolve(), muted = false;
+function saveSoon() { if (!game || muted) return; clearTimeout(saveTimer); saveTimer = setTimeout(flush, 400); }
+function flush() {
+  clearTimeout(saveTimer);
+  if (!game || !idb.ready) return saving;
+  const g = game;
+  return saving = saving.then(async () => {
+    const now = snapshot(), puts = [], dels = [];
+    for (const [rid, rec] of now) { const s = JSON.stringify(rec); if (saved.get(rid) !== s) { puts.push(rec); saved.set(rid, s); } }
+    for (const rid of [...saved.keys()]) if (!now.has(rid)) { dels.push(rid); saved.delete(rid); }
+    if (!puts.length && !dels.length) return;
+    window.onRecords?.(puts, dels);                     // the table's networking sends them on
+    const meta = await idb.get('games', g);
+    await idb.run(['records', 'games'], s => {
+      puts.forEach(r => s('records').put(r, [g, r.rid]));
+      dels.forEach(rid => s('records').delete([g, rid]));
+      if (meta) s('games').put({ ...meta, updated: Date.now() });
+    });
+    ledgerStatus('Saved ' + clock(new Date()));
+  }).catch(err => ledgerStatus('Not saved: ' + err.message));
+}
+const clock = d => d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+const watch = new MutationObserver(saveSoon);
+for (const el of [world, strip]) watch.observe(el, { subtree: true, childList: true, attributes: true, characterData: true });
+addEventListener('pagehide', () => { writeSeat(); flush(); });
+
+/* ---------- pieces from another page (Bill, 11-10: HTML pieces, cleaned on arrival) ----------
+   The GM's page holds the game. Its saves go out to the room as pieces (a record's HTML), and a
+   player's own changes go to it the same way. HTML from another page can carry script, so a piece
+   is parsed inert (in a template), anything that can run or fetch is cut out, and it must be one
+   table object with the oid it claims. */
+const OID = /^o[\w-]{1,16}$/;
+const DROP_TAGS = /^(script|iframe|frame|frameset|object|embed|link|meta|style|base|form|portal|template|noscript|audio|video|source|track|svg|math)$/i;
+function cleanPiece(html, oid = null) {
+  if (typeof html !== 'string' || html.length > 400000) return null;
+  const t = document.createElement('template');
+  t.innerHTML = html;
+  const el = t.content.firstElementChild;
+  if (!el || t.content.childElementCount !== 1 || el.tagName !== 'DIV' || !el.classList.contains('obj')) return null;
+  if (!OID.test(el.dataset.oid || '') || (oid && el.dataset.oid !== oid)) return null;
+  for (const x of [el, ...el.querySelectorAll('*')]) {
+    if (DROP_TAGS.test(x.tagName)) { x.remove(); continue; }
+    for (const a of [...x.attributes]) {
+      const n = a.name.toLowerCase();
+      if (n.startsWith('on') || ['src', 'srcset', 'srcdoc', 'href', 'xlink:href', 'action', 'formaction', 'poster', 'background', 'ping'].includes(n)
+        || (n === 'style' && /url\s*\(|expression|@import|\\/i.test(a.value))) x.removeAttribute(a.name);
+    }
+  }
+  return document.importNode(el, true);
+}
+const objEl = oid => [...world.children].find(c => c.dataset.oid === oid) || null;
+// What this viewer had open on a piece (seat, not game) carries over to its replacement.
+function seatBits(el) {
+  return { piles: [...el.querySelectorAll('.pile.open')].map(p => p.dataset.uid).filter(Boolean),
+    used: !!el.querySelector('.usedpile .list:not([hidden])') };
+}
+function putSeatBits(el, b) {
+  b.piles.forEach(u => el.querySelector(`.pile[data-uid="${u}"]`)?.classList.add('open'));
+  const l = el.querySelector('.usedpile .list'); if (l && b.used) l.hidden = false;
+}
+// Put a piece on the table in place of the old one: the roll row and what you had open move across,
+// and a piece that only changed place slides there.
+function swapIn(old, el) {
+  const docked = old && roller.closest('.mat') === old, keep = act;
+  if (old) {
+    if (docked) rollhome.append(roller, rollinfo);
+    putSeatBits(el, seatBits(old));
+    const [ol, ot] = [old.style.left, old.style.top], [nl, nt] = [el.style.left, el.style.top];
+    if (ol !== nl || ot !== nt) {
+      el.style.left = ol; el.style.top = ot;
+      old.replaceWith(el);
+      el.offsetWidth;                                   // start from the old place
+      el.classList.add('glide'); el.style.left = nl; el.style.top = nt;
+    } else old.replaceWith(el);
+  } else world.append(el);
+  if (el.classList.contains('mat')) { regather.observe(el); renderUsed(el); }
+  if (el.classList.contains('card')) el.querySelectorAll('.col').forEach(c => { decorateResources(c); decorateActions(c); });
+  showBlobs(el);
+  if (docked && el.classList.contains('mat')) { dock(el); act = keep; refreshRoll(); }
+  markAction();
+  peek(el.classList.contains('mat') ? el : null);
+}
+function dropPiece(old) {
+  if (!old) return;
+  if (roller.closest('.mat') === old) undock();
+  old.remove();
+}
+// Records to put on this page: { rid, html } for a table object, yards, or meta. Returns the rids
+// it changed. Called from net/table.js, which has already decided each one is newer.
+function applyPieces(puts, dels) {
+  const done = [];
+  for (const rid of dels) {
+    if (!rid.startsWith('o:')) continue;
+    const old = objEl(rid.slice(2));
+    if (old) { dropPiece(old); done.push(rid); }
+  }
+  for (const r of puts) {
+    if (r.rid.startsWith('o:')) {
+      const el = cleanPiece(r.html, r.rid.slice(2));
+      if (!el) continue;
+      const old = objEl(r.rid.slice(2));
+      if (old && freeze(old) === freeze(el)) continue;   // already so
+      swapIn(old, el); done.push(r.rid);
+    } else if (r.rid === 'yards' && Array.isArray(r.yards)) {
+      const ys = r.yards.slice(0, 200).map(g => ({ name: String(g.name || '').slice(0, 80), named: !!g.named,
+        items: (Array.isArray(g.items) ? g.items : []).map(i => ({ name: String(i.name || '').slice(0, 80),
+          els: (Array.isArray(i.html) ? i.html : []).map(x => cleanPiece(x)).filter(Boolean) })).filter(i => i.els.length) }));
+      if (!ys.length) ys.push(newYard());
+      yards.length = 0; yards.push(...ys);
+      cur = Math.min(cur, yards.length - 1);
+      yards.forEach(y => y.items.forEach(g => g.els.forEach(showBlobs)));
+      renderBootHill(); done.push('yards');
+    } else if (r.rid === 'meta' && Number.isInteger(r.round) && r.round >= 0 && r.round < 1000) {
+      if (round !== r.round) { round = r.round; document.getElementById('rtab').textContent = round; done.push('meta'); }
+    }
+  }
+  applyVisibility();
+  return done;
+}
+// Make what's on the table now the saved state of these records, without sending it anywhere: a
+// change that came from another page is written to this browser's copy but isn't this page's to send.
+function adopt(rids) {
+  if (!game || !idb.ready || !rids.length) return;
+  const g = game, now = snapshot(), puts = [], dels = [];
+  for (const rid of new Set(rids)) {
+    const rec = now.get(rid);
+    if (rec) { const j = JSON.stringify(rec); if (saved.get(rid) !== j) { saved.set(rid, j); puts.push(rec); } }
+    else if (saved.has(rid)) { saved.delete(rid); dels.push(rid); }
+  }
+  if (puts.length || dels.length) saving = saving.then(() => idb.run(['records'], s => {
+    puts.forEach(r => s('records').put(r, [g, r.rid]));
+    dels.forEach(rid => s('records').delete([g, rid]));
+  })).catch(err => ledgerStatus('Not saved: ' + err.message));
+}
+// On the GM's page: may this player change this piece? A character (and its card) is the owner's,
+// or anyone's while open; everything else is the table's.
+function mayTouch(who, el) {
+  if (!el) return true;
+  const mat = el.classList.contains('mat') ? el : el.classList.contains('card') ? document.getElementById(el.dataset.mat || '') : null;
+  if (!mat || !mat.classList.contains('mat')) return true;
+  const o = ownerOf(mat);
+  return o === who || o === '';
+}
+/* Secrets on the wire (11-10). A character belongs to someone, and only they and the GM may read its
+   Influence cards (in its drawer, used pile, pools, or loose on the table) and its sheet. Everyone
+   else gets the piece redacted: the same shape, with those words and numbers gone. net/table.js
+   sends the real one sealed to whoever may read it. */
+// The characters a piece's secrets belong to: a mat's own, a sheet's character, every Influence's home.
+const refsCache = new Map();
+function pieceRefs(html) {
+  let r = refsCache.get(html);
+  if (r) return r;
+  const t = document.createElement('template'); t.innerHTML = html;
+  const el = t.content.firstElementChild, ids = new Set();
+  if (el) {
+    if (el.classList.contains('mat') && el.id) ids.add(el.id);
+    if (el.classList.contains('card') && el.dataset.mat) ids.add(el.dataset.mat);
+    [el, ...el.querySelectorAll('.infl')].forEach(x => x.matches('.infl') && x.dataset.home && ids.add(x.dataset.home));
+  }
+  r = [...ids];
+  if (refsCache.size > 5000) refsCache.clear();
+  refsCache.set(html, r);
+  return r;
+}
+// Who owns each character now: on the table and in Boot Hill.
+function matOwners() {
+  const m = new Map();
+  yards.forEach(y => y.items.forEach(g => g.els.forEach(el => [el, ...el.querySelectorAll('.mat')].forEach(x => x.matches('.mat') && x.id && m.set(x.id, ownerOf(x))))));
+  document.querySelectorAll('#world .mat').forEach(x => m.set(x.id, ownerOf(x)));
+  return m;
+}
+// Which of these characters are secret from `who` (null: someone who owns nothing). A character
+// no longer anywhere has no secrets left.
+const hiddenOf = (who, refs, owners) => refs.filter(id => { const o = owners.get(id); return o !== undefined && !(o === '' || (who && (who === 'GM' || o === who))); });
+const redactCache = new Map();
+function redact(html, hidden) {
+  if (!hidden.length) return html;
+  const key = hidden.slice().sort().join(',') + '|' + html;
+  let out = redactCache.get(key);
+  if (out !== undefined) return out;
+  const t = document.createElement('template'); t.innerHTML = html;
+  const el = t.content.firstElementChild, hid = new Set(hidden);
+  const blank = root => {                               // words, numbers, and images: gone; the shape stays
+    root.querySelectorAll('img').forEach(i => i.remove());
+    for (const x of [root, ...root.querySelectorAll('*')]) for (const a of [...x.attributes]) if (/^(title|alt)$|^data-(?!row$|pool$)/.test(a.name)) x.removeAttribute(a.name);
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); const ts = []; while (w.nextNode()) ts.push(w.currentNode);
+    ts.forEach(n => { n.nodeValue = ''; });
+  };
+  for (const c of [el, ...el.querySelectorAll('.infl')]) {
+    if (!c.matches('.infl') || !hid.has(c.dataset.home)) continue;
+    c.removeAttribute('title'); c.removeAttribute('data-name');
+    c.querySelectorAll('.nm').forEach(n => { n.textContent = ''; });
+    if (c.classList.contains('cf')) {                   // a card shows nothing; a chip in a pool shows its value
+      c.dataset.v = '0'; c.querySelectorAll('.num, .lv').forEach(n => { n.textContent = ''; });
+    }
+  }
+  if (el.classList.contains('card') && hid.has(el.dataset.mat)) el.querySelectorAll('.flipper').forEach(blank);
+  out = el.outerHTML;
+  if (redactCache.size > 5000) redactCache.clear();
+  redactCache.set(key, out);
+  return out;
+}
+// ...and may the piece they sent become the table's? A character can't be handed to someone else.
+const mayBecome = (who, el) => !el.classList.contains('mat') || [who, ''].includes(ownerOf(el));
+// A move from another page, worked out by net/table.js's move actor.
+function placePiece(oid, x, y, z) {
+  const el = objEl(oid);
+  if (!el || inHand().includes(el)) return null;
+  el.classList.add('glide');
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  if (z) { el.style.zIndex = z; zTop = Math.max(zTop, z); }
+  return el;
+}
+world.addEventListener('transitionend', e => { if (e.target.parentElement === world && /^(left|top)$/.test(e.propertyName)) e.target.classList.remove('glide'); });
+
+/* Games and checkpoints */
+async function openGame(id) {
+  await flush();
+  const recs = await idb.all('records', recRange(id));
+  muted = true;
+  writeSeat();                                          // the seat at the game being left
+  thaw(Object.fromEntries(recs.map(r => [r.rid, r])));
+  game = id; if (!id.startsWith('m-')) lsSet('glimmer.game', id);   // a player's copy is never the GM's game
+  restoreSeat();
+  saved = new Map(recs.map(r => [r.rid, JSON.stringify(r)]));
+  await new Promise(r => setTimeout(r));                // let the observer's records from thawing drain
+  muted = false;
+  writeSeat();
+  await flush();                                        // thawing may normalize a record or two
+  renderLedger();
+}
+async function createGame(name, recs = null, id = 'g' + crypto.randomUUID().slice(0, 8)) {
+  await flush();
+  const at = Date.now();
+  await idb.run(['games', 'records'], s => {
+    s('games').put({ id, name, created: at, updated: at });
+    if (recs) Object.values(recs).forEach(r => s('records').put(r, [id, r.rid]));
+  });
+  return id;
+}
+async function checkpoint(name, auto = false) {
+  if (!game) return;
+  await flush();
+  const records = Object.fromEntries([...saved].map(([rid, s]) => [rid, JSON.parse(s)]));
+  await idb.run(['checkpoints'], s => s('checkpoints').add({ game, name, at: Date.now(), auto, records }));
+  const autos = (await idb.byGame('checkpoints', game)).filter(c => c.auto).sort((a, b) => b.at - a.at);
+  if (autos.length > 20) await idb.run(['checkpoints'], s => autos.slice(20).forEach(c => s('checkpoints').delete(c.id)));
+  renderLedger();
+}
+// Restoring is itself undoable: the table as it stands is checkpointed first.
+async function restoreCheckpoint(id) {
+  const cp = await idb.get('checkpoints', id);
+  if (!cp) return;
+  const undoing = cp.name.match(/^Before (?:restoring|undoing) “(.*)”$/);   // don't nest the names
+  await checkpoint(undoing ? `Before undoing “${undoing[1]}”` : `Before restoring “${cp.name}”`, true);
+  writeSeat();
+  muted = true;
+  thaw(cp.records);
+  restoreSeat();                                        // your seat survives a restore
+  await new Promise(r => setTimeout(r));
+  muted = false;
+  await flush();
+  renderLedger();
+}
+
+/* Export and import: one readable JSON file, images inlined once as data URIs. */
+const toDataUrl = b => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); });
+async function exportGame() {
+  await flush();
+  const meta = await idb.get('games', game);
+  const records = Object.fromEntries([...saved].map(([rid, s]) => [rid, JSON.parse(s)]));
+  const checkpoints = (await idb.byGame('checkpoints', game)).sort((a, b) => a.at - b.at)
+    .map(({ name, at, auto, records }) => ({ name, at, auto, records }));
+  const hashes = new Set(JSON.stringify([records, checkpoints]).match(/data-blob=\\"[0-9a-f]{64}/g)?.map(s => s.slice(-64)) || []);
+  const blobs = {};
+  for (const hash of hashes) { const b = await idb.get('blobs', hash); if (b) blobs[hash] = await toDataUrl(b); }
+  const file = { format: 'glimmer-game', version: 1, name: meta.name, exported: new Date().toISOString(), records, checkpoints, blobs };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(file, null, 1)], { type: 'application/json' }));
+  a.download = (meta.name.trim().replace(/[^\w-]+/g, '-').replace(/^-|-$/g, '') || 'game') + '.glimmer.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+// An import always becomes a new game beside the others; it never overwrites one.
+async function importGame(f) {
+  let file;
+  try { file = JSON.parse(await f.text()); } catch { return ledgerStatus('Not a game file: ' + f.name); }
+  if (file?.format !== 'glimmer-game' || file.version !== 1 || typeof file.records !== 'object') return ledgerStatus('Not a game file: ' + f.name);
+  const blobs = await Promise.all(Object.entries(file.blobs || {}).map(async ([hash, url]) => [hash, await (await fetch(url)).blob()]));
+  await idb.run(['blobs'], s => blobs.forEach(([hash, b]) => s('blobs').put(b, hash)));
+  let name = String(file.name || f.name);
+  if ((await idb.all('games')).some(g => g.name === name)) name += ' (imported)';   // tell the two apart in the list
+  const id = await createGame(name);
+  await idb.run(['checkpoints'], s => (file.checkpoints || []).forEach(c =>
+    s('checkpoints').add({ game: id, name: c.name, at: c.at, auto: !!c.auto, records: c.records })));
+  await idb.run(['records'], s => Object.values(file.records).forEach(r => s('records').put(r, [id, r.rid])));
+  await openGame(id);
+}
+
+/* The ledgerEl: the game's name, its checkpoints, and the other games. */
+const ledgerEl = document.getElementById('ledger'), ledgerBtn = document.getElementById('ledgerbtn');
+let ledgerMsg = '';
+function ledgerStatus(s) { ledgerMsg = s; const el = ledgerEl.querySelector('.status'); if (el) el.textContent = s; }
+const stampOf = at => { const d = new Date(at); return d.toLocaleString('en-US', { month: 'short', day: 'numeric' }) + ', ' + clock(d); };
+async function renderLedger() {
+  if (ledgerEl.hidden) return;
+  if (!idb.ready) { ledgerEl.innerHTML = '<p class="status">Not saving: this browser refused local storage.</p>'; return; }
+  const games = (await idb.all('games')).filter(g => g.id === game || !g.id.startsWith('m-')).sort((a, b) => b.updated - a.updated);
+  const meta = games.find(g => g.id === game);
+  const cps = (await idb.byGame('checkpoints', game)).sort((a, b) => b.at - a.at);
+  ledgerEl.innerHTML = `<input class="gname" aria-label="Game name" spellcheck="false">
+    <div class="acts"><button class="cp" title="Save a named copy of the table as it is now">Checkpoint</button>
+      <button class="ex" title="Download this game, with its checkpoints and images, as one file">Export</button>
+      <button class="im" title="Open a game file as a new game">Import</button>
+      <button class="nw" title="Start a new, empty table">New game</button></div>
+    <p class="status"></p>
+    <h4>Checkpoints</h4><div class="cps"></div>
+    <h4>Games</h4><div class="games"></div>
+    <input type="file" accept=".json,application/json" hidden>`;
+  const name = ledgerEl.querySelector('.gname');
+  name.value = meta ? meta.name : '';
+  name.addEventListener('change', async () => {
+    const m = await idb.get('games', game);
+    await idb.run(['games'], s => s('games').put({ ...m, name: name.value.trim() || 'Untitled game' }));
+    renderLedger();
+  });
+  ledgerStatus(ledgerMsg);
+  const list = ledgerEl.querySelector('.cps');
+  if (!cps.length) list.append(h(`<p>None yet. End makes one at the end of every conflict.</p>`));
+  for (const c of cps) {
+    const b = h(`<button title="Restore the table to this checkpoint. The table as it stands is checkpointed first, so this can be undone."><span></span><time></time></button>`);
+    b.querySelector('span').textContent = c.name; b.querySelector('time').textContent = stampOf(c.at);
+    if (c.auto) b.classList.add('auto');
+    b.addEventListener('click', () => restoreCheckpoint(c.id));
+    list.append(b);
+  }
+  const gl = ledgerEl.querySelector('.games');
+  for (const g of games) {
+    const b = h(`<button><span></span><time></time></button>`);
+    b.querySelector('span').textContent = g.name; b.querySelector('time').textContent = stampOf(g.updated);
+    if (g.id === game) { b.classList.add('current'); b.disabled = true; b.title = 'The game on the table'; }
+    else { b.title = 'Put this game on the table (this one is saved as it is)'; b.addEventListener('click', () => openGame(g.id)); }
+    gl.append(b);
+  }
+  const picker = ledgerEl.querySelector('input[type=file]');
+  ledgerEl.querySelector('.cp').addEventListener('click', () => {
+    const n = prompt('Name this checkpoint', 'Round ' + round + ', ' + clock(new Date()));
+    if (n !== null) checkpoint(n.trim() || 'Checkpoint');
+  });
+  ledgerEl.querySelector('.ex').addEventListener('click', exportGame);
+  ledgerEl.querySelector('.im').addEventListener('click', () => picker.click());
+  picker.addEventListener('change', () => { if (picker.files[0]) importGame(picker.files[0]); });
+  ledgerEl.querySelector('.nw').addEventListener('click', async () => openGame(await createGame('New game ' + stampOf(Date.now()))));
+  if (mirrorOf) {                                       // the GM's page holds the game; this is a copy
+    ledgerEl.querySelectorAll('.cp, .im, .nw, .cps, .games, h4').forEach(x => x.remove());
+    name.readOnly = true;
+    ledgerEl.querySelector('.status').before(h(`<p class="copy">The GM's page holds this game. This browser keeps a copy so a reload shows the table at once; the GM checkpoints and restores.</p>`));
+  }
+}
+ledgerBtn.addEventListener('click', () => { ledgerEl.hidden = !ledgerEl.hidden; renderLedger(); });
+document.addEventListener('pointerdown', e => { if (!ledgerEl.hidden && !e.target.closest('#ledger, #ledgerbtn')) ledgerEl.hidden = true; });
+
+/* Boot: reopen the last game, or set out the 11-08 playtest as the first one. A player's page opens
+   its copy of the GM's table instead, empty until the GM's page sends it. */
+const mirrorOf = (() => { const r = new URLSearchParams(location.search).get('room');
+  return realMe !== 'GM' && r && /^[\w-]{8,80}$/.test(r) ? r : null; })();
+function freshTable() {
+  scene();
+  document.querySelectorAll('.card .col').forEach(c => { decorateResources(c); decorateActions(c); });
+  document.querySelectorAll('.mat').forEach(gather);
+  applyVisibility();
+  document.querySelectorAll('.mat').forEach(renderUsed);
+}
+async function boot() {
+  try { await idb.open(); } catch { freshTable(); return; }   // no storage: play, unsaved (the ledgerEl says so)
+  if (mirrorOf) {                                      // a player: this room's copy of the GM's table
+    const id = 'm-' + mirrorOf;
+    if (!(await idb.get('games', id))) await createGame("The GM's table", null, id);
+    await openGame(id); return;
+  }
+  let id = lsGet('glimmer.game');
+  if (!id || !(await idb.get('games', id))) id = (await idb.all('games')).filter(g => !g.id.startsWith('m-')).sort((a, b) => b.updated - a.updated)[0]?.id;
+  if (id) { await openGame(id); return; }
+  freshTable();
+  game = await createGame('The 11-08 playtest'); lsSet('glimmer.game', game);
+  await flush();
+}
+
+boot();
+fit();
+window.addEventListener('resize', fit);
+</script>
+<script type="module" src="net/presence.js"></script>
+<script type="module" src="net/table.js"></script>
+</body>
+</html>

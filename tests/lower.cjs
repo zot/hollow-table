@@ -1,0 +1,23 @@
+const { chromium } = require('/home/deck/work/HollowStuff/HollowWorld/node_modules/playwright');
+(async () => {
+  const b = await chromium.connectOverCDP('http://localhost:9333');
+  const p = await (await b.newContext()).newPage(); await p.setViewportSize({ width: 1600, height: 950 });
+  const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto('http://127.0.0.1:8765/index.html?' + Date.now()); await p.waitForTimeout(800);
+  const box = async sel => { const r = await p.locator(sel).first().boundingBox(); return { x: r.x + r.width/2, y: r.y + r.height/2 }; };
+  const dragTo = async (f, t) => { await p.mouse.move(f.x, f.y); await p.mouse.down(); await p.mouse.move(f.x+10, f.y+10, {steps:3}); await p.mouse.move(t.x, t.y, {steps:8}); await p.mouse.up(); };
+  const read = pl => p.evaluate(pl => [...document.querySelectorAll('.mat')[0].querySelector(`[data-pool=${pl}] .pos`).children].map(c => c.dataset.v + (c.querySelector('.odd') ? '+1' : '')), pl);
+  const slot = pl => box(`.mat >> nth=0 >> [data-pool=${pl}]`);
+  await dragTo(await box('.supply.chip.g[data-v="6"]'), await slot('Bonus'));
+  await p.dblclick('.mat >> nth=0 >> [data-pool=Bonus] .chip', { modifiers: ['Shift'] });
+  console.log('6 shift-dbl (expect [4]):', JSON.stringify(await read('Bonus')));
+  await p.dblclick('.mat >> nth=0 >> [data-pool=Bonus] .chip', { modifiers: ['Control'] });
+  console.log('ctrl-dbl (expect [2]):', JSON.stringify(await read('Bonus')));
+  await dragTo(await box('.supply.chip.g[data-v="+1"]'), await box('.mat >> nth=0 >> [data-pool=Bonus] .chip'));
+  await p.dblclick('.mat >> nth=0 >> [data-pool=Bonus] .chip:not(.odd)', { modifiers: ['Alt'], position: { x: 8, y: 21 } });
+  console.log('2+1 alt-dbl (expect [+1] loose):', JSON.stringify(await read('Bonus')));
+  await p.dblclick('.mat >> nth=1 >> [data-pool=Stagger] .neg .chip', { modifiers: ['Shift'] });
+  console.log('Beauford red 2 shift-dbl (expect 0 chips):', await p.evaluate(() => document.querySelectorAll('.mat')[1].querySelectorAll('[data-pool=Stagger] .chip').length));
+  console.log('errors:', JSON.stringify(errs));
+  await p.close(); process.exit(0);
+})();
