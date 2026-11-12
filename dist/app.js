@@ -307,8 +307,8 @@ var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) });
 var change = (v) => fields({ rid: str(CAPS.id), rec: () => true })(v) && check(v.rid, v.rec);
 var editBody = fields({ s: seq, base: seq, puts: list(change, LIMITS.batch), dels: list(str(CAPS.id), LIMITS.batch) });
 var header = fields({ v: oneOf(VERSION), kind: oneOf(...KINDS), tab, at: num(0, 1e15), body: () => true });
-function make(kind, from, body, at2 = Date.now()) {
-  return { v: VERSION, kind, tab: from, at: at2, body };
+function make(kind, from, body, at3 = Date.now()) {
+  return { v: VERSION, kind, tab: from, at: at3, body };
 }
 function check2(raw) {
   let e = raw;
@@ -540,10 +540,10 @@ var Authority = class {
     for (const c of commands) {
       const r = game.get(c.rid);
       if (!r || !this.#tabs.has(c.tab)) continue;
-      const at2 = { x: c.x, y: c.y, z: c.z };
+      const at3 = { x: c.x, y: c.y, z: c.z };
       let rec = r;
-      if (r.kind === "character") rec = c.part === "pool" ? { ...r, pool: { ...r.pool, ...at2 } } : { ...r, card: { ...r.card, ...at2 } };
-      else if ("place" in r) rec = { ...r, place: { ...r.place, ...at2 } };
+      if (r.kind === "character") rec = c.part === "pool" ? { ...r, pool: { ...r.pool, ...at3 } } : { ...r, card: { ...r.card, ...at3 } };
+      else if ("place" in r) rec = { ...r, place: { ...r.place, ...at3 } };
       const key = `${c.tab}:${c.s}`, g = groups.get(key) ?? { tab: c.tab, s: c.s, base: gv, puts: [], dels: [] };
       g.puts.push({ rid: c.rid, rec });
       groups.set(key, g);
@@ -805,9 +805,9 @@ var Copy = class {
     for (const c of commands) {
       const r = this.#w.game.get(c.rid);
       if (!r || this.#pending.has(c.rid)) continue;
-      const at2 = { x: c.x, y: c.y, z: c.z };
-      if (r.kind === "character") puts.push({ rid: c.rid, rec: c.part === "pool" ? { ...r, pool: { ...r.pool, ...at2 } } : { ...r, card: { ...r.card, ...at2 } } });
-      else if ("place" in r) puts.push({ rid: c.rid, rec: { ...r, place: { ...r.place, ...at2 } } });
+      const at3 = { x: c.x, y: c.y, z: c.z };
+      if (r.kind === "character") puts.push({ rid: c.rid, rec: c.part === "pool" ? { ...r, pool: { ...r.pool, ...at3 } } : { ...r, card: { ...r.card, ...at3 } } });
+      else if ("place" in r) puts.push({ rid: c.rid, rec: { ...r, place: { ...r.place, ...at3 } } });
     }
     this.#quietly(puts, []);
   }
@@ -824,10 +824,10 @@ var Copy = class {
   #changed(rids) {
     const mine = [...rids].filter((rid) => isPiece(rid) || rid === "yards");
     if (!mine.length) return;
-    const s = this.#w.stamps.next(), at2 = this.#w.clock.now();
+    const s = this.#w.stamps.next(), at3 = this.#w.clock.now();
     for (const rid of mine) {
       this.#w.stamps.mark(rid, this.#w.link.tab, s);
-      this.#pending.set(rid, { s, at: at2, tries: 0, base: this.#seen, group: s });
+      this.#pending.set(rid, { s, at: at3, tries: 0, base: this.#seen, group: s });
     }
     this.#keepPending();
     this.#sendEdit(s, this.#seen, mine);
@@ -1037,12 +1037,12 @@ var Moves = class {
    * higher number. Anything lower than what was applied from its page is discarded.
    */
   pass() {
-    const run = this.#filling;
+    const run2 = this.#filling;
     this.#filling = this.#draining;
-    this.#draining = run;
+    this.#draining = run2;
     const placed = /* @__PURE__ */ new Map();
-    for (let k = run.length - 1; k >= 0; k--) {
-      const c = run[k];
+    for (let k = run2.length - 1; k >= 0; k--) {
+      const c = run2[k];
       if (this.#held.has(c.rid)) {
         this.#hold(c);
         continue;
@@ -1053,7 +1053,7 @@ var Moves = class {
       if (first && (first.tab !== c.tab || c.s <= first.s)) continue;
       placed.set(c.rid, c);
     }
-    run.length = 0;
+    run2.length = 0;
     if (placed.size) this.#w.place([...placed.values()]);
     if (this.#filling.length) this.#later();
     else this.#acting = false;
@@ -1275,7 +1275,37 @@ function bonus(action2, bonusPool, hand = { yellows: 0, bonus: 0 }) {
 }
 
 // src/rules/influence.ts
+var LEVELS = [
+  { word: "Min", name: "Minor", points: 2 },
+  { word: "Sig", name: "Significant", points: 4 },
+  { word: "Maj", name: "Major", points: 6 },
+  { word: "Ext", name: "Extreme", points: 8 },
+  { word: "Exq", name: "Exquisite", points: 10 }
+];
+var MIN = 2;
 var STEP = 2;
+function raiseChip(chip2) {
+  return { ...chip2, points: chip2.points === 1 ? 2 : chip2.points + STEP };
+}
+function lowerChip(chip2) {
+  if (chip2.points <= 1) return null;
+  if (chip2.points === 2) return { ...chip2, points: 1, rider: false };
+  return { ...chip2, points: chip2.points - STEP };
+}
+function raiseCard(card2) {
+  return { ...card2, points: card2.points + STEP };
+}
+function lowerCard(card2) {
+  return { ...card2, points: Math.max(MIN, card2.points - STEP) };
+}
+function levelName2(points2) {
+  if (points2 < MIN) return String(points2);
+  return LEVELS[Math.floor(points2 / STEP) - 1]?.word ?? String(points2);
+}
+var ROW_LEVELS = { mild: 1, min: 1, sig: 2, maj: 3 };
+function rowLevels(row2) {
+  return ROW_LEVELS[row2];
+}
 
 // src/rules/pool.ts
 function worth(i) {
@@ -1285,7 +1315,7 @@ var isPile = (u) => "members" in u;
 var unitWorth = (u) => isPile(u) ? u.points : worth(u);
 function rollUp(items, mint2) {
   const remove = [], add = [];
-  const units = [];
+  const units2 = [];
   for (const sign2 of [1, -1]) {
     let side = items.filter((i) => i.sign === sign2 && i.points >= STEP);
     for (; ; ) {
@@ -1298,33 +1328,36 @@ function rollUp(items, mint2) {
       let three, made;
       if (plain.length >= 3) {
         const chips = plain.slice(0, 3), first = chips[0];
-        const chip = { kind: "chip", oid: mint2(), where: first.where, n: first.n, sign: sign2, points: v + STEP, rider: false };
+        const chip2 = { kind: "chip", oid: mint2(), where: first.where, n: first.n, sign: sign2, points: v + STEP, rider: false };
         for (const c of chips) {
           const k = add.indexOf(c);
           if (k >= 0) add.splice(k, 1);
           else remove.push(c.oid);
         }
-        add.push(chip);
+        add.push(chip2);
         three = chips;
-        made = chip;
+        made = chip2;
       } else {
         three = [...plain, ...group.filter((u) => !plain.includes(u))].slice(0, 3);
         made = { sign: sign2, points: v + STEP, members: three };
       }
       side = [...side.filter((u) => !three.includes(u)), made];
     }
-    units.push(...side, ...items.filter((i) => i.sign === sign2 && i.points < STEP));
+    units2.push(...side, ...items.filter((i) => i.sign === sign2 && i.points < STEP));
   }
-  return { remove, add, units };
+  return { remove, add, units: units2 };
 }
 function value(items) {
-  const { units } = rollUp(items, () => "");
-  const best = (s) => Math.max(0, ...units.filter((u) => u.sign === s).map(unitWorth));
+  const { units: units2 } = rollUp(items, () => "");
+  const best = (s) => Math.max(0, ...units2.filter((u) => u.sign === s).map(unitWorth));
   return best(1) - best(-1);
 }
 function pools(character2, items) {
-  const inSlot2 = (name2) => items.filter((i) => typeof i.where === "object" && "slot" in i.where && i.where.slot === character2 && i.where.name === name2);
-  return Object.fromEntries(SLOTS.map((s) => [s, value(inSlot2(s))]));
+  const inSlot3 = (name2) => items.filter((i) => typeof i.where === "object" && "slot" in i.where && i.where.slot === character2 && i.where.name === name2);
+  return Object.fromEntries(SLOTS.map((s) => [s, value(inSlot3(s))]));
+}
+function accepts(slot2, item2) {
+  return item2.kind !== "influence" || !item2.damage || item2.damage === slot2;
 }
 
 // src/rules/readmarks.ts
@@ -1355,6 +1388,15 @@ function action(text) {
 var LEVEL_WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
 var LEVEL = `(${LEVEL_WORDS.join("|")}|\\d+)`;
 var INFLUENCE = new RegExp(`^(.*?)\\s*([+${MINUS}])\\s*${LEVEL}\\b(.*)$`, "is");
+function influence(text) {
+  const t = text.trim(), m = INFLUENCE.exec(t);
+  const name2 = m?.[1].trim();
+  if (m && name2) {
+    const w = m[3], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
+    return { name: name2, sign: m[2] === "+" ? 1 : -1, level: word ?? w };
+  }
+  return t ? { name: t, sign: null, level: null } : null;
+}
 var N = "(\\d+)";
 var DEF_ONE = new RegExp(`^${N}$`);
 var DEF_TWO = new RegExp(`^${N}\\s*/\\s*${N}$`);
@@ -1372,7 +1414,23 @@ function defend(text) {
   }
   return null;
 }
+var LEVELS2 = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
+var WORD_OF = ["0", "Min", "Sig", "Maj", "Ext", "Exq"];
+function levelsOf(r) {
+  if (!r.level) return 0;
+  if (/^\d+$/.test(r.level)) return Math.floor(Number(r.level) / 2);
+  return LEVELS2[r.level] ?? 0;
+}
+function levelWord(levels) {
+  return WORD_OF[levels] ?? String(levels * 2);
+}
 var LEVEL_AT = new RegExp(`^(.*?[+${MINUS}]\\s*)${LEVEL}\\b(.*)$`, "is");
+function spend(text, by) {
+  const r = influence(text), m = LEVEL_AT.exec(text);
+  if (!r?.level || !m) return null;
+  const left = levelsOf(r) - by;
+  return left < 0 ? null : m[1] + levelWord(left) + m[3];
+}
 
 // src/text/marks.ts
 var MARKS = ["act", "res", "inf", "def", "head"];
@@ -1393,8 +1451,8 @@ function parseLine(src) {
   if (from < src.length || runs.length === 0) runs.push(src.slice(from));
   return runs;
 }
-function parse(source) {
-  return source.split("\n").map(parseLine);
+function parse(source2) {
+  return source2.split("\n").map(parseLine);
 }
 var runSource = (r) => typeof r === "string" ? r : `<${r.mark}>${r.text}</${r.mark}>`;
 function serialize(lines) {
@@ -1402,15 +1460,23 @@ function serialize(lines) {
 }
 function marks(lines, tag2) {
   const out = [];
-  lines.forEach((l, line) => l.forEach((r, run) => {
-    if (typeof r !== "string" && (!tag2 || r.mark === tag2)) out.push({ line, run, mark: r.mark, text: r.text });
+  lines.forEach((l, line) => l.forEach((r, run2) => {
+    if (typeof r !== "string" && (!tag2 || r.mark === tag2)) out.push({ line, run: run2, mark: r.mark, text: r.text });
   }));
   return out;
 }
 var fits = (mark, text) => !text.includes("\n") && !text.includes(`</${mark}>`);
-function render(lines, el2) {
-  const doc = el2.ownerDocument;
-  el2.replaceChildren(...lines.map((l) => {
+function replaceLine(lines, i, line) {
+  return lines.map((l, j) => j === i ? line : l);
+}
+function setMark(lines, at3, text) {
+  const r = lines[at3.line]?.[at3.run];
+  if (!r || typeof r === "string" || !fits(r.mark, text)) return lines;
+  return replaceLine(lines, at3.line, lines[at3.line].map((x, k) => k === at3.run ? { mark: r.mark, text } : x));
+}
+function render(lines, el3) {
+  const doc = el3.ownerDocument;
+  el3.replaceChildren(...lines.map((l) => {
     const div = doc.createElement("div");
     for (const r of l) {
       if (typeof r === "string") {
@@ -1426,7 +1492,7 @@ function render(lines, el2) {
   }));
 }
 var isMark = (s) => MARKS.includes(s);
-function read(el2) {
+function read(el3) {
   const lines = [[]];
   const push = (r) => {
     const line = lines[lines.length - 1], last = line[line.length - 1];
@@ -1444,7 +1510,7 @@ function read(el2) {
       walk(e, false);
     });
   };
-  walk(el2, true);
+  walk(el3, true);
   return lines.map((l) => l.length ? l : [""]);
 }
 
@@ -1468,7 +1534,7 @@ function mint(game) {
   }
   return (top + 1).toString(16).padStart(8, "0");
 }
-function resolve2(game, intent, rng, at2) {
+function resolve2(game, intent, rng, at3) {
   const character2 = game.get(ridOf(intent.pool));
   if (character2?.kind !== "character") return { refused: "That character is not on the table." };
   const act = marks(parse(character2.front), "act").map((m) => action(m.text)).find((a) => a?.label === intent.action);
@@ -1491,7 +1557,7 @@ function resolve2(game, intent, rng, at2) {
   const by = character2.owner === GM ? "GM" : character2.owner;
   const base = {
     id: `roll-${n}`,
-    at: at2,
+    at: at3,
     title: `${character2.name} #${n}: ${act.label}`,
     by,
     dice: r.dice,
@@ -1512,7 +1578,7 @@ function resolve2(game, intent, rng, at2) {
     ...opp && { vs: seesOpp ? vsFull : opp.name }
   };
   const table = { ...base, ...opp && { vs: opp.name } };
-  const apply = (w) => {
+  const apply2 = (w) => {
     w.put("meta", { ...meta, rolls: n });
     for (const i of items) {
       if (i.kind === "influence" && typeof i.where === "object" && "slot" in i.where && i.where.slot === character2.oid && !i.used) {
@@ -1538,7 +1604,7 @@ function resolve2(game, intent, rng, at2) {
       });
     }
   };
-  return { full, roller, table, apply, character: character2 };
+  return { full, roller, table, apply: apply2, character: character2 };
 }
 function choose(r, choice, lock) {
   if (!r.crit) return r;
@@ -1589,9 +1655,9 @@ var Rolls = class {
    * already there by id is replaced (a CRIT switched or locked). */
   #print(r) {
     const { game } = this.#w, tape = game.get("tape") ?? { receipts: [] };
-    const at2 = tape.receipts.findIndex((x) => x.id === r.id);
+    const at3 = tape.receipts.findIndex((x) => x.id === r.id);
     const receipts = tape.receipts.filter((x) => x.id !== r.id);
-    receipts.splice(Math.max(at2, 0), 0, r);
+    receipts.splice(Math.max(at3, 0), 0, r);
     game.change((w) => w.put("tape", { receipts }));
   }
   // ---- the GM's page ----
@@ -2599,7 +2665,7 @@ var OfferManager = class {
 var overlapRoomPasswordErr = mkErr("incorrect password for overlapping room");
 var createPasswordHandshake = (password, appId, roomId) => {
   const hashChallenge = (challenge2) => hashWith("SHA-256", `${challenge2}:${password}:${appId}:${roomId}`).then(toHex);
-  const run = async (send, receive, isInitiator) => {
+  const run2 = async (send, receive, isInitiator) => {
     if (!password) return;
     if (isInitiator) {
       const challenge2 = genId(36);
@@ -2621,11 +2687,11 @@ var createPasswordHandshake = (password, appId, roomId) => {
     });
   };
   const compose = (userHandshake) => password || userHandshake ? async (peerId, send, receive, isInitiator) => {
-    await run(send, receive, isInitiator);
+    await run2(send, receive, isInitiator);
     await userHandshake?.(peerId, send, receive, isInitiator);
   } : void 0;
   return {
-    run,
+    run: run2,
     compose
   };
 };
@@ -3123,14 +3189,14 @@ var maxPendingPerPeer = 64;
 var maxDecisions = 128;
 var maxDecisionsPerPeer = 8;
 var emptyBytes = /* @__PURE__ */ new Uint8Array();
-var decideReceive = (decide, settle) => {
+var decideReceive = (decide, settle2) => {
   let result;
   try {
     result = decide();
   } catch {
-    return settle(false);
+    return settle2(false);
   }
-  return typeof result === "boolean" ? settle(result) : Promise.resolve(result).then((value2) => settle(value2 === true), () => settle(false));
+  return typeof result === "boolean" ? settle2(result) : Promise.resolve(result).then((value2) => settle2(value2 === true), () => settle2(false));
 };
 var decodePayload = (bytes, format, copy) => format === 2 ? copy ? bytes.slice() : bytes : format === 1 ? fromJson(decodeBytes(bytes)) : decodeBytes(bytes);
 var progress = (action2, value2, peerId, metadata) => {
@@ -3625,12 +3691,12 @@ var createActionWireManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeer
           const isBlob = data instanceof Blob;
           const binary = isBlob || data instanceof ArrayBuffer || ArrayBuffer.isView(data);
           const format = binary ? 2 : typeof data === "string" ? 0 : 1;
-          let source = isBlob ? data : data instanceof ArrayBuffer ? new Uint8Array(data) : ArrayBuffer.isView(data) ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength) : encodeBytes(format === 0 ? data : toJson(data));
-          const size = source instanceof Blob ? source.size : source.byteLength;
+          let source2 = isBlob ? data : data instanceof ArrayBuffer ? new Uint8Array(data) : ArrayBuffer.isView(data) ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength) : encodeBytes(format === 0 ? data : toJson(data));
+          const size = source2 instanceof Blob ? source2.size : source2.byteLength;
           const meta = metadata === void 0 ? /* @__PURE__ */ new Uint8Array() : encodeBytes(toJson(metadata));
           if (meta.length > 16336) throw mkErr("action metadata is too large");
           const small = inlineHeaderSize + meta.length + size <= maxActionFrameBytes;
-          if (!small && binary && !(source instanceof Blob)) source = source.slice();
+          if (!small && binary && !(source2 instanceof Blob)) source2 = source2.slice();
           const id = small ? 0 : nextId++ >>> 0;
           const headerSize = small ? inlineHeaderSize : offerHeaderSize;
           const start = new Uint8Array(headerSize + meta.length + (small ? size : 0));
@@ -3644,7 +3710,7 @@ var createActionWireManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeer
             view.setFloat64(40, size);
           }
           start.set(meta, headerSize);
-          if (small) start.set(source instanceof Blob ? new Uint8Array(await source.arrayBuffer()) : source, headerSize + meta.length);
+          if (small) start.set(source2 instanceof Blob ? new Uint8Array(await source2.arrayBuffer()) : source2, headerSize + meta.length);
           const ids = targets ? Array.isArray(targets) ? targets : [targets] : getPeerIds(normalizedOptions.sendToPending);
           await all([...new Set(ids)].map(async (peerId) => {
             const peer = getPeer(peerId, normalizedOptions.sendToPending);
@@ -3733,7 +3799,7 @@ var createActionWireManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeer
                 const length = Math.min(chunkSize, size - offset);
                 const bytes = packet(chunk, id, chunkHeaderSize + length);
                 new DataView(bytes.buffer).setFloat64(controlHeaderSize, offset);
-                bytes.set(source instanceof Blob ? new Uint8Array(await source.slice(offset, offset + length).arrayBuffer()) : source.subarray(offset, offset + length), chunkHeaderSize);
+                bytes.set(source2 instanceof Blob ? new Uint8Array(await source2.slice(offset, offset + length).arrayBuffer()) : source2.subarray(offset, offset + length), chunkHeaderSize);
                 await sendFrame(bytes);
                 for (const pending of transfers.values()) pending.touch();
                 onProgress?.((offset + length) / size, peerId, metadata);
@@ -4152,11 +4218,11 @@ var toPendingMediaMeta = (value2) => {
   };
   return null;
 };
-var makeKeyGetter = (map) => (item) => {
-  let key = map.get(item);
+var makeKeyGetter = (map) => (item2) => {
+  let key = map.get(item2);
   if (!key) {
     key = genId(20);
-    map.set(item, key);
+    map.set(item2, key);
   }
   return key;
 };
@@ -6544,7 +6610,7 @@ A1: *super* important to Trudy.
 Next session: first day in town, late at night at the hotel`;
 var infl = (oid, name2, points2, n) => ({ kind: "influence", oid, home: DEVREUX, where: "drawer", n, name: name2, sign: 1, points: points2, used: false, crit: false });
 function scene(sam = "Player 1", beauford = "Player 2") {
-  const chip = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false };
+  const chip2 = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false };
   const sticky = { kind: "sticky", oid: "00000008", place: at(1430, 20), text: STICKY };
   const ref = { kind: "reference", oid: "00000009", place: at(1430, 650), which: "actions" };
   return [
@@ -6554,7 +6620,7 @@ function scene(sam = "Player 1", beauford = "Player 2") {
     infl("00000004", "Keep the Peace", 4, 0),
     infl("00000005", "Self-Preservation", 4, 1),
     infl("00000006", "Old Sympathy for Sparkers", 2, 2),
-    chip,
+    chip2,
     sticky,
     ref
   ];
@@ -6801,6 +6867,230 @@ function save(storage, game, viewer, seat) {
   }
 }
 
+// src/rules/tap.ts
+function inFront(char, name2) {
+  const lines = parse(char.front);
+  for (const m of marks(lines, "res")) {
+    const r = influence(m.text);
+    if (r?.name !== name2 || !r.level) continue;
+    return {
+      char,
+      name: name2,
+      sign: r.sign ?? 1,
+      left: levelsOf(r),
+      spend: (n) => ({ ...char, front: serialize(setMark(lines, m, spend(m.text, n) ?? m.text)) })
+    };
+  }
+  return null;
+}
+var DAMAGE_SOURCE = new RegExp(`^(${DAMAGE.join("|")})/(${ROWS.join("|")})(?:#(\\d+))?$`);
+function inBack(char, rest) {
+  const m = DAMAGE_SOURCE.exec(rest);
+  if (!m) return null;
+  const damage3 = m[1], row2 = m[2], k = m[3] ? Number(m[3]) : 0;
+  const slot2 = char.back.damage[damage3][row2];
+  if (!slot2.name || k > 0 && !slot2.boxes[k - 1]) return null;
+  const spend2 = (n) => {
+    const spent = [...slot2.spent];
+    spent[k] = (spent[k] ?? 0) + n;
+    const column2 = { ...char.back.damage[damage3], [row2]: { ...slot2, spent: Array.from(spent, (x) => x ?? 0) } };
+    return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage3]: column2 } } };
+  };
+  return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
+}
+function source(chars, id) {
+  const colon = id.indexOf(":");
+  if (colon < 0) return null;
+  const char = chars(id.slice(0, colon));
+  if (!char) return null;
+  const rest = id.slice(colon + 1);
+  return inBack(char, rest) ?? inFront(char, rest);
+}
+function tap(chars, src, where2, oid) {
+  const s = source(chars, src);
+  if (!s || s.left < 1) return null;
+  const card2 = {
+    kind: "influence",
+    oid,
+    home: s.char.oid,
+    where: where2,
+    n: 0,
+    name: s.name,
+    sign: s.sign,
+    points: MIN,
+    used: false,
+    crit: false,
+    tap: { ledger: { [src]: 1 }, current: src },
+    ...s.damage && { damage: s.damage }
+  };
+  return { card: card2, changed: [s.spend(1)] };
+}
+function feed(chars, card2, src, oid) {
+  if (!card2.tap) return null;
+  const id = src ?? card2.tap.current;
+  if (card2.used) return tap(chars, id, card2.where, oid);
+  const s = source(chars, id);
+  if (!s || s.left < 1 || s.damage !== card2.damage) return null;
+  const ledger = { ...card2.tap.ledger, [id]: (card2.tap.ledger[id] ?? 0) + 1 };
+  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
+}
+function unfeed(chars, card2) {
+  const id = card2.tap?.current;
+  if (!card2.tap || !id || !(card2.tap.ledger[id] > 0) || card2.points - STEP < MIN) return null;
+  const s = source(chars, id);
+  if (!s) return null;
+  const ledger = { ...card2.tap.ledger, [id]: card2.tap.ledger[id] - 1 };
+  return { card: { ...card2, points: card2.points - STEP, tap: { ledger, current: id } }, changed: [s.spend(-1)] };
+}
+function kill(chars, card2) {
+  if (!card2.tap || card2.used) return [];
+  const out = /* @__PURE__ */ new Map();
+  const now2 = (oid) => out.get(oid) ?? chars(oid);
+  for (const [id, n] of Object.entries(card2.tap.ledger)) {
+    const s = n > 0 ? source(now2, id) : null;
+    if (s) out.set(s.char.oid, s.spend(-n));
+  }
+  return [...out.values()];
+}
+
+// src/ui/actions.ts
+function minter(game, gm, rng = Math.random) {
+  const used = new Set(game.all().map(([rid]) => rid).filter(isPiece).map(oidOf));
+  let top = 0;
+  for (const o of used) {
+    const n = parseInt(o, 16);
+    if (n < PLAYER_OIDS) top = Math.max(top, n);
+  }
+  return () => {
+    let oid;
+    do {
+      oid = (gm ? ++top : PLAYER_OIDS + Math.floor(rng() * (4294967295 - PLAYER_OIDS))).toString(16).padStart(8, "0");
+    } while (used.has(oid));
+    used.add(oid);
+    return oid;
+  };
+}
+var lookup = (game) => (oid) => game.get(ridOf(oid));
+var item = (game, rid) => {
+  const r = game.get(rid);
+  return r && "kind" in r && (r.kind === "chip" || r.kind === "influence") ? r : void 0;
+};
+var inSlot2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && i.where.name === slot2;
+function slotItems(game, owner, slot2) {
+  return game.all().map(([rid]) => item(game, rid)).filter((i) => !!i && inSlot2(i, owner, slot2));
+}
+function settle(w, items, mint2) {
+  const plan = rollUp(items, mint2);
+  const gone = new Set(plan.remove);
+  for (const i of items) if (!gone.has(i.oid)) w.put(ridOf(i.oid), i);
+  for (const oid of plan.remove) w.del(ridOf(oid));
+  for (const c of plan.add) w.put(ridOf(c.oid), c);
+}
+function withItem(game, owner, slot2, changed, gone) {
+  const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
+  return changed ? [...rest, changed] : rest;
+}
+function toSlot(game, rid, owner, slot2, mint2) {
+  const i = item(game, rid);
+  if (!i || !accepts(slot2, i)) return null;
+  const moved = { ...i, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
+  return (w) => {
+    settle(w, withItem(game, owner, slot2, moved), mint2);
+  };
+}
+function toDrawer(game, rid, owner) {
+  const i = item(game, rid);
+  if (!i || i.kind !== "influence") return null;
+  return (w) => w.put(rid, { ...i, home: owner, where: "drawer", used: false });
+}
+function toTable(game, rid, at3) {
+  const i = item(game, rid);
+  if (!i) return null;
+  if (i.kind === "influence" && !i.tap) return toDrawer(game, rid, i.home);
+  return (w) => w.put(rid, { ...i, where: { table: at3 } });
+}
+function killCard(game, rid) {
+  const i = item(game, rid);
+  if (!i || i.kind !== "influence") return null;
+  const refunds = kill(lookup(game), i);
+  return (w) => {
+    w.del(rid);
+    for (const c of refunds) w.put(ridOf(c.oid), c);
+  };
+}
+function vanish(game, rid) {
+  const i = item(game, rid);
+  return i?.kind === "chip" ? (w) => w.del(rid) : null;
+}
+function chipClick(game, rid, shift, mint2) {
+  const c = item(game, rid);
+  if (c?.kind !== "chip") return null;
+  const next = shift ? lowerChip(c) : raiseChip(c);
+  if (typeof c.where !== "object" || !("slot" in c.where)) {
+    return (w) => {
+      if (next) w.put(rid, next);
+      else w.del(rid);
+    };
+  }
+  const { slot: owner, name: name2 } = c.where;
+  return (w) => {
+    if (!next) w.del(rid);
+    settle(w, withItem(game, owner, name2, next, next ? void 0 : c.oid), mint2);
+  };
+}
+function riderClick(game, rid, shift) {
+  const c = item(game, rid);
+  if (c?.kind !== "chip" || !c.rider || !shift) return null;
+  return (w) => w.put(rid, { ...c, rider: false });
+}
+function addLoose(game, owner, slot2, shift, mint2) {
+  const chip2 = {
+    kind: "chip",
+    oid: mint2(),
+    where: { slot: owner, name: slot2 },
+    n: slotItems(game, owner, slot2).length,
+    sign: shift ? -1 : 1,
+    points: 1,
+    rider: false
+  };
+  return (w) => w.put(ridOf(chip2.oid), chip2);
+}
+function cardClick(game, rid, shift, mint2) {
+  const c = item(game, rid);
+  if (c?.kind !== "influence") return null;
+  if (c.tap) {
+    const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
+    return t ? apply(t, c) : null;
+  }
+  const next = shift ? lowerCard(c) : raiseCard(c);
+  return next.points === c.points ? null : (w) => w.put(rid, next);
+}
+function writeCard(owner, sign2, name2, mint2) {
+  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n: 0, name: name2, sign: sign2, points: MIN, used: false, crit: false };
+  return (w) => w.put(ridOf(card2.oid), card2);
+}
+function restoreUsed(game, rid) {
+  const c = item(game, rid);
+  return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid, { ...c, where: "drawer", used: false }) : null;
+}
+function apply(t, old) {
+  return (w) => {
+    if (old && t.card.oid !== old.oid) w.put(ridOf(old.oid), old);
+    w.put(ridOf(t.card.oid), t.card);
+    for (const c of t.changed) w.put(ridOf(c.oid), c);
+  };
+}
+function tapOut(game, src, where2, mint2) {
+  const t = tap(lookup(game), src, where2, mint2());
+  return t ? apply(t) : null;
+}
+function feedFrom(game, cardRid, src, mint2) {
+  const c = item(game, cardRid);
+  if (c?.kind !== "influence") return null;
+  const t = feed(lookup(game), c, src, mint2());
+  return t ? apply(t, c) : null;
+}
+
 // src/ui/gesture.ts
 var LONG_MS = 500;
 var DRAG_PX = 5;
@@ -6808,8 +7098,8 @@ var real = { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (h) => cl
 var shifty = /* @__PURE__ */ new Set();
 var shifted = (e) => !!(e.shiftKey || e.ctrlKey || e.altKey);
 var clickOf = (h, e) => shifted(e) ? h.shift ?? h.click : h.click;
-function gesture(el2, h, timers = real) {
-  if (h.shift) shifty.add(el2);
+function gesture(el3, h, timers = real) {
+  if (h.shift) shifty.add(el3);
   let down = null, long = null, done2 = false;
   const reset = () => {
     if (long !== null) timers.clearTimeout(long);
@@ -6835,7 +7125,7 @@ function gesture(el2, h, timers = real) {
     clickOf(h, d)?.(e);
   };
   const onCancel = () => reset();
-  const target = el2.ownerDocument ?? globalThis.document ?? el2;
+  const target = el3.ownerDocument ?? globalThis.document ?? el3;
   const stop = () => {
     target.removeEventListener("pointermove", onMove);
     target.removeEventListener("pointerup", onUp);
@@ -6863,46 +7153,46 @@ function gesture(el2, h, timers = real) {
   const onKey = (ev) => {
     const e = ev;
     if (e.key !== "Enter" && e.key !== " ") return;
-    if (e.target !== el2) return;
+    if (e.target !== el3) return;
     e.preventDefault();
     clickOf(h, e)?.(e);
   };
-  el2.addEventListener("pointerdown", onDown);
-  if (h.click || h.shift) el2.addEventListener("keydown", onKey);
+  el3.addEventListener("pointerdown", onDown);
+  if (h.click || h.shift) el3.addEventListener("keydown", onKey);
   return () => {
     reset();
-    shifty.delete(el2);
-    el2.removeEventListener("pointerdown", onDown);
-    el2.removeEventListener("keydown", onKey);
+    shifty.delete(el3);
+    el3.removeEventListener("pointerdown", onDown);
+    el3.removeEventListener("keydown", onKey);
   };
 }
 
 // src/ui/receipt.ts
 var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var two = (n) => String(n).padStart(2, "0");
-function when(at2) {
-  const d = new Date(at2);
+function when(at3) {
+  const d = new Date(at3);
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
 }
 var DIE = { W: "White", G: "Green", R: "Red", B: "Blue", Y: "Yellow" };
 var CRIT = { max: "maximize", dbl: "double" };
 function receiptEl(doc, r) {
-  const el2 = doc.createElement("div");
-  el2.className = "receipt";
-  el2.dataset.id = r.id;
+  const el3 = doc.createElement("div");
+  el3.className = "receipt";
+  el3.dataset.id = r.id;
   const line = (text, cls) => {
     const div = doc.createElement("div");
     if (cls) div.className = cls;
     div.textContent = text;
-    el2.append(div);
+    el3.append(div);
   };
   const head = doc.createElement("div");
   const time = doc.createElement("span");
   time.className = "when";
   time.textContent = when(r.at);
   head.append(time, `${r.title}${r.ok ? " \u2713" : ""}`);
-  el2.append(head);
-  if (r.outcome === "missing") return el2;
+  el3.append(head);
+  if (r.outcome === "missing") return el3;
   if (r.priv) line("Private: not shown to the table");
   if (r.by) line(`rolled by ${r.by}`);
   if (r.influence !== void 0) line(`Total Influence ${r.influence}${r.base !== void 0 ? ` (base ${r.base})` : ""}`);
@@ -6921,7 +7211,7 @@ function receiptEl(doc, r) {
   }
   line(r.level);
   line(r.outcome, "outcome");
-  return el2;
+  return el3;
 }
 
 // src/ui/piece.ts
@@ -6943,12 +7233,12 @@ var el = (doc, tag2, cls, text) => {
   if (text !== void 0) e.textContent = text;
   return e;
 };
-function writable(doc, cls, source, save2) {
+function writable(doc, cls, source2, save2) {
   const t = el(doc, "div", cls);
   t.contentEditable = "true";
   t.spellcheck = false;
-  render(parse(source), t);
-  t.dataset.source = source;
+  render(parse(source2), t);
+  t.dataset.source = source2;
   t.addEventListener("input", () => {
     const s = serialize(read(t));
     t.dataset.source = s;
@@ -6956,11 +7246,11 @@ function writable(doc, cls, source, save2) {
   });
   return t;
 }
-function rewrite(t, source) {
-  if (t.dataset.source === source) return;
+function rewrite(t, source2) {
+  if (t.dataset.source === source2) return;
   if (t.ownerDocument.activeElement && t.contains(t.ownerDocument.activeElement)) return;
-  render(parse(source), t);
-  t.dataset.source = source;
+  render(parse(source2), t);
+  t.dataset.source = source2;
 }
 function change2(w, rid, fn) {
   const cur = w.game.get(rid);
@@ -6972,13 +7262,13 @@ function placeOf(r) {
   return null;
 }
 function draw(r, old, w) {
-  const at2 = placeOf(r);
-  if (!at2) return null;
+  const at3 = placeOf(r);
+  if (!at3) return null;
   const doc = old?.ownerDocument ?? document;
   const e = old?.dataset.kind === r.kind ? old : make2(doc, r, w);
-  e.style.left = `${at2.x}px`;
-  e.style.top = `${at2.y}px`;
-  e.style.zIndex = String(at2.z);
+  e.style.left = `${at3.x}px`;
+  e.style.top = `${at3.y}px`;
+  e.style.zIndex = String(at3.z);
   e.style.setProperty("--tilt", tilt(r.oid));
   update(e, r, w);
   return e;
@@ -7036,7 +7326,9 @@ function update(e, r, w) {
     case "character": {
       e.classList.toggle("flipped", r.flipped);
       e.classList.toggle("secret", !canSee(w.viewer, r));
-      rewrite(e.querySelector(".front > .text"), r.front);
+      const front = e.querySelector(".front > .text");
+      rewrite(front, r.front);
+      frontGlyphs(front, r, w);
       rewrite(e.querySelector(".back > .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
       break;
@@ -7138,6 +7430,7 @@ function damage2(box2, c, w) {
       if (doc.activeElement !== name2 && name2.textContent !== s.name) name2.textContent = s.name;
       const spent = s.spent.reduce((a, b) => a + b, 0);
       line.querySelector(".spent").textContent = spent ? `\u2212${spent}` : "";
+      slotGlyphs(line, s, `${c.oid}:${d}/${row2}`, w);
       const boxes = line.querySelector(".boxes");
       if (boxes.children.length !== s.boxes.length) {
         boxes.replaceChildren(...s.boxes.map((_, k) => {
@@ -7157,6 +7450,34 @@ function damage2(box2, c, w) {
       s.boxes.forEach((on, k) => boxes.children[k].classList.toggle("on", on));
     }
   }
+}
+function glyph(doc, source2, w) {
+  const g = el(doc, "span", "glyph");
+  g.contentEditable = "false";
+  g.dataset.source = source2;
+  g.title = "Drag to tap";
+  g.draggable = false;
+  g.addEventListener("pointerdown", (ev) => ev.preventDefault());
+  g.addEventListener("dragstart", (ev) => ev.preventDefault());
+  gesture(g, { drag: (d, m) => w.dragGlyph(source2, d, m) });
+  return g;
+}
+function frontGlyphs(text, c, w) {
+  const doc = text.ownerDocument;
+  if (doc.activeElement && text.contains(doc.activeElement)) return;
+  for (const g of text.querySelectorAll(".glyph")) g.remove();
+  for (const span of text.querySelectorAll("span.res")) {
+    const name2 = influence(span.textContent ?? "")?.name;
+    if (name2) span.before(glyph(doc, `${c.oid}:${name2}`, w));
+  }
+}
+function slotGlyphs(line, s, base, w) {
+  const doc = line.ownerDocument, name2 = line.querySelector(".name");
+  const want = s.name ? [base, ...s.boxes.flatMap((on, k) => on ? [`${base}#${k + 1}`] : [])] : [];
+  const have = [...line.querySelectorAll(".glyph")].map((g) => g.dataset.source);
+  if (want.join() === have.join()) return;
+  for (const g of line.querySelectorAll(".glyph")) g.remove();
+  for (const source2 of want) name2.before(glyph(doc, source2, w));
 }
 function reference(doc, r) {
   const p = (bold, rest = "") => {
@@ -7190,6 +7511,7 @@ function reference(doc, r) {
 }
 
 // src/ui/drag.ts
+var NEAR_PX = 60;
 var pinnable = (r) => r.kind === "sticky" || r.kind === "text" || r.kind === "image";
 var Drag = class {
   #w;
@@ -7200,8 +7522,8 @@ var Drag = class {
   #top() {
     let z = 0;
     for (const [, r] of this.#w.game.all()) {
-      const at2 = "kind" in r ? placeOf(r) : null;
-      if (at2) z = Math.max(z, at2.z);
+      const at3 = "kind" in r ? placeOf(r) : null;
+      if (at3) z = Math.max(z, at3.z);
     }
     return z + 1;
   }
@@ -7209,10 +7531,11 @@ var Drag = class {
   /** Carries a piece from the press that started it, and what's pinned to it. */
   start(rid, down, move) {
     const { game, table, moves } = this.#w;
-    const rec = game.get(rid), at2 = rec && placeOf(rec), el2 = table.element(rid);
-    if (!rec || !at2 || !el2) return;
-    const doc = el2.ownerDocument;
-    const carried = [{ rid, el: el2, from: at2, ...rec.kind === "character" && { part: "card" } }];
+    const rec = game.get(rid), at3 = rec && placeOf(rec), el3 = table.element(rid);
+    if (!rec || !at3 || !el3) return;
+    const doc = el3.ownerDocument;
+    const drawn = rec.kind === "character" && rec.gathered ? { ...at3, x: parseFloat(el3.style.left), y: parseFloat(el3.style.top) } : at3;
+    const carried = [{ rid, el: el3, from: drawn, ...rec.kind === "character" && { part: "card" } }];
     if (rec.kind === "character") {
       for (const [r2, other] of game.all()) {
         const o = other;
@@ -7275,12 +7598,175 @@ var Drag = class {
     doc.addEventListener("pointercancel", onUp);
     onMove(move);
   }
+  // R32: dragging a pool by its name brings its gathered card (and what's pinned to it).
+  /** Carries a character's pool. */
+  startPool(rid, down, _move) {
+    const { game, table, moves } = this.#w;
+    const c = game.get(rid), mat = table.pool(rid);
+    if (!c || c.kind !== "character" || !mat) return;
+    const doc = mat.ownerDocument, z = this.#top();
+    const carried = [{ rid, el: mat, from: c.pool, part: "pool" }];
+    const card2 = table.element(rid);
+    const followers = c.gathered && card2 ? [card2, ...this.#pinned(c)] : [];
+    const start = followers.map((e) => ({ e, x: parseFloat(e.style.left), y: parseFloat(e.style.top) }));
+    const p0 = table.toWorld(down.clientX, down.clientY);
+    mat.classList.add("lifted");
+    mat.classList.remove("glide");
+    moves?.hold(rid);
+    doc.body.classList.add("dragging");
+    const delta = (e) => {
+      const p = table.toWorld(e.clientX, e.clientY);
+      return { dx: p.x - p0.x, dy: p.y - p0.y };
+    };
+    const item2 = (dx, dy) => [{ rid, x: Math.round(c.pool.x + dx), y: Math.round(c.pool.y + dy), z, part: "pool" }];
+    const show = (dx, dy) => {
+      mat.style.left = `${c.pool.x + dx}px`;
+      mat.style.top = `${c.pool.y + dy}px`;
+      for (const f of start) {
+        f.e.style.left = `${f.x + dx}px`;
+        f.e.style.top = `${f.y + dy}px`;
+      }
+    };
+    this.#follow(doc, down, (e) => {
+      const { dx, dy } = delta(e);
+      show(dx, dy);
+      moves?.drag(item2(dx, dy));
+    }, (e) => {
+      doc.body.classList.remove("dragging");
+      mat.classList.remove("lifted");
+      mat.classList.add("glide");
+      const { dx, dy } = delta(e);
+      moves?.drop(item2(dx, dy));
+      this.#drop(c, carried, dx, dy, z, e);
+      moves?.release(rid);
+    });
+  }
+  /** Pieces pinned to a character's card. */
+  #pinned(c) {
+    const out = [];
+    for (const [rid, r] of this.#w.game.all()) {
+      const o = r;
+      if ("kind" in o && pinnable(o) && o.pin?.card === c.oid) {
+        const e = this.#w.table.element(rid);
+        if (e) out.push(e);
+      }
+    }
+    return out;
+  }
+  /** Follows one pointer on the document until it lets go. */
+  #follow(doc, down, onMove, onUp) {
+    const move = (ev) => {
+      const e = ev;
+      if (e.pointerId === down.pointerId) onMove(e);
+    };
+    const up = (ev) => {
+      const e = ev;
+      if (e.pointerId !== down.pointerId) return;
+      doc.removeEventListener("pointermove", move);
+      doc.removeEventListener("pointerup", up);
+      doc.removeEventListener("pointercancel", up);
+      onUp(e);
+    };
+    doc.addEventListener("pointermove", move);
+    doc.addEventListener("pointerup", up);
+    doc.addEventListener("pointercancel", up);
+  }
+  // Seq: seq-drag.md#1.4: a pool widens as a chip or card comes near; only that one.
+  #widen(x, y) {
+    for (const mat of this.#w.table.pools()) {
+      const r = mat.getBoundingClientRect();
+      const near = x > r.left - NEAR_PX && x < r.right + NEAR_PX * 4 && y > r.top - NEAR_PX && y < r.bottom + NEAR_PX;
+      mat.classList.toggle("wide", near);
+    }
+  }
+  /** A ghost of what's carried, under the pointer, outside the table's transform. */
+  #ghost(doc, from, text) {
+    const g = from?.cloneNode(true) ?? doc.createElement("div");
+    if (!from) g.textContent = text;
+    g.classList.add("ghost");
+    g.style.cssText = "position:fixed;pointer-events:none;z-index:1000001;left:0;top:0;";
+    doc.body.append(g);
+    return g;
+  }
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60: in this order: a slot,
+  // a drawer, the kill box, the bar, else the table.
+  /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table). */
+  startItem(rid, down, move) {
+    const { game, mint: mint2 } = this.#w;
+    const i = game.get(rid);
+    if (!i) return;
+    const doc = down.target?.ownerDocument ?? document;
+    const src = down.target?.closest?.("[data-rid]");
+    const ghost = this.#ghost(doc, src, "");
+    if (src) src.style.visibility = "hidden";
+    this.#carry(doc, ghost, { x: 12, y: 12 }, down, move, (e) => {
+      if (src) src.style.visibility = "";
+      const change3 = this.#itemDrop(rid, e, mint2());
+      if (change3) game.change(change3);
+    });
+  }
+  /** Carries a ghost under the pointer, widening the pool it nears, until it is let go. */
+  #carry(doc, ghost, offset, down, move, onDrop) {
+    const at3 = (e) => {
+      ghost.style.transform = `translate(${e.clientX - offset.x}px, ${e.clientY - offset.y}px)`;
+      this.#widen(e.clientX, e.clientY);
+    };
+    doc.body.classList.add("dragging");
+    at3(move);
+    this.#follow(doc, down, at3, (e) => {
+      doc.body.classList.remove("dragging");
+      ghost.remove();
+      for (const mat of this.#w.table.pools()) mat.classList.remove("wide");
+      onDrop(e);
+    });
+  }
+  /** Where a drop at the pointer lies on the table: on top of everything. */
+  #placeAt(e) {
+    const p = this.#w.table.toWorld(e.clientX, e.clientY);
+    return { x: Math.round(p.x), y: Math.round(p.y), z: this.#top(), tilt: 0 };
+  }
+  #hits(e) {
+    const doc = e.target?.ownerDocument ?? document;
+    return doc.elementsFromPoint?.(e.clientX, e.clientY) ?? [];
+  }
+  #itemDrop(rid, e, mint2) {
+    const { game } = this.#w, hits = this.#hits(e);
+    const first = (sel) => {
+      for (const h of hits) {
+        const m = h.closest?.(sel);
+        if (m) return m;
+      }
+      return null;
+    };
+    const slot2 = first(".slot");
+    if (slot2) return toSlot(game, rid, slot2.dataset.owner, slot2.dataset.slot, mint2);
+    if (first(".kill")) return killCard(game, rid);
+    const drawer2 = first(".drawer");
+    if (drawer2) return toDrawer(game, rid, drawer2.dataset.drawer);
+    if (first("#bar")) {
+      const i = game.get(rid);
+      return i.kind === "influence" ? toDrawer(game, rid, i.home) : vanish(game, rid);
+    }
+    return toTable(game, rid, this.#placeAt(e));
+  }
+  // R55, R57: a glyph dropped on a resource-made card feeds it; anywhere else it makes a card at Min.
+  /** Carries a tap glyph (`<character oid>:<source>`). */
+  startGlyph(source2, down, move) {
+    const { game, mint: mint2 } = this.#w;
+    const doc = down.target?.ownerDocument ?? document;
+    const ghost = this.#ghost(doc, null, "\u25AD");
+    this.#carry(doc, ghost, { x: 6, y: 10 }, down, move, (e) => {
+      const target = this.#hits(e).map((h) => h.closest?.(".tapped[data-rid]")).find(Boolean);
+      const change3 = target ? feedFrom(game, target.dataset.rid, source2, mint2()) : tapOut(game, source2, { table: this.#placeAt(e) }, mint2());
+      if (change3) game.change(change3);
+    });
+  }
   /** The card under the pointer, other than the piece itself. */
   #cardAt(e, not) {
     const doc = not.ownerDocument;
     for (const hit of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
-      const card = hit.closest?.(".obj.card");
-      if (card && card !== not) return this.#w.game.get(card.dataset.rid);
+      const card2 = hit.closest?.(".obj.card");
+      if (card2 && card2 !== not) return this.#w.game.get(card2.dataset.rid);
     }
     return void 0;
   }
@@ -7293,7 +7779,8 @@ var Drag = class {
         const r = game.get(c.rid);
         if (!r) continue;
         if (r.kind === "character") {
-          w.put(c.rid, { ...r, card: moved(r.card) });
+          if (c.part === "pool") w.put(c.rid, { ...r, pool: moved(r.pool) });
+          else w.put(c.rid, { ...r, card: moved(c.from), gathered: false });
           continue;
         }
         if (!("place" in r)) continue;
@@ -7302,15 +7789,194 @@ var Drag = class {
           w.put(c.rid, { ...r, place: place2 });
           continue;
         }
-        const card = this.#cardAt(e, carried[0].el);
+        const card2 = this.#cardAt(e, carried[0].el);
         const { pin: _old, ...loose } = r;
-        w.put(c.rid, card ? { ...loose, place: place2, pin: { card: card.oid, dx: place2.x - card.card.x, dy: place2.y - card.card.y } } : { ...loose, place: place2 });
+        w.put(c.rid, card2 ? { ...loose, place: place2, pin: { card: card2.oid, dx: place2.x - card2.card.x, dy: place2.y - card2.card.y } } : { ...loose, place: place2 });
       }
     });
   }
 };
 
+// src/ui/pool.ts
+var LABEL = {
+  bonus: "Bonus",
+  main: "Main",
+  edge: "Edge",
+  stagger: "Stagger",
+  bias: "Bias",
+  affliction: "Affliction",
+  injury: "Injury"
+};
+var el2 = (doc, tag2, cls, text) => {
+  const e = doc.createElement(tag2);
+  if (cls) e.className = cls;
+  if (text !== void 0) e.textContent = text;
+  return e;
+};
+var run = (game, c) => {
+  if (c) game.change(c);
+};
+var isPile2 = (u) => "members" in u;
+var at2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
+function drawPool(c, items, old, w) {
+  const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
+  const e = old ?? make3(doc, c, w);
+  e.style.left = `${c.pool.x}px`;
+  e.style.top = `${c.pool.y}px`;
+  e.style.zIndex = String(c.pool.z);
+  e.querySelector(".name").textContent = c.name;
+  e.querySelector(".owner").textContent = c.owner === "open" ? "open" : c.owner;
+  e.querySelector(".gather").hidden = c.gathered;
+  const opened = w.poolOpen();
+  for (const slotEl of e.querySelectorAll(".slot")) {
+    const s = slotEl.dataset.slot, mine = items.filter((i) => at2(i, c.oid, s));
+    slotEl.classList.toggle("narrow", !mine.length && !opened.slots.has(`${c.oid}:${s}`));
+    units(slotEl, mine, w);
+  }
+  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w);
+  e.dataset.rid = rid;
+  return e;
+}
+function make3(doc, c, w) {
+  const e = el2(doc, "div", "obj glide pool");
+  e.dataset.part = "pool";
+  const rid = ridOf(c.oid);
+  const hd = el2(doc, "div", "hd");
+  const gather = el2(doc, "button", "gather", "gather");
+  gesture(gather, { click: () => {
+    const cur = w.game.get(rid);
+    w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
+  } });
+  const name2 = el2(doc, "span", "name");
+  hd.append(name2, el2(doc, "span", "owner"), gather);
+  gesture(name2, { drag: (d, m) => w.dragPool(rid, d, m) });
+  const slots = el2(doc, "div", "slots");
+  for (const s of SLOTS) {
+    const slot2 = el2(doc, "div", `slot slot-${s}`);
+    slot2.dataset.slot = s;
+    slot2.dataset.owner = c.oid;
+    const label = el2(doc, "span", "label", LABEL[s]);
+    label.dataset.letter = LABEL[s][0];
+    slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
+    slot2.append(label, el2(doc, "div", "pos"), el2(doc, "div", "neg"));
+    gesture(slot2, {
+      click: (ev) => {
+        if (ev.target.closest(".chip, .pile")) return;
+        if (slot2.classList.contains("narrow")) {
+          w.toggle("slots", `${c.oid}:${s}`, true);
+          return;
+        }
+        run(w.game, addLoose(w.game, c.oid, s, false, w.mint()));
+      },
+      shift: (ev) => {
+        if (ev.target.closest(".chip, .pile") || slot2.classList.contains("narrow")) return;
+        run(w.game, addLoose(w.game, c.oid, s, true, w.mint()));
+      }
+    });
+    slots.append(slot2);
+  }
+  const drawer2 = el2(doc, "div", "drawer");
+  drawer2.dataset.drawer = c.oid;
+  e.append(hd, slots, drawer2);
+  return e;
+}
+function units(slotEl, items, w) {
+  const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
+  const opened = w.poolOpen();
+  for (const sign2 of [1, -1]) {
+    const box2 = slotEl.querySelector(sign2 > 0 ? ".pos" : ".neg");
+    const mine = units2.filter((u) => u.sign === sign2).sort((a, b) => sign2 > 0 ? worthOf(b) - worthOf(a) : worthOf(a) - worthOf(b));
+    box2.replaceChildren(...mine.map((u) => isPile2(u) ? pile(doc, u, opened.piles, w) : chip(doc, u, w)));
+  }
+}
+var worthOf = (u) => isPile2(u) ? u.points : worth(u);
+function chip(doc, i, w) {
+  const b = el2(doc, "button", `chip ${i.sign > 0 ? "pos" : "neg"}${i.kind === "influence" ? " card-chip" : ""}`, `${i.sign < 0 ? "\u2212" : ""}${i.points}`);
+  const rid = ridOf(i.oid);
+  b.dataset.rid = rid;
+  if (i.kind === "influence") b.title = i.name;
+  if (i.kind === "chip" && i.rider) {
+    const r = el2(doc, "span", "rider", "+1");
+    gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
+    b.append(r);
+  }
+  const click = i.kind === "chip" ? chipClick : cardClick;
+  gesture(b, {
+    click: () => run(w.game, click(w.game, rid, false, w.mint())),
+    shift: () => run(w.game, click(w.game, rid, true, w.mint())),
+    drag: (d, m) => w.dragItem(rid, d, m)
+  });
+  return b;
+}
+function pile(doc, p, open, w) {
+  const first = p.members[0]?.oid ?? "";
+  const d = el2(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}`);
+  const disc = el2(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
+  disc.title = `${p.members.length} acting as one`;
+  gesture(disc, { click: () => w.toggle("piles", first) });
+  d.append(disc);
+  if (open.has(first)) {
+    const list2 = el2(doc, "div", "members");
+    for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
+    d.append(list2);
+  }
+  return d;
+}
+function drawer(box2, c, cards, w) {
+  const doc = box2.ownerDocument, opened = w.poolOpen();
+  const visible = canSee(w.viewer, c);
+  const here = cards.filter((k) => k.where === "drawer"), used = cards.filter((k) => k.where === "used");
+  const parts = here.sort((a, b) => a.n - b.n).map((k) => card(doc, k, visible, w));
+  for (const sign2 of [1, -1]) {
+    const pen = el2(doc, "button", "write", sign2 > 0 ? "+" : "\u2212");
+    pen.title = sign2 > 0 ? "Write a + card" : "Write a \u2212 card";
+    gesture(pen, { click: () => run(w.game, writeCard(c.oid, sign2, "", w.mint())) });
+    parts.push(pen);
+  }
+  const pileTag = el2(doc, "button", "used", `used ${used.length}`);
+  gesture(pileTag, { click: () => w.toggle("used", c.oid) });
+  parts.push(pileTag, Object.assign(el2(doc, "span", "kill", "kill"), { title: "Drop a card here to delete it" }));
+  if (opened.used.has(c.oid)) {
+    const list2 = el2(doc, "div", "usedlist");
+    for (const k of used) {
+      const u = card(doc, k, visible, w);
+      gesture(u, { click: () => run(w.game, restoreUsed(w.game, ridOf(k.oid))) });
+      list2.append(u);
+    }
+    parts.push(list2);
+  }
+  box2.replaceChildren(...parts);
+}
+function card(doc, k, visible, w) {
+  const rid = ridOf(k.oid);
+  const e = el2(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
+  e.dataset.rid = rid;
+  const drag = { drag: (d, m) => w.dragItem(rid, d, m) };
+  if (!visible) {
+    e.classList.add("facedown");
+    e.textContent = "?";
+    gesture(e, drag);
+    return e;
+  }
+  const name2 = el2(doc, "span", "iname", k.name);
+  name2.contentEditable = "true";
+  name2.spellcheck = false;
+  name2.addEventListener("input", () => {
+    const cur = w.game.get(rid);
+    if (cur) w.game.change((x) => x.put(rid, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
+  });
+  const level = el2(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName2(k.points)}`);
+  gesture(level, {
+    click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
+    shift: () => run(w.game, cardClick(w.game, rid, true, w.mint()))
+  });
+  e.append(name2, level);
+  gesture(e, drag);
+  return e;
+}
+
 // src/ui/table.ts
+var GATHER_GAP = 14;
 var ZOOM_MIN = 0.25;
 var ZOOM_MAX = 3;
 var TableView = class {
@@ -7318,6 +7984,14 @@ var TableView = class {
   #world;
   #w;
   #els = /* @__PURE__ */ new Map();
+  #pools = /* @__PURE__ */ new Map();
+  #loose = /* @__PURE__ */ new Map();
+  #sized = new ResizeObserver((entries2) => {
+    for (const e of entries2) {
+      const rid = e.target.dataset.rid;
+      if (rid) this.#snap(rid);
+    }
+  });
   view;
   constructor(root, world, w) {
     this.#root = root;
@@ -7329,15 +8003,90 @@ var TableView = class {
     this.render(w.game.all().map(([rid]) => rid));
     this.#panZoom();
   }
-  /** The element drawing a piece, if any. */
+  /** The element drawing a piece (a character's card), if any. */
   element(rid) {
     return this.#els.get(rid);
   }
+  /** A character's pool mat, or a chip or card lying loose on the table. */
+  pool(rid) {
+    return this.#pools.get(rid);
+  }
+  loose(rid) {
+    return this.#loose.get(rid);
+  }
+  /** Every pool mat, for widening as something is carried near (R30). */
+  pools() {
+    return [...this.#pools.values()];
+  }
+  #items() {
+    return this.#w.game.all().map(([, r]) => r).filter((r) => "kind" in r && (r.kind === "chip" || r.kind === "influence"));
+  }
+  // R33: a gathered card is drawn under its pool's drawer, wherever that ends; the same on every page.
+  #snap(rid) {
+    const c = this.#w.game.get(rid), card2 = this.#els.get(rid), mat = this.#pools.get(rid);
+    if (!c || c.kind !== "character" || !card2 || !mat || !c.gathered) return;
+    card2.style.left = `${c.pool.x}px`;
+    card2.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
+  }
+  #drawPools(rids) {
+    const items = this.#items();
+    for (const rid of rids) {
+      const c = this.#w.game.get(rid), old = this.#pools.get(rid);
+      if (!c || c.kind !== "character") {
+        if (old) {
+          this.#sized.unobserve(old);
+          old.remove();
+          this.#pools.delete(rid);
+        }
+        continue;
+      }
+      const e = drawPool(c, items, old, this.#w);
+      if (e !== old) {
+        this.#world.append(e);
+        this.#pools.set(rid, e);
+        this.#sized.observe(e);
+      }
+      this.#snap(rid);
+    }
+  }
+  // R60: a chip or a tap can lie loose on the table.
+  #drawLoose(rid) {
+    const i = this.#w.game.get(rid), old = this.#loose.get(rid);
+    const where2 = i && typeof i.where === "object" && "table" in i.where ? i.where.table : null;
+    if (!i || !where2) {
+      old?.remove();
+      this.#loose.delete(rid);
+      return;
+    }
+    const doc = this.#world.ownerDocument;
+    let e = old;
+    if (!e) {
+      e = doc.createElement("div");
+      e.dataset.rid = rid;
+      gesture(e, { drag: (d, m) => this.#w.dragItem(rid, d, m) });
+      this.#world.append(e);
+      this.#loose.set(rid, e);
+    }
+    e.className = `obj glide loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
+    e.textContent = i.kind === "chip" ? `${i.sign < 0 ? "\u2212" : ""}${i.points}` : `${i.name} ${i.sign > 0 ? "+" : "\u2212"}${levelName2(i.points)}`;
+    e.style.left = `${where2.x}px`;
+    e.style.top = `${where2.y}px`;
+    e.style.zIndex = String(where2.z);
+  }
   // Seq: seq-save.md#1.4: only the changed rids are touched.
   render(rids) {
+    const characters2 = /* @__PURE__ */ new Set();
+    let items = false;
     for (const rid of rids) {
       if (!isPiece(rid)) continue;
-      const r = this.#w.game.get(rid), old = this.#els.get(rid);
+      const r = this.#w.game.get(rid);
+      if (!r || r.kind === "character") characters2.add(rid);
+      if (!r || r.kind === "chip" || r.kind === "influence") {
+        items = true;
+        this.#drawLoose(rid);
+        if (r) continue;
+      }
+      const old = this.#els.get(rid);
       const e = r ? draw(r, old, this.#w) : null;
       if (!e) {
         if (old) {
@@ -7353,6 +8102,14 @@ var TableView = class {
         this.#els.set(rid, e);
       }
     }
+    if (!items) {
+      this.#drawPools([...characters2]);
+      return;
+    }
+    const pools2 = /* @__PURE__ */ new Set();
+    for (const [rid, r] of this.#w.game.all()) if (r.kind === "character") pools2.add(rid);
+    for (const rid of this.#pools.keys()) pools2.add(rid);
+    this.#drawPools([...pools2]);
   }
   /** Screen to table coordinates, for drops. */
   toWorld(clientX, clientY) {
@@ -7442,12 +8199,14 @@ function frame(fn) {
   const t = setTimeout(go, 100);
 }
 function views(game, gameId, viewer, blobs, moves, missing) {
-  const who = viewer?.name ?? "nobody";
+  const who = viewer?.name ?? "nobody", gm = !!viewer?.gm;
   let seat = load(localStorage, gameId, who);
   const keep = (s) => {
     seat = s;
     save(localStorage, gameId, who, s);
   };
+  const redraw = () => table.render(game.all().map(([rid]) => rid));
+  const mint2 = () => minter(game, gm);
   let drag;
   const table = new TableView(document.getElementById("table"), document.getElementById("world"), {
     game,
@@ -7460,11 +8219,24 @@ function views(game, gameId, viewer, blobs, moves, missing) {
     opened: () => new Set(seat.open.columns),
     setOpened: (o) => {
       keep({ ...seat, open: { ...seat.open, columns: [...o] } });
-      table.render(game.all().map(([rid]) => rid));
+      redraw();
     },
-    drag: (rid, down, move) => drag?.start(rid, down, move)
+    drag: (rid, down, move) => drag?.start(rid, down, move),
+    dragGlyph: (src, down, move) => drag?.startGlyph(src, down, move),
+    mint: mint2,
+    poolOpen: () => ({ piles: new Set(seat.open.piles), slots: new Set(seat.open.slots), used: new Set(seat.open.used) }),
+    // Seat-tier openings: looking never changes the game (R128).
+    toggle: (kind, key, on) => {
+      const now2 = new Set(seat.open[kind]);
+      if (on ?? !now2.has(key)) now2.add(key);
+      else now2.delete(key);
+      keep({ ...seat, open: { ...seat.open, [kind]: [...now2] } });
+      redraw();
+    },
+    dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
+    dragPool: (rid, down, move) => drag?.startPool(rid, down, move)
   });
-  drag = new Drag({ game, table, moves });
+  drag = new Drag({ game, table, moves, mint: mint2 });
   return { table, drag };
 }
 async function main() {

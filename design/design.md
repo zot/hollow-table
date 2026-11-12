@@ -73,7 +73,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Yards.md → `src/rules/yards.ts`
 - [x] crc-TableView.md → `src/ui/table.ts`
 - [ ] crc-PieceView.md → `src/ui/piece.ts`
-- [ ] crc-PoolView.md → `src/ui/pool.ts`
+- [ ] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
 - [x] crc-Gesture.md → `src/ui/gesture.ts`
 - [ ] crc-Drag.md → `src/ui/drag.ts`
 - [ ] crc-Pens.md → `src/ui/pens.ts`
@@ -122,6 +122,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Presence.md → `src/net/presence.test.ts`
 - [x] test-Images.md → `src/net/images.test.ts`
 - [x] test-Gesture.md → `src/ui/gesture.test.ts`
+- [x] test-PoolActions.md → `src/ui/actions.test.ts`
 - [x] test-GameStore.md → `src/store/gamestore.test.ts`
 - [x] test-BlobStore.md → `src/store/blobs.test.ts`
 - [x] test-Exchange.md → `src/store/exchange.test.ts`

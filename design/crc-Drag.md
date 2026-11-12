@@ -28,6 +28,10 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - tear: dragging the tape tears off the whole roll as a torn-roll piece.
 - exhume: dragging a name out of Boot Hill brings its records back under the pointer.
 
+- startPool(rid): by its name, a pool carries its gathered card along. startItem(rid): a chip or card
+  as a ghost under the pointer, the pool it comes near widening; startGlyph(source): a tap glyph.
+- A card dragged alone leaves its pool from where it was drawn and is ungathered.
+
 ## Collaborators
 - Game, Moves, Pool, Tap, Yards, PoolView, TableView, RollRow, Gesture
 

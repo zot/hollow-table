@@ -1,15 +1,22 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R128
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
 import type { Game } from '../model/game.ts';
-import { isPiece, type PieceRecord, type Rid } from '../model/records.ts';
+import { isPiece, type Character, type PieceRecord, type Rid } from '../model/records.ts';
+import { levelName } from '../rules/influence.ts';
+import type { Item } from '../rules/pool.ts';
+import { gesture } from './gesture.ts';
 import { draw, type PieceWith } from './piece.ts';
+import { drawPool, type PoolWith } from './pool.ts';
+
+/** How far under its pool a gathered card sits (R33). */
+export const GATHER_GAP = 14;
 
 export type View = { x: number; y: number; zoom: number };
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 3;
 
-export type TableWith = PieceWith & {
+export type TableWith = PieceWith & PoolWith & {
   game: Game;
   /** The view (the Seat's), and where to keep it. */
   view: View;
@@ -21,6 +28,11 @@ export class TableView {
   #world: HTMLElement;
   #w: TableWith;
   #els = new Map<Rid, HTMLElement>();
+  #pools = new Map<Rid, HTMLElement>();
+  #loose = new Map<Rid, HTMLElement>();
+  #sized = new ResizeObserver(entries => {
+    for (const e of entries) { const rid = (e.target as HTMLElement).dataset.rid; if (rid) this.#snap(rid); }
+  });
   view: View;
 
   constructor(root: HTMLElement, world: HTMLElement, w: TableWith) {
@@ -34,14 +46,68 @@ export class TableView {
     this.#panZoom();
   }
 
-  /** The element drawing a piece, if any. */
+  /** The element drawing a piece (a character's card), if any. */
   element(rid: Rid): HTMLElement | undefined { return this.#els.get(rid); }
+  /** A character's pool mat, or a chip or card lying loose on the table. */
+  pool(rid: Rid): HTMLElement | undefined { return this.#pools.get(rid); }
+  loose(rid: Rid): HTMLElement | undefined { return this.#loose.get(rid); }
+  /** Every pool mat, for widening as something is carried near (R30). */
+  pools(): HTMLElement[] { return [...this.#pools.values()]; }
+
+  #items(): Item[] {
+    return this.#w.game.all().map(([, r]) => r).filter((r): r is Item => 'kind' in r && (r.kind === 'chip' || r.kind === 'influence'));
+  }
+
+  // R33: a gathered card is drawn under its pool's drawer, wherever that ends; the same on every page.
+  #snap(rid: Rid): void {
+    const c = this.#w.game.get(rid) as Character | undefined, card = this.#els.get(rid), mat = this.#pools.get(rid);
+    if (!c || c.kind !== 'character' || !card || !mat || !c.gathered) return;
+    card.style.left = `${c.pool.x}px`;
+    card.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
+  }
+
+  #drawPools(rids: Rid[]): void {
+    const items = this.#items();
+    for (const rid of rids) {
+      const c = this.#w.game.get(rid) as Character | undefined, old = this.#pools.get(rid);
+      if (!c || c.kind !== 'character') { if (old) { this.#sized.unobserve(old); old.remove(); this.#pools.delete(rid); } continue; }
+      const e = drawPool(c, items, old, this.#w);
+      if (e !== old) { this.#world.append(e); this.#pools.set(rid, e); this.#sized.observe(e); }
+      this.#snap(rid);
+    }
+  }
+
+  // R60: a chip or a tap can lie loose on the table.
+  #drawLoose(rid: Rid): void {
+    const i = this.#w.game.get(rid) as Item | undefined, old = this.#loose.get(rid);
+    const where = i && typeof i.where === 'object' && 'table' in i.where ? i.where.table : null;
+    if (!i || !where) { old?.remove(); this.#loose.delete(rid); return; }
+    const doc = this.#world.ownerDocument;
+    let e = old;
+    if (!e) {
+      e = doc.createElement('div');
+      e.dataset.rid = rid;
+      gesture(e, { drag: (d, m) => this.#w.dragItem(rid, d, m) });
+      this.#world.append(e);
+      this.#loose.set(rid, e);
+    }
+    e.className = `obj glide loose-item ${i.kind === 'chip' ? `chip ${i.sign > 0 ? 'pos' : 'neg'}` : `icard ${i.sign > 0 ? 'pos' : 'neg'} tapped`}`;
+    e.textContent = i.kind === 'chip' ? `${i.sign < 0 ? '−' : ''}${i.points}` : `${i.name} ${i.sign > 0 ? '+' : '−'}${levelName(i.points)}`;
+    e.style.left = `${where.x}px`;
+    e.style.top = `${where.y}px`;
+    e.style.zIndex = String(where.z);
+  }
 
   // Seq: seq-save.md#1.4: only the changed rids are touched.
   render(rids: Iterable<Rid>): void {
+    const characters = new Set<Rid>();
+    let items = false;
     for (const rid of rids) {
       if (!isPiece(rid)) continue;
-      const r = this.#w.game.get(rid) as PieceRecord | undefined, old = this.#els.get(rid);
+      const r = this.#w.game.get(rid) as PieceRecord | undefined;
+      if (!r || r.kind === 'character') characters.add(rid);
+      if (!r || r.kind === 'chip' || r.kind === 'influence') { items = true; this.#drawLoose(rid); if (r) continue; }
+      const old = this.#els.get(rid);
       const e = r ? draw(r, old, this.#w) : null;
       if (!e) {
         if (old) { old.remove(); this.#els.delete(rid); if (old.dataset.blob) this.#w.imageGone(old.dataset.blob); }
@@ -49,6 +115,12 @@ export class TableView {
       }
       if (e !== old) { old?.remove(); this.#world.append(e); this.#els.set(rid, e); }
     }
+    // A chip or card changing can change any pool (it may have moved between two).
+    if (!items) { this.#drawPools([...characters]); return; }
+    const pools = new Set<Rid>();
+    for (const [rid, r] of this.#w.game.all()) if ((r as PieceRecord).kind === 'character') pools.add(rid);
+    for (const rid of this.#pools.keys()) pools.add(rid);
+    this.#drawPools([...pools]);
   }
 
   /** Screen to table coordinates, for drops. */

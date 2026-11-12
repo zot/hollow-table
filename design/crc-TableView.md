@@ -16,7 +16,11 @@ DOM a view of the records.
 - order: z from the records; peeking (an open used pile, an open pile) raises with a seat-only
   class, never by changing z.
 - toWorld(clientX, clientY): screen to table coordinates, for drops.
-- element(rid): the element drawing a piece, for Drag.
+- element(rid): the element drawing a piece, for Drag; pool(rid), loose(rid) and pools() for a
+  character's mat and for chips or taps lying loose on the table.
+- gathered: a gathered card is drawn GATHER_GAP (14 px) under its pool's drawer, following the
+  drawer as it grows (a ResizeObserver); the same on every page, since it's derived, not stored.
+- A chip or card changing redraws the pools (it may have moved between two).
 
 ## Collaborators
 - Game, Seat, PieceView, PoolView, Drag

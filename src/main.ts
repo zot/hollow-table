@@ -21,6 +21,7 @@ import { BlobStore, type Size } from './store/blobs.ts';
 import { IdbDb } from './store/db.ts';
 import { GameStore, type Clock, type KeyValue } from './store/gamestore.ts';
 import { load as loadSeat, save as saveSeat, type Seat } from './store/seat.ts';
+import { minter } from './ui/actions.ts';
 import { Drag } from './ui/drag.ts';
 import { TableView } from './ui/table.ts';
 
@@ -61,17 +62,31 @@ function frame(fn: () => void): void {
 
 /** The table's views for this page: drawn from the game, the view kept in this viewer's seat. */
 function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, missing: (hash: string) => string | undefined): { table: TableView; drag: Drag } {
-  const who = viewer?.name ?? 'nobody';
+  const who = viewer?.name ?? 'nobody', gm = !!viewer?.gm;
   let seat: Seat = loadSeat(localStorage, gameId, who);
   const keep = (s: Seat) => { seat = s; saveSeat(localStorage, gameId, who, s); };
+  const redraw = () => table.render(game.all().map(([rid]) => rid));
+  const mint = () => minter(game, gm);
   let drag: Drag | undefined;
   const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
     game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }),
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
-    opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); table.render(game.all().map(([rid]) => rid)); },
+    opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); redraw(); },
     drag: (rid, down, move) => drag?.start(rid, down, move),
+    dragGlyph: (src, down, move) => drag?.startGlyph(src, down, move),
+    mint,
+    poolOpen: () => ({ piles: new Set(seat.open.piles), slots: new Set(seat.open.slots), used: new Set(seat.open.used) }),
+    // Seat-tier openings: looking never changes the game (R128).
+    toggle: (kind, key, on) => {
+      const now = new Set(seat.open[kind]);
+      if (on ?? !now.has(key)) now.add(key); else now.delete(key);
+      keep({ ...seat, open: { ...seat.open, [kind]: [...now] } });
+      redraw();
+    },
+    dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
+    dragPool: (rid, down, move) => drag?.startPool(rid, down, move),
   });
-  drag = new Drag({ game, table, moves });
+  drag = new Drag({ game, table, moves, mint });
   return { table, drag };
 }
 

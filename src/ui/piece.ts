@@ -9,6 +9,7 @@ import {
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
 } from '../model/records.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
+import { influence } from '../rules/readmarks.ts';
 import { parse, read, render, serialize } from '../text/marks.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 import { receiptEl } from './receipt.ts';
@@ -26,6 +27,8 @@ export type PieceWith = {
   setOpened: (open: Set<string>) => void;
   /** Starts carrying this piece (Drag). */
   drag: (rid: string, down: PointerLike, move: PointerLike) => void;
+  /** Starts carrying a tap glyph, `<character oid>:<source>` (Drag). */
+  dragGlyph: (source: string, down: PointerLike, move: PointerLike) => void;
 };
 
 /** The class a kind is drawn with, where it isn't the kind's own name. */
@@ -145,7 +148,9 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
     case 'character': {
       e.classList.toggle('flipped', r.flipped);
       e.classList.toggle('secret', !canSee(w.viewer, r));
-      rewrite(e.querySelector('.front > .text')!, r.front);
+      const front = e.querySelector<HTMLElement>('.front > .text')!;
+      rewrite(front, r.front);
+      frontGlyphs(front, r, w);
       rewrite(e.querySelector('.back > .notes')!, r.back.notes);
       damage(e.querySelector('.damage')!, r, w);
       break;
@@ -244,6 +249,7 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       if (doc.activeElement !== name && name.textContent !== s.name) name.textContent = s.name;
       const spent = s.spent.reduce((a, b) => a + b, 0);
       line.querySelector('.spent')!.textContent = spent ? `−${spent}` : '';
+      slotGlyphs(line, s, `${c.oid}:${d}/${row}`, w);
       // R213: the boxes in front of the Level word; R24, R62: they toggle, once the slot has a name.
       const boxes = line.querySelector<HTMLElement>('.boxes')!;
       if (boxes.children.length !== s.boxes.length) {
@@ -261,6 +267,42 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       s.boxes.forEach((on, k) => boxes.children[k]!.classList.toggle('on', on));
     }
   }
+}
+
+// ---- R54: tap glyphs, before each Resource and each named Damage slot, and for each checked box ----
+
+function glyph(doc: Document, source: string, w: PieceWith): HTMLElement {
+  const g = el(doc, 'span', 'glyph');
+  g.contentEditable = 'false';
+  g.dataset.source = source;
+  g.title = 'Drag to tap';
+  // Inside written text a press would start a selection or a native drag (which cancels the
+  // pointer); the glyph is only ever carried.
+  g.draggable = false;
+  g.addEventListener('pointerdown', ev => ev.preventDefault());
+  g.addEventListener('dragstart', ev => ev.preventDefault());
+  gesture(g, { drag: (d, m) => w.dragGlyph(source, d, m) });
+  return g;
+}
+
+/** Glyphs before the front's `<res>` marks; left alone while the front is being written in. */
+function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
+  const doc = text.ownerDocument;
+  if (doc.activeElement && text.contains(doc.activeElement)) return;
+  for (const g of text.querySelectorAll('.glyph')) g.remove();
+  for (const span of text.querySelectorAll<HTMLElement>('span.res')) {
+    const name = influence(span.textContent ?? '')?.name;
+    if (name) span.before(glyph(doc, `${c.oid}:${name}`, w));
+  }
+}
+
+function slotGlyphs(line: HTMLElement, s: DamageSlot, base: string, w: PieceWith): void {
+  const doc = line.ownerDocument, name = line.querySelector('.name')!;
+  const want = s.name ? [base, ...s.boxes.flatMap((on, k) => on ? [`${base}#${k + 1}`] : [])] : [];
+  const have = [...line.querySelectorAll<HTMLElement>('.glyph')].map(g => g.dataset.source);
+  if (want.join() === have.join()) return;
+  for (const g of line.querySelectorAll('.glyph')) g.remove();
+  for (const source of want) name.before(glyph(doc, source, w));
 }
 
 // ---- reference cards: the "How to play the table" card (R9) and the printed actions card ----
