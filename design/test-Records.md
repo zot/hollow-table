@@ -7,8 +7,10 @@
 field, a wrong type, an oid not matching its key, an oversized string, a die showing 7, an unknown
 kind, an unknown singleton, an array or a class instance where a record belongs, a negative spent
 Level in a Damage slot, a back with a column that isn't Damage, a negative absorb, an Influence of an unknown Damage
-kind; and an Influence of the Injury kind
-**Expected:** the scene and the Injury Influence pass; every faulty record is refused
+kind, a sticky whose `big` isn't a boolean; and an Influence of the Injury kind, and a sticky with `big`
+false (R248)
+**Expected:** the scene (its big sticky included), the Injury Influence and the sticky pass; every
+faulty record is refused
 **Refs:** crc-Records.md
 **Code:** `src/model/records.test.ts`
 **Alarm:** 1

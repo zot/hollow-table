@@ -40,6 +40,17 @@ and `inj` are how Damage slots are drawn; they have no pen.
 | `def` | `#D6D6D6` | double underline |
 | `head` | none (pen: `--ink`) | Caveat bold, like the printed headings |
 
+**At rest a card looks printed (R245).** The highlights and their underlines show only while the
+paper holds the caret or its pens hold focus, the same moment the pens are out; otherwise only the
+weights below, the dice and the glyphs say what is marked. **Weights (R246):** an `act` or `def`
+mark's label, up to its first colon, is bold; a heading is 18 px bold, and a heading on a card's
+first line (its name) 21 px.
+
+**The tap glyph (R249, R250)** is a tiny card, 11 by 14: white, a 1.5 px ink border with 2 px
+corners, a hard 1.5 px offset shadow in ink, `#FFF6A8` under the pointer. A resource-made Influence
+card carries the same mark before its name. A dry source's glyph is at opacity .3 with the
+not-allowed pointer.
+
 ## Drop targets (R222)
 
 What a carried thing would land on lights up while it's over it.

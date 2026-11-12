@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75, R202, R203, R209, R213, R214
+**Requirements:** R5, R22-27, R62, R75, R202, R203, R209, R213, R214, R245, R248-250
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -11,7 +11,7 @@ stickies, loose text, images, torn rolls and reference cards.
 - draw(record, old): makes or updates a piece's element; text written in place is left alone while
   it holds the caret. The card's front reads in two columns, as printed. A card its viewer may not
   read lies face-down ("Hollow").
-- glyphs (R54): a tap glyph before each `<res>` mark on the front, before each named Damage slot,
+- glyphs (R54, R249): a tap glyph, drawn as a tiny card, before each `<res>` mark on the front, before each named Damage slot,
   and for each checked box; it starts Drag.startGlyph, and refuses the native drag and selection a
   press inside written text would start.
 - card(record): two faces, flipped at the corner; the front's marks drawn by MarkedText.render with
@@ -22,7 +22,11 @@ stickies, loose text, images, torn rolls and reference cards.
   still empty); Slot boxes, in front of their slot's Level word, toggle (a box can't be checked
   until its slot has a name), each checked box with a tap glyph of its own; a column's heading
   shows its absorb when it isn't 0, edited in place.
-- sticky, text: handwriting, edited in place.
+- dry (R250): each glyph is marked dry when its source has no Levels left (Tap.left), redrawn
+  with the character.
+- sticky, text: handwriting, edited in place; a sticky with `big` is the big sticky (R248).
+- marks look printed at rest (R245): the highlights show only while the piece is being written on,
+  the same moment its pens are out (CSS on the piece).
 - image: from BlobStore by hash; striped and marked missing with why when absent.
 - tornroll: its receipts, scrolling inside (the wheel scrolls it rather than zooming).
 - reference: the static "How to play the table" and actions cards.

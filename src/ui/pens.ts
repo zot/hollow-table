@@ -1,11 +1,11 @@
-// CRC: crc-Pens.md | R206, R207
+// CRC: crc-Pens.md | R206, R207, R247
 // The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 // toolbar. What a pen does is decided on lines (apply, offered); the tray only finds the selection,
 // draws, and hands the result back to the writing area's own input.
 
-import { offer } from '../rules/readmarks.ts';
+import { influence, offer } from '../rules/readmarks.ts';
 import {
-  locate, mark, plain, read, render, unmark, type Line, type MarkName, type Pos,
+  locate, mark, plain, read, render, unmark, type Line, type MarkName, type Pos, type Run,
 } from '../text/marks.ts';
 
 export const PENS: readonly { mark: MarkName; word: string }[] = [
@@ -39,9 +39,40 @@ export function apply(lines: Line[], a: Pos, b: Pos, tag: MarkName): Line[] {
   const r = line[from.run];
   if (typeof r !== 'string') return lines;
   if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag);
+  if (tag === 'res') {
+    const each = entries(r);
+    if (each) return replaceRun(lines, from.line, from.run, each);
+  }
   // A bare caret marks its run, trimmed of the spaces around it.
   const start = r.length - r.trimStart().length, end = r.trimEnd().length;
   return mark(lines, { line: from.line, run: from.run, start, end }, tag);
+}
+
+// R247: several Resources on one line, separated by commas.
+/** A run of comma-separated `Name +Level` entries as runs, each entry marked; else null. */
+export function entries(run: string): Run[] | null {
+  const parts = run.split(',');
+  if (!parts.every(p => { const r = influence(p); return !!r?.level && r.sign === 1; })) return null;
+  const out: Run[] = [];
+  const plainRun = (s: string) => {
+    if (!s) return;
+    const last = out[out.length - 1];
+    if (typeof last === 'string') out[out.length - 1] = last + s;
+    else out.push(s);
+  };
+  parts.forEach((p, k) => {
+    if (k > 0) plainRun(',');
+    const t = p.trim(), at = p.indexOf(t);
+    plainRun(p.slice(0, at));
+    out.push({ mark: 'res', text: t });
+    plainRun(p.slice(at + t.length));
+  });
+  return out;
+}
+
+/** Lines with one run replaced by several. */
+function replaceRun(lines: Line[], line: number, run: number, runs: Run[]): Line[] {
+  return lines.map((l, i) => i === line ? [...l.slice(0, run), ...runs, ...l.slice(run + 1)] : l);
 }
 
 /** The text of the nearest heading mark above a line, or null. */

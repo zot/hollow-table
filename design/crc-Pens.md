@@ -1,5 +1,5 @@
 # Pens
-**Requirements:** R206, R207, R219
+**Requirements:** R206, R207, R219, R247
 
 The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 toolbar. Five pens, one per stored mark (`act`, `res`, `inf`, `def`, `head`); Damage entries are
@@ -16,7 +16,9 @@ slots, not marks, so they have none (R209).
   pen takes neither the cursor nor the selection from the text, and never carries the piece.
 - apply(lines, from, to, tag): what a pen does. Marked text under the selection (or the caret, or
   a bare caret at a mark's edge) is unmarked (MarkedText.unmark), whichever pen it is; a selection inside one plain run is marked
-  (MarkedText.mark); a bare caret on plain text marks its run, trimmed of surrounding spaces. A
+  (MarkedText.mark); a bare caret on plain text marks its run, trimmed of surrounding spaces, except
+  that the Resource pen on a run whose comma-separated entries each read `Name +Level` marks each
+  entry, trimmed, and leaves the commas plain (entries, R247). A
   selection across runs or lines changes nothing, and the pen shakes.
 - offered(lines, line): the mark a plain line fits (MarkReader.offer), given the nearest heading
   mark above it, or null.

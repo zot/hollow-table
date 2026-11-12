@@ -96,7 +96,7 @@ var PIECES = {
     { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE) }
   ),
   chip: fields({ kind: oneOf("chip"), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
-  sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin }),
+  sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin, big: bool }),
   text: fields({ kind: oneOf("text"), oid: isOid, place, text: marked }, { pin }),
   image: fields({
     kind: oneOf("image"),
@@ -1440,8 +1440,8 @@ var LEVEL_AT = new RegExp(`^(.*?[+${MINUS}]\\s*)${LEVEL}\\b(.*)$`, "is");
 function spend(text, by) {
   const r = influence(text), m = LEVEL_AT.exec(text);
   if (!r?.level || !m) return null;
-  const left = levelsOf(r) - by;
-  return left < 0 ? null : m[1] + levelWord(left) + m[3];
+  const left2 = levelsOf(r) - by;
+  return left2 < 0 ? null : m[1] + levelWord(left2) + m[3];
 }
 
 // src/text/marks.ts
@@ -1509,6 +1509,9 @@ function unmark(lines, at3) {
   });
   return replaceLine(lines, at3.line, out);
 }
+function labelEnd(mark2, text) {
+  return mark2 === "act" || mark2 === "def" ? text.indexOf(":") + 1 : 0;
+}
 function render(lines, el3) {
   const doc = el3.ownerDocument;
   el3.replaceChildren(...lines.map((l) => {
@@ -1518,9 +1521,13 @@ function render(lines, el3) {
         div.append(r);
         continue;
       }
-      const span = doc.createElement("span");
+      const span = doc.createElement("span"), cut = labelEnd(r.mark, r.text);
       span.className = r.mark;
-      span.textContent = r.text;
+      if (cut) {
+        const b = doc.createElement("b");
+        b.textContent = r.text.slice(0, cut);
+        span.append(b, r.text.slice(cut));
+      } else span.textContent = r.text;
       div.append(span);
     }
     return div;
@@ -6684,7 +6691,7 @@ Next session: first day in town, late at night at the hotel`;
 var infl = (oid, name2, points2, n) => ({ kind: "influence", oid, home: DEVREUX, where: "drawer", n, name: name2, sign: 1, points: points2, used: false, crit: false });
 function scene(sam = "Player 1", beauford = "Player 2") {
   const chip2 = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false };
-  const sticky = { kind: "sticky", oid: "00000008", place: at(1430, 20), text: STICKY };
+  const sticky = { kind: "sticky", oid: "00000008", place: at(1430, 20), text: STICKY, big: true };
   const ref = { kind: "reference", oid: "00000009", place: at(1430, 650), which: "actions" };
   return [
     character(SAM, sam, "Sam", 40, SAM_FRONT, back2({ min: 2 }, "Fire tools. Lantern. 6 Candles.\nPocket knife. Bedroll. Canteen.\nRope. Notebook and pencil.")),
@@ -6970,6 +6977,9 @@ function inBack(char, rest) {
     return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage3]: column2 } } };
   };
   return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
+}
+function left(char, rest) {
+  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
 }
 function source(chars, id) {
   const colon = id.indexOf(":");
@@ -7575,8 +7585,8 @@ function gapAt(drawer2, x, y) {
   gap?.remove();
   const r = cards.getBoundingClientRect(), k = r.width / cards.offsetWidth || 1;
   const boxes = drawerCardEls(cards).map((e) => {
-    const left = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
-    return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+    const left2 = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
+    return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight };
   });
   if (gap) cards.insertBefore(gap, next);
   return insertAt(boxes, (x - r.left) / k, (y - r.top) / k);
@@ -7632,8 +7642,37 @@ function apply2(lines, a, b, tag2) {
   const r = line[from.run];
   if (typeof r !== "string") return lines;
   if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag2);
+  if (tag2 === "res") {
+    const each = entries2(r);
+    if (each) return replaceRun(lines, from.line, from.run, each);
+  }
   const start = r.length - r.trimStart().length, end = r.trimEnd().length;
   return mark(lines, { line: from.line, run: from.run, start, end }, tag2);
+}
+function entries2(run2) {
+  const parts = run2.split(",");
+  if (!parts.every((p) => {
+    const r = influence(p);
+    return !!r?.level && r.sign === 1;
+  })) return null;
+  const out = [];
+  const plainRun = (s) => {
+    if (!s) return;
+    const last = out[out.length - 1];
+    if (typeof last === "string") out[out.length - 1] = last + s;
+    else out.push(s);
+  };
+  parts.forEach((p, k) => {
+    if (k > 0) plainRun(",");
+    const t = p.trim(), at3 = p.indexOf(t);
+    plainRun(p.slice(0, at3));
+    out.push({ mark: "res", text: t });
+    plainRun(p.slice(at3 + t.length));
+  });
+  return out;
+}
+function replaceRun(lines, line, run2, runs) {
+  return lines.map((l, i) => i === line ? [...l.slice(0, run2), ...runs, ...l.slice(run2 + 1)] : l);
 }
 function heading(lines, line) {
   for (let i = line - 1; i >= 0; i--) {
@@ -7902,11 +7941,13 @@ function update(e, r, w) {
       frontGlyphs(front, r, w);
       rewrite(e.querySelector(".back > .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
+      dry(e, r);
       break;
     }
     case "sticky":
     case "text":
       rewrite(e.querySelector(".text"), r.text);
+      if (r.kind === "sticky") e.classList.toggle("big", !!r.big);
       break;
     case "image":
       image(e, r, w);
@@ -8033,6 +8074,12 @@ function glyph(doc, source2, w) {
   gesture(g, { drag: (d, m) => w.dragGlyph(source2, d, m) });
   return g;
 }
+function dry(e, c) {
+  for (const g of e.querySelectorAll(".glyph")) {
+    const s = g.dataset.source ?? "";
+    g.classList.toggle("dry", left(c, s.slice(s.indexOf(":") + 1)) < 1);
+  }
+}
 function frontGlyphs(text, c, w) {
   const doc = text.ownerDocument;
   if (doc.activeElement && text.contains(doc.activeElement)) return;
@@ -8056,9 +8103,9 @@ function reference(doc, r) {
     e.append(el2(doc, "b", "", bold), rest);
     return e;
   };
-  const hd = (left, right) => {
+  const hd = (left2, right) => {
     const e = el2(doc, "div", "rhd");
-    e.append(el2(doc, "span", "", left), el2(doc, "em", "", right));
+    e.append(el2(doc, "span", "", left2), el2(doc, "em", "", right));
     return e;
   };
   if (r.which === "actions") {
@@ -8466,8 +8513,8 @@ var TableView = class {
   #held = /* @__PURE__ */ new Map();
   /** Inside still(): a redraw that moves a piece doesn't glide (R226). */
   #still = false;
-  #sized = new ResizeObserver((entries2) => {
-    for (const e of entries2) {
+  #sized = new ResizeObserver((entries3) => {
+    for (const e of entries3) {
       const rid = e.target.dataset.rid;
       if (rid) {
         this.#snap(rid);
@@ -8558,8 +8605,8 @@ var TableView = class {
     this.#heights.set(rid, h);
     if (was === void 0 || h <= was || !viewer?.gm) return;
     const box2 = (e) => {
-      const left = parseFloat(e.style.left), top = parseFloat(e.style.top);
-      return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+      const left2 = parseFloat(e.style.left), top = parseFloat(e.style.top);
+      return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight };
     };
     const pieces = [];
     for (const [r, e] of this.#els) {

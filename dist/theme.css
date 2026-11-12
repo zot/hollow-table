@@ -120,15 +120,20 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
   background-image: repeating-linear-gradient(transparent 0 25px, var(--rule) 25px 26px); }
 [contenteditable]:focus { background-color: rgba(61,133,198,.06); border-radius: 4px; }
 
-/* ---- marks: each pen's highlight and its non-colour cue (manifest-ui.md, R11) ---- */
-.act { background: var(--pen-act); border-radius: 3px; }
-.res { background: var(--pen-res); border-radius: 3px; }
-.inf { background: var(--pen-inf); border-radius: 3px; text-decoration: underline dotted; }
-.bias { background: var(--pen-bias); border-radius: 3px; }
-.aff { background: var(--pen-aff); border-radius: 3px; }
-.inj { background: var(--pen-inj); border-radius: 3px; }
-.def { background: var(--pen-def); border-radius: 3px; text-decoration: underline double; }
-.head { font-weight: 700; font-size: 1.15em; }
+/* ---- marks: each pen's highlight and its non-colour cue (manifest-ui.md, R11), shown only while
+   the paper is being written on, pens out (R245); at rest the card reads as printed ---- */
+.obj:has([contenteditable]:focus, .pens:focus-within) :is(.act, .res, .inf, .bias, .aff, .inj, .def) { border-radius: 3px; }
+.obj:has([contenteditable]:focus, .pens:focus-within) .act { background: var(--pen-act); }
+.obj:has([contenteditable]:focus, .pens:focus-within) .res { background: var(--pen-res); }
+.obj:has([contenteditable]:focus, .pens:focus-within) .inf { background: var(--pen-inf); text-decoration: underline dotted; }
+.obj:has([contenteditable]:focus, .pens:focus-within) .bias { background: var(--pen-bias); }
+.obj:has([contenteditable]:focus, .pens:focus-within) .aff { background: var(--pen-aff); }
+.obj:has([contenteditable]:focus, .pens:focus-within) .inj { background: var(--pen-inj); }
+.obj:has([contenteditable]:focus, .pens:focus-within) .def { background: var(--pen-def); text-decoration: underline double; }
+/* R246: the print's weights, from the marks: a label up to its colon, headings, the card's name. */
+:is(.act, .def) > b { font-weight: 700; }
+.head { font-weight: 700; font-size: 1.125em; }
+.front .text > div:first-child > .head { font-size: 21px; }
 
 /* ---- R206, R207: the pens, chisel-tip highlighters beside the paper you write on (manifest-ui.md) ---- */
 .pens { position: absolute; left: 100%; top: 10px; margin-left: 4px; display: none; flex-direction: column; gap: 5px;
@@ -176,6 +181,8 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .sticky::after { content: ""; position: absolute; right: 0; bottom: 0; width: 22px; height: 22px;
   background: linear-gradient(315deg, transparent 50%, var(--sticky-fold) 50%); }
 .sticky .text { outline: none; min-height: 100px; white-space: pre-wrap; }
+/* R248: the big sticky, for the GM's long notes. */
+.sticky.big { width: 330px; min-height: 300px; }
 
 /* ---- loose handwriting on the table ---- */
 .loose { font: 600 22px/1.2 var(--hand); color: #f3e9d8; min-width: 80px; padding: 2px 6px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
@@ -271,7 +278,13 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .icard .level:hover { background: #0000000f; }
 .icard.isused { opacity: .6; }
 .icard.isused::after { content: "used"; font: 10px var(--mono); }
-.icard.tapped::before, .glyph::before { content: "▭"; font: 700 13px/1 var(--mono); }
+/* R249: the tap glyph is a tiny card; a resource-made card carries the same mark. */
+.icard.tapped::before, .glyph { content: ""; display: inline-block; width: 11px; height: 14px; box-sizing: border-box;
+  border: 1.5px solid var(--ink); border-radius: 2px; background: #fff; box-shadow: 1.5px 1.5px 0 var(--ink);
+  margin: 0 5px 0 2px; vertical-align: -2px; flex: none; }
+.glyph:hover { background: #fff6a8; }
+/* R250: a dry source's glyph fades. */
+.glyph.dry { opacity: .3; cursor: not-allowed; }
 .icard.crit { box-shadow: 0 0 0 2px var(--amber), 0 2px 3px rgba(0,0,0,.4); }
 /* R238: a drawer its viewer can't read: striped backs that keep their number and size. */
 .icard.facedown { min-width: 60px; border-color: #3a120d; background: repeating-linear-gradient(45deg, #7a2e24 0 4px, #5e2219 4px 8px); }
@@ -289,7 +302,7 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .usedlist p { margin: 0; font: 12px var(--mono); color: #555; }
 .drawer .kill { width: 46px; height: 40px; box-sizing: border-box; border: 1.5px solid #8a7458; border-radius: 4px; color: #e6d6bd;
   font: 11px/1 var(--mono); display: grid; place-items: center; background: repeating-linear-gradient(45deg, #3a2a1f 0 5px, #2a1d14 5px 10px); }
-.glyph { cursor: pointer; display: inline-block; padding: 0 3px; margin-right: 1px; color: #3a6b2a; }
+.glyph { cursor: pointer; }
 .loose-item.chip { display: grid; place-items: center; }
 /* R221: what aims takes the pointing hand, its fingertip the hotspot; carrying a chip, card or tap
    keeps it everywhere. Large things (paper, pools, the table) take the open hand. */

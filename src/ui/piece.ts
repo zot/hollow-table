@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R203, R209, R213, R214
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R203, R209, R213, R214, R245, R248, R249, R250
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -10,6 +10,7 @@ import {
 } from '../model/records.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { influence } from '../rules/readmarks.ts';
+import { left } from '../rules/tap.ts';
 import { parse, read, render, serialize } from '../text/marks.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 import { tray } from './pens.ts';
@@ -154,10 +155,12 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
       frontGlyphs(front, r, w);
       rewrite(e.querySelector('.back > .notes')!, r.back.notes);
       damage(e.querySelector('.damage')!, r, w);
+      dry(e, r);
       break;
     }
     case 'sticky': case 'text':
       rewrite(e.querySelector('.text')!, r.text);
+      if (r.kind === 'sticky') e.classList.toggle('big', !!r.big);   // R248
       break;
     case 'image': image(e, r, w); break;
     case 'tornroll': tornroll(e, r); break;
@@ -284,6 +287,14 @@ function glyph(doc: Document, source: string, w: PieceWith): HTMLElement {
   g.addEventListener('dragstart', ev => ev.preventDefault());
   gesture(g, { drag: (d, m) => w.dragGlyph(source, d, m) });
   return g;
+}
+
+// R250: a source with no Levels left shows its glyph faded.
+function dry(e: HTMLElement, c: Character): void {
+  for (const g of e.querySelectorAll<HTMLElement>('.glyph')) {
+    const s = g.dataset.source ?? '';
+    g.classList.toggle('dry', left(c, s.slice(s.indexOf(':') + 1)) < 1);
+  }
 }
 
 /** Glyphs before the front's `<res>` marks; left alone while the front is being written in. */

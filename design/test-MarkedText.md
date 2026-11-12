@@ -34,3 +34,15 @@ tags, a bare `<`, `&`, empty lines and trailing newlines
 **Fire alarm:** In unmark, stop joining the freed text to its neighbours: the first run stays `Res: ` instead of `Res: Money +Maj, `
 **Inject:** src/text/marks.ts:unmark
 **Pulled:** 2026-11-12 — rang: the first run stayed `Res: ` instead of `Res: Money +Maj, `
+
+## Test: a label is an action or Defend up to its colon
+**Purpose:** R246: the bold label is read from the mark, through its first colon, only for `act` and `def`
+**Input:** `Infer: 4, +2` and `Attack: 4 (Suasion: Charm), +1` as `act`, `Defend: 6 / 5` as `def`, an
+`act` with no colon, `Money: +Maj` as `res`, `Resources:` as `head`
+**Expected:** 6, 7, 7, 0, 0, 0
+**Refs:** crc-MarkedText.md
+**Code:** `src/text/marks.test.ts`
+**Alarm:** 4
+**Fire alarm:** In labelEnd, take the last colon instead of the first: the Attack label runs to `Suasion:`
+**Inject:** src/text/marks.ts:labelEnd
+**Pulled:** 2026-11-12 — rang: the Attack label ran past `Suasion:` (labelEnd gave 21, not 7)

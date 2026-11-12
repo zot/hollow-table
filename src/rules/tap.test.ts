@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, Damage, Influence, RowName } from '../model/records.ts';
 import { marks, parse } from '../text/marks.ts';
-import { feed, kill, recharge, tap, unfeed, type Tapped } from './tap.ts';
+import { feed, kill, left, recharge, tap, unfeed, type Tapped } from './tap.ts';
 import { levelName } from './influence.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
@@ -132,4 +132,20 @@ test('a card takes only its own kind', () => {
   assert.equal(money.damage, undefined);
   // Anyone may tap any character's Damage (R212): the rules never ask who.
   assert.notEqual(feed(t.look, bias, undefined, 'x'), null);
+});
+
+test('what a source has left', () => {
+  // R250: a glyph fades when its source has no Levels left.
+  const t = table(), sam = () => t.chars.get(SAM)!;
+  assert.equal(left(sam(), 'Ammo'), 2);
+  const card = t.take(tap(t.look, `${SAM}:Ammo`, where, 'c1'))!;
+  t.take(feed(t.look, card, undefined, 'x'));
+  assert.equal(left(sam(), 'Ammo'), 0);
+  assert.equal(left(sam(), 'Money'), 3);
+  assert.equal(left(sam(), 'Nothing'), 0);
+  assert.equal(left(sam(), 'injury/sig'), 0);                 // an unnamed slot
+  damaged(t, { 'bias/sig': ['Uncertain', 1] });
+  assert.equal(left(sam(), 'bias/sig'), 2);
+  assert.equal(left(sam(), 'bias/sig#1'), 2);
+  assert.equal(left(sam(), 'bias/sig#2'), 0);                 // an unchecked box
 });

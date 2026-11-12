@@ -92,7 +92,8 @@ chip, a torn-off roll of receipts.
 - **An empty column on a card's back collapses** to its name at the top (Bill, 11-11). Empty means
   nothing written and no box checked. Clicking anywhere in the column opens it so a slot can be
   filled in; left empty, it closes again at the next click elsewhere.
-- **Sticky note**: yellow, handwritten, edited in place.
+- **Sticky note**: yellow, handwritten, edited in place. It comes in two sizes: the note from the
+  supply, and a **big sticky** (330 by 300) for the GM's long notes (Bill, 11-12).
 - **Loose text**: handwriting straight on the table.
 - **Image**: dropped from the bar's image supply (a file picker). Images belong to the game and
   survive a reload.
@@ -120,6 +121,15 @@ italic or underline.
   text, pick a pen. A pen on marked text unmarks it.
 - **The table offers.** When a line typed in plain text matches a mark's grammar (an action line,
   `Name +Level` after "Resources"), the table offers that pen for it; nobody needs to know the tags.
+- **A marked card looks printed** (Bill, 11-12). A mark's highlight shows only while its paper is
+  being written on, pens out, so you can see what is marked; at rest a card reads as the printed one
+  does, with its glyphs and dice as the cues, and the one highlighter swish on it is the action in
+  use.
+- **Labels take the print's weight from the marks**, with no markup of their own (Bill, 11-12): an
+  action or Defend line's label, up to its colon, is bold; a heading is 18 px bold, and a heading on
+  the card's first line, its name, 21 px.
+- **Several Resources may share a line**, separated by commas (`Money +Min, Liquid Courage +Maj`):
+  the Resource pen at a bare caret marks each entry as its own Resource (Bill, 11-12).
 - **Marks are a closed set.** Tags carry no attributes. Anything else in the text is shown as plain
   text and kept exactly as written. Text from another page is read the same way, so it can carry
   nothing runnable.

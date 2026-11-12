@@ -86,3 +86,16 @@ the Money card from the Bias; feed the Bias card from its own source
 **Fire alarm:** Let feed take any source (drop the kind check): the Injury feeds the Bias card
 **Inject:** src/rules/tap.ts:feed
 **Pulled:** 2026-11-12 — rang: the Injury fed the Bias card instead of being refused
+
+## Test: what a source has left
+**Purpose:** R250: Tap.left gives the Levels a source can still be tapped for, which fades a dry glyph
+**Input:** Sam's Ammo before and after a tap and a feed take both its Levels; Money; an unknown name;
+an unnamed Injury slot; the Sig Bias `Uncertain` with its first box checked, the slot, the box and the
+unchecked second box
+**Expected:** 2, then 0; 3; 0; 0; 2, 2, 0
+**Refs:** crc-Tap.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 7
+**Fire alarm:** In left, read only the front: the named Bias slot has 0 left, its glyph faded
+**Inject:** src/rules/tap.ts:left
+**Pulled:** 2026-11-12 — rang: the named Sig Bias slot read 0 left instead of 2

@@ -60,6 +60,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - A small card **glyph** sits before each `<res>` Resource, each named Damage slot, and each checked
   Slot box (see *Character card* and *Card text* in `table.md`). The text stays handwriting; the
   table reads only the `Name +Level` inside a `<res>` mark. A Damage slot's Level is its row's.
+- **The glyph is a tiny card** (Bill, 11-12): white, an ink border and a hard offset shadow, yellow
+  under the pointer; the same mark sits on a resource-made card. **A dry source's glyph fades**, with
+  the not-allowed pointer, once it has no Levels left to tap.
 - **A checked Slot box is a Resource of its own**, named after its slot and worth the slot's Level
   (Bill, 11-12).
 - **Dragging a glyph onto the table** makes an Influence card named after the Resource, born at Min

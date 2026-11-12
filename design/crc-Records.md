@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R204, R209, R211, R214
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R204, R209, R211, R214, R248
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -31,7 +31,8 @@ record crosses the wire, the database and an export file unchanged.
   belongs to and who may read it. A source is `<character oid>:<Resource name>`.
 - Chip: `{kind: 'chip', oid, where: Where, n, sign, points, rider}`. A loose odd point is
   `points: 1`; `rider` is a +1 riding the chip.
-- Sticky, Text: `{kind, oid, place, text: Marked, pin?: {card: oid, dx, dy}}`.
+- Sticky, Text: `{kind, oid, place, text: Marked, pin?: {card: oid, dx, dy}}`; a sticky may carry
+  `big: true` (R248).
 - Image: `{kind: 'image', oid, place, blob: sha256, w, h, pin?}`.
 - TornRoll: `{kind: 'tornroll', oid, place, receipts: Receipt[]}`.
 - Reference: `{kind: 'reference', oid, place, which: 'howto' | 'actions'}`.

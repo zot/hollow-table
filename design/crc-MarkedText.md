@@ -1,5 +1,5 @@
 # MarkedText
-**Requirements:** R204, R205, R206, R208, R209
+**Requirements:** R204, R205, R206, R208, R209, R246
 
 Handwriting with marks: a closed, attribute-free markup naming what a run of text is in the game.
 A simple DOM over the text: it models only the five marks, and every other byte stays exactly where
@@ -19,7 +19,10 @@ it was, so parse-then-serialize reproduces the source.
 - setMark(lines, at, text): replace one mark's text (a spent Resource's Level), nothing else.
 - mark(lines, range, tag) / unmark(lines, at): what the highlighter pens do.
 - render(lines, el): builds a slim DOM (a div per line, a span per mark) with `textContent` only;
-  nothing is parsed as HTML.
+  nothing is parsed as HTML. An `act` or `def` span's label (labelEnd) is a `b` inside it (R246),
+  which read and locate walk through like any text.
+- labelEnd(mark, text): how much of a mark's text is its label, up to and including its first colon;
+  0 for other marks or no colon.
 - read(el): the reverse, from edited DOM back to lines: spans with a mark class become marks;
   every other node contributes only its text (pasted markup is reduced to its words). A div starts
   a line, and so does a `br`, except one ending its line: that is the browser's placeholder for an

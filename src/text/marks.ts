@@ -104,16 +104,26 @@ export function unmark(lines: Line[], at: At): Line[] {
   return replaceLine(lines, at.line, out);
 }
 
-/** Builds a slim DOM: a div per line and a span per mark, with textContent only. */
+// CRC: crc-MarkedText.md | R246
+/** How much of a mark's text is its label: an action's or Defend's, through its first colon; else 0. */
+export function labelEnd(mark: MarkName, text: string): number {
+  return mark === 'act' || mark === 'def' ? text.indexOf(':') + 1 : 0;
+}
+
+/** Builds a slim DOM: a div per line and a span per mark (its label a `b`), with textContent only. */
 export function render(lines: Line[], el: HTMLElement): void {
   const doc = el.ownerDocument;
   el.replaceChildren(...lines.map(l => {
     const div = doc.createElement('div');
     for (const r of l) {
       if (typeof r === 'string') { div.append(r); continue; }
-      const span = doc.createElement('span');
+      const span = doc.createElement('span'), cut = labelEnd(r.mark, r.text);
       span.className = r.mark;
-      span.textContent = r.text;
+      if (cut) {
+        const b = doc.createElement('b');
+        b.textContent = r.text.slice(0, cut);
+        span.append(b, r.text.slice(cut));
+      } else span.textContent = r.text;
       div.append(span);
     }
     return div;

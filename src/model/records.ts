@@ -67,7 +67,8 @@ export type Influence = {
 export type Chip = { kind: 'chip'; oid: Oid; where: Where; n: number; sign: Sign; points: number; rider: boolean };
 
 export type Pin = { card: Oid; dx: number; dy: number };
-export type Sticky = { kind: 'sticky'; oid: Oid; place: Place; text: Marked; pin?: Pin };
+// R248: `big` is the big sticky, for the GM's long notes.
+export type Sticky = { kind: 'sticky'; oid: Oid; place: Place; text: Marked; pin?: Pin; big?: boolean };
 export type Text = { kind: 'text'; oid: Oid; place: Place; text: Marked; pin?: Pin };
 export type Image = { kind: 'image'; oid: Oid; place: Place; blob: string; w: number; h: number; pin?: Pin };
 
@@ -163,7 +164,7 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
     sign, points, used: bool, crit: bool },
     { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE) }),
   chip: fields({ kind: oneOf('chip'), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
-  sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin }),
+  sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin, big: bool }),
   text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin }),
   image: fields({ kind: oneOf('image'), oid: isOid, place, blob: v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v),
     w: int(1, 100_000), h: int(1, 100_000) }, { pin }),

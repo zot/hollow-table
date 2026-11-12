@@ -81,3 +81,14 @@ test('locating a selection', () => {
 test('an empty line is one line', () => {
   assert.equal(serialize(read(root as unknown as HTMLElement)), 'Res: <res>Money +Maj</res>, more\n\nthird line');
 });
+
+test('several Resources on one line', () => {
+  // R247: the Resource pen at a bare caret marks each comma-separated entry, the commas left plain.
+  const res = (text: string, offset = 3) => serialize(apply(parse(text), at(0, 0, offset), at(0, 0, offset), 'res'));
+  assert.equal(res('Money +Min, Liquid Courage +Maj'), '<res>Money +Min</res>, <res>Liquid Courage +Maj</res>');
+  assert.equal(res('  Money +Min ,Ammo +Sig ', 5), '  <res>Money +Min</res> ,<res>Ammo +Sig</res> ');
+  // An entry that isn't `Name +Level` keeps the whole run one mark; so does any other pen.
+  assert.equal(res('Money +Min, a horse'), '<res>Money +Min, a horse</res>');
+  assert.equal(res('Money +Min, Debt -Sig'), '<res>Money +Min, Debt -Sig</res>');
+  assert.equal(serialize(apply(parse('Money +Min, Ammo +Sig'), at(0, 0, 3), at(0, 0, 3), 'inf')), '<inf>Money +Min, Ammo +Sig</inf>');
+});

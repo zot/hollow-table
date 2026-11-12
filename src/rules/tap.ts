@@ -1,4 +1,4 @@
-// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212
+// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250
 // Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source
 // so every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
 // Resources*). Pure: returns the records to write. Anyone may tap any source (R212).
@@ -51,6 +51,12 @@ function inBack(char: Character, rest: string): Source | null {
     return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage]: column } } };
   };
   return { char, name: slot.name, sign: -1, left: rowLevels(row) - (slot.spent[k] ?? 0), damage, spend };
+}
+
+// R250: a dry source's glyph fades.
+/** The Levels a source of this character (`rest` as after the colon) has left to tap; 0 if none. */
+export function left(char: Character, rest: string): number {
+  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
 }
 
 /** The source a `<character oid>:<rest>` string names, or null. */

@@ -62,6 +62,10 @@
 - **R206:** Text is marked with highlighter pens, one per mark; a pen on marked text unmarks it.
 - **R207:** A plain line matching a mark's grammar is offered that mark's pen.
 - **R208:** Anything in text other than a known mark is shown as plain text and kept exactly as written, including text from another page.
+- **R245:** A mark's highlight shows only while its paper is being written on (pens out); at rest a marked card reads as printed, its glyphs and dice the cues.
+- **R246:** An `act` or `def` mark's label, up to its first colon, is drawn bold; a heading is 18 px bold, and a heading on a card's first line, its name, 21 px.
+- **R247:** The Resource pen at a bare caret on a plain line whose comma-separated entries each read `Name +Level` marks each entry as its own Resource, the commas left plain.
+- **R248:** A sticky is the supply's note or a big sticky, 330 by 300, for the GM's long notes; the record keeps which.
 
 ## Feature: Influence
 **Source:** specs/influence.md
@@ -96,6 +100,8 @@
 - **R236:** A pile is drawn as a stack of discs in its colour; open, it lists its members beside it, each chip with its name.
 - **R237:** A chip or pile made by a Roll Up, and a card whose Level changes, pops: it grows in from half again its size with a white ring.
 - **R54:** A tap glyph sits before each `<res>` mark, each named Damage slot, and each checked Slot box; only `Name +Level` inside a `<res>` mark is read, and a Damage slot's Level is its row's.
+- **R249:** A tap glyph is a tiny card: white, an ink border and a hard offset shadow, yellow under the pointer; a resource-made card carries the same mark.
+- **R250:** A source with no Levels left to tap shows its glyph faded, with the not-allowed pointer.
 - **R55:** Dragging a glyph onto the table makes an Influence card named after the Resource, born at Min with the glyph under the pointer, marked resource-made, and drops the Resource's written Level by one.
 - **R225:** A tap's card is made the moment the drag starts, its Level already spent, and carried with its glyph under the pointer.
 - **R56:** On a resource-made card, click moves a Level from the current source; shift-click moves one back, never below what that source put in (a per-source ledger).

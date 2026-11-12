@@ -116,7 +116,7 @@ const infl = (oid: Oid, name: string, points: number, n: number): Influence =>
 
 export function scene(sam = 'Player 1', beauford = 'Player 2'): PieceRecord[] {
   const chip: Chip = { kind: 'chip', oid: '00000007', where: { slot: BEAUFORD, name: 'stagger' }, n: 0, sign: -1, points: 2, rider: false };
-  const sticky: Sticky = { kind: 'sticky', oid: '00000008', place: at(1430, 20), text: STICKY };
+  const sticky: Sticky = { kind: 'sticky', oid: '00000008', place: at(1430, 20), text: STICKY, big: true };
   const ref: Reference = { kind: 'reference', oid: '00000009', place: at(1430, 650), which: 'actions' };
   return [
     character(SAM, sam, 'Sam', 40, SAM_FRONT, back({ min: 2 }, 'Fire tools. Lantern. 6 Candles.\nPocket knife. Bedroll. Canteen.\nRope. Notebook and pencil.')),

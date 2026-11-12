@@ -96,3 +96,17 @@ so blank lines don't double each time the text is saved
 **Fire alarm:** In scan, let every `br` start a line (the 9.4.1 behaviour): the empty line becomes two and the third line moves to line 3
 **Inject:** src/text/marks.ts:scan
 **Pulled:** 2026-11-12 — rang: the empty line became two (read gained a fourth line) and the third line moved to line 3
+
+## Test: several Resources on one line
+**Purpose:** R247: the Resource pen at a bare caret on a line of comma-separated `Name +Level` entries
+marks each entry, the commas and spaces left plain
+**Input:** `Money +Min, Liquid Courage +Maj` and `  Money +Min ,Ammo +Sig ` with the Resource pen;
+`Money +Min, a horse` and `Money +Min, Debt -Sig` with it; `Money +Min, Ammo +Sig` with the Influence pen
+**Expected:** `<res>Money +Min</res>, <res>Liquid Courage +Maj</res>` and
+`  <res>Money +Min</res> ,<res>Ammo +Sig</res> `; the other three each one mark over the whole run
+**Refs:** crc-Pens.md
+**Code:** `src/ui/pens.test.ts`
+**Alarm:** 8
+**Fire alarm:** In entries, drop the sign check: `Money +Min, Debt -Sig` is split into two Resources, the debt among them
+**Inject:** src/ui/pens.ts:entries
+**Pulled:** 2026-11-12 — rang: `Money +Min, Debt -Sig` was split into two Resources, the debt among them

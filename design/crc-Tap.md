@@ -1,5 +1,5 @@
 # Tap
-**Requirements:** R54-60, R66, R210-212, R225
+**Requirements:** R54-60, R66, R210-212, R225, R250
 
 Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source so
 every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
@@ -14,6 +14,8 @@ Resources*). Pure: returns the records to write.
 - Anyone may tap any character's sources (R212); nothing here asks who is tapping.
 
 ## Does
+- left(char, rest): the Levels a source of this character has left to tap, 0 when it is unknown
+  or unnamed (R250: PieceView fades a dry glyph).
 - Each takes a lookup from oid to character and returns the card and the characters it changed.
 - tap(chars, source, where, oid): a new resource-made card born at Min, named after the source, current source set,
   ledger `{source: 1}`, and the source spent by one Level. A Damage source makes a card of its kind

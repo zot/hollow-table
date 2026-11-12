@@ -1,7 +1,7 @@
 // CRC: crc-MarkedText.md | Test: test-MarkedText.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mark, marks, parse, serialize, setMark, unmark } from './marks.ts';
+import { labelEnd, mark, marks, parse, serialize, setMark, unmark } from './marks.ts';
 import { scene } from '../store/playtest.ts';
 
 test('round trip over real text', () => {
@@ -36,4 +36,14 @@ test('edits touch only their mark', () => {
   assert.equal(mark(lines, { line: 0, run: 0, start: 0, end: 9 }, 'act'), lines);
   assert.equal(setMark(lines, ammo, 'x</res>y'), lines);
   assert.equal(serialize(parse(src)), src);
+});
+
+test('a label is an action or Defend up to its colon', () => {
+  // R246: drawn bold from the mark itself.
+  assert.equal(labelEnd('act', 'Infer: 4, +2'), 6);
+  assert.equal(labelEnd('def', 'Defend: 6 / 5'), 7);
+  assert.equal(labelEnd('act', 'Attack: 4 (Suasion: Charm), +1'), 7);
+  assert.equal(labelEnd('act', 'no colon'), 0);
+  assert.equal(labelEnd('res', 'Money: +Maj'), 0);
+  assert.equal(labelEnd('head', 'Resources:'), 0);
 });
