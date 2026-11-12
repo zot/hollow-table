@@ -110,6 +110,8 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-MarkedText.md → `src/text/marks.test.ts`
 - [x] test-MarkReader.md → `src/rules/readmarks.test.ts`
 - [x] test-Pens.md → `src/ui/pens.test.ts`
+- [x] test-PoolView.md → `src/ui/pool.test.ts`
+- [x] test-TableView.md → `src/ui/table.test.ts`
 - [x] test-Influence.md → `src/rules/influence.test.ts`
 - [x] test-Pool.md → `src/rules/pool.test.ts`
 - [x] test-Tap.md → `src/rules/tap.test.ts`
@@ -137,4 +139,8 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] test-Network.md → `tests/sync.spec.ts`, `tests/secret.spec.ts`, `tests/away.spec.ts`, `tests/deletion.spec.ts`, `tests/rolls.spec.ts`
 
 ## Gaps
-- [ ] O1: The DOM side of dragging is checked by hand only (it needs a real page, frames and hit tests), so it waits for test-Table's browser spec in 9.4.6: R215 pacing in Drag and TableView (cancel at release, flush after the first move, the pan's flush before saving, the wheel paced; count passes against pointer events); R216 a lifted piece glued where pressed at zoom 1 and zoomed in; R217 and R226 a drop drawn where let go with no glide, and another page's move gliding; R220 the piece itself lifted out of its slot, drawer or the table and skipped by redraws while held; R221 the pointing hand while carrying; R222 the target lit; R224 a card becoming a chip centred on the pointer; R225 a tap born at the drag's start with its glyph under the pointer
+- [ ] O1: The DOM side of dragging is checked by hand only (it needs a real page, frames and hit tests), so it waits for test-Table's browser spec in 9.4.6: R215 pacing in Drag and TableView (cancel at release, flush after the first move, the pan's flush before saving, the wheel paced; count passes against pointer events); R216 a lifted piece glued where pressed at zoom 1 and zoomed in; R217 and R226 a drop drawn where let go with no glide, and another page's move gliding; R220 the piece itself lifted out of its slot, drawer or the table and skipped by redraws while held; R221 the pointing hand while carrying; R222 the target lit; R243 a card staying a card in hand and becoming a chip centred on the pointer only over a pool's slots; R225 a tap born at the drag's start with its glyph under the pointer; and the pool (10.2): R227–R236 the mat, strips flush right, tray, banded cards, tool tiles, flat chips with centred numbers and tucked stacks, piles opening sideways, the kill box staying put while the pool widens, and R237 a Roll Up popping; R240 the drawer gap following a carried card and the cards sliding aside; R241 a growing drawer pushing what it covers (GM's page only, not mid-carry, pinned paper with its card); R244 the strip under a carried chip opening and the source slot (or the first empty one to the left) closing, swapping back when dragged back, the mat growing by one slot only when nothing can close
+- T1: R29 retired by R228 (2026-11-12 harvest 10.2: the mat keeps its width; strips pack at the right (Bill))
+- T2: R224 retired by R243 (2026-11-12: a card stays a card in hand and becomes a chip only over the slots (Bill))
+- T3: R30 retired by R244 (2026-11-12: the strip under the chip trades space with an empty slot instead of the whole pool widening (Bill))
+- T4: R242 retired by R244 (2026-11-12: the mat no longer widens while carrying; it grows only when no slot can close, and the drawer keeps its width then (Bill))

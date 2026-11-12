@@ -39,8 +39,14 @@
 - **R26:** An image is added from the image supply through a file picker, belongs to the game, and survives a reload.
 - **R27:** Stickies, text and images can pin to a card and travel with it.
 - **R28:** Each party in a Contest, NPCs included, has a pool with Bonus, Main, Edge, Stagger (opposition only), Bias, Affliction and Injury slots in that order, the character's name, a die button, and a drawer of Influence cards below.
-- **R29:** An empty slot narrows to a 1em strip showing the first letter of its name, with the full name on hover; a slot holding anything is full width.
-- **R30:** When a chip or Influence card is carried near a pool, that pool's slots widen before the pointer reaches them, anchored at the pool's left edge; only that pool widens, and it narrows again if the drop goes elsewhere.
+- **R227:** The pool mat is a white frame round tall rounded slots with a dark hairline edge, each named in its middle in PT Mono, sentence case; Stagger is wider, with "opposition only" under its name.
+- **R229:** The drawer is a tray inside the mat under the slots, its cards on the left and its tools on the right.
+- **~~R242:~~** (Retired T4 — see R244) While a pool's slots widen for a carried chip or card, its drawer keeps its width, so the drawer's tools don't move while you aim for them.
+- **R241:** When a drawer grows, any piece the mat would now cover slides down just clear of it (a card with what's pinned to it, a pool with its gathered card) and stays there when it shrinks; the GM's page makes the move.
+- **~~R29:~~** (Retired T1 — see R228) An empty slot narrows to a 1em strip showing the first letter of its name, with the full name on hover; a slot holding anything is full width.
+- **R228:** A pool keeps its drawer's width: slots open at full width from the left as many as fit, a slot holding anything always open, and the rest stand as 1em strips showing their first letter (full name on hover), packed against the right edge, so the slots fill the mat with no gap.
+- **~~R30:~~** (Retired T3 — see R244) When a chip or Influence card is carried near a pool, that pool's slots widen before the pointer reaches them, anchored at the pool's left edge; only that pool widens, and it narrows again if the drop goes elsewhere.
+- **R244:** A chip or card carried over a pool's slots opens the strip under it, and a slot closes to pay for it so the mat keeps its width: the slot it came from if that is now empty, otherwise the first empty open slot left of where it came from (or of the strip, from elsewhere); slots holding anything never close, and with none to close the mat grows by that one slot, its drawer keeping its width. The strip stays open until another strip is reached or the carry leaves the slots; nothing changes before it reaches them.
 - **R31:** Clicking or tapping a narrowed slot widens it until the next click elsewhere.
 - **R32:** Dragging a pool brings its character card; dragging the card moves it alone and ungathers it.
 - **R33:** A gathered card stays snapped under its drawer as the drawer grows or shrinks; Gather snaps it back; the starting scene is gathered.
@@ -64,6 +70,8 @@
 - **R37:** A red chip shows its sign.
 - **R38:** A +1 riding a chip belongs to that chip.
 - **R39:** Chips snap into slots as stacks, positive from the top and negative from the bottom, each sorted strongest nearest the edge and drawn on top.
+- **R234:** A chip is a flat disc with one dark rim, its number bold in PT Mono in the middle and a little shade along the bottom; a card in a slot adds a thin white inner ring, a resource-made one a tiny card glyph at its corner.
+- **R235:** In a slot's stack each chip tucks under the stronger one before it.
 - **R40:** Clicking a chip raises it by 2; shift-clicking lowers it by 2.
 - **R41:** Clicking a pool's empty slot space adds a loose +1; shift-click adds −1.
 - **R42:** Clicking a +1 makes a 2; shift-clicking a 2 makes a +1; shift-clicking a +1 removes it.
@@ -72,13 +80,21 @@
 - **R45:** A chip carrying a +1 counts at face value in a Roll Up, and its +1 is spent.
 - **R46:** Lowering a chip can complete a Roll Up.
 - **R47:** An Influence card lives in its pool's drawer and shrinks to a chip showing its value (name on hover) in a pool slot.
-- **R224:** An Influence card picked up from a drawer or the table becomes a chip in hand, centred on the pointer, its value in the middle and its name on hover (Bill, 11-12).
+- **R230:** A card in a drawer is a small white card with a band down its left edge in its sign's colour, its name and Level in handwriting, a resource-made card's glyph before its name; cards wrap in the tray.
+- **~~R224:~~** (Retired T2 — see R243) An Influence card picked up from a drawer or the table becomes a chip in hand, centred on the pointer, its value in the middle and its name on hover (Bill, 11-12).
+- **R243:** An Influence card picked up stays a card in hand, held where it was taken; over a pool's slots it becomes a chip centred on the pointer, and a card again when it leaves them.
 - **R48:** An Influence card dropped anywhere but a pool slot goes home to its drawer; dropped on another pool's drawer, it moves to that character.
 - **R49:** A drawer's kill box is the only way to delete an Influence card.
 - **R50:** A drawer has buttons to write a new + or − card.
+- **R231:** The drawer's tools are tiles: a dashed + and − in their sign's colour, the used pile as a tile with its count, the kill box as a hatched tile.
+- **R232:** A new card is written as "Influence" with its name selected, so typing names it.
+- **R239:** A new card goes last in its drawer; a card that comes home without a place chosen goes last too.
+- **R240:** Carrying a card over a drawer opens a gap where it would go, the other cards sliding aside and the drawer growing to fit; the gap follows the card, and letting go puts it there.
 - **R51:** Clicking a drawer card's Level raises it; cards stop at Min when lowered.
 - **R52:** Three equal Influence cards in a slot form a pile showing the value they act as, without merging.
 - **R53:** Clicking a pile opens or closes it; an open pile lists its members by name; dragging a member out breaks the pile.
+- **R236:** A pile is drawn as a stack of discs in its colour; open, it lists its members beside it, each chip with its name.
+- **R237:** A chip or pile made by a Roll Up, and a card whose Level changes, pops: it grows in from half again its size with a white ring.
 - **R54:** A tap glyph sits before each `<res>` mark, each named Damage slot, and each checked Slot box; only `Name +Level` inside a `<res>` mark is read, and a Damage slot's Level is its row's.
 - **R55:** Dragging a glyph onto the table makes an Influence card named after the Resource, born at Min with the glyph under the pointer, marked resource-made, and drops the Resource's written Level by one.
 - **R225:** A tap's card is made the moment the drag starts, its Level already spent, and carried with its glyph under the pointer.
@@ -94,6 +110,8 @@
 - **R212:** Anyone may tap any character's Damage Resources; Biases, Afflictions and Injuries may all apply to one action.
 - **R63:** A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); Resources can't feed used cards, and click and shift-click still change them.
 - **R64:** At a character's next roll, still-used cards are swept into the drawer's used pile first; clicking one there puts it back.
+- **R233:** The used pile opens as a paper list under its tile; a used card in a pool is greyed, with a small "used" tag under it.
+- **R238:** A drawer its viewer may not read shows its cards face-down as striped red backs that keep their number and size.
 - **R65:** Plain chips are never marked used.
 - **R66:** A Resource dropped on a used card starts a new card beside it.
 

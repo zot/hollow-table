@@ -7071,10 +7071,18 @@ function toSlot(game, rid, owner, slot2, mint2) {
     settle(w, withItem(game, owner, slot2, moved), mint2);
   };
 }
-function toDrawer(game, rid, owner) {
+function drawerCards(game, owner) {
+  return game.all().map(([, r]) => r).filter((r) => "kind" in r && r.kind === "influence" && r.home === owner && r.where === "drawer").sort((a, b) => a.n - b.n);
+}
+function toDrawer(game, rid, owner, at3) {
   const i = item(game, rid);
   if (!i || i.kind !== "influence") return null;
-  return (w) => w.put(rid, { ...i, home: owner, where: "drawer", used: false });
+  const order = drawerCards(game, owner).filter((k) => ridOf(k.oid) !== rid);
+  const card2 = { ...i, home: owner, where: "drawer", used: false };
+  order.splice(at3 === void 0 ? order.length : Math.max(0, Math.min(at3, order.length)), 0, card2);
+  return (w) => order.forEach((k, n) => {
+    if (k === card2 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
+  });
 }
 function toTable(game, rid, at3) {
   const i = item(game, rid);
@@ -7138,8 +7146,9 @@ function cardClick(game, rid, shift, mint2) {
   const next = shift ? lowerCard(c) : raiseCard(c);
   return next.points === c.points ? null : (w) => w.put(rid, next);
 }
-function writeCard(owner, sign2, name2, mint2) {
-  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n: 0, name: name2, sign: sign2, points: MIN, used: false, crit: false };
+function writeCard(game, owner, sign2, name2, mint2) {
+  const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
+  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
   return (w) => w.put(ridOf(card2.oid), card2);
 }
 function restoreUsed(game, rid) {
@@ -7274,6 +7283,324 @@ function paced(schedule, apply3) {
       pending = null;
     }
   };
+}
+
+// src/ui/pool.ts
+var MAT_W = 430;
+var SLOT_W = 72;
+var STAGGER_W = 92;
+var STRIP_W = 16;
+var SLOT_GAP = 6;
+var MAT_PAD = 6;
+function openSlots(holding, width = MAT_W) {
+  const full = (i) => SLOTS[i] === "stagger" ? STAGGER_W : SLOT_W;
+  const open = [...holding];
+  const used = () => open.reduce((a, o, i) => a + (o ? full(i) : STRIP_W), 0) + SLOT_GAP * (open.length - 1);
+  for (let i = 0; i < open.length; i++) {
+    if (open[i]) continue;
+    open[i] = true;
+    if (used() > width - 2 * MAT_PAD) {
+      open[i] = false;
+      break;
+    }
+  }
+  return open;
+}
+function insertAt(cards, x, y) {
+  const k = cards.findIndex((r) => y < r.top || y <= r.bottom && x < (r.left + r.right) / 2);
+  return k < 0 ? cards.length : k;
+}
+function reachFor(holding, at3, from, width = MAT_W) {
+  const open = openSlots(holding, width);
+  if (at3 === null || open[at3]) return open;
+  open[at3] = true;
+  const free = (i) => open[i] && !holding[i] && i !== at3;
+  let close = from !== null && free(from) ? from : -1;
+  for (let i = (from ?? at3) - 1; close < 0 && i >= 0; i--) if (free(i)) close = i;
+  if (close >= 0) open[close] = false;
+  return open;
+}
+function pops(before2, after) {
+  const out = /* @__PURE__ */ new Set();
+  if (!before2) return out;
+  const lost = /* @__PURE__ */ new Map();
+  for (const [k, b] of before2) if (!after.has(k)) lost.set(b.place, (lost.get(b.place) ?? 0) + 1);
+  for (const [k, a] of after) {
+    const b = before2.get(k);
+    if (b ? b.points !== a.points : k.startsWith("pile:") || (lost.get(a.place) ?? 0) >= 2) out.add(k);
+  }
+  return out;
+}
+var LABEL = {
+  bonus: "Bonus",
+  main: "Main",
+  edge: "Edge",
+  stagger: "Stagger",
+  bias: "Bias",
+  affliction: "Affliction",
+  injury: "Injury"
+};
+var el = (doc, tag2, cls, text) => {
+  const e = doc.createElement(tag2);
+  if (cls) e.className = cls;
+  if (text !== void 0) e.textContent = text;
+  return e;
+};
+var run = (game, c) => {
+  if (c) game.change(c);
+};
+var isPile2 = (u) => "members" in u;
+var at2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
+function drawPool(c, items, old, w) {
+  const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
+  const e = old ?? make2(doc, c, w);
+  e.style.left = `${c.pool.x}px`;
+  e.style.top = `${c.pool.y}px`;
+  e.style.zIndex = String(c.pool.z);
+  e.querySelector(".name").textContent = c.name;
+  e.querySelector(".owner").textContent = c.owner === "open" ? "open" : c.owner;
+  e.querySelector(".gather").hidden = c.gathered;
+  const opened = w.poolOpen(), shown = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
+  const slotEls = [...e.querySelectorAll(".slot")];
+  const mine = slotEls.map((slotEl) => items.filter((i) => at2(i, c.oid, slotEl.dataset.slot)));
+  holdingOf.set(e, slotEls.map((slotEl, k) => mine[k].length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
+  layout(e);
+  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown, drawn));
+  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown, drawn);
+  for (const k of pops(seen2.get(e), shown)) pop(drawn.get(k));
+  seen2.set(e, shown);
+  e.dataset.rid = rid;
+  return e;
+}
+var holdingOf = /* @__PURE__ */ new WeakMap();
+var reaching = /* @__PURE__ */ new WeakMap();
+function layout(e) {
+  const holding = holdingOf.get(e), r = reaching.get(e);
+  if (!holding) return;
+  const ix = (s) => s ? SLOTS.indexOf(s) : null;
+  const open = reachFor(holding, ix(r?.at), ix(r?.from));
+  e.querySelectorAll(".slot").forEach((slotEl, k) => slotEl.classList.toggle("narrow", !open[k]));
+}
+function reach(pool, at3, from) {
+  const was = reaching.get(pool);
+  if (was?.at === at3 && was.from === from) return;
+  if (at3) reaching.set(pool, { at: at3, from });
+  else reaching.delete(pool);
+  layout(pool);
+}
+var seen2 = /* @__PURE__ */ new WeakMap();
+function pop(e) {
+  if (!e) return;
+  e.classList.remove("rolled");
+  void e.offsetWidth;
+  e.classList.add("rolled");
+  e.addEventListener("animationend", () => e.classList.remove("rolled"), { once: true });
+}
+function make2(doc, c, w) {
+  const e = el(doc, "div", "obj pool");
+  e.dataset.part = "pool";
+  const rid = ridOf(c.oid);
+  const hd = el(doc, "div", "hd");
+  const gather = el(doc, "button", "gather", "gather");
+  gesture(gather, { click: () => {
+    const cur = w.game.get(rid);
+    w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
+  } });
+  const name2 = el(doc, "span", "name");
+  hd.append(name2, el(doc, "span", "owner"), gather);
+  gesture(name2, { drag: (d, m) => w.dragPool(rid, d, m) });
+  const slots = el(doc, "div", "slots");
+  for (const s of SLOTS) {
+    const slot2 = el(doc, "div", `slot slot-${s}`);
+    slot2.dataset.slot = s;
+    slot2.dataset.owner = c.oid;
+    const label = el(doc, "span", "label", LABEL[s]);
+    label.dataset.letter = LABEL[s][0];
+    if (s === "stagger") label.append(el(doc, "small", "", "opposition only"));
+    slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
+    slot2.append(label, el(doc, "div", "pos"), el(doc, "div", "neg"));
+    gesture(slot2, {
+      click: (ev) => {
+        if (ev.target.closest(".chip, .pile")) return;
+        if (slot2.classList.contains("narrow")) {
+          w.toggle("slots", `${c.oid}:${s}`, true);
+          return;
+        }
+        run(w.game, addLoose(w.game, c.oid, s, false, w.mint()));
+      },
+      shift: (ev) => {
+        if (ev.target.closest(".chip, .pile") || slot2.classList.contains("narrow")) return;
+        run(w.game, addLoose(w.game, c.oid, s, true, w.mint()));
+      }
+    });
+    slots.append(slot2);
+  }
+  const drawer2 = el(doc, "div", "drawer");
+  drawer2.dataset.drawer = c.oid;
+  drawer2.append(el(doc, "div", "cards"), el(doc, "div", "tools"));
+  e.append(hd, slots, drawer2);
+  return e;
+}
+function units(slotEl, items, w, shown, drawn) {
+  const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
+  const opened = w.poolOpen(), place2 = slotEl.dataset.slot;
+  for (const sign2 of [1, -1]) {
+    const box2 = slotEl.querySelector(sign2 > 0 ? ".pos" : ".neg");
+    const mine = units2.filter((u) => u.sign === sign2).sort((a, b) => sign2 > 0 ? worthOf(b) - worthOf(a) : worthOf(a) - worthOf(b));
+    box2.replaceChildren(...mine.map((u, k) => {
+      const piled = isPile2(u);
+      const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
+      e.style.zIndex = String(50 - k);
+      const key = piled ? `pile:${u.members[0]?.oid ?? ""}` : u.oid;
+      shown.set(key, { points: u.points, place: place2 });
+      drawn.set(key, e);
+      return e;
+    }));
+  }
+}
+var worthOf = (u) => isPile2(u) ? u.points : worth(u);
+function chip(doc, i, w) {
+  const card2 = i.kind === "influence";
+  const b = el(
+    doc,
+    "button",
+    `chip ${i.sign > 0 ? "pos" : "neg"}${card2 ? " card-chip" : ""}${card2 && i.tap ? " res" : ""}${card2 && i.used ? " used" : ""}`,
+    `${i.sign < 0 ? "\u2212" : ""}${i.points}`
+  );
+  const rid = ridOf(i.oid);
+  b.dataset.rid = rid;
+  if (card2) {
+    b.title = i.name;
+    b.dataset.name = i.name;
+  }
+  if (i.kind === "chip" && i.rider) {
+    const r = el(doc, "span", "rider", "+1");
+    gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
+    b.append(r);
+  }
+  const click = i.kind === "chip" ? chipClick : cardClick;
+  gesture(b, {
+    click: () => run(w.game, click(w.game, rid, false, w.mint())),
+    shift: () => run(w.game, click(w.game, rid, true, w.mint())),
+    drag: (d, m) => w.dragItem(rid, d, m)
+  });
+  return b;
+}
+function pile(doc, p, open, w) {
+  const first = p.members[0]?.oid ?? "";
+  const d = el(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first) ? " open" : ""}`);
+  const disc = el(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
+  disc.title = `${p.members.length} acting as one`;
+  gesture(disc, { click: () => w.toggle("piles", first) });
+  d.append(disc);
+  if (open.has(first)) {
+    const list2 = el(doc, "div", "members");
+    for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
+    d.append(list2);
+  }
+  return d;
+}
+function drawer(box2, c, cards, w, shown, drawn) {
+  const doc = box2.ownerDocument, opened = w.poolOpen();
+  const visible = canSee(w.viewer, c);
+  const here = cards.filter((k) => k.where === "drawer"), used = cards.filter((k) => k.where === "used");
+  box2.querySelector(".cards").replaceChildren(...here.sort((a, b) => a.n - b.n).map((k) => {
+    const e = card(doc, k, visible, w);
+    shown.set(k.oid, { points: k.points, place: "drawer" });
+    drawn.set(k.oid, e);
+    return e;
+  }));
+  const tools = [];
+  for (const sign2 of [1, -1]) {
+    const pen = el(doc, "button", `write ${sign2 > 0 ? "pos" : "neg"}`, sign2 > 0 ? "+" : "\u2212");
+    pen.title = sign2 > 0 ? "Write a + card" : "Write a \u2212 card";
+    gesture(pen, { click: () => {
+      const oid = w.mint()();
+      run(w.game, writeCard(w.game, c.oid, sign2, "Influence", () => oid));
+      const name2 = box2.querySelector(`.icard[data-rid="${ridOf(oid)}"] .iname`);
+      if (!name2) return;
+      name2.focus();
+      doc.getSelection()?.selectAllChildren(name2);
+    } });
+    tools.push(pen);
+  }
+  const pileTile = el(doc, "div", "usedpile");
+  const tag2 = el(doc, "button", "used", "used");
+  tag2.append(el(doc, "b", "", String(used.length)));
+  tag2.title = "Used Influence cards: click to see them, click one to put it back";
+  gesture(tag2, { click: () => w.toggle("used", c.oid) });
+  pileTile.append(tag2);
+  if (opened.used.has(c.oid) && visible) {
+    const list2 = el(doc, "div", "usedlist");
+    if (!used.length) list2.append(el(doc, "p", "", "None used."));
+    for (const k of used) {
+      const u = card(doc, k, visible, w);
+      gesture(u, { click: () => run(w.game, restoreUsed(w.game, ridOf(k.oid))) });
+      list2.append(u);
+    }
+    pileTile.append(list2);
+  }
+  tools.push(pileTile, Object.assign(el(doc, "span", "kill", "kill"), { title: "Drop a card here to delete it" }));
+  box2.querySelector(".tools").replaceChildren(...tools);
+}
+function card(doc, k, visible, w) {
+  const rid = ridOf(k.oid);
+  const e = el(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
+  e.dataset.rid = rid;
+  const drag = { drag: (d, m) => w.dragItem(rid, d, m) };
+  if (!visible) {
+    e.classList.add("facedown");
+    gesture(e, drag);
+    return e;
+  }
+  const name2 = el(doc, "span", "iname", k.name);
+  name2.contentEditable = "true";
+  name2.spellcheck = false;
+  name2.addEventListener("input", () => {
+    const cur = w.game.get(rid);
+    if (cur) w.game.change((x) => x.put(rid, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
+  });
+  const level = el(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName2(k.points)}`);
+  gesture(level, {
+    click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
+    shift: () => run(w.game, cardClick(w.game, rid, true, w.mint()))
+  });
+  e.append(name2, level);
+  gesture(e, drag);
+  return e;
+}
+var drawerCardEls = (cards) => [...cards.querySelectorAll(":scope > .icard")];
+function gapAt(drawer2, x, y) {
+  const cards = drawer2.querySelector(".cards"), gap = cards.querySelector(".gap"), next = gap?.nextSibling ?? null;
+  gap?.remove();
+  const r = cards.getBoundingClientRect(), k = r.width / cards.offsetWidth || 1;
+  const boxes = drawerCardEls(cards).map((e) => {
+    const left = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
+    return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+  });
+  if (gap) cards.insertBefore(gap, next);
+  return insertAt(boxes, (x - r.left) / k, (y - r.top) / k);
+}
+function showGap(drawer2, at3, animate = true) {
+  const cards = drawer2.querySelector(".cards");
+  if (!cards) return;
+  const els = drawerCardEls(cards);
+  let gap = cards.querySelector(".gap");
+  const now2 = gap ? [...cards.children].filter((c) => c === gap || c.classList.contains("icard")).indexOf(gap) : -1;
+  if (at3 === null ? !gap : now2 === at3) return;
+  const before2 = new Map(els.map((e) => [e, e.getBoundingClientRect()]));
+  if (at3 === null) gap.remove();
+  else {
+    gap ??= Object.assign(cards.ownerDocument.createElement("div"), { className: "gap" });
+    cards.insertBefore(gap, els[at3] ?? null);
+  }
+  const reduce = cards.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (!animate || reduce) return;
+  const k = cards.getBoundingClientRect().width / cards.offsetWidth || 1;
+  for (const [e, b] of before2) {
+    const a = e.getBoundingClientRect(), dx = (b.left - a.left) / k, dy = (b.top - a.top) / k;
+    if (dx || dy) e.animate?.([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 150, easing: "ease-out" });
+  }
 }
 
 // src/ui/pens.ts
@@ -7471,14 +7798,14 @@ function tilt(oid) {
   for (const c of oid) h = h * 31 + c.charCodeAt(0) | 0;
   return `${((h >>> 0) % 13 - 6) * 0.25}deg`;
 }
-var el = (doc, tag2, cls, text) => {
+var el2 = (doc, tag2, cls, text) => {
   const e = doc.createElement(tag2);
   if (cls) e.className = cls;
   if (text !== void 0) e.textContent = text;
   return e;
 };
 function writable(doc, cls, source2, save2) {
-  const t = el(doc, "div", `${cls} writes`);
+  const t = el2(doc, "div", `${cls} writes`);
   t.contentEditable = "true";
   t.spellcheck = false;
   render(parse(source2), t);
@@ -7509,7 +7836,7 @@ function draw(r, old, w) {
   const at3 = placeOf(r);
   if (!at3) return null;
   const doc = old?.ownerDocument ?? document;
-  const e = old?.dataset.kind === r.kind ? old : make2(doc, r, w);
+  const e = old?.dataset.kind === r.kind ? old : make3(doc, r, w);
   e.style.left = `${at3.x}px`;
   e.style.top = `${at3.y}px`;
   e.style.zIndex = String(at3.z);
@@ -7517,9 +7844,9 @@ function draw(r, old, w) {
   update(e, r, w);
   return e;
 }
-function make2(doc, r, w) {
+function make3(doc, r, w) {
   const rid = ridOf(r.oid);
-  const e = el(doc, "div", `obj ${CLASS[r.kind] ?? r.kind}`);
+  const e = el2(doc, "div", `obj ${CLASS[r.kind] ?? r.kind}`);
   e.dataset.kind = r.kind;
   e.dataset.rid = rid;
   e.addEventListener("pointerdown", (ev) => {
@@ -7532,16 +7859,16 @@ function make2(doc, r, w) {
   } });
   switch (r.kind) {
     case "character": {
-      const flipper = el(doc, "div", "flipper");
-      const front = el(doc, "div", "face front"), back3 = el(doc, "div", "face back");
+      const flipper = el2(doc, "div", "flipper");
+      const front = el2(doc, "div", "face front"), back3 = el2(doc, "div", "face back");
       front.append(writable(doc, "text", r.front, (s) => change2(w, rid, (c) => ({ ...c, front: s }))));
       back3.append(
-        el(doc, "div", "damage"),
-        el(doc, "div", "notes-hd", "Notes"),
+        el2(doc, "div", "damage"),
+        el2(doc, "div", "notes-hd", "Notes"),
         writable(doc, "notes", r.back.notes, (s) => change2(w, rid, (c) => ({ ...c, back: { ...c.back, notes: s } })))
       );
       flipper.append(front, back3);
-      const flip = el(doc, "button", "flip");
+      const flip = el2(doc, "button", "flip");
       flip.setAttribute("aria-label", "Flip the card");
       gesture(flip, { click: () => change2(w, rid, (c) => ({ ...c, flipped: !c.flipped })) });
       e.append(flipper, flip, tray(e));
@@ -7632,10 +7959,10 @@ function damage2(box2, c, w) {
   const slotAt = (ch, d, row2, s) => ({ ...ch, back: { ...ch.back, damage: { ...ch.back.damage, [d]: { ...ch.back.damage[d], [row2]: { ...ch.back.damage[d][row2], ...s } } } } });
   if (!box2.children.length) {
     for (const d of DAMAGE) {
-      const col = el(doc, "div", `column col-${d}`);
+      const col = el2(doc, "div", `column col-${d}`);
       col.dataset.damage = d;
-      const hd = el(doc, "div", "hd");
-      const absorb2 = el(doc, "span", "absorb");
+      const hd = el2(doc, "div", "hd");
+      const absorb2 = el2(doc, "span", "absorb");
       absorb2.contentEditable = "true";
       absorb2.addEventListener("input", () => {
         const n = Number(absorb2.textContent?.replace(/\D/g, "") || 0);
@@ -7649,13 +7976,13 @@ function damage2(box2, c, w) {
         w.setOpened(o);
       } });
       for (const row2 of ROWS) {
-        const line = el(doc, "div", "slotline");
+        const line = el2(doc, "div", "slotline");
         line.dataset.row = row2;
-        const boxes = el(doc, "span", "boxes"), name2 = el(doc, "span", `name ${COLUMN[d].mark}`);
+        const boxes = el2(doc, "span", "boxes"), name2 = el2(doc, "span", `name ${COLUMN[d].mark}`);
         name2.contentEditable = "true";
         name2.spellcheck = false;
         name2.addEventListener("input", () => put2((ch) => slotAt(ch, d, row2, { name: name2.textContent ?? "" })));
-        line.append(boxes, el(doc, "span", "lvl", LEVEL2[row2]), name2, el(doc, "span", "spent"));
+        line.append(boxes, el2(doc, "span", "lvl", LEVEL2[row2]), name2, el2(doc, "span", "spent"));
         col.append(line);
       }
       box2.append(col);
@@ -7678,7 +8005,7 @@ function damage2(box2, c, w) {
       const boxes = line.querySelector(".boxes");
       if (boxes.children.length !== s.boxes.length) {
         boxes.replaceChildren(...s.boxes.map((_, k) => {
-          const b = el(doc, "button", "box");
+          const b = el2(doc, "button", "box");
           b.setAttribute("aria-label", `Slot ${k + 2}`);
           gesture(b, { click: () => put2((ch) => {
             const cur = ch.back.damage[d][row2];
@@ -7696,7 +8023,7 @@ function damage2(box2, c, w) {
   }
 }
 function glyph(doc, source2, w) {
-  const g = el(doc, "span", "glyph");
+  const g = el2(doc, "span", "glyph");
   g.contentEditable = "false";
   g.dataset.source = source2;
   g.title = "Drag to tap";
@@ -7725,13 +8052,13 @@ function slotGlyphs(line, s, base, w) {
 }
 function reference(doc, r) {
   const p = (bold, rest = "") => {
-    const e = el(doc, "p");
-    e.append(el(doc, "b", "", bold), rest);
+    const e = el2(doc, "p");
+    e.append(el2(doc, "b", "", bold), rest);
     return e;
   };
   const hd = (left, right) => {
-    const e = el(doc, "div", "rhd");
-    e.append(el(doc, "span", "", left), el(doc, "em", "", right));
+    const e = el2(doc, "div", "rhd");
+    e.append(el2(doc, "span", "", left), el2(doc, "em", "", right));
     return e;
   };
   if (r.which === "actions") {
@@ -7755,7 +8082,6 @@ function reference(doc, r) {
 }
 
 // src/ui/drag.ts
-var NEAR_PX = 60;
 var TAP_GLYPH_X = 10;
 function asChip(el3, i) {
   el3.className = `loose-item chip ${i.sign > 0 ? "pos" : "neg"}`;
@@ -7937,15 +8263,26 @@ var Drag = class {
     doc.addEventListener("pointerup", up);
     doc.addEventListener("pointercancel", up);
   }
-  // Seq: seq-drag.md#1.4: a pool widens as a chip or card comes near; only that one.
-  #widen(x, y) {
-    for (const mat of this.#w.table.pools()) {
-      const r = mat.getBoundingClientRect();
-      const near = x > r.left - NEAR_PX && x < r.right + NEAR_PX * 4 && y > r.top - NEAR_PX && y < r.bottom + NEAR_PX;
-      mat.classList.toggle("wide", near);
+  // Seq: seq-drag.md#1.4 | R244: over a pool's slots, the strip under the pointer opens (trading
+  // with the slot it came from, or an empty one); it stays open over open slots, and the pool goes
+  // back when the carry leaves its slots.
+  #reach(x, y, from) {
+    for (const pool of this.#w.table.pools()) {
+      const r = pool.querySelector(".slots")?.getBoundingClientRect();
+      if (!r || x < r.left || x >= r.right || y < r.top || y >= r.bottom) {
+        reach(pool, null, null);
+        continue;
+      }
+      const under = [...pool.querySelectorAll(".slot")].find((s) => {
+        const b = s.getBoundingClientRect();
+        return x >= b.left && x < b.right;
+      });
+      if (!under?.classList.contains("narrow")) continue;
+      const fromHere = from && from.owner === under.dataset.owner ? from.slot : null;
+      reach(pool, under.dataset.slot, fromHere);
     }
   }
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R224: in this order:
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R243: in this order:
   // a tap's merge, a slot, the kill box, a drawer, the bar, else the table.
   /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
   startItem(rid, down, move) {
@@ -7954,10 +8291,8 @@ var Drag = class {
     const el3 = down.target?.closest?.("[data-rid]");
     if (!i || !el3) return;
     const r = el3.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
-    const card2 = el3.classList.contains("icard");
-    asChip(el3, i);
-    const grip = card2 ? { x: el3.offsetWidth / 2, y: el3.offsetHeight / 2 } : { x: p.x - corner.x, y: p.y - corner.y };
-    this.#carryItem(rid, el3, grip, down, move);
+    const from = typeof i.where === "object" && "slot" in i.where ? { owner: i.where.slot, slot: i.where.name } : null;
+    this.#carryItem(rid, el3, { x: p.x - corner.x, y: p.y - corner.y }, down, move, from);
   }
   // R55, R225: the tap is a card from the first pixel, its Level spent, carried by its glyph; dropped
   // on a resource-made card it merges into it.
@@ -7972,23 +8307,48 @@ var Drag = class {
     if (el3) this.#carryItem(rid, el3, { x: TAP_GLYPH_X, y: el3.offsetHeight / 2 }, down, move);
   }
   /** Carries a held chip or card in the world layer, lighting where it would land, until let go. */
-  #carryItem(rid, el3, grip, down, move) {
+  #carryItem(rid, el3, grip, down, move, from = null) {
     const { game, table, mint: mint2 } = this.#w;
     const doc = el3.ownerDocument;
+    const item2 = game.get(rid), isCard = item2?.kind === "influence" && el3.classList.contains("icard");
+    let chip2 = false, card2 = null;
+    const form = (cx, cy) => {
+      const over = isCard && (doc.elementsFromPoint?.(cx, cy) ?? []).some((h) => h.closest?.(".slots"));
+      if (over === chip2 || !item2) return;
+      chip2 = over;
+      if (chip2) {
+        card2 = { cls: el3.className, kids: [...el3.childNodes], title: el3.title };
+        asChip(el3, item2);
+        el3.classList.add("obj", "lifted");
+      } else if (card2) {
+        el3.className = card2.cls;
+        el3.replaceChildren(...card2.kids);
+        el3.title = card2.title;
+      }
+    };
     const at3 = (cx, cy) => {
-      const p = table.toWorld(cx, cy);
-      return { x: Math.round(p.x - grip.x), y: Math.round(p.y - grip.y) };
+      const p = table.toWorld(cx, cy), g = chip2 ? { x: el3.offsetWidth / 2, y: el3.offsetHeight / 2 } : grip;
+      return { x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) };
     };
     leaveWriting(doc);
     table.lift(rid, el3, at3(move.clientX, move.clientY));
     doc.body.classList.add("dragging", "tapping");
-    let lit = null;
+    let lit = null, gapIn = null;
+    const gap = (t) => {
+      const into = t?.kind === "drawer" && t.at !== void 0 ? t : null;
+      if (gapIn && gapIn !== into?.el) showGap(gapIn, null);
+      if (into) showGap(into.el, into.at);
+      gapIn = into?.el ?? null;
+    };
     const pace = paced(this.#w.schedule, ({ x, y }) => {
+      form(x, y);
       const a = at3(x, y);
       el3.style.left = `${a.x}px`;
       el3.style.top = `${a.y}px`;
-      this.#widen(x, y);
-      lit = light(lit, this.#itemTarget(rid, doc, x, y)?.el ?? null);
+      this.#reach(x, y, from);
+      const t = this.#itemTarget(rid, doc, x, y);
+      lit = light(lit, t?.el ?? null);
+      gap(t);
     });
     const to = (e) => pace.to({ x: e.clientX, y: e.clientY });
     to(move);
@@ -7997,8 +8357,9 @@ var Drag = class {
       pace.cancel();
       light(lit, null);
       doc.body.classList.remove("dragging", "tapping");
-      for (const mat of table.pools()) mat.classList.remove("wide");
+      for (const pool of table.pools()) reach(pool, null, null);
       const t = this.#itemTarget(rid, doc, e.clientX, e.clientY);
+      if (gapIn) showGap(gapIn, null, false);
       const place2 = { ...at3(e.clientX, e.clientY), z: this.#top(), tilt: 0 };
       table.letGo(rid);
       const change3 = this.#itemDrop(rid, t, place2, mint2());
@@ -8028,7 +8389,7 @@ var Drag = class {
     const kill2 = first(".kill");
     if (kill2) return { kind: "kill", el: kill2 };
     const drawer2 = first(".drawer");
-    if (drawer2) return { kind: "drawer", el: drawer2 };
+    if (drawer2) return { kind: "drawer", el: drawer2, ...i?.kind === "influence" && { at: gapAt(drawer2, x, y) } };
     const bar = first("#bar");
     return bar ? { kind: "bar", el: bar } : null;
   }
@@ -8042,7 +8403,7 @@ var Drag = class {
       case "kill":
         return killCard(game, rid);
       case "drawer":
-        return toDrawer(game, rid, t.el.dataset.drawer);
+        return toDrawer(game, rid, t.el.dataset.drawer, t.at);
       case "bar": {
         const i = game.get(rid);
         return i.kind === "influence" ? toDrawer(game, rid, i.home) : vanish(game, rid);
@@ -8087,188 +8448,13 @@ var Drag = class {
   }
 };
 
-// src/ui/pool.ts
-var LABEL = {
-  bonus: "Bonus",
-  main: "Main",
-  edge: "Edge",
-  stagger: "Stagger",
-  bias: "Bias",
-  affliction: "Affliction",
-  injury: "Injury"
-};
-var el2 = (doc, tag2, cls, text) => {
-  const e = doc.createElement(tag2);
-  if (cls) e.className = cls;
-  if (text !== void 0) e.textContent = text;
-  return e;
-};
-var run = (game, c) => {
-  if (c) game.change(c);
-};
-var isPile2 = (u) => "members" in u;
-var at2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
-function drawPool(c, items, old, w) {
-  const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
-  const e = old ?? make3(doc, c, w);
-  e.style.left = `${c.pool.x}px`;
-  e.style.top = `${c.pool.y}px`;
-  e.style.zIndex = String(c.pool.z);
-  e.querySelector(".name").textContent = c.name;
-  e.querySelector(".owner").textContent = c.owner === "open" ? "open" : c.owner;
-  e.querySelector(".gather").hidden = c.gathered;
-  const opened = w.poolOpen();
-  for (const slotEl of e.querySelectorAll(".slot")) {
-    const s = slotEl.dataset.slot, mine = items.filter((i) => at2(i, c.oid, s));
-    slotEl.classList.toggle("narrow", !mine.length && !opened.slots.has(`${c.oid}:${s}`));
-    units(slotEl, mine, w);
-  }
-  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w);
-  e.dataset.rid = rid;
-  return e;
-}
-function make3(doc, c, w) {
-  const e = el2(doc, "div", "obj pool");
-  e.dataset.part = "pool";
-  const rid = ridOf(c.oid);
-  const hd = el2(doc, "div", "hd");
-  const gather = el2(doc, "button", "gather", "gather");
-  gesture(gather, { click: () => {
-    const cur = w.game.get(rid);
-    w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
-  } });
-  const name2 = el2(doc, "span", "name");
-  hd.append(name2, el2(doc, "span", "owner"), gather);
-  gesture(name2, { drag: (d, m) => w.dragPool(rid, d, m) });
-  const slots = el2(doc, "div", "slots");
-  for (const s of SLOTS) {
-    const slot2 = el2(doc, "div", `slot slot-${s}`);
-    slot2.dataset.slot = s;
-    slot2.dataset.owner = c.oid;
-    const label = el2(doc, "span", "label", LABEL[s]);
-    label.dataset.letter = LABEL[s][0];
-    slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
-    slot2.append(label, el2(doc, "div", "pos"), el2(doc, "div", "neg"));
-    gesture(slot2, {
-      click: (ev) => {
-        if (ev.target.closest(".chip, .pile")) return;
-        if (slot2.classList.contains("narrow")) {
-          w.toggle("slots", `${c.oid}:${s}`, true);
-          return;
-        }
-        run(w.game, addLoose(w.game, c.oid, s, false, w.mint()));
-      },
-      shift: (ev) => {
-        if (ev.target.closest(".chip, .pile") || slot2.classList.contains("narrow")) return;
-        run(w.game, addLoose(w.game, c.oid, s, true, w.mint()));
-      }
-    });
-    slots.append(slot2);
-  }
-  const drawer2 = el2(doc, "div", "drawer");
-  drawer2.dataset.drawer = c.oid;
-  e.append(hd, slots, drawer2);
-  return e;
-}
-function units(slotEl, items, w) {
-  const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
-  const opened = w.poolOpen();
-  for (const sign2 of [1, -1]) {
-    const box2 = slotEl.querySelector(sign2 > 0 ? ".pos" : ".neg");
-    const mine = units2.filter((u) => u.sign === sign2).sort((a, b) => sign2 > 0 ? worthOf(b) - worthOf(a) : worthOf(a) - worthOf(b));
-    box2.replaceChildren(...mine.map((u) => isPile2(u) ? pile(doc, u, opened.piles, w) : chip(doc, u, w)));
-  }
-}
-var worthOf = (u) => isPile2(u) ? u.points : worth(u);
-function chip(doc, i, w) {
-  const b = el2(doc, "button", `chip ${i.sign > 0 ? "pos" : "neg"}${i.kind === "influence" ? " card-chip" : ""}`, `${i.sign < 0 ? "\u2212" : ""}${i.points}`);
-  const rid = ridOf(i.oid);
-  b.dataset.rid = rid;
-  if (i.kind === "influence") b.title = i.name;
-  if (i.kind === "chip" && i.rider) {
-    const r = el2(doc, "span", "rider", "+1");
-    gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
-    b.append(r);
-  }
-  const click = i.kind === "chip" ? chipClick : cardClick;
-  gesture(b, {
-    click: () => run(w.game, click(w.game, rid, false, w.mint())),
-    shift: () => run(w.game, click(w.game, rid, true, w.mint())),
-    drag: (d, m) => w.dragItem(rid, d, m)
-  });
-  return b;
-}
-function pile(doc, p, open, w) {
-  const first = p.members[0]?.oid ?? "";
-  const d = el2(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}`);
-  const disc = el2(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
-  disc.title = `${p.members.length} acting as one`;
-  gesture(disc, { click: () => w.toggle("piles", first) });
-  d.append(disc);
-  if (open.has(first)) {
-    const list2 = el2(doc, "div", "members");
-    for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
-    d.append(list2);
-  }
-  return d;
-}
-function drawer(box2, c, cards, w) {
-  const doc = box2.ownerDocument, opened = w.poolOpen();
-  const visible = canSee(w.viewer, c);
-  const here = cards.filter((k) => k.where === "drawer"), used = cards.filter((k) => k.where === "used");
-  const parts = here.sort((a, b) => a.n - b.n).map((k) => card(doc, k, visible, w));
-  for (const sign2 of [1, -1]) {
-    const pen = el2(doc, "button", "write", sign2 > 0 ? "+" : "\u2212");
-    pen.title = sign2 > 0 ? "Write a + card" : "Write a \u2212 card";
-    gesture(pen, { click: () => run(w.game, writeCard(c.oid, sign2, "", w.mint())) });
-    parts.push(pen);
-  }
-  const pileTag = el2(doc, "button", "used", `used ${used.length}`);
-  gesture(pileTag, { click: () => w.toggle("used", c.oid) });
-  parts.push(pileTag, Object.assign(el2(doc, "span", "kill", "kill"), { title: "Drop a card here to delete it" }));
-  if (opened.used.has(c.oid)) {
-    const list2 = el2(doc, "div", "usedlist");
-    for (const k of used) {
-      const u = card(doc, k, visible, w);
-      gesture(u, { click: () => run(w.game, restoreUsed(w.game, ridOf(k.oid))) });
-      list2.append(u);
-    }
-    parts.push(list2);
-  }
-  box2.replaceChildren(...parts);
-}
-function card(doc, k, visible, w) {
-  const rid = ridOf(k.oid);
-  const e = el2(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
-  e.dataset.rid = rid;
-  const drag = { drag: (d, m) => w.dragItem(rid, d, m) };
-  if (!visible) {
-    e.classList.add("facedown");
-    e.textContent = "?";
-    gesture(e, drag);
-    return e;
-  }
-  const name2 = el2(doc, "span", "iname", k.name);
-  name2.contentEditable = "true";
-  name2.spellcheck = false;
-  name2.addEventListener("input", () => {
-    const cur = w.game.get(rid);
-    if (cur) w.game.change((x) => x.put(rid, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
-  });
-  const level = el2(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName2(k.points)}`);
-  gesture(level, {
-    click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
-    shift: () => run(w.game, cardClick(w.game, rid, true, w.mint()))
-  });
-  e.append(name2, level);
-  gesture(e, drag);
-  return e;
-}
-
 // src/ui/table.ts
 var GATHER_GAP = 14;
 var ZOOM_MIN = 0.25;
 var ZOOM_MAX = 3;
+function pushClear(mat, pieces, gap = GATHER_GAP) {
+  return pieces.filter(({ box: b }) => b.left < mat.right && b.right > mat.left && b.top < mat.bottom && b.bottom > mat.top).map(({ rid, box: box2 }) => ({ rid, dy: mat.bottom + gap - box2.top }));
+}
 var TableView = class {
   #root;
   #world;
@@ -8283,9 +8469,14 @@ var TableView = class {
   #sized = new ResizeObserver((entries2) => {
     for (const e of entries2) {
       const rid = e.target.dataset.rid;
-      if (rid) this.#snap(rid);
+      if (rid) {
+        this.#snap(rid);
+        this.#push(rid);
+      }
     }
   });
+  /** Each mat's height when last seen outside a carry (R241). */
+  #heights = /* @__PURE__ */ new Map();
   view;
   constructor(root, world, w) {
     this.#root = root;
@@ -8344,7 +8535,7 @@ var TableView = class {
   loose(rid) {
     return this.#loose.get(rid);
   }
-  /** Every pool mat, for widening as something is carried near (R30). */
+  /** Every pool mat, for opening the strip a carry is over (R244). */
   pools() {
     return [...this.#pools.values()];
   }
@@ -8357,6 +8548,49 @@ var TableView = class {
     if (!c || c.kind !== "character" || !card2 || !mat || !c.gathered) return;
     card2.style.left = `${c.pool.x}px`;
     card2.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
+  }
+  // R241: on the GM's page, a mat that grew pushes the pieces it now covers just clear below it, in
+  // one change (they glide on every page). Not mid-carry: a drawer's gap is only there for a moment.
+  #push(rid) {
+    const { game, viewer } = this.#w, mat = this.#pools.get(rid), c = game.get(rid);
+    if (!mat || !c || c.kind !== "character" || mat.ownerDocument.body.classList.contains("dragging")) return;
+    const h = mat.offsetHeight, was = this.#heights.get(rid);
+    this.#heights.set(rid, h);
+    if (was === void 0 || h <= was || !viewer?.gm) return;
+    const box2 = (e) => {
+      const left = parseFloat(e.style.left), top = parseFloat(e.style.top);
+      return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+    };
+    const pieces = [];
+    for (const [r, e] of this.#els) {
+      const p = game.get(r);
+      if (!p || r === rid || (p.kind === "character" ? p.gathered : "pin" in p && !!p.pin)) continue;
+      pieces.push({ rid: r, box: box2(e) });
+    }
+    for (const [r, e] of this.#pools) if (r !== rid) pieces.push({ rid: `${r}#pool`, box: box2(e) });
+    for (const [r, e] of this.#loose) pieces.push({ rid: r, box: box2(e) });
+    const moves = pushClear(box2(mat), pieces);
+    if (!moves.length) return;
+    game.change((w) => {
+      const out = /* @__PURE__ */ new Map();
+      const cur = (r) => out.get(r) ?? game.get(r);
+      const down = (p, dy) => ({ ...p, y: Math.round(p.y + dy) });
+      for (const { rid: key, dy } of moves) {
+        const pool = key.endsWith("#pool"), r = pool ? key.slice(0, -5) : key, p = cur(r);
+        if (p.kind === "character" && pool) out.set(r, { ...p, pool: down(p.pool, dy) });
+        else if (p.kind === "character") {
+          out.set(r, { ...p, card: down(p.card, dy) });
+          for (const [r2, o] of game.all()) {
+            const q = o;
+            if ("kind" in q && "pin" in q && q.pin?.card === p.oid && "place" in q) out.set(r2, { ...q, place: down(q.place, dy) });
+          }
+        } else if ("place" in p) out.set(r, { ...p, place: down(p.place, dy) });
+        else if ((p.kind === "chip" || p.kind === "influence") && typeof p.where === "object" && "table" in p.where) {
+          out.set(r, { ...p, where: { table: down(p.where.table, dy) } });
+        }
+      }
+      for (const [r, p] of out) w.put(r, p);
+    });
   }
   #drawPools(rids) {
     const items = this.#items().filter((i) => !this.#held.has(ridOf(i.oid)));

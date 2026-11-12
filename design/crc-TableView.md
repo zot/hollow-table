@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -15,6 +15,9 @@ DOM a view of the records.
   at `at`, squared up and raised (`lifted`); pools and the loose layer skip it while held, so a
   redraw neither recreates nor moves it. letGo puts it back in the loose layer if it was loose, and
   removes it otherwise, before the drop's change draws it where it landed.
+- push (R241): on the GM's page, when a pool's mat grows, the pieces it now covers (other characters'
+  cards with what's pinned to them, unpinned paper, other pools with their gathered cards) move
+  just clear below it in one change (pushClear); they glide on every page. One pass, no chains.
 - glide (R226, R178): a piece whose place changes in a redraw slides there (`glide`, taken off at
   `transitionend`), unless the change was made inside still(fn): what this page let go itself
   never slides.

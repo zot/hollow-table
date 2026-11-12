@@ -1,5 +1,5 @@
 # UI manifest
-**Requirements:** R1-4, R6, R7, R11-13, R17, R219, R221
+**Requirements:** R1-4, R6, R7, R11-13, R17, R219, R221, R240
 
 One page, no routes. The table fills the window under the bar. Everything is paper and table
 furniture; the chrome is the bar.
@@ -39,6 +39,20 @@ and `inj` are how Damage slots are drawn; they have no pen.
 | `inj` | `#E9D3A6` | its tap glyph |
 | `def` | `#D6D6D6` | double underline |
 | `head` | none (pen: `--ink`) | Caveat bold, like the printed headings |
+
+## Drop targets (R222)
+
+What a carried thing would land on lights up while it's over it.
+
+| Target | Look |
+|---|---|
+| a slot | 3 px translucent white outline (`#fff8`), 2 px out |
+| a drawer (a card goes home there) | 3 px translucent white outline |
+| the kill box | 3 px outline in the red chip colour: deleting reads as danger |
+| a chip a +1 rides, a card a tap merges into | 3 px solid white outline |
+| a card a sticky, text or image pins to | 3 px translucent white outline on its face |
+| the bar | dark red while tossing; Boot Hill shows its arrow while burying (9.4.5) |
+| the gap in a drawer (R240) | an empty card-sized space (110×40) with a dashed light outline; the cards slide aside to make it |
 
 ## Type
 

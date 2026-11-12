@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R215, R216, R217, R220, R221, R222, R223, R224, R225, R226, R21, R27, R30, R32, R48, R55, R57, R60, R179, R183
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R48, R55, R57, R60, R179, R183
 // Lifting, carrying and dropping, and deciding what a drop means. While carried, a piece goes to the
 // room every 100 ms (Moves); the drop is one Game.change. This part moves paper and pins it; pools,
 // the bar and Boot Hill add their drop targets as they land.
@@ -6,6 +6,7 @@
 import type { Game } from '../model/game.ts';
 import { ridOf, type Character, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName } from '../model/records.ts';
 import type { Item } from '../rules/pool.ts';
+import { gapAt, reach, showGap } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
 import type { MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
@@ -18,18 +19,19 @@ export type DragWith = {
   schedule: (fn: () => void) => void;
 };
 
-/** How close a carried chip or card comes to a pool before the pool widens (R30). */
-export const NEAR_PX = 60;
 
 type Carried = { rid: Rid; el: HTMLElement; from: Place; part?: string };
 
+/** The slot a carried chip or card came from (R244). */
+type Source = { owner: Oid; slot: SlotName };
+
 /** Where a carried chip or card would land, and the element lit for it (R222). */
-type Target = { kind: 'merge' | 'slot' | 'kill' | 'drawer' | 'bar'; el: HTMLElement };
+type Target = { kind: 'merge' | 'slot' | 'kill' | 'drawer' | 'bar'; el: HTMLElement; at?: number };
 
 /** How far into a tapped card its glyph's centre sits, the name after it (R225). */
 const TAP_GLYPH_X = 10;
 
-// R224: a chip in hand: its points in the middle, a card's name on hover.
+// R243: a card over the slots is a chip: its points in the middle, its name on hover.
 function asChip(el: HTMLElement, i: Item): void {
   el.className = `loose-item chip ${i.sign > 0 ? 'pos' : 'neg'}`;
   el.textContent = `${i.sign < 0 ? '−' : ''}${i.points}`;
@@ -190,16 +192,24 @@ export class Drag {
     doc.addEventListener('pointercancel', up);
   }
 
-  // Seq: seq-drag.md#1.4: a pool widens as a chip or card comes near; only that one.
-  #widen(x: number, y: number): void {
-    for (const mat of this.#w.table.pools()) {
-      const r = mat.getBoundingClientRect();
-      const near = x > r.left - NEAR_PX && x < r.right + NEAR_PX * 4 && y > r.top - NEAR_PX && y < r.bottom + NEAR_PX;
-      mat.classList.toggle('wide', near);
+  // Seq: seq-drag.md#1.4 | R244: over a pool's slots, the strip under the pointer opens (trading
+  // with the slot it came from, or an empty one); it stays open over open slots, and the pool goes
+  // back when the carry leaves its slots.
+  #reach(x: number, y: number, from: Source | null): void {
+    for (const pool of this.#w.table.pools()) {
+      const r = pool.querySelector('.slots')?.getBoundingClientRect();
+      if (!r || x < r.left || x >= r.right || y < r.top || y >= r.bottom) { reach(pool, null, null); continue; }
+      const under = [...pool.querySelectorAll<HTMLElement>('.slot')].find(s => {
+        const b = s.getBoundingClientRect();
+        return x >= b.left && x < b.right;
+      });
+      if (!under?.classList.contains('narrow')) continue;
+      const fromHere = from && from.owner === under.dataset.owner ? from.slot : null;
+      reach(pool, under.dataset.slot as SlotName, fromHere);
     }
   }
 
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R224: in this order:
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R243: in this order:
   // a tap's merge, a slot, the kill box, a drawer, the bar, else the table.
   /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
   startItem(rid: Rid, down: PointerLike, move: PointerLike): void {
@@ -208,12 +218,10 @@ export class Drag {
     const el = (down.target as HTMLElement | null)?.closest?.('[data-rid]') as HTMLElement | null;
     if (!i || !el) return;
     const r = el.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
-    // R224: a card in card form becomes a chip in hand, centred on the pointer; a chip keeps the
-    // spot it was pressed (R216).
-    const card = el.classList.contains('icard');
-    asChip(el, i);
-    const grip = card ? { x: el.offsetWidth / 2, y: el.offsetHeight / 2 } : { x: p.x - corner.x, y: p.y - corner.y };
-    this.#carryItem(rid, el, grip, down, move);
+    // R244: the slot it came from, which pays for the strip it's carried over if it's left empty.
+    const from = typeof i.where === 'object' && 'slot' in i.where ? { owner: i.where.slot, slot: i.where.name } : null;
+    // R216, R243: held where it was pressed; a card stays a card in hand, a chip only over the slots.
+    this.#carryItem(rid, el, { x: p.x - corner.x, y: p.y - corner.y }, down, move, from);
   }
 
   // R55, R225: the tap is a card from the first pixel, its Level spent, carried by its glyph; dropped
@@ -230,27 +238,47 @@ export class Drag {
   }
 
   /** Carries a held chip or card in the world layer, lighting where it would land, until let go. */
-  #carryItem(rid: Rid, el: HTMLElement, grip: { x: number; y: number }, down: PointerLike, move: PointerLike): void {
+  #carryItem(rid: Rid, el: HTMLElement, grip: { x: number; y: number }, down: PointerLike, move: PointerLike, from: Source | null = null): void {
     const { game, table, mint } = this.#w;
     const doc = el.ownerDocument;
+    // R243: a card in hand is a card, and a chip centred on the pointer only while over a pool's slots.
+    const item = game.get(rid) as Item | undefined, isCard = item?.kind === 'influence' && el.classList.contains('icard');
+    let chip = false, card: { cls: string; kids: Node[]; title: string } | null = null;
+    const form = (cx: number, cy: number) => {
+      const over = isCard && ((doc.elementsFromPoint?.(cx, cy) ?? []) as HTMLElement[]).some(h => h.closest?.('.slots'));
+      if (over === chip || !item) return;
+      chip = over;
+      if (chip) { card = { cls: el.className, kids: [...el.childNodes], title: el.title }; asChip(el, item); el.classList.add('obj', 'lifted'); }
+      else if (card) { el.className = card.cls; el.replaceChildren(...card.kids); el.title = card.title; }
+    };
     // R216: the grip is kept in world coordinates, so the piece stays glued at any zoom.
     const at = (cx: number, cy: number) => {
-      const p = table.toWorld(cx, cy);
-      return { x: Math.round(p.x - grip.x), y: Math.round(p.y - grip.y) };
+      const p = table.toWorld(cx, cy), g = chip ? { x: el.offsetWidth / 2, y: el.offsetHeight / 2 } : grip;
+      return { x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) };
     };
     leaveWriting(doc);
     table.lift(rid, el, at(move.clientX, move.clientY));
     // R221: the pointing hand for the whole carry.
     doc.body.classList.add('dragging', 'tapping');
-    let lit: HTMLElement | null = null;
-    // R215, R222: a move sets where it's headed; the next frame puts it there, widens a pool and
-    // lights the place it would land.
+    let lit: HTMLElement | null = null, gapIn: HTMLElement | null = null;
+    // R240: the gap follows the card from drawer to drawer.
+    const gap = (t: Target | null) => {
+      const into = t?.kind === 'drawer' && t.at !== undefined ? t : null;
+      if (gapIn && gapIn !== into?.el) showGap(gapIn, null);
+      if (into) showGap(into.el, into.at!);
+      gapIn = into?.el ?? null;
+    };
+    // R215, R222, R244: a move sets where it's headed; the next frame puts it there, opens a strip,
+    // lights the place it would land and opens the gap there.
     const pace = paced<{ x: number; y: number }>(this.#w.schedule, ({ x, y }) => {
+      form(x, y);
       const a = at(x, y);
       el.style.left = `${a.x}px`;
       el.style.top = `${a.y}px`;
-      this.#widen(x, y);
-      lit = light(lit, this.#itemTarget(rid, doc, x, y)?.el ?? null);
+      this.#reach(x, y, from);
+      const t = this.#itemTarget(rid, doc, x, y);
+      lit = light(lit, t?.el ?? null);
+      gap(t);
     });
     const to = (e: PointerLike) => pace.to({ x: e.clientX, y: e.clientY });
     to(move);
@@ -259,8 +287,9 @@ export class Drag {
       pace.cancel();
       light(lit, null);
       doc.body.classList.remove('dragging', 'tapping');
-      for (const mat of table.pools()) mat.classList.remove('wide');
+      for (const pool of table.pools()) reach(pool, null, null);
       const t = this.#itemTarget(rid, doc, e.clientX, e.clientY);
+      if (gapIn) showGap(gapIn, null, false);
       const place: Place = { ...at(e.clientX, e.clientY), z: this.#top(), tilt: 0 };
       table.letGo(rid);
       const change = this.#itemDrop(rid, t, place, mint());
@@ -284,7 +313,8 @@ export class Drag {
     const kill = first('.kill');
     if (kill) return { kind: 'kill', el: kill };
     const drawer = first('.drawer');
-    if (drawer) return { kind: 'drawer', el: drawer };
+    // R240: where among its cards a card would go.
+    if (drawer) return { kind: 'drawer', el: drawer, ...(i?.kind === 'influence' && { at: gapAt(drawer, x, y) }) };
     const bar = first('#bar');
     return bar ? { kind: 'bar', el: bar } : null;
   }
@@ -295,7 +325,7 @@ export class Drag {
       case 'merge': return mergeTap(game, rid, t.el.dataset.rid!, mint);
       case 'slot': return toSlot(game, rid, t.el.dataset.owner!, t.el.dataset.slot as SlotName, mint);
       case 'kill': return killCard(game, rid);
-      case 'drawer': return toDrawer(game, rid, t.el.dataset.drawer!);
+      case 'drawer': return toDrawer(game, rid, t.el.dataset.drawer!, t.at);
       case 'bar': {
         const i = game.get(rid) as Item;
         return i.kind === 'influence' ? toDrawer(game, rid, i.home) : vanish(game, rid);

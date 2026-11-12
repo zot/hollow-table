@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
 import { PLAYER_OIDS, ridOf, type Chip, type Influence, type Oid, type Rec, type SlotName } from '../model/records.ts';
 import {
-  addLoose, cardClick, chipClick, feedFrom, killCard, mergeTap, minter, restoreUsed, riderClick, slotItems, tapOut, toDrawer, toSlot,
+  addLoose, cardClick, chipClick, drawerCards, feedFrom, killCard, mergeTap, minter, restoreUsed, riderClick, slotItems, tapOut, toDrawer, toSlot,
   toTable, vanish, writeCard, type Change,
 } from './actions.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
@@ -65,7 +65,7 @@ test('cards, drawers and the kill box', () => {
   t.run(cardClick(t.game, ridOf(card.oid), true, t.mint));
   t.run(cardClick(t.game, ridOf(card.oid), true, t.mint) ?? (() => undefined));
   assert.equal((t.get(card.oid) as Influence).points, 2, 'cards stop at Min');
-  t.run(writeCard(SAM, -1, 'Grudge', t.mint));
+  t.run(writeCard(t.game, SAM, -1, 'Grudge', t.mint));
   const grudge = t.game.all().map(([, r]) => r).find((r): r is Influence => 'kind' in r && r.kind === 'influence' && r.name === 'Grudge')!;
   assert.deepEqual([grudge.sign, grudge.points, grudge.where], [-1, 2, 'drawer']);
   t.run(killCard(t.game, ridOf(grudge.oid)));
@@ -120,6 +120,23 @@ test('a tap merges into a resource-made card', () => {
   t.run(mergeTap(t.game, ridOf(c.oid), ridOf(a!.oid), t.mint));
   assert.equal((t.get(a!.oid) as Influence).points, 8, 'both Levels arrive');
   assert.equal(ammo(), '<res>Ammo +0</res>', 'each spent once');
+});
+
+test('drawer order', () => {
+  const t = table();
+  const names = () => drawerCards(t.game, SAM).map(k => k.name);
+  for (const n of ['A', 'B', 'C']) t.run(writeCard(t.game, SAM, 1, n, t.mint));
+  const before = names();
+  assert.deepEqual(before.slice(-3), ['A', 'B', 'C'], 'a new card goes last');
+  const ns = drawerCards(t.game, SAM).map(k => k.n);
+  assert.equal(new Set(ns).size, ns.length, 'each numbered after the last, not tied with it');
+  const a = drawerCards(t.game, SAM).find(k => k.name === 'A')!;
+  // `at` counts the other cards (A is in hand): before C.
+  t.run(toDrawer(t.game, ridOf(a.oid), SAM, before.length - 2));
+  assert.deepEqual(names().slice(-3), ['B', 'A', 'C'], 'dropped into a gap, it goes there');
+  t.run(toDrawer(t.game, ridOf(a.oid), SAM));
+  assert.deepEqual(names().slice(-3), ['B', 'C', 'A'], 'home without a place, it goes last');
+  assert.deepEqual(drawerCards(t.game, SAM).map(k => k.n), before.map((_, n) => n), 'numbered in order');
 });
 
 test('new oids', () => {

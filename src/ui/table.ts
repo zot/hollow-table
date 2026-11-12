@@ -8,13 +8,21 @@ import { levelName } from '../rules/influence.ts';
 import type { Item } from '../rules/pool.ts';
 import { gesture, paced } from './gesture.ts';
 import { draw, type PieceWith } from './piece.ts';
-import { drawPool, type PoolWith } from './pool.ts';
+import { drawPool, type Box, type PoolWith } from './pool.ts';
 
 /** How far under its pool a gathered card sits (R33). */
 export const GATHER_GAP = 14;
 
 export type View = { x: number; y: number; zoom: number };
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 3;
+
+// CRC: crc-TableView.md | R241
+/** The pieces a mat covers, and how far down each must slide to sit just clear below it. */
+export function pushClear(mat: Box, pieces: readonly { rid: Rid; box: Box }[], gap = GATHER_GAP): { rid: Rid; dy: number }[] {
+  return pieces
+    .filter(({ box: b }) => b.left < mat.right && b.right > mat.left && b.top < mat.bottom && b.bottom > mat.top)
+    .map(({ rid, box }) => ({ rid, dy: mat.bottom + gap - box.top }));
+}
 
 export type TableWith = PieceWith & PoolWith & {
   game: Game;
@@ -37,8 +45,10 @@ export class TableView {
   /** Inside still(): a redraw that moves a piece doesn't glide (R226). */
   #still = false;
   #sized = new ResizeObserver(entries => {
-    for (const e of entries) { const rid = (e.target as HTMLElement).dataset.rid; if (rid) this.#snap(rid); }
+    for (const e of entries) { const rid = (e.target as HTMLElement).dataset.rid; if (rid) { this.#snap(rid); this.#push(rid); } }
   });
+  /** Each mat's height when last seen outside a carry (R241). */
+  #heights = new Map<Rid, number>();
   view: View;
 
   constructor(root: HTMLElement, world: HTMLElement, w: TableWith) {
@@ -93,7 +103,7 @@ export class TableView {
   /** A character's pool mat, or a chip or card lying loose on the table. */
   pool(rid: Rid): HTMLElement | undefined { return this.#pools.get(rid); }
   loose(rid: Rid): HTMLElement | undefined { return this.#loose.get(rid); }
-  /** Every pool mat, for widening as something is carried near (R30). */
+  /** Every pool mat, for opening the strip a carry is over (R244). */
   pools(): HTMLElement[] { return [...this.#pools.values()]; }
 
   #items(): Item[] {
@@ -106,6 +116,50 @@ export class TableView {
     if (!c || c.kind !== 'character' || !card || !mat || !c.gathered) return;
     card.style.left = `${c.pool.x}px`;
     card.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
+  }
+
+  // R241: on the GM's page, a mat that grew pushes the pieces it now covers just clear below it, in
+  // one change (they glide on every page). Not mid-carry: a drawer's gap is only there for a moment.
+  #push(rid: Rid): void {
+    const { game, viewer } = this.#w, mat = this.#pools.get(rid), c = game.get(rid) as Character | undefined;
+    if (!mat || !c || c.kind !== 'character' || mat.ownerDocument.body.classList.contains('dragging')) return;
+    const h = mat.offsetHeight, was = this.#heights.get(rid);
+    this.#heights.set(rid, h);
+    if (was === undefined || h <= was || !viewer?.gm) return;
+    const box = (e: HTMLElement): Box => {
+      const left = parseFloat(e.style.left), top = parseFloat(e.style.top);
+      return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+    };
+    const pieces: { rid: Rid; box: Box }[] = [];
+    for (const [r, e] of this.#els) {
+      const p = game.get(r) as PieceRecord | undefined;
+      if (!p || r === rid || (p.kind === 'character' ? p.gathered : 'pin' in p && !!p.pin)) continue;   // they follow their pool or card
+      pieces.push({ rid: r, box: box(e) });
+    }
+    for (const [r, e] of this.#pools) if (r !== rid) pieces.push({ rid: `${r}#pool`, box: box(e) });
+    for (const [r, e] of this.#loose) pieces.push({ rid: r, box: box(e) });
+    const moves = pushClear(box(mat), pieces);
+    if (!moves.length) return;
+    game.change(w => {
+      const out = new Map<Rid, PieceRecord>();
+      const cur = (r: Rid) => out.get(r) ?? game.get(r) as PieceRecord;
+      const down = <P extends { y: number }>(p: P, dy: number): P => ({ ...p, y: Math.round(p.y + dy) });
+      for (const { rid: key, dy } of moves) {
+        const pool = key.endsWith('#pool'), r = pool ? key.slice(0, -5) : key, p = cur(r);
+        if (p.kind === 'character' && pool) out.set(r, { ...p, pool: down(p.pool, dy) });
+        else if (p.kind === 'character') {
+          out.set(r, { ...p, card: down(p.card, dy) });
+          for (const [r2, o] of game.all()) {   // what's pinned to the card comes with it
+            const q = o as PieceRecord;
+            if ('kind' in q && 'pin' in q && q.pin?.card === p.oid && 'place' in q) out.set(r2, { ...q, place: down(q.place, dy) } as PieceRecord);
+          }
+        } else if ('place' in p) out.set(r, { ...p, place: down(p.place, dy) } as PieceRecord);
+        else if ((p.kind === 'chip' || p.kind === 'influence') && typeof p.where === 'object' && 'table' in p.where) {
+          out.set(r, { ...p, where: { table: down(p.where.table, dy) } } as PieceRecord);
+        }
+      }
+      for (const [r, p] of out) w.put(r, p);
+    });
   }
 
   #drawPools(rids: Rid[]): void {

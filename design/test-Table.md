@@ -16,8 +16,8 @@ Player 2, Devreux: GM; a GM sticky; a reference card).
 - putting away a pool or its card buries both; Boot Hill lists them; dragging Sam out puts his pool
   at the drop with his card following, his chip and note kept; a sticky on the bar is buried and
   comes back with its text
-- an empty pool is seven 1em strips; carrying a chip near it widens it before the pointer reaches a
-  slot, and the slot under the pointer doesn't move
+- an empty pool opens Bonus, Main, Edge and Stagger with B, A and I as strips at the right edge; carrying a chip over a strip opens it and closes the slot it came
+  from (if now empty) or the first empty one to the left, and dragging back swaps them again
 - a press beside a pool's name pans the table; on the name, it moves the pool
 **Refs:** crc-PoolView.md, crc-Drag.md, crc-BootHillView.md, seq-drag.md
 **Code:** `tests/table.spec.ts`

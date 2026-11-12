@@ -129,14 +129,27 @@ italic or underline.
 - Each party in a Contest has a **pool** (an Influence Pool mat), NPCs included: Bonus, Main, Edge,
   Stagger (opposition only), Bias, Affliction and Injury slots, Injury last as the least used
   (Bill, 11-11), with the character's name, a die button, and a drawer of Influence cards below.
-- **Empty slots narrow** to a strip **1em wide** showing the first letter of the slot's name (Bill,
-  11-11): B M E S B A I. Bonus and Bias share a letter and are told apart by place (Bonus is always
-  first, Bias fifth) and by colour; the full name shows on hover. A pool takes only the room its
-  contents need; a slot holding anything is full width. When a chip or Influence card is carried **near** a
-  pool, that pool's slots widen, before the pointer reaches them, so the layout has settled by the
-  time you aim; the pool stays anchored at its left edge. Only the pool being approached widens.
-  It narrows again if the drop goes elsewhere. Clicking or tapping a tab widens that slot too (so a
-  +1 can be added by click), until the next click elsewhere.
+- **The mat is a white frame round tall slots** (Bill, 11-12): each slot rounded, with a dark
+  hairline edge and its name in its middle in PT Mono, sentence case; Stagger is wider, with
+  "opposition only" under its name. **The drawer is a tray inside the mat**, under the slots: its
+  cards on the left, its tools on the right.
+- **The mat keeps its width**, its drawer's (Bill, 11-12). Slots open at full width from the left,
+  as many as fit, and a slot holding anything is always open; the rest stand as strips **1em
+  wide** showing their first letter (B M E S B A I), packed against the right edge, so the slots
+  always fill the mat with no gap. Bonus and Bias share a letter and are told apart by place (Bonus
+  is always first, Bias fifth) and by colour; the full name shows on hover.
+- **Carrying a chip or card over a pool's slots trades space** (Bill, 11-12): the strip under it
+  opens, and a slot closes to pay for it, so the mat keeps its width. The slot that closes is the
+  one the chip came from, if taking it left that slot empty (so dragging back and forth just swaps
+  the two); otherwise the first empty open slot to the left of where the chip came from (or of the
+  strip, for a chip from elsewhere). A slot holding anything never closes; with none empty to the
+  left, the mat grows by that one slot, its drawer keeping its width. The opened strip stays open until the
+  chip reaches another strip or leaves the slots, and nothing changes before it reaches them.
+  Clicking or tapping a strip opens that slot too (so a +1 can be added by click), until the next
+  click elsewhere.
+- **A growing drawer pushes what it would cover** (Bill, 11-12): any piece the mat would now cover
+  slides down just clear of it (a card brings what's pinned to it, a pool its gathered card), and
+  stays there when the drawer shrinks. The GM's page makes the move, so everyone sees it slide.
 - **A character is a card tied to its pool.** Dragging a pool brings its card; a card dragged on its
   own moves alone and is no longer gathered. A **gathered** card stays snapped under its drawer as
   the drawer grows or shrinks. **Gather** snaps it back. The scene starts gathered.

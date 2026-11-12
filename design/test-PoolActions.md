@@ -60,6 +60,18 @@ at 4 points; merging into itself refused; after the two-Level merge the first at
 **Inject:** src/ui/actions.ts:mergeTap
 **Pulled:** 2026-11-12 — rang: Money read +0, spent a third time, not +Min
 
+## Test: drawer order
+**Purpose:** R239, R240: a new card goes last; a card dropped into a gap goes there; one coming home
+without a place goes last; the drawer is renumbered in order
+**Input:** cards A, B and C written to Sam's drawer; A dropped before C; A sent home without a place
+**Expected:** A B C last; then B A C; then B C A; numbers 0, 1, 2 … in drawer order
+**Refs:** crc-PoolView.md, crc-Drag.md
+**Code:** `src/ui/actions.test.ts`
+**Alarm:** 6
+**Fire alarm:** Write every new card with n 0 (the old writeCard): A, B and C don't come last in order
+**Inject:** src/ui/actions.ts:writeCard
+**Pulled:** 2026-11-12 — rang: the new cards tied on n 0 with the drawer’s first card
+
 ## Test: new oids
 **Purpose:** the GM counts up below the players' range; a player's are random above it
 **Input:** two GM oids; one player oid

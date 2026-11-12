@@ -9,9 +9,13 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   correctly without telling red from green.
 - A **+1** is the odd point. It rides on another chip ("put a small token on top of its stack");
   a +1 riding a chip belongs to that chip.
+- **A chip is a flat disc** (Bill, 11-12): one dark rim, its number bold in PT Mono in the middle,
+  a little shade along the bottom. A card in a slot adds a thin white inner ring, and a
+  resource-made one a tiny card glyph at its corner.
 - Chips snap into pool slots as stacks. Positive chips stack from the top of a slot and negative
   from the bottom. Each stack sorts **strongest nearest the edge, drawn on top**, because only the
-  strongest of each sign applies.
+  strongest of each sign applies; each chip **tucks under** the stronger one before it, so a slot
+  shows a stack of chips rather than a column.
 - **Click raises, shift-click lowers.** Clicking a chip raises it by 2; shift-click lowers it by 2.
 - Clicking a pool's empty space adds a loose +1 (shift-click: −1). Clicking a +1 makes it a 2, then
   4, 6 and so on; shift-clicking a 2 makes it a +1; shift-clicking a +1 removes it. Clicking a +1
@@ -22,17 +26,34 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 ## Influence cards
 
-- **One object, two forms.** An Influence card lives in its pool's **drawer**. Picked up from a
-  drawer or the table, it becomes a chip in your hand, centred on the pointer, with its value in
-  the middle and its name on hover; dropped in a pool slot it stays a chip (Bill, 11-12).
+- **One object, two forms.** An Influence card lives in its pool's **drawer**. Picked up, it stays
+  a card in your hand, held where you took it; carried over a pool's slots it becomes a chip
+  centred on the pointer, with its value in the middle and its name on hover, and a card again
+  when it leaves them; dropped in a pool slot it stays a chip (Bill, 11-12).
 - **Never lost:** dropped anywhere that isn't a pool slot, it goes home to its drawer. Dropped on
   another pool's drawer, it moves to that character. The drawer's **kill box** is the only way to
   delete one.
-- The drawer has buttons to write a new + or − card. A card in a drawer is raised by clicking its
-  Level; cards stop at Min.
+- **A card in a drawer is a small white card** (Bill, 11-12) with a band down its left edge in its
+  sign's colour, its name and Level in handwriting, and a resource-made card's glyph before its
+  name. Cards wrap in the tray, so long names stack one to a row.
+- The drawer's tools are **tiles**: a dashed + and − in their sign's colour to write a new card, the
+  **used pile** as a tile with its count, and the **kill box** as a hatched tile.
+- **A new card is written as "Influence" with its name selected**, so typing names it. It goes
+  last in its drawer (Bill, 11-12).
+- **Carrying a card over a drawer opens a gap where it would go** (Bill, 11-12): the other cards
+  slide aside and the drawer grows to fit, the gap follows the card as it moves, and letting go
+  puts the card there. A card that comes home any other way goes last.
+- A card in a drawer is raised by clicking its Level; cards stop at Min.
+- The used pile opens as a paper list under its tile; a used card in a pool is greyed, with a
+  small "used" tag under it.
+- A drawer its viewer may not read shows its cards face-down, as striped red backs that keep their
+  number and size.
 - **Roll Up groups cards and doesn't merge them.** Three equal cards form a **pile** showing the
-  value they act as. Click the pile to open or close it; an open pile lists its members by name,
-  and a member dragged out breaks the pile.
+  value they act as, drawn as a stack of discs in its colour. Click the pile to open or close it;
+  an open pile lists its members beside it, each chip with its name, and a member dragged out
+  breaks the pile.
+- **A Roll Up pops:** a chip or pile it makes grows in from half again its size with a white ring,
+  and a card's Level changing pops the same way.
 
 ## Tapping Resources
 

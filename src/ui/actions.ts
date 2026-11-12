@@ -69,11 +69,22 @@ export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, mint: (
   };
 }
 
-// R48: a card goes home to a drawer; another character's drawer makes it theirs.
-export function toDrawer(game: Game, rid: Rid, owner: Oid): Change | null {
+/** A drawer's cards in order. */
+export function drawerCards(game: Game, owner: Oid): Influence[] {
+  return game.all().map(([, r]) => r)
+    .filter((r): r is Influence => 'kind' in r && r.kind === 'influence' && r.home === owner && r.where === 'drawer')
+    .sort((a, b) => a.n - b.n);
+}
+
+// R48, R239, R240: a card goes home to a drawer, at `at` among its other cards or last; another
+// character's drawer makes it theirs. The drawer is renumbered in order.
+export function toDrawer(game: Game, rid: Rid, owner: Oid, at?: number): Change | null {
   const i = item(game, rid);
   if (!i || i.kind !== 'influence') return null;
-  return w => w.put(rid, { ...i, home: owner, where: 'drawer', used: false });
+  const order = drawerCards(game, owner).filter(k => ridOf(k.oid) !== rid);
+  const card: Influence = { ...i, home: owner, where: 'drawer', used: false };
+  order.splice(at === undefined ? order.length : Math.max(0, Math.min(at, order.length)), 0, card);
+  return w => order.forEach((k, n) => { if (k === card || k.n !== n) w.put(ridOf(k.oid), { ...k, n }); });
 }
 
 // R48, R60: dropped anywhere else, a plain card goes home; a tap may wait loose; a chip lies there.
@@ -140,8 +151,10 @@ export function cardClick(game: Game, rid: Rid, shift: boolean, mint: () => Oid)
 }
 
 // R50: a drawer's writers make a new card at Min.
-export function writeCard(owner: Oid, sign: Sign, name: string, mint: () => Oid): Change {
-  const card: Influence = { kind: 'influence', oid: mint(), home: owner, where: 'drawer', n: 0, name, sign, points: MIN, used: false, crit: false };
+// R50, R239: written last in its drawer.
+export function writeCard(game: Game, owner: Oid, sign: Sign, name: string, mint: () => Oid): Change {
+  const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
+  const card: Influence = { kind: 'influence', oid: mint(), home: owner, where: 'drawer', n, name, sign, points: MIN, used: false, crit: false };
   return w => w.put(ridOf(card.oid), card);
 }
 

@@ -194,61 +194,112 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .receipt { border-bottom: 1px dashed #bbb; padding: 4px 0; }
 .receipt .when { float: right; opacity: .7; }
 
-/* ---- R28: a pool mat, its slots, chips, piles and drawer (ui-pool.md) ---- */
-.pool { min-width: 120px; font: 12px/1.2 var(--mono); color: #f3e9d8; user-select: none; -webkit-user-select: none; }
-.pool .hd { display: flex; gap: 8px; align-items: baseline; padding: 0 2px 3px; }
-.pool .hd .name { font: 700 20px/1 var(--hand); cursor: grab; }
+/* ---- R28, R227: a pool mat, its slots, chips, piles and drawer (ui-pool.md); sizes match pool.ts ---- */
+/* R244: 430px, growing past it only when a carry opens a strip and no slot can close. */
+.pool { min-width: 430px; width: max-content; font: 12px/1.2 var(--mono); color: #f3e9d8; user-select: none; -webkit-user-select: none; }
+.pool .hd { display: flex; gap: 8px; align-items: baseline; padding: 0 4px 6px; }
+.pool .hd .name { font: 700 24px/1 var(--hand); color: #9fe08a; text-shadow: 0 1px 2px rgba(0,0,0,.5); cursor: grab; }
 .pool .hd .owner { opacity: .75; }
-.pool .gather { font: 11px var(--mono); background: none; border: 1px dashed #f3e9d880; color: #f3e9d8; border-radius: 3px; cursor: pointer; }
-.slots { display: flex; background: #1d140f; border-radius: 6px; padding: 2px; gap: 2px; box-shadow: 0 3px 6px rgba(0,0,0,.4); }
-.slot { position: relative; width: 74px; min-height: 92px; background: var(--slot); border-radius: 4px; color: var(--ink);
-  display: flex; flex-direction: column; justify-content: space-between; padding: 14px 4px 4px; transition: width .15s; }
-.slot .label { position: absolute; top: 1px; left: 4px; font: 11px/1 var(--mono); opacity: .7; }
-.slot-stagger { background: var(--stagger); }
+.pool .gather { font: 11px var(--mono); background: none; border: 1px solid #8a7458; color: #e6d6bd; border-radius: 4px; cursor: pointer; }
+/* R227: a white frame round tall rounded slots, each named in its middle. */
+.slots { display: flex; gap: 6px; padding: 6px; background: #fff; border-radius: 4px; box-shadow: 0 3px 6px rgba(0,0,0,.35); }
+.slot { position: relative; flex: 1 0 72px; height: 132px; background: var(--slot); border: 1.3px solid #333; border-radius: 10px; color: #111;
+  cursor: pointer; transition: flex-basis .15s; }
+.slot-stagger { flex-basis: 92px; background: var(--stagger); }
 .slot-bias { background: var(--bias); }
 .slot-affliction { background: var(--affliction); color: var(--affliction-ink); }
 .slot-injury { background: var(--injury); }
-/* R29: empty slots narrow to a 1em strip with their letter; R30: the whole pool widens when reached for. */
-.slot.narrow { width: 1em; padding: 14px 0 4px; cursor: pointer; }
-.slot.narrow .label { font-size: 0; left: 2px; }
+.slot .label { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none;
+  font: 700 13px/1.1 var(--mono); }
+.slot .label small { display: block; font: italic 9px/1.1 var(--mono); margin-top: 3px; }
+/* R228: the slots that don't fit stand as 1em strips with their letter, packed at the right. */
+.slot.narrow { flex: 0 0 16px; }
+.slot.narrow .label { font-size: 0; top: 10px; transform: none; }
 .slot.narrow .label::before { content: attr(data-letter); font-size: 11px; }
-.pool.wide .slot.narrow { width: 74px; padding: 14px 4px 4px; }
-.pool.wide .slot.narrow .label { font-size: 11px; left: 4px; }
-.pool.wide .slot.narrow .label::before { content: none; }
-.slot .pos, .slot .neg { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-/* R36, R37, R11: chips show their points; a red one its sign. */
-.chip { width: 38px; height: 38px; border-radius: 50%; border: 2px solid rgba(0,0,0,.35); font: 700 15px/1 var(--mono);
-  color: #1d1d1d; cursor: pointer; padding: 0; position: relative; box-shadow: 0 2px 3px rgba(0,0,0,.35); }
+.slot.narrow .label small { display: none; }
+/* R39, R235: positives from the top, negatives from the bottom, each tucked under the one before. */
+/* (Direct children only: a chip's own sign class is pos or neg too.) */
+.slot > .pos, .slot > .neg { position: absolute; left: 0; right: 0; display: flex; align-items: center; }
+.slot > .pos { top: 6px; flex-direction: column; }
+.slot > .neg { bottom: 6px; flex-direction: column-reverse; }
+.slot > .pos > * + * { margin-top: -18px; }
+.slot > .neg > * + * { margin-bottom: -18px; }
+/* R234, R36, R37: a flat disc, one dark rim, the number bold in the middle, a shade along the bottom. */
+.chip { position: relative; width: 42px; height: 42px; flex: none; border-radius: 50%; border: 1.5px solid rgba(0,0,0,.55); padding: 0;
+  display: grid; place-items: center; font: 700 17px/1 var(--mono); color: #111; cursor: pointer;
+  box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 -3px 0 rgba(0,0,0,.12); }
 .chip.pos { background: var(--chip-pos); }
 .chip.neg { background: var(--chip-neg); }
-.chip.card-chip { border-style: double; border-width: 4px; }
-.chip .rider { position: absolute; right: -8px; top: -8px; font: 700 10px/1 var(--mono); background: #fff; border: 1px solid #555;
-  border-radius: 8px; padding: 2px 3px; }
-.pile .disc { box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 4px 0 rgba(0,0,0,.25), 0 6px 4px rgba(0,0,0,.3); }
-.pile .members { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
-.drawer { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 2px; width: max-content; max-width: 540px; }
-.icard { white-space: nowrap; display: inline-flex; gap: 4px; align-items: baseline; background: var(--card); color: var(--ink); border: 1px solid var(--card-edge);
-  border-radius: 6px; padding: 3px 6px; font: 600 15px/1.1 var(--hand); box-shadow: 0 2px 3px rgba(0,0,0,.35); cursor: pointer; }
-.icard.neg { border-color: var(--chip-neg); }
-.icard.pos { border-color: var(--chip-pos); }
-.icard .iname { outline: none; min-width: 2em; }
-.icard .level { font: 700 12px/1 var(--mono); background: none; border: none; cursor: pointer; padding: 0; }
-.icard.isused { opacity: .5; }
+.chip.card-chip { box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 0 0 3px rgba(255,255,255,.65); }
+.chip.res::before { content: ""; position: absolute; left: -3px; top: -4px; width: 9px; height: 12px; border: 1.5px solid #2a2a2a;
+  border-radius: 2px; background: #fff; }
+/* R233: a used card in a pool is greyed with a tag. */
+.chip.used { filter: saturate(.35) brightness(.92); }
+.chip.used::after { content: "used"; position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); font: 9px/1 var(--mono);
+  background: #222; color: #eee; padding: 1px 3px; border-radius: 3px; }
+.chip .rider { position: absolute; right: -12px; top: -9px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,.55); background: var(--chip-pos); font: 700 11px/1 var(--mono); }
+/* R236: a pile is a stack of discs in its colour; open, its members beside it with their names. */
+.pile { position: relative; flex: none; --pc: var(--chip-pos); }
+.pile.neg { --pc: var(--chip-neg); }
+.pile > .disc { z-index: 1;
+  box-shadow: 0 3px 0 -1px var(--pc), 0 4px 0 -1px rgba(0,0,0,.55), 0 7px 0 -2px var(--pc), 0 8px 0 -2px rgba(0,0,0,.55), 0 9px 5px rgba(0,0,0,.35); }
+.pile .members { position: absolute; left: 50%; top: 50px; z-index: 60; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 6px; background: #fbfaf6; border-radius: 8px; box-shadow: 0 6px 14px rgba(0,0,0,.5); }
+.pile .members .chip[data-name]::after { content: attr(data-name); position: absolute; left: 50px; top: 50%; transform: translateY(-50%);
+  white-space: nowrap; font: 600 16px/1 var(--hand); color: var(--ink); }
+.pile .members .chip[data-name] { margin-right: 160px; }
+/* R237: what a Roll Up makes, or whose points change, pops. */
+.rolled { animation: rollup .45s ease-out; }
+@keyframes rollup { 0% { transform: scale(1.5); box-shadow: 0 0 0 6px #fff8; } 100% { transform: none; } }
+/* R229: the drawer is a tray in the mat, cards left and tools right. */
+/* R244: it keeps the mat's width when the mat grows, so its tools stay put while you aim for them. */
+.drawer { width: 430px; box-sizing: border-box; margin-top: 6px; display: flex; gap: 8px; align-items: flex-start; padding: 7px;
+  background: linear-gradient(180deg, #22170f, #2e2117); border-radius: 3px 3px 10px 10px;
+  box-shadow: inset 0 3px 7px rgba(0,0,0,.7), 0 2px 0 #5a4030; }
+.drawer .cards { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; min-height: 42px; align-content: flex-start; }
+.drawer .tools { display: flex; gap: 5px; }
+/* R240: where a carried card would go. */
+.drawer .gap { width: 110px; height: 40px; border-radius: 6px; border: 1.5px dashed #f3e9d880; box-sizing: border-box; }
+/* R230: a small white card, a band down its left in its sign's colour, name and Level in handwriting. */
+.icard { --band: var(--chip-pos); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; min-height: 40px; box-sizing: border-box;
+  background: var(--card); color: var(--ink); border: 1px solid #777; border-left: 7px solid var(--band); border-radius: 6px;
+  padding: 4px 8px 4px 9px; font: 600 18px/1 var(--hand); box-shadow: 0 2px 3px rgba(0,0,0,.4); cursor: pointer; }
+.icard.neg { --band: var(--chip-neg); }
+.icard .iname { outline: none; min-width: 2em; max-width: 220px; overflow: hidden; cursor: text; }
+.icard .level { font: 700 18px/1 var(--hand); color: inherit; background: none; border: none; cursor: pointer; padding: 1px 3px; border-radius: 4px; }
+.icard .level:hover { background: #0000000f; }
+.icard.isused { opacity: .6; }
 .icard.isused::after { content: "used"; font: 10px var(--mono); }
 .icard.tapped::before, .glyph::before { content: "▭"; font: 700 13px/1 var(--mono); }
-.icard.crit { border-width: 2px; border-color: var(--amber); }
-.icard.facedown { background: #5a4030; color: #f3e9d8; }
-.drawer .write, .drawer .used { font: 13px var(--mono); background: var(--paper); border: 1px solid #888; border-radius: 3px; cursor: pointer; }
-.drawer .kill { font: 11px var(--mono); border: 1px dashed #c8372d; color: #f3a; padding: 2px 6px; border-radius: 3px; }
-.usedlist { flex-basis: 100%; display: flex; gap: 4px; flex-wrap: wrap; }
+.icard.crit { box-shadow: 0 0 0 2px var(--amber), 0 2px 3px rgba(0,0,0,.4); }
+/* R238: a drawer its viewer can't read: striped backs that keep their number and size. */
+.icard.facedown { min-width: 60px; border-color: #3a120d; background: repeating-linear-gradient(45deg, #7a2e24 0 4px, #5e2219 4px 8px); }
+/* R231: the tools are tiles: dashed writers in their sign's colour, the used pile, the hatched kill box. */
+.drawer .write { width: 26px; height: 40px; border-radius: 6px; background: transparent; font: 700 20px/1 var(--hand); cursor: pointer;
+  border: 1.5px dashed var(--chip-pos); color: var(--chip-pos); padding: 0; }
+.drawer .write.neg { border-color: var(--chip-neg); color: var(--chip-neg); }
+.usedpile { position: relative; }
+.usedpile .used { height: 40px; min-width: 44px; border-radius: 4px; border: 1.5px solid #8a7458; background: #3a2a1f; color: #e6d6bd;
+  font: 11px/1.1 var(--mono); cursor: pointer; }
+.usedpile .used b { display: block; font-size: 14px; }
+/* R233: the used pile opens as a paper list under its tile. */
+.usedlist { position: absolute; right: 0; top: 46px; z-index: 95; background: #fbfaf6; padding: 8px; border-radius: 8px; min-width: 220px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.usedlist p { margin: 0; font: 12px var(--mono); color: #555; }
+.drawer .kill { width: 46px; height: 40px; box-sizing: border-box; border: 1.5px solid #8a7458; border-radius: 4px; color: #e6d6bd;
+  font: 11px/1 var(--mono); display: grid; place-items: center; background: repeating-linear-gradient(45deg, #3a2a1f 0 5px, #2a1d14 5px 10px); }
 .glyph { cursor: pointer; display: inline-block; padding: 0 3px; margin-right: 1px; color: #3a6b2a; }
 .loose-item.chip { display: grid; place-items: center; }
 /* R221: what aims takes the pointing hand, its fingertip the hotspot; carrying a chip, card or tap
    keeps it everywhere. Large things (paper, pools, the table) take the open hand. */
 body.tapping, body.tapping * { cursor: pointer !important; }
-/* R222: where the carried thing would land. */
-.slot.over, .drawer.over, .kill.over, .icard.over { outline: 3px solid #fff; outline-offset: 2px; }
-.obj.card.over { box-shadow: 0 0 0 4px #fff, 0 3px 6px rgba(0,0,0,.35); }
+/* R222: where the carried thing would land (manifest-ui.md, Drop targets). */
+.slot.over { outline: 3px solid #fff8; outline-offset: 2px; }
+.drawer.over { outline: 3px solid #fff8; }
+.kill.over { outline: 3px solid var(--chip-neg); }
+.icard.over, .chip.over { outline: 3px solid #fff; }
+.obj.card.over > .flipper .face { outline: 3px solid #fff8; }
 
 /* R13: reduced motion makes lifts, flips, slides and dice instant. */
 @media (prefers-reduced-motion: reduce) {
