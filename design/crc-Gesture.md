@@ -9,9 +9,12 @@ a long press on touch), or the start of a drag.
 - DRAG_PX: 5 px of movement starts a drag.
 
 ## Does
-- on(el, {click, shift, drag}): one listener per control. A long press fires `shift` and never
-  also `click`; movement past DRAG_PX hands the pointer to Drag.
-- Every control that reacts to shift-click is registered here, so none can lack its long press.
+- gesture(el, {click, shift, drag}): one listener per control. A long press fires `shift` and never
+  also `click`; movement past DRAG_PX hands the pointer to Drag (a control with `drag` takes the
+  press, so the table doesn't pan). Enter or Space on the focused control clicks; with shift held it
+  shift-clicks.
+- Every control that reacts to shift-click is registered here (`shifty`), so none can lack its
+  long press, and the quality-floor test can find them all.
 
 ## Collaborators
 - Drag

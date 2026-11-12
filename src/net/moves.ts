@@ -98,6 +98,9 @@ export class Moves {
   }
 
   // R183: a piece in your hand, or one you're writing in, waits until you let go.
+  /** Whether this page holds `rid` (in hand, or being written in). */
+  holds(rid: Rid): boolean { return this.#held.has(rid); }
+
   /** This page holds `rid`: what arrives for it waits. */
   hold(rid: Rid): void { this.#held.add(rid); }
 

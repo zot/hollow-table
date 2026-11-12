@@ -330,9 +330,9 @@ var stampOf = (o) => o.by === void 0 ? { s: o.s } : { s: o.s, by: o.by };
 var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters = (game) => (oid) => game.get(`o:${oid}`);
 var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
-function mergeYards(real, mine, viewer, chars) {
+function mergeYards(real2, mine, viewer, chars) {
   const truth = /* @__PURE__ */ new Map(), secret = /* @__PURE__ */ new Set();
-  for (const g of real?.yards ?? []) for (const b of g.items) for (const r of b.records) {
+  for (const g of real2?.yards ?? []) for (const b of g.items) for (const r of b.records) {
     truth.set(r.oid, r);
     if (!seen(r, viewer, chars)) secret.add(r.oid);
   }
@@ -527,33 +527,56 @@ var Authority = class {
       const t = this.#tabs.get(from.tab);
       if (!t || t.browser !== from.browser) return;
       const opened = await this.#w.sealer.open(from.sealKey, "edit", from.tab, this.#w.link.tab, box2);
-      if (!editBody(opened)) return;
-      const edit = opened, { game, stamps } = this.#w;
-      const fresh = (rid) => stamps.fresh(rid, from.tab, edit.s);
-      const current = { ...edit, puts: edit.puts.filter((p) => fresh(p.rid)), dels: edit.dels.filter(fresh) };
-      const verdict = judge(game, current, this.#viewer(t)?.name ?? null);
-      for (const rid of [...current.puts.map((p) => p.rid), ...current.dels]) stamps.mark(rid, from.tab, edit.s);
-      const theirs = (rid) => {
-        this.#origin.set(rid, { s: edit.s, by: from.tab, fresh: true });
-      };
-      const answer = (rid) => {
-        theirs(rid);
-        this.#public.delete(rid);
-        for (const x of this.#tabs.values()) x.holds.delete(rid);
-        if (!game.get(rid)) this.#answerDel.add(rid);
-      };
-      const taken = [...verdict.puts.map((p) => p.rid), ...verdict.dels];
-      for (const rid of taken) theirs(rid);
-      const changed = game.change((w) => {
-        for (const p of verdict.puts) w.put(p.rid, p.rec);
-        for (const rid of verdict.dels) w.del(rid);
-      });
-      const unchanged = taken.filter((rid) => !changed.has(rid));
-      for (const rid of unchanged) answer(rid);
-      for (const rid of verdict.refused) answer(rid);
-      this.#queue([...verdict.refused, ...unchanged]);
+      if (editBody(opened)) this.#take(opened, from.tab);
     });
     return this.#work;
+  }
+  // R179, R182: a player's drags, as the move actor places them, are judged like a change: a piece
+  // they may not move is answered with the GM's version, which puts it back on their page.
+  /** Moves from other pages, after the move actor's pass (Moves.place on the GM's page). */
+  moved(commands) {
+    const { game } = this.#w, gv = game.get("book").gv;
+    const groups = /* @__PURE__ */ new Map();
+    for (const c of commands) {
+      const r = game.get(c.rid);
+      if (!r || !this.#tabs.has(c.tab)) continue;
+      const at2 = { x: c.x, y: c.y, z: c.z };
+      let rec = r;
+      if (r.kind === "character") rec = c.part === "pool" ? { ...r, pool: { ...r.pool, ...at2 } } : { ...r, card: { ...r.card, ...at2 } };
+      else if ("place" in r) rec = { ...r, place: { ...r.place, ...at2 } };
+      const key = `${c.tab}:${c.s}`, g = groups.get(key) ?? { tab: c.tab, s: c.s, base: gv, puts: [], dels: [] };
+      g.puts.push({ rid: c.rid, rec });
+      groups.set(key, g);
+    }
+    for (const { tab: tab2, ...edit } of groups.values()) this.#take(edit, tab2);
+  }
+  // Seq: seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7: judge, take what's allowed, answer the rest.
+  #take(edit, tab2) {
+    const t = this.#tabs.get(tab2), { game, stamps } = this.#w;
+    if (!t) return;
+    const fresh2 = (rid) => stamps.fresh(rid, tab2, edit.s);
+    const current = { ...edit, puts: edit.puts.filter((p) => fresh2(p.rid)), dels: edit.dels.filter(fresh2) };
+    const verdict = judge(game, current, this.#viewer(t)?.name ?? null);
+    for (const rid of [...current.puts.map((p) => p.rid), ...current.dels]) stamps.mark(rid, tab2, edit.s);
+    const theirs = (rid) => {
+      this.#origin.set(rid, { s: edit.s, by: tab2, fresh: true });
+    };
+    const answer = (rid) => {
+      theirs(rid);
+      this.#public.delete(rid);
+      for (const x of this.#tabs.values()) x.holds.delete(rid);
+      if (!game.get(rid)) this.#answerDel.add(rid);
+    };
+    const taken = [...verdict.puts.map((p) => p.rid), ...verdict.dels];
+    for (const rid of taken) theirs(rid);
+    const changed = game.change((w) => {
+      for (const p of verdict.puts) w.put(p.rid, p.rec);
+      for (const rid of verdict.dels) w.del(rid);
+    });
+    const unchanged = taken.filter((rid) => !changed.has(rid));
+    for (const rid of unchanged) answer(rid);
+    for (const rid of verdict.refused) answer(rid);
+    this.#queue([...verdict.refused, ...unchanged]);
   }
 };
 
@@ -775,6 +798,19 @@ var Copy = class {
       this.#quiet = false;
     }
   }
+  // R179: another page's drags, as the move actor places them: places only, never a change of ours.
+  /** Moves from other pages, after the move actor's pass (Moves.place on a player's page). */
+  place(commands) {
+    const puts = [];
+    for (const c of commands) {
+      const r = this.#w.game.get(c.rid);
+      if (!r || this.#pending.has(c.rid)) continue;
+      const at2 = { x: c.x, y: c.y, z: c.z };
+      if (r.kind === "character") puts.push({ rid: c.rid, rec: c.part === "pool" ? { ...r, pool: { ...r.pool, ...at2 } } : { ...r, card: { ...r.card, ...at2 } } });
+      else if ("place" in r) puts.push({ rid: c.rid, rec: { ...r, place: { ...r.place, ...at2 } } });
+    }
+    this.#quietly(puts, []);
+  }
   // R183: what waited for a held piece is checked again when it's let go.
   /** This page let go of `rid`. */
   release(rid) {
@@ -945,6 +981,117 @@ var ImageExchange = class {
   stop() {
     if (this.#tick !== null) this.#clock.clearTimeout(this.#tick);
     this.#tick = null;
+  }
+};
+
+// src/net/moves.ts
+var SEND_MS = 100;
+var Moves = class {
+  #w;
+  #filling = [];
+  #draining = [];
+  #acting = false;
+  #inHand = [];
+  #timer = null;
+  #held = /* @__PURE__ */ new Set();
+  #waiting = /* @__PURE__ */ new Map();
+  constructor(w) {
+    this.#w = w;
+  }
+  // Seq: seq-move.md#1 | R178: at most every SEND_MS while in hand.
+  /** The pieces in hand moved: they go out within SEND_MS, as they are then. */
+  drag(items) {
+    this.#inHand = items;
+    if (this.#timer === null) {
+      this.#timer = this.#w.timers.setTimeout(() => {
+        this.#timer = null;
+        this.#sendNow(this.#inHand);
+      }, SEND_MS);
+    }
+  }
+  // Seq: seq-move.md#2: a drop is a move with its own number; what it changed goes out after it.
+  /** The pieces were let go: their places go out now. */
+  drop(items) {
+    if (this.#timer !== null) {
+      this.#w.timers.clearTimeout(this.#timer);
+      this.#timer = null;
+    }
+    this.#sendNow(items);
+  }
+  #sendNow(items) {
+    if (!items.length) return;
+    const s = this.#w.stamps.next();
+    for (const i of items) this.#w.stamps.mark(i.rid, this.#w.tab, s);
+    this.#w.send({ s, items });
+  }
+  // Seq: seq-move.md#1.1, seq-move.md#1.2
+  /** A move from another page joins the queue; an actor starts if none is running. */
+  receive(from, move) {
+    for (const i of move.items) this.#filling.push({ ...i, tab: from, s: move.s });
+    this.#startActor();
+  }
+  // Seq: seq-move.md#1.3, seq-move.md#1.5 | R179, R182
+  /**
+   * Swaps the buffers and works through what arrived, newest arrival first. The first command to
+   * reach a piece places it; an older arrival changes it only if it is from the same page with a
+   * higher number. Anything lower than what was applied from its page is discarded.
+   */
+  pass() {
+    const run = this.#filling;
+    this.#filling = this.#draining;
+    this.#draining = run;
+    const placed = /* @__PURE__ */ new Map();
+    for (let k = run.length - 1; k >= 0; k--) {
+      const c = run[k];
+      if (this.#held.has(c.rid)) {
+        this.#hold(c);
+        continue;
+      }
+      if (!this.#w.stamps.fresh(c.rid, c.tab, c.s)) continue;
+      this.#w.stamps.mark(c.rid, c.tab, c.s);
+      const first = placed.get(c.rid);
+      if (first && (first.tab !== c.tab || c.s <= first.s)) continue;
+      placed.set(c.rid, c);
+    }
+    run.length = 0;
+    if (placed.size) this.#w.place([...placed.values()]);
+    if (this.#filling.length) this.#later();
+    else this.#acting = false;
+  }
+  // R183: a piece in your hand, or one you're writing in, waits until you let go.
+  /** Whether this page holds `rid` (in hand, or being written in). */
+  holds(rid) {
+    return this.#held.has(rid);
+  }
+  /** This page holds `rid`: what arrives for it waits. */
+  hold(rid) {
+    this.#held.add(rid);
+  }
+  /** Let go of `rid`: what waited for it is checked again, as if it had just arrived. */
+  release(rid) {
+    this.#held.delete(rid);
+    const waited = this.#waiting.get(rid);
+    if (!waited) return;
+    this.#waiting.delete(rid);
+    this.#filling.push(...waited);
+    this.#startActor();
+  }
+  /** Starts an actor if none is running. */
+  #startActor() {
+    if (!this.#acting) {
+      this.#acting = true;
+      this.#later();
+    }
+  }
+  /** The next pass. `schedule` is called detached, so a native like requestAnimationFrame works as given. */
+  #later() {
+    const { schedule } = this.#w;
+    schedule(() => this.pass());
+  }
+  #hold(c) {
+    const w = this.#waiting.get(c.rid);
+    if (w) w.unshift(c);
+    else this.#waiting.set(c.rid, [c]);
   }
 };
 
@@ -1249,12 +1396,56 @@ function parseLine(src) {
 function parse(source) {
   return source.split("\n").map(parseLine);
 }
+var runSource = (r) => typeof r === "string" ? r : `<${r.mark}>${r.text}</${r.mark}>`;
+function serialize(lines) {
+  return lines.map((l) => l.map(runSource).join("")).join("\n");
+}
 function marks(lines, tag2) {
   const out = [];
   lines.forEach((l, line) => l.forEach((r, run) => {
     if (typeof r !== "string" && (!tag2 || r.mark === tag2)) out.push({ line, run, mark: r.mark, text: r.text });
   }));
   return out;
+}
+var fits = (mark, text) => !text.includes("\n") && !text.includes(`</${mark}>`);
+function render(lines, el2) {
+  const doc = el2.ownerDocument;
+  el2.replaceChildren(...lines.map((l) => {
+    const div = doc.createElement("div");
+    for (const r of l) {
+      if (typeof r === "string") {
+        div.append(r);
+        continue;
+      }
+      const span = doc.createElement("span");
+      span.className = r.mark;
+      span.textContent = r.text;
+      div.append(span);
+    }
+    return div;
+  }));
+}
+var isMark = (s) => MARKS.includes(s);
+function read(el2) {
+  const lines = [[]];
+  const push = (r) => {
+    const line = lines[lines.length - 1], last = line[line.length - 1];
+    if (typeof r === "string" && typeof last === "string") line[line.length - 1] = last + r;
+    else if (r !== "") line.push(r);
+  };
+  const walk = (n, top) => {
+    Array.from(n.childNodes).forEach((c, k) => {
+      if (c.nodeType === 3) return push(c.textContent ?? "");
+      if (c.nodeType !== 1) return;
+      const e = c, cls = e.className;
+      if (e.tagName === "BR") return void lines.push([]);
+      if (e.tagName === "SPAN" && isMark(cls) && fits(cls, e.textContent ?? "")) return push({ mark: cls, text: e.textContent ?? "" });
+      if (top && k > 0 && e.tagName === "DIV") lines.push([]);
+      walk(e, false);
+    });
+  };
+  walk(el2, true);
+  return lines.map((l) => l.length ? l : [""]);
 }
 
 // src/net/rolls.ts
@@ -4364,23 +4555,23 @@ var roomFrameVersion = 1;
 var roomPresenceFrameVersion = 2;
 var wrapRoomFrame = (roomToken, data) => {
   const tokenBytes = encodeBytes(roomToken);
-  const frame = new Uint8Array(3 + tokenBytes.byteLength + data.byteLength);
-  frame[0] = roomFrameVersion;
-  frame[1] = tokenBytes.byteLength >>> 8 & 255;
-  frame[2] = tokenBytes.byteLength & 255;
-  frame.set(tokenBytes, 3);
-  frame.set(data, 3 + tokenBytes.byteLength);
-  return frame;
+  const frame2 = new Uint8Array(3 + tokenBytes.byteLength + data.byteLength);
+  frame2[0] = roomFrameVersion;
+  frame2[1] = tokenBytes.byteLength >>> 8 & 255;
+  frame2[2] = tokenBytes.byteLength & 255;
+  frame2.set(tokenBytes, 3);
+  frame2.set(data, 3 + tokenBytes.byteLength);
+  return frame2;
 };
 var wrapRoomPresenceFrame = (roomToken, isPresent) => {
   const tokenBytes = encodeBytes(roomToken);
-  const frame = new Uint8Array(4 + tokenBytes.byteLength);
-  frame[0] = roomPresenceFrameVersion;
-  frame[1] = Number(isPresent);
-  frame[2] = tokenBytes.byteLength >>> 8 & 255;
-  frame[3] = tokenBytes.byteLength & 255;
-  frame.set(tokenBytes, 4);
-  return frame;
+  const frame2 = new Uint8Array(4 + tokenBytes.byteLength);
+  frame2[0] = roomPresenceFrameVersion;
+  frame2[1] = Number(isPresent);
+  frame2[2] = tokenBytes.byteLength >>> 8 & 255;
+  frame2[3] = tokenBytes.byteLength & 255;
+  frame2.set(tokenBytes, 4);
+  return frame2;
 };
 var decodeRoomTokenHeader = (buffer, offset) => {
   if (buffer.byteLength < offset + 2) return null;
@@ -6262,11 +6453,11 @@ var BEAUFORD = "00000002";
 var DEVREUX = "00000003";
 var at = (x, y) => ({ x, y, z: 0, tilt: 0 });
 function back2(boxes = {}, notes = "") {
-  const damage2 = damageSlots((d, r) => {
+  const damage3 = damageSlots((d, r) => {
     const extra = d === "injury" ? 0 : boxes[r] ?? 0;
     return { name: "", boxes: Array(extra).fill(false), spent: [] };
   });
-  return { damage: damage2, absorb: { bias: 0, affliction: 0, injury: 0 }, notes };
+  return { damage: damage3, absorb: { bias: 0, affliction: 0, injury: 0 }, notes };
 }
 function character(oid, owner, name2, x, front, b) {
   return { kind: "character", oid, owner, name: name2, pool: at(x, 20), card: at(x, 300), flipped: false, gathered: true, front, back: b };
@@ -6573,12 +6764,646 @@ var GameStore = class {
   }
 };
 
+// src/store/seat.ts
+var seatKey = (game, viewer) => `hollow.seat.${game}.${viewer}`;
+function fresh() {
+  return {
+    view: { x: 0, y: 0, zoom: 1 },
+    roller: null,
+    viewAs: null,
+    tapeUp: false,
+    boothill: { cur: 0, open: false },
+    open: { used: [], piles: [], slots: [], columns: [] }
+  };
+}
+var isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+function load(storage, game, viewer) {
+  let saved;
+  try {
+    saved = JSON.parse(storage.getItem(seatKey(game, viewer)) ?? "null");
+  } catch {
+    return fresh();
+  }
+  if (!isObject(saved)) return fresh();
+  const base = fresh();
+  return {
+    ...base,
+    ...saved,
+    view: { ...base.view, ...isObject(saved.view) ? saved.view : {} },
+    boothill: { ...base.boothill, ...isObject(saved.boothill) ? saved.boothill : {} },
+    open: { ...base.open, ...isObject(saved.open) ? saved.open : {} }
+  };
+}
+function save(storage, game, viewer, seat) {
+  try {
+    storage.setItem(seatKey(game, viewer), JSON.stringify(seat));
+  } catch {
+  }
+}
+
+// src/ui/gesture.ts
+var LONG_MS = 500;
+var DRAG_PX = 5;
+var real = { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (h) => clearTimeout(h) };
+var shifty = /* @__PURE__ */ new Set();
+var shifted = (e) => !!(e.shiftKey || e.ctrlKey || e.altKey);
+var clickOf = (h, e) => shifted(e) ? h.shift ?? h.click : h.click;
+function gesture(el2, h, timers = real) {
+  if (h.shift) shifty.add(el2);
+  let down = null, long = null, done2 = false;
+  const reset = () => {
+    if (long !== null) timers.clearTimeout(long);
+    long = null;
+    down = null;
+    stop();
+  };
+  const onMove = (ev) => {
+    const e = ev;
+    if (!down || done2 || e.pointerId !== down.pointerId) return;
+    if (Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < DRAG_PX) return;
+    done2 = true;
+    const d = down;
+    reset();
+    h.drag?.(d, e);
+  };
+  const onUp = (ev) => {
+    const e = ev;
+    if (!down || e.pointerId !== down.pointerId) return;
+    const d = down, fired = done2;
+    reset();
+    if (fired) return;
+    clickOf(h, d)?.(e);
+  };
+  const onCancel = () => reset();
+  const target = el2.ownerDocument ?? globalThis.document ?? el2;
+  const stop = () => {
+    target.removeEventListener("pointermove", onMove);
+    target.removeEventListener("pointerup", onUp);
+    target.removeEventListener("pointercancel", onCancel);
+  };
+  const onDown = (ev) => {
+    const e = ev;
+    if ((e.button ?? 0) !== 0) return;
+    if (h.drag) e.stopPropagation();
+    reset();
+    down = e;
+    done2 = false;
+    target.addEventListener("pointermove", onMove);
+    target.addEventListener("pointerup", onUp);
+    target.addEventListener("pointercancel", onCancel);
+    if (h.shift) {
+      long = timers.setTimeout(() => {
+        long = null;
+        if (!down || done2) return;
+        done2 = true;
+        h.shift(down);
+      }, LONG_MS);
+    }
+  };
+  const onKey = (ev) => {
+    const e = ev;
+    if (e.key !== "Enter" && e.key !== " ") return;
+    if (e.target !== el2) return;
+    e.preventDefault();
+    clickOf(h, e)?.(e);
+  };
+  el2.addEventListener("pointerdown", onDown);
+  if (h.click || h.shift) el2.addEventListener("keydown", onKey);
+  return () => {
+    reset();
+    shifty.delete(el2);
+    el2.removeEventListener("pointerdown", onDown);
+    el2.removeEventListener("keydown", onKey);
+  };
+}
+
+// src/ui/receipt.ts
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var two = (n) => String(n).padStart(2, "0");
+function when(at2) {
+  const d = new Date(at2);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
+}
+var DIE = { W: "White", G: "Green", R: "Red", B: "Blue", Y: "Yellow" };
+var CRIT = { max: "maximize", dbl: "double" };
+function receiptEl(doc, r) {
+  const el2 = doc.createElement("div");
+  el2.className = "receipt";
+  el2.dataset.id = r.id;
+  const line = (text, cls) => {
+    const div = doc.createElement("div");
+    if (cls) div.className = cls;
+    div.textContent = text;
+    el2.append(div);
+  };
+  const head = doc.createElement("div");
+  const time = doc.createElement("span");
+  time.className = "when";
+  time.textContent = when(r.at);
+  head.append(time, `${r.title}${r.ok ? " \u2713" : ""}`);
+  el2.append(head);
+  if (r.outcome === "missing") return el2;
+  if (r.priv) line("Private: not shown to the table");
+  if (r.by) line(`rolled by ${r.by}`);
+  if (r.influence !== void 0) line(`Total Influence ${r.influence}${r.base !== void 0 ? ` (base ${r.base})` : ""}`);
+  if (r.vs) line(`vs ${r.vs}`);
+  if (r.row) line(`row ${r.row}`);
+  line(r.dice.map((d) => `${DIE[d.c]} ${d.v}${d.dropped ? " (dropped)" : ""}${d.added ? " +" : ""}`).join(", "));
+  line(r.resolution);
+  if (r.crit) {
+    for (const k of ["max", "dbl"]) {
+      const chosen = r.crit.chosen === k;
+      if (r.crit.locked && !chosen) continue;
+      let cls = "other";
+      if (chosen) cls = r.crit.locked ? "chosen punched" : "chosen";
+      line(`${CRIT[k]}: ${r.crit[k]}`, cls);
+    }
+  }
+  line(r.level);
+  line(r.outcome, "outcome");
+  return el2;
+}
+
+// src/ui/piece.ts
+var CLASS = { text: "loose", character: "card" };
+var LEVEL2 = { mild: "Mild", min: "Min", sig: "Sig", maj: "Maj" };
+var COLUMN = {
+  bias: { name: "Biases", mark: "bias" },
+  affliction: { name: "Afflictions", mark: "aff" },
+  injury: { name: "Injuries", mark: "inj" }
+};
+function tilt(oid) {
+  let h = 0;
+  for (const c of oid) h = h * 31 + c.charCodeAt(0) | 0;
+  return `${((h >>> 0) % 13 - 6) * 0.25}deg`;
+}
+var el = (doc, tag2, cls, text) => {
+  const e = doc.createElement(tag2);
+  if (cls) e.className = cls;
+  if (text !== void 0) e.textContent = text;
+  return e;
+};
+function writable(doc, cls, source, save2) {
+  const t = el(doc, "div", cls);
+  t.contentEditable = "true";
+  t.spellcheck = false;
+  render(parse(source), t);
+  t.dataset.source = source;
+  t.addEventListener("input", () => {
+    const s = serialize(read(t));
+    t.dataset.source = s;
+    save2(s);
+  });
+  return t;
+}
+function rewrite(t, source) {
+  if (t.dataset.source === source) return;
+  if (t.ownerDocument.activeElement && t.contains(t.ownerDocument.activeElement)) return;
+  render(parse(source), t);
+  t.dataset.source = source;
+}
+function change2(w, rid, fn) {
+  const cur = w.game.get(rid);
+  if (cur) w.game.change((wr) => wr.put(rid, fn(cur)));
+}
+function placeOf(r) {
+  if (r.kind === "character") return r.card;
+  if ("place" in r) return r.place;
+  return null;
+}
+function draw(r, old, w) {
+  const at2 = placeOf(r);
+  if (!at2) return null;
+  const doc = old?.ownerDocument ?? document;
+  const e = old?.dataset.kind === r.kind ? old : make2(doc, r, w);
+  e.style.left = `${at2.x}px`;
+  e.style.top = `${at2.y}px`;
+  e.style.zIndex = String(at2.z);
+  e.style.setProperty("--tilt", tilt(r.oid));
+  update(e, r, w);
+  return e;
+}
+function make2(doc, r, w) {
+  const rid = ridOf(r.oid);
+  const e = el(doc, "div", `obj glide ${CLASS[r.kind] ?? r.kind}`);
+  e.dataset.kind = r.kind;
+  e.dataset.rid = rid;
+  e.addEventListener("pointerdown", (ev) => {
+    const t = ev.target;
+    if (t.isContentEditable && t.ownerDocument.activeElement === t.closest("[contenteditable]")) ev.stopPropagation();
+  }, true);
+  gesture(e, { drag: (down, move) => {
+    doc.activeElement?.blur?.();
+    w.drag(rid, down, move);
+  } });
+  switch (r.kind) {
+    case "character": {
+      const flipper = el(doc, "div", "flipper");
+      const front = el(doc, "div", "face front"), back3 = el(doc, "div", "face back");
+      front.append(writable(doc, "text", r.front, (s) => change2(w, rid, (c) => ({ ...c, front: s }))));
+      back3.append(
+        el(doc, "div", "damage"),
+        el(doc, "div", "notes-hd", "Notes"),
+        writable(doc, "notes", r.back.notes, (s) => change2(w, rid, (c) => ({ ...c, back: { ...c.back, notes: s } })))
+      );
+      flipper.append(front, back3);
+      const flip = el(doc, "button", "flip");
+      flip.setAttribute("aria-label", "Flip the card");
+      gesture(flip, { click: () => change2(w, rid, (c) => ({ ...c, flipped: !c.flipped })) });
+      e.append(flipper, flip);
+      break;
+    }
+    case "sticky":
+    case "text":
+      e.append(writable(doc, "text", r.text, (s) => change2(w, rid, (c) => ({ ...c, text: s }))));
+      break;
+    case "image": {
+      const img = doc.createElement("img");
+      img.alt = "";
+      e.append(img);
+      break;
+    }
+    case "reference":
+      e.append(...reference(doc, r));
+      break;
+    case "tornroll":
+      break;
+  }
+  return e;
+}
+function update(e, r, w) {
+  switch (r.kind) {
+    case "character": {
+      e.classList.toggle("flipped", r.flipped);
+      e.classList.toggle("secret", !canSee(w.viewer, r));
+      rewrite(e.querySelector(".front > .text"), r.front);
+      rewrite(e.querySelector(".back > .notes"), r.back.notes);
+      damage2(e.querySelector(".damage"), r, w);
+      break;
+    }
+    case "sticky":
+    case "text":
+      rewrite(e.querySelector(".text"), r.text);
+      break;
+    case "image":
+      image(e, r, w);
+      break;
+    case "tornroll":
+      tornroll(e, r);
+      break;
+    case "reference":
+      break;
+  }
+}
+function image(e, r, w) {
+  const img = e.querySelector("img");
+  if (e.dataset.blob === r.blob) {
+    const why3 = w.missing(r.blob);
+    e.classList.toggle("missing", !!why3 && !img.src);
+    if (why3 && !img.src) e.title = why3;
+    if (!img.src) void show();
+    return;
+  }
+  if (e.dataset.blob) w.imageGone(e.dataset.blob);
+  e.dataset.blob = r.blob;
+  img.removeAttribute("src");
+  e.classList.add("fetching");
+  void show();
+  async function show() {
+    const url = await w.imageUrl(r.blob);
+    if (e.dataset.blob !== r.blob) return;
+    if (url) {
+      img.src = url;
+      e.classList.remove("fetching", "missing");
+      e.removeAttribute("title");
+    } else {
+      const why3 = w.missing(r.blob);
+      e.classList.toggle("missing", !!why3);
+      if (why3) e.title = why3;
+    }
+  }
+}
+function tornroll(e, r) {
+  const key = r.receipts.map((x) => x.id).join(",");
+  if (e.dataset.receipts === key) return;
+  e.dataset.receipts = key;
+  e.replaceChildren(...r.receipts.map((x) => receiptEl(e.ownerDocument, x)));
+}
+var filled = (s) => !!s.name || s.boxes.some((b) => b);
+function damage2(box2, c, w) {
+  const doc = box2.ownerDocument, opened = w.opened();
+  const put2 = (fn) => change2(w, ridOf(c.oid), fn);
+  const slotAt = (ch, d, row2, s) => ({ ...ch, back: { ...ch.back, damage: { ...ch.back.damage, [d]: { ...ch.back.damage[d], [row2]: { ...ch.back.damage[d][row2], ...s } } } } });
+  if (!box2.children.length) {
+    for (const d of DAMAGE) {
+      const col = el(doc, "div", `column col-${d}`);
+      col.dataset.damage = d;
+      const hd = el(doc, "div", "hd");
+      const absorb2 = el(doc, "span", "absorb");
+      absorb2.contentEditable = "true";
+      absorb2.addEventListener("input", () => {
+        const n = Number(absorb2.textContent?.replace(/\D/g, "") || 0);
+        put2((ch) => ({ ...ch, back: { ...ch.back, absorb: { ...ch.back.absorb, [d]: Math.min(100, n) } } }));
+      });
+      hd.append(`${COLUMN[d].name} `, absorb2);
+      col.append(hd);
+      gesture(hd, { click: () => {
+        const o = new Set(w.opened());
+        o.add(`${c.oid}:${d}`);
+        w.setOpened(o);
+      } });
+      for (const row2 of ROWS) {
+        const line = el(doc, "div", "slotline");
+        line.dataset.row = row2;
+        const boxes = el(doc, "span", "boxes"), name2 = el(doc, "span", `name ${COLUMN[d].mark}`);
+        name2.contentEditable = "true";
+        name2.spellcheck = false;
+        name2.addEventListener("input", () => put2((ch) => slotAt(ch, d, row2, { name: name2.textContent ?? "" })));
+        line.append(boxes, el(doc, "span", "lvl", LEVEL2[row2]), name2, el(doc, "span", "spent"));
+        col.append(line);
+      }
+      box2.append(col);
+    }
+  }
+  for (const col of box2.children) {
+    const d = col.dataset.damage, slots = c.back.damage[d];
+    const empty2 = !ROWS.some((r) => filled(slots[r])) && !c.back.absorb[d];
+    col.classList.toggle("empty", empty2);
+    col.classList.toggle("open", opened.has(`${c.oid}:${d}`));
+    const absorb2 = col.querySelector(".absorb");
+    if (doc.activeElement !== absorb2) absorb2.textContent = c.back.absorb[d] ? `(absorb ${c.back.absorb[d]})` : "";
+    for (const line of col.querySelectorAll(".slotline")) {
+      const row2 = line.dataset.row, s = slots[row2];
+      const name2 = line.querySelector(".name");
+      if (doc.activeElement !== name2 && name2.textContent !== s.name) name2.textContent = s.name;
+      const spent = s.spent.reduce((a, b) => a + b, 0);
+      line.querySelector(".spent").textContent = spent ? `\u2212${spent}` : "";
+      const boxes = line.querySelector(".boxes");
+      if (boxes.children.length !== s.boxes.length) {
+        boxes.replaceChildren(...s.boxes.map((_, k) => {
+          const b = el(doc, "button", "box");
+          b.setAttribute("aria-label", `Slot ${k + 2}`);
+          gesture(b, { click: () => put2((ch) => {
+            const cur = ch.back.damage[d][row2];
+            if (!cur.name) {
+              b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
+              return ch;
+            }
+            return slotAt(ch, d, row2, { boxes: cur.boxes.map((on, i) => i === k ? !on : on) });
+          }) });
+          return b;
+        }));
+      }
+      s.boxes.forEach((on, k) => boxes.children[k].classList.toggle("on", on));
+    }
+  }
+}
+function reference(doc, r) {
+  const p = (bold, rest = "") => {
+    const e = el(doc, "p");
+    e.append(el(doc, "b", "", bold), rest);
+    return e;
+  };
+  const hd = (left, right) => {
+    const e = el(doc, "div", "rhd");
+    e.append(el(doc, "span", "", left), el(doc, "em", "", right));
+    return e;
+  };
+  if (r.which === "actions") {
+    return [
+      hd("SKILL USE", "ACTIONS"),
+      p("CREATE INFLUENCE"),
+      p("ATTACK", ": Create a Bias or Conviction"),
+      p("INFER", ": Find out an NPC's Skills, Resources, Motivations, Opinions, or information on another character"),
+      p("IMPRESS", ": change an NPC's Opinions"),
+      p("REQUEST", ": get an NPC to transfer a Resource or perform a task")
+    ];
+  }
+  return [
+    hd("How to play the table", "put me away when known"),
+    p("Move", ": drag anything; drag empty table to pan, the wheel zooms."),
+    p("Write", ": click paper to write; the pens mark what the table should read."),
+    p("Shift-click", " (or press and hold) lowers, opens and deletes."),
+    p("Put away", ": drop it on the bar; Boot Hill keeps what was buried."),
+    p("Roll", ": the die by a pool's name docks your dice there.")
+  ];
+}
+
+// src/ui/drag.ts
+var pinnable = (r) => r.kind === "sticky" || r.kind === "text" || r.kind === "image";
+var Drag = class {
+  #w;
+  constructor(w) {
+    this.#w = w;
+  }
+  /** The highest z on the table, so a dropped piece lands on top. */
+  #top() {
+    let z = 0;
+    for (const [, r] of this.#w.game.all()) {
+      const at2 = "kind" in r ? placeOf(r) : null;
+      if (at2) z = Math.max(z, at2.z);
+    }
+    return z + 1;
+  }
+  // Seq: seq-drag.md#1.2: lift; seq-drag.md#1.3: carry; seq-drag.md#1.6: drop.
+  /** Carries a piece from the press that started it, and what's pinned to it. */
+  start(rid, down, move) {
+    const { game, table, moves } = this.#w;
+    const rec = game.get(rid), at2 = rec && placeOf(rec), el2 = table.element(rid);
+    if (!rec || !at2 || !el2) return;
+    const doc = el2.ownerDocument;
+    const carried = [{ rid, el: el2, from: at2, ...rec.kind === "character" && { part: "card" } }];
+    if (rec.kind === "character") {
+      for (const [r2, other] of game.all()) {
+        const o = other;
+        if ("kind" in o && pinnable(o) && o.pin?.card === rec.oid) {
+          const e2 = table.element(r2);
+          if (e2) carried.push({ rid: r2, el: e2, from: o.place });
+        }
+      }
+    }
+    const p0 = table.toWorld(down.clientX, down.clientY);
+    for (const c of carried) {
+      c.el.classList.add("lifted");
+      c.el.classList.remove("glide");
+      moves?.hold(c.rid);
+    }
+    doc.body.classList.add("dragging");
+    const z = this.#top();
+    const items = (dx, dy) => carried.slice(0, 8).map((c) => ({
+      rid: c.rid,
+      x: Math.round(c.from.x + dx),
+      y: Math.round(c.from.y + dy),
+      z,
+      ...c.part && { part: c.part }
+    }));
+    const delta = (e) => {
+      const p = table.toWorld(e.clientX, e.clientY);
+      return { dx: p.x - p0.x, dy: p.y - p0.y };
+    };
+    const show = (dx, dy) => {
+      for (const c of carried) {
+        c.el.style.left = `${c.from.x + dx}px`;
+        c.el.style.top = `${c.from.y + dy}px`;
+      }
+    };
+    const onMove = (ev) => {
+      const e = ev;
+      if (e.pointerId !== down.pointerId) return;
+      const { dx, dy } = delta(e);
+      show(dx, dy);
+      moves?.drag(items(dx, dy));
+    };
+    const onUp = (ev) => {
+      const e = ev;
+      if (e.pointerId !== down.pointerId) return;
+      doc.removeEventListener("pointermove", onMove);
+      doc.removeEventListener("pointerup", onUp);
+      doc.removeEventListener("pointercancel", onUp);
+      doc.body.classList.remove("dragging");
+      const { dx, dy } = delta(e);
+      for (const c of carried) {
+        c.el.classList.remove("lifted");
+        c.el.classList.add("glide");
+      }
+      moves?.drop(items(dx, dy));
+      this.#drop(rec, carried, dx, dy, z, e);
+      for (const c of carried) moves?.release(c.rid);
+    };
+    doc.addEventListener("pointermove", onMove);
+    doc.addEventListener("pointerup", onUp);
+    doc.addEventListener("pointercancel", onUp);
+    onMove(move);
+  }
+  /** The card under the pointer, other than the piece itself. */
+  #cardAt(e, not) {
+    const doc = not.ownerDocument;
+    for (const hit of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
+      const card = hit.closest?.(".obj.card");
+      if (card && card !== not) return this.#w.game.get(card.dataset.rid);
+    }
+    return void 0;
+  }
+  // Seq: seq-drag.md#1.7 | R27: one change: the new places, pinned to a card or let go of one.
+  #drop(rec, carried, dx, dy, z, e) {
+    const { game } = this.#w;
+    const moved = (p) => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
+    game.change((w) => {
+      for (const c of carried) {
+        const r = game.get(c.rid);
+        if (!r) continue;
+        if (r.kind === "character") {
+          w.put(c.rid, { ...r, card: moved(r.card) });
+          continue;
+        }
+        if (!("place" in r)) continue;
+        const place2 = moved(r.place);
+        if (c.rid !== ridOf(rec.oid) || !pinnable(r)) {
+          w.put(c.rid, { ...r, place: place2 });
+          continue;
+        }
+        const card = this.#cardAt(e, carried[0].el);
+        const { pin: _old, ...loose } = r;
+        w.put(c.rid, card ? { ...loose, place: place2, pin: { card: card.oid, dx: place2.x - card.card.x, dy: place2.y - card.card.y } } : { ...loose, place: place2 });
+      }
+    });
+  }
+};
+
+// src/ui/table.ts
+var ZOOM_MIN = 0.25;
+var ZOOM_MAX = 3;
+var TableView = class {
+  #root;
+  #world;
+  #w;
+  #els = /* @__PURE__ */ new Map();
+  view;
+  constructor(root, world, w) {
+    this.#root = root;
+    this.#world = world;
+    this.#w = w;
+    this.view = { ...w.view };
+    this.#place();
+    w.game.listen((rids) => this.render(rids));
+    this.render(w.game.all().map(([rid]) => rid));
+    this.#panZoom();
+  }
+  /** The element drawing a piece, if any. */
+  element(rid) {
+    return this.#els.get(rid);
+  }
+  // Seq: seq-save.md#1.4: only the changed rids are touched.
+  render(rids) {
+    for (const rid of rids) {
+      if (!isPiece(rid)) continue;
+      const r = this.#w.game.get(rid), old = this.#els.get(rid);
+      const e = r ? draw(r, old, this.#w) : null;
+      if (!e) {
+        if (old) {
+          old.remove();
+          this.#els.delete(rid);
+          if (old.dataset.blob) this.#w.imageGone(old.dataset.blob);
+        }
+        continue;
+      }
+      if (e !== old) {
+        old?.remove();
+        this.#world.append(e);
+        this.#els.set(rid, e);
+      }
+    }
+  }
+  /** Screen to table coordinates, for drops. */
+  toWorld(clientX, clientY) {
+    const r = this.#root.getBoundingClientRect();
+    return { x: (clientX - r.left - this.view.x) / this.view.zoom, y: (clientY - r.top - this.view.y) / this.view.zoom };
+  }
+  #place() {
+    this.#world.style.transform = `translate(${this.view.x}px, ${this.view.y}px) scale(${this.view.zoom})`;
+  }
+  // R15: drag empty table to pan; the wheel zooms about the pointer. R16: a press that no piece
+  // takes (a pool's empty space beside its name included) lands here.
+  #panZoom() {
+    const root = this.#root, doc = root.ownerDocument;
+    let from = null;
+    root.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      doc.activeElement?.blur?.();
+      from = { x: e.clientX, y: e.clientY, vx: this.view.x, vy: this.view.y, id: e.pointerId };
+      doc.body.classList.add("panning");
+    });
+    doc.addEventListener("pointermove", (e) => {
+      if (!from || e.pointerId !== from.id) return;
+      this.view = { ...this.view, x: from.vx + e.clientX - from.x, y: from.vy + e.clientY - from.y };
+      this.#place();
+    });
+    const end = (e) => {
+      if (!from || e.pointerId !== from.id) return;
+      from = null;
+      doc.body.classList.remove("panning");
+      this.#w.keepView(this.view);
+    };
+    doc.addEventListener("pointerup", end);
+    doc.addEventListener("pointercancel", end);
+    root.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const r = root.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this.view.zoom * Math.exp(-e.deltaY * 15e-4)));
+      const k = zoom / this.view.zoom;
+      this.view = { x: px - (px - this.view.x) * k, y: py - (py - this.view.y) * k, zoom };
+      this.#place();
+      this.#w.keepView(this.view);
+    }, { passive: false });
+  }
+};
+
 // src/main.ts
 var clock = { now: () => Date.now(), setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (h) => clearTimeout(h) };
 async function measure(blob) {
-  const image = await createImageBitmap(blob);
-  const size = { w: image.width, h: image.height };
-  image.close();
+  const image2 = await createImageBitmap(blob);
+  const size = { w: image2.width, h: image2.height };
+  image2.close();
   return size;
 }
 function tabId(session) {
@@ -6604,6 +7429,44 @@ function local(key, value2) {
     return null;
   }
 }
+function frame(fn) {
+  let done2 = false, raf = 0;
+  const go = () => {
+    if (done2) return;
+    done2 = true;
+    cancelAnimationFrame(raf);
+    clearTimeout(t);
+    fn();
+  };
+  raf = requestAnimationFrame(go);
+  const t = setTimeout(go, 100);
+}
+function views(game, gameId, viewer, blobs, moves, missing) {
+  const who = viewer?.name ?? "nobody";
+  let seat = load(localStorage, gameId, who);
+  const keep = (s) => {
+    seat = s;
+    save(localStorage, gameId, who, s);
+  };
+  let drag;
+  const table = new TableView(document.getElementById("table"), document.getElementById("world"), {
+    game,
+    viewer,
+    view: seat.view,
+    keepView: (v) => keep({ ...seat, view: v }),
+    imageUrl: (hash) => blobs.url(hash),
+    imageGone: (hash) => blobs.release(hash),
+    missing,
+    opened: () => new Set(seat.open.columns),
+    setOpened: (o) => {
+      keep({ ...seat, open: { ...seat.open, columns: [...o] } });
+      table.render(game.all().map(([rid]) => rid));
+    },
+    drag: (rid, down, move) => drag?.start(rid, down, move)
+  });
+  drag = new Drag({ game, table, moves });
+  return { table, drag };
+}
 async function main() {
   const db = await IdbDb.open();
   const store = new GameStore(db, clock, localStorage);
@@ -6620,7 +7483,22 @@ async function main() {
     await store.copyFor(invited.room);
     const game2 = store.game, name2 = local("hollow.name") ?? "Player";
     const wire = new Wire(invited.room, { identity, sealer, tab: tab2, loopback });
-    const copy = new Copy({ game: game2, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm });
+    const copy = new Copy({
+      game: game2,
+      stamps,
+      sealer,
+      link: wire,
+      clock,
+      session: sessionStorage,
+      local: localStorage,
+      room: invited.room,
+      gm: invited.gm,
+      held: (rid) => moves2.holds(rid)
+    });
+    const moves2 = new Moves({ stamps, tab: tab2, send: (m) => {
+      void wire.send("move", m);
+    }, place: (cs) => copy.place(cs), timers: clock, schedule: frame });
+    wire.on("move", (b, from) => moves2.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: "player", name: name2 });
     const rolls2 = new Rolls({ game: game2, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
@@ -6628,12 +7506,23 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    return { stamp: "dev", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images };
+    const { table: table2, drag: drag2 } = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, (hash) => images.missing.get(hash));
+    return { stamp: "dev", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
   await store.start();
   const game = store.game;
   let table = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
+  const moves = new Moves({
+    stamps,
+    tab: tab2,
+    send: (m) => {
+      void table?.wire.send("move", m);
+    },
+    place: (cs) => table?.authority.moved(cs),
+    timers: clock,
+    schedule: frame
+  });
   const open = () => {
     if (table) return table;
     const key = `hollow.room.${store.current.id}`;
@@ -6657,10 +7546,12 @@ async function main() {
     const images = new ImageExchange(wire, blobs, clock);
     images.start();
     presence.start();
+    wire.on("move", (b, from) => moves.receive(from.tab, b));
     table = { room, wire, presence, authority, rolls, images };
     return table;
   };
   const link = () => invite(location.href, open().room, identity.id);
+  const { table: view, drag } = views(game, store.current.id, { name: "GM", gm: true }, blobs, moves, (hash) => table?.images.missing.get(hash));
   return {
     stamp: "dev",
     role: "gm",
@@ -6670,6 +7561,9 @@ async function main() {
     blobs,
     open,
     invite: link,
+    moves,
+    view,
+    drag,
     get table() {
       return table;
     },

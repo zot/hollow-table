@@ -10,14 +10,19 @@ import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
 import { Identity } from './net/identity.ts';
 import { ImageExchange } from './net/images.ts';
+import { Moves, type Move } from './net/moves.ts';
 import { Presence, fromUrl, invite, newRoom } from './net/presence.ts';
 import { Rolls } from './net/rolls.ts';
 import { Sealer } from './net/seal.ts';
 import { Stamps } from './net/stamps.ts';
 import { Wire } from './net/wire.ts';
+import type { Viewer } from './rules/visibility.ts';
 import { BlobStore, type Size } from './store/blobs.ts';
 import { IdbDb } from './store/db.ts';
 import { GameStore, type Clock, type KeyValue } from './store/gamestore.ts';
+import { load as loadSeat, save as saveSeat, type Seat } from './store/seat.ts';
+import { Drag } from './ui/drag.ts';
+import { TableView } from './ui/table.ts';
 
 declare const HOLLOW_STAMP: string;
 
@@ -46,6 +51,30 @@ function local(key: string, value?: string): string | null {
   try { if (value !== undefined) localStorage.setItem(key, value); return localStorage.getItem(key); } catch { return null; }
 }
 
+/** The move actor's next pass: the next animation frame, or 100 ms, whichever comes first (a hidden tab gets no frames). */
+function frame(fn: () => void): void {
+  let done = false, raf = 0;
+  const go = () => { if (done) return; done = true; cancelAnimationFrame(raf); clearTimeout(t); fn(); };
+  raf = requestAnimationFrame(go);
+  const t = setTimeout(go, 100);
+}
+
+/** The table's views for this page: drawn from the game, the view kept in this viewer's seat. */
+function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, missing: (hash: string) => string | undefined): { table: TableView; drag: Drag } {
+  const who = viewer?.name ?? 'nobody';
+  let seat: Seat = loadSeat(localStorage, gameId, who);
+  const keep = (s: Seat) => { seat = s; saveSeat(localStorage, gameId, who, s); };
+  let drag: Drag | undefined;
+  const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
+    game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }),
+    imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
+    opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); table.render(game.all().map(([rid]) => rid)); },
+    drag: (rid, down, move) => drag?.start(rid, down, move),
+  });
+  drag = new Drag({ game, table, moves });
+  return { table, drag };
+}
+
 async function main() {
   const db = await IdbDb.open();
   const store = new GameStore(db, clock, localStorage);
@@ -62,7 +91,11 @@ async function main() {
     await store.copyFor(invited.room);
     const game: Game = store.game, name = local('hollow.name') ?? 'Player';
     const wire = new Wire(invited.room, { identity, sealer, tab, loopback });
-    const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm });
+    // Copy only asks what's held when a message arrives, after Moves is made.
+    const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm,
+      held: rid => moves.holds(rid) });
+    const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, place: cs => copy.place(cs), timers: clock, schedule: frame });
+    wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: 'player', name });
     const rolls = new Rolls({ game, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
@@ -70,7 +103,8 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    return { stamp: HOLLOW_STAMP, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images };
+    const { table, drag } = views(game, store.current!.id, { name, gm: false }, blobs, moves, hash => images.missing.get(hash));
+    return { stamp: HOLLOW_STAMP, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
 
   // The GM's page: the game is here; a table opens on demand, in the room remembered for this game.
@@ -78,6 +112,9 @@ async function main() {
   const game: Game = store.game;
   let table: { room: string; wire: Wire; presence: Presence; authority: Authority; rolls: Rolls; images: ImageExchange } | null = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
+  // Drags go to the room once there is one; players' drags are judged like their changes.
+  const moves = new Moves({ stamps, tab, send: m => { void table?.wire.send('move', m); },
+    place: cs => table?.authority.moved(cs), timers: clock, schedule: frame });
 
   // R157: Open the table makes the room (or reopens this game's); the GM's URL is never rewritten.
   const open = () => {
@@ -96,12 +133,14 @@ async function main() {
     const images = new ImageExchange(wire, blobs, clock);
     images.start();
     presence.start();
+    wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
     table = { room, wire, presence, authority, rolls, images };
     return table;
   };
   // R158: the invite carries the room and the GM's browser id.
   const link = () => invite(location.href, open().room, identity.id);
-  return { stamp: HOLLOW_STAMP, role: 'gm' as const, tab, identity, store, blobs, open, invite: link,
+  const { table: view, drag } = views(game, store.current!.id, { name: 'GM', gm: true }, blobs, moves, hash => table?.images.missing.get(hash));
+  return { stamp: HOLLOW_STAMP, role: 'gm' as const, tab, identity, store, blobs, open, invite: link, moves, view, drag,
     get table() { return table; }, get rolls() { return rolls; } };
 }
 

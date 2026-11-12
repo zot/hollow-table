@@ -71,14 +71,14 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-ImageExchange.md → `src/net/images.ts`
 - [x] crc-Rolls.md → `src/net/rolls.ts`
 - [x] crc-Yards.md → `src/rules/yards.ts`
-- [ ] crc-TableView.md → `src/ui/table.ts`
+- [x] crc-TableView.md → `src/ui/table.ts`
 - [ ] crc-PieceView.md → `src/ui/piece.ts`
 - [ ] crc-PoolView.md → `src/ui/pool.ts`
-- [ ] crc-Gesture.md → `src/ui/gesture.ts`
+- [x] crc-Gesture.md → `src/ui/gesture.ts`
 - [ ] crc-Drag.md → `src/ui/drag.ts`
 - [ ] crc-Pens.md → `src/ui/pens.ts`
 - [ ] crc-RollRow.md → `src/ui/rollrow.ts`
-- [ ] crc-Tape.md → `src/ui/tape.ts`
+- [ ] crc-Tape.md → `src/ui/tape.ts`, `src/ui/receipt.ts`
 - [ ] crc-Register.md → `src/ui/register.ts`
 - [ ] crc-BootHillView.md → `src/ui/boothill.ts`
 - [ ] crc-Ledger.md → `src/ui/ledger.ts`
@@ -121,6 +121,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Rolls.md → `src/net/rolls.test.ts`
 - [x] test-Presence.md → `src/net/presence.test.ts`
 - [x] test-Images.md → `src/net/images.test.ts`
+- [x] test-Gesture.md → `src/ui/gesture.test.ts`
 - [x] test-GameStore.md → `src/store/gamestore.test.ts`
 - [x] test-BlobStore.md → `src/store/blobs.test.ts`
 - [x] test-Exchange.md → `src/store/exchange.test.ts`

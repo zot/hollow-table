@@ -4,11 +4,12 @@
 // reload, and go again until answered.
 
 import type { Game } from '../model/game.ts';
-import { isPiece, type Rec, type Rid } from '../model/records.ts';
+import { isPiece, type PieceRecord, type Rec, type Rid } from '../model/records.ts';
 import type { Clock, KeyValue } from '../store/gamestore.ts';
 import { LOCAL, type Batch, type Del, type Edit, type Put, type Sealed } from './authority.ts';
 import { sealedRecs } from './envelope.ts';
 import type { Link, Peer } from './link.ts';
+import type { Command } from './moves.ts';
 import type { Sealer } from './seal.ts';
 import type { Stamps } from './stamps.ts';
 
@@ -205,6 +206,20 @@ export class Copy {
         for (const rid of dels) w.del(rid);
       });
     } finally { this.#quiet = false; }
+  }
+
+  // R179: another page's drags, as the move actor places them: places only, never a change of ours.
+  /** Moves from other pages, after the move actor's pass (Moves.place on a player's page). */
+  place(commands: Command[]): void {
+    const puts: { rid: Rid; rec: Rec }[] = [];
+    for (const c of commands) {
+      const r = this.#w.game.get(c.rid) as PieceRecord | undefined;
+      if (!r || this.#pending.has(c.rid)) continue;
+      const at = { x: c.x, y: c.y, z: c.z };
+      if (r.kind === 'character') puts.push({ rid: c.rid, rec: c.part === 'pool' ? { ...r, pool: { ...r.pool, ...at } } : { ...r, card: { ...r.card, ...at } } });
+      else if ('place' in r) puts.push({ rid: c.rid, rec: { ...r, place: { ...r.place, ...at } } });
+    }
+    this.#quietly(puts, []);
   }
 
   // R183: what waited for a held piece is checked again when it's let go.

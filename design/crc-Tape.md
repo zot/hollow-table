@@ -9,7 +9,7 @@ The paper tape from the register: this page's receipts, never sent.
 
 ## Does
 - print(receipt): newest first; raises the tape; about three show, the rest scroll.
-- receipt(r): built from text only: title, time (24-hour with seconds), "rolled by", dice, the lines
+- receipt(r) (`src/ui/receipt.ts`, shared with torn rolls): built from text only: title, time (24-hour with seconds), "rolled by", dice, the lines
   this page may know, resolution, Level, outcome; ✓ when sent; "N rolls from … didn't arrive".
 - crit(r): both results with the larger chosen; the owner or GM may switch and lock; a lock punches
   the chosen line and removes the other.

@@ -8,6 +8,9 @@ stickies, loose text, images, torn rolls and reference cards.
 - The record it shows, and the viewer (for redacted faces drawn face-down).
 
 ## Does
+- draw(record, old): makes or updates a piece's element; text written in place is left alone while
+  it holds the caret. The card's front reads in two columns, as printed. A card its viewer may not
+  read lies face-down ("Hollow").
 - card(record): two faces, flipped at the corner; the front's marks drawn by MarkedText.render with
   their dice (`act`) and tap glyphs (`res`); the back's three Damage columns (Biases, Afflictions,
   Injuries), each a Mild, Min, Sig and Maj slot whose name is drawn as a span of its column's mark

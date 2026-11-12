@@ -1,0 +1,167 @@
+/* CRC: crc-Theme.md | R1, R2, R3, R4, R5, R6, R11, R12, R13, R17 */
+/* The look, in one stylesheet: the tokens (manifest-ui.md), the type, and the rules every view's
+   markup relies on. Paper is drawn as the print (Samuel Diamond's card, A Ghoulish Problem); the
+   table is oiled walnut. */
+
+:root {
+  --walnut: #3e2c22;
+  --card: #fff;
+  --card-edge: #888;
+  --sticky: #fff200;
+  --sticky-fold: #c9bf00;
+  --paper: #fbfaf6;
+  --ink: #1d1d1d;
+  --rule: #a9a9a9;
+  --chip-pos: #93c47d;
+  --chip-neg: #e06666;
+  --slot: #cfe2f3;
+  --stagger: #f4cccc;
+  --bias: #e06666;
+  --affliction: #4a2f63;
+  --affliction-ink: #f3e9d2;
+  --injury: #d9c4a0;
+  --oak: #8a5a2e;
+  --nickel: #c9cccf;
+  --enamel: #c8372d;
+  --cloth: #2f5d3a;
+  --amber: #f0a040;
+  --hand: "Caveat", cursive;
+  --mono: "PT Mono", monospace;
+  --bar-h: 92px;
+  /* pens (marks) */
+  --pen-act: #ffd27a;
+  --pen-res: #bde5a8;
+  --pen-inf: #a9d4f0;
+  --pen-bias: #f4afc0;
+  --pen-aff: #cdb6ee;
+  --pen-inj: #e9d3a6;
+  --pen-def: #d6d6d6;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut); color: var(--ink); }
+
+/* R12: visible focus on every control. */
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---- the bar (9.4.5 fills it) ---- */
+#bar {
+  position: fixed; inset: 0 0 auto 0; height: var(--bar-h); z-index: 10;
+  background: linear-gradient(#2b1e17, #3a291f); border-bottom: 2px solid #1d140f;
+  font: 13px/1.2 var(--mono); color: #f3e9d8; user-select: none; -webkit-user-select: none;
+  display: flex; align-items: center; gap: 18px; padding: 0 16px;
+}
+#bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
+#bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; }
+
+/* ---- R2: the table, oiled walnut, lamp-lit ---- */
+#table {
+  position: fixed; inset: var(--bar-h) 0 0 0; overflow: hidden; touch-action: none; cursor: grab;
+  background:
+    radial-gradient(ellipse 70% 60% at 45% 35%, rgba(255,210,150,.10), transparent 70%),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.35) 100%),
+    repeating-linear-gradient(93deg, rgba(0,0,0,.05) 0 2px, transparent 2px 9px, rgba(255,255,255,.025) 9px 10px, transparent 10px 23px),
+    repeating-linear-gradient(91deg, rgba(0,0,0,.07) 0 1px, transparent 1px 57px),
+    linear-gradient(180deg, #45311f, var(--walnut) 40%, #382719);
+}
+body.panning #table { cursor: grabbing; }
+body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+/* ---- every piece: R5, tilted at random, square while written in ---- */
+.obj { position: absolute; transform: rotate(var(--tilt, 0deg)); transition: box-shadow .15s, transform .15s; }
+.obj:focus-within { transform: rotate(0deg); }
+/* R4: motion only in answer to a hand: a lift, a glide to where another page moved it. */
+.obj.lifted { transform: rotate(0deg) scale(1.03); z-index: 1000000 !important; box-shadow: 0 18px 30px rgba(0,0,0,.45); }
+.obj.glide { transition: box-shadow .15s, transform .15s, left .12s linear, top .12s linear; }
+
+/* ---- R1, R22: the character card, a two-sided index card ---- */
+.card { width: 430px; height: 316px; perspective: 1400px; }
+.card .flipper { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .5s; }
+.card.flipped .flipper { transform: rotateY(180deg); }
+.face {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
+  background: var(--card); border: 1.5px solid var(--card-edge); border-radius: 22px;
+  box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 14px 18px; font: 16px/1.15 var(--hand);
+}
+.face.back { transform: rotateY(180deg); display: flex; flex-direction: column; }
+.face .text { outline: none; height: 100%; overflow: hidden; white-space: pre-wrap; }
+/* The front reads in two columns, as the printed card does. */
+.face.front .text { column-count: 2; column-gap: 12px; column-fill: auto; }
+.flip { position: absolute; right: -1px; bottom: -1px; width: 30px; height: 30px; border: none; padding: 0; cursor: pointer;
+  background: linear-gradient(135deg, transparent 50%, #e6e6e6 50%); border-bottom-right-radius: 22px; opacity: .55; z-index: 2; }
+.flip:hover, .flip:focus-visible { opacity: 1; }
+/* A card its viewer may not read lies face-down. */
+.card.secret .flipper { visibility: hidden; }
+.card.secret::before { content: "Hollow"; position: absolute; inset: 0; border-radius: 22px; display: grid; place-items: center;
+  font: 48px/1 "Sancreek", var(--hand); color: #f3e9d8; background: #5a4030; border: 1.5px solid #2b1e17;
+  box-shadow: 0 3px 6px rgba(0,0,0,.35); }
+
+/* The back: three Damage columns, then the ruled notes (ui-card.md). */
+.damage { display: flex; gap: 14px; }
+.column { flex: 1; min-width: 0; }
+.column.empty:not(.open) { flex: 0 0 auto; cursor: pointer; }
+.column.empty:not(.open) .slotline { display: none; }
+.column .hd { font: 700 18px/1.2 var(--hand); }
+.column .hd .absorb { font-weight: 400; font-size: 15px; }
+.slotline { display: grid; grid-template-columns: 34px 30px 1fr; align-items: end; column-gap: 4px; min-height: 22px; }
+.slotline .boxes { display: flex; gap: 3px; justify-content: flex-end; padding-bottom: 3px; }
+.slotline .lvl { font-weight: 600; text-decoration: underline; }
+.slotline .name { border-bottom: 1px solid var(--rule); min-height: 20px; outline: none; white-space: nowrap; overflow: hidden; }
+.slotline .name:empty { background: transparent; }   /* only an entry is drawn as its mark */
+.slotline .spent { font: 11px/1 var(--mono); color: #a33; }
+.box { width: 13px; height: 13px; border: 2px solid var(--ink); background: #fff; padding: 0; cursor: pointer; position: relative; }
+.box.on::after { content: "✕"; position: absolute; inset: -5px 0 0 0; font: 700 14px/1 var(--hand); text-align: center; }
+.notes-hd { font: 700 18px/1.2 var(--hand); margin-top: 8px; }
+.notes { flex: 1; outline: none; line-height: 26px; font-size: 18px; white-space: pre-wrap; overflow: hidden;
+  background-image: repeating-linear-gradient(transparent 0 25px, var(--rule) 25px 26px); }
+[contenteditable]:focus { background-color: rgba(61,133,198,.06); border-radius: 4px; }
+
+/* ---- marks: each pen's highlight and its non-colour cue (manifest-ui.md, R11) ---- */
+.act { background: var(--pen-act); border-radius: 3px; }
+.res { background: var(--pen-res); border-radius: 3px; }
+.inf { background: var(--pen-inf); border-radius: 3px; text-decoration: underline dotted; }
+.bias { background: var(--pen-bias); border-radius: 3px; }
+.aff { background: var(--pen-aff); border-radius: 3px; }
+.inj { background: var(--pen-inj); border-radius: 3px; }
+.def { background: var(--pen-def); border-radius: 3px; text-decoration: underline double; }
+.head { font-weight: 700; font-size: 1.15em; }
+
+/* ---- the reference card, as printed (PT Mono) ---- */
+.reference { width: 430px; height: 316px; background: var(--card); border: 1.5px solid var(--card-edge); border-radius: 22px;
+  box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 16px 20px; font: 13.5px/1.35 var(--mono); }
+.reference .rhd { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 8px; }
+.reference .rhd em { font-style: italic; }
+.reference p { margin: 0 0 7px; }
+
+/* ---- the sticky note, with its folded corner ---- */
+.sticky {
+  width: 230px; min-height: 150px; background: var(--sticky); font: 600 19px/1.15 var(--hand);
+  padding: 12px 14px 26px; box-shadow: 2px 4px 7px rgba(0,0,0,.35);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+}
+.sticky::after { content: ""; position: absolute; right: 0; bottom: 0; width: 22px; height: 22px;
+  background: linear-gradient(315deg, transparent 50%, var(--sticky-fold) 50%); }
+.sticky .text { outline: none; min-height: 100px; white-space: pre-wrap; }
+
+/* ---- loose handwriting on the table ---- */
+.loose { font: 600 22px/1.2 var(--hand); color: #f3e9d8; min-width: 80px; padding: 2px 6px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.loose .text { outline: none; white-space: pre-wrap; }
+
+/* ---- an image, mounted on white ---- */
+.image { background: #fff; padding: 8px 8px 10px; box-shadow: 0 4px 9px rgba(0,0,0,.45); }
+.image img { display: block; width: 240px; height: auto; pointer-events: none; }
+.image.missing img, .image.fetching img { min-width: 240px; min-height: 160px; }
+.image.fetching img { background: repeating-linear-gradient(45deg, #d9ccb4 0 8px, #e6dcc8 8px 16px); }
+.image.missing img { background: repeating-linear-gradient(45deg, #e3c9c0 0 8px, #efe0da 8px 16px); }
+
+/* ---- a torn-off roll of receipts; it scrolls inside ---- */
+.tornroll { width: 210px; max-height: 360px; overflow-y: auto; background: var(--paper); padding: 6px 8px;
+  box-shadow: 0 4px 9px rgba(0,0,0,.4); font: 11px/1.3 var(--mono); clip-path: polygon(0 0, 100% 0, 100% 100%, 92% 99%, 84% 100%, 76% 99%, 68% 100%, 60% 99%, 52% 100%, 44% 99%, 36% 100%, 28% 99%, 20% 100%, 12% 99%, 4% 100%, 0 99%); }
+.receipt { border-bottom: 1px dashed #bbb; padding: 4px 0; }
+.receipt .when { float: right; opacity: .7; }
+
+/* R13: reduced motion makes lifts, flips, slides and dice instant. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

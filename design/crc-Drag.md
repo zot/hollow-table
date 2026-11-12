@@ -8,8 +8,9 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - NEAR_PX: how close to a pool a carried chip or card must come for the pool to widen.
 
 ## Does
-- lift(thing, pointer): a lift shadow; Moves.hold; for a piece on the table, Moves.send while
-  carrying.
+- start(rid, press, move): lifts a piece, with what's pinned to it if it's a card: a lift shadow;
+  Moves.hold; Moves.drag while carrying; Moves.drop and Moves.release at the drop. (Prototype 9.4.1
+  moves paper and pins it; the other drop targets below land with their views.)
 - carry(pointer): moves it; widens the pool it comes near (only that one); shows "→ graveyard" over
   the bar; marks a would-be opponent while aiming.
 - drop(pointer): resolves the target, in this order, then one Game.change:
@@ -17,7 +18,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
   - a chip or Influence card on a slot: into the slot (Pool.rollUp applied);
   - an Influence card on a drawer: home there (another character's drawer moves it);
   - anything on the bar: put away (bury, vanish, or go home, by kind);
-  - a sticky, text or image on a card: pinned;
+  - a sticky, text or image on a card: pinned, its offset from the card kept; dropped off one,
+    unpinned; a card carries what's pinned to it;
   - an Influence card anywhere else: home (a tap may stay loose);
   - the Base on a character: aim (RollRow);
   - otherwise: placed where dropped.

@@ -16,6 +16,7 @@ DOM a view of the records.
 - order: z from the records; peeking (an open used pile, an open pile) raises with a seat-only
   class, never by changing z.
 - toWorld(clientX, clientY): screen to table coordinates, for drops.
+- element(rid): the element drawing a piece, for Drag.
 
 ## Collaborators
 - Game, Seat, PieceView, PoolView, Drag
