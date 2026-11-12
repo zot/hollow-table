@@ -13,7 +13,8 @@ export type Roller = {
 };
 
 export type Seat = {
-  view: { x: number; y: number; zoom: number };
+  /** Pan and zoom; null until the table has been fitted once (a first visit, R271). */
+  view: { x: number; y: number; zoom: number } | null;
   roller: Roller | null;
   /** Who the GM is viewing as, or null for the GM's own view. */
   viewAs: string | null;
@@ -28,7 +29,7 @@ export const seatKey = (game: string, viewer: string) => `hollow.seat.${game}.${
 
 export function fresh(): Seat {
   return {
-    view: { x: 0, y: 0, zoom: 1 }, roller: null, viewAs: null, tapeUp: false,
+    view: null, roller: null, viewAs: null, tapeUp: false,
     boothill: { cur: 0, open: false }, open: { used: [], piles: [], slots: [], columns: [] },
   };
 }
@@ -44,7 +45,7 @@ export function load(storage: KeyValue, game: string, viewer: string): Seat {
   const base = fresh();
   return {
     ...base, ...saved,
-    view: { ...base.view, ...(isObject(saved.view) ? saved.view : {}) },
+    view: isObject(saved.view) ? { x: 0, y: 0, zoom: 1, ...saved.view } : null,
     boothill: { ...base.boothill, ...(isObject(saved.boothill) ? saved.boothill : {}) },
     open: { ...base.open, ...(isObject(saved.open) ? saved.open : {}) },
   } as Seat;

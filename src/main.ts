@@ -5,7 +5,8 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { ridOf, type Book, type Character } from './model/records.ts';
+import { ridOf, type Book, type Character, type Image, type PieceRecord } from './model/records.ts';
+import { placeOf } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
 import { Identity } from './net/identity.ts';
@@ -72,6 +73,12 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
     game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }), schedule: frame,
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
+    // R272: an image file dropped on the table: its bytes kept, an Image put on top where it fell.
+    addImage: (file, at) => void blobs.add(file).then(({ blob, w: iw, h }) => {
+      const oid = mint()(), z = 1 + Math.max(0, ...game.all().map(([, r]) => ('kind' in r ? placeOf(r as PieceRecord) : null)?.z ?? 0));
+      const image: Image = { kind: 'image', oid, place: { ...at, z, tilt: 0 }, blob, w: iw, h };
+      game.change(wr => wr.put(ridOf(oid), image));
+    }),
     opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); redraw(); },
     drag: (rid, down, move) => drag?.start(rid, down, move),
     // R259: your own Resources only; anyone's Motivations and Damage.

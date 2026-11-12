@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260, R273
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -7,6 +7,7 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - held: the piece (or supply, glyph, Base, tape, burial) in hand, its grab offset.
 
 ## Does
+- carrying a card lifts its pinned pieces with it; they stay drawn over it (`pinned` and `lifted`, R273).
 - start(rid, press, move): lifts a piece, with what's pinned to it if it's a card: a lift shadow;
   Moves.hold; Moves.drag while carrying; Moves.drop and Moves.release at the drop. Lifting leaves
   any writing and clears the text selection (R223). (Prototype 9.4.1

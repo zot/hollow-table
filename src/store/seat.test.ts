@@ -41,3 +41,14 @@ test('the seat on its own', () => {
   const aimed = prune(gm, rid => rid !== ridOf(SAM), 1);
   assert.deepEqual([aimed.roller?.pool, aimed.roller?.opponent], [DEVREUX, null]);
 });
+
+test('a first visit has no view', () => {
+  // R271: the table fits itself until a view is kept; a kept view comes back.
+  const storage = memoryStorage();
+  assert.equal(fresh().view, null);
+  assert.equal(load(storage, 'g', 'GM').view, null);
+  save(storage, 'g', 'GM', { ...fresh(), view: { x: 3, y: 4, zoom: 0.5 } });
+  assert.deepEqual(load(storage, 'g', 'GM').view, { x: 3, y: 4, zoom: 0.5 });
+  storage.setItem(seatKey('g', 'P'), JSON.stringify({ view: { zoom: 2 } }));
+  assert.deepEqual(load(storage, 'g', 'P').view, { x: 0, y: 0, zoom: 2 }, 'a partial view is filled in');
+});

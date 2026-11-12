@@ -201,15 +201,6 @@ var Game = class {
   }
 };
 
-// src/rules/ownership.ts
-function mayChange(viewer, before2, after) {
-  if (viewer?.gm) return true;
-  if (!viewer) return false;
-  const mine = (c) => c.owner === viewer.name || c.owner === OPEN;
-  if (before2 && !mine(before2)) return false;
-  return !after || mine(after);
-}
-
 // src/rules/visibility.ts
 function canSee(viewer, character2) {
   return !!viewer?.gm || character2.owner === OPEN || !!viewer && character2.owner === viewer.name;
@@ -247,6 +238,1070 @@ function redactYards(y, viewer, chars) {
       })
     }))
   };
+}
+
+// src/rules/readmarks.ts
+var MINUS = "-\u2212\u2013";
+var signed = (s) => Number(s.replace(/\s/g, "").replace(/[−–]/, "-"));
+function splitComma(s) {
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if (c === "," && depth === 0) return [s.slice(0, i), s.slice(i + 1)];
+  }
+  return null;
+}
+var BASE = new RegExp(`^\\s*([${MINUS}]?\\d+)(?:\\s|\\(|$)`);
+var DICE2 = new RegExp(`^\\s*(?:(\\d+)d)?\\s*([+${MINUS}]\\s*\\d+)?(?:\\s|\\(|$)`);
+function action(text) {
+  const colon = text.indexOf(":");
+  if (colon <= 0) return null;
+  const label = text.slice(0, colon).trim();
+  const parts = splitComma(text.slice(colon + 1));
+  if (!label || !parts) return null;
+  const b = BASE.exec(parts[0]), d = DICE2.exec(parts[1]);
+  if (!b || !d || d[1] === void 0 && d[2] === void 0) return null;
+  return { label, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0 };
+}
+var LEVEL_WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
+var LEVEL = `(${LEVEL_WORDS.join("|")}|\\d+)`;
+var INFLUENCE = new RegExp(`^(.*?)\\s*([+${MINUS}])\\s*${LEVEL}\\b(.*)$`, "is");
+function influence(text) {
+  const t = text.trim(), m = INFLUENCE.exec(t);
+  const name2 = m?.[1].trim();
+  if (m && name2) {
+    const w = m[3], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
+    return { name: name2, sign: m[2] === "+" ? 1 : -1, level: word ?? w };
+  }
+  return t ? { name: t, sign: null, level: null } : null;
+}
+var N = "(\\d+)";
+var DEF_ONE = new RegExp(`^${N}$`);
+var DEF_TWO = new RegExp(`^${N}\\s*/\\s*${N}$`);
+var DEF_NAMED = new RegExp(`^(mental|psych)\\s*${N}\\s*/\\s*(mental|psych)\\s*${N}$`, "i");
+function defend(text) {
+  const t = text.trim().replace(/^defend\s*:\s*/i, "");
+  let m = DEF_ONE.exec(t);
+  if (m) return { mental: Number(m[1]), psych: Number(m[1]) };
+  m = DEF_TWO.exec(t);
+  if (m) return { mental: Number(m[1]), psych: Number(m[2]) };
+  m = DEF_NAMED.exec(t);
+  if (m && m[1].toLowerCase() !== m[3].toLowerCase()) {
+    const v = { [m[1].toLowerCase()]: Number(m[2]), [m[3].toLowerCase()]: Number(m[4]) };
+    return { mental: v.mental, psych: v.psych };
+  }
+  return null;
+}
+function offer(line, heading2 = null) {
+  if (action(line)) return "act";
+  if (ATT_LINE.test(line)) return "att";
+  const r = influence(line);
+  if (r?.level && r.sign === 1 && heading2 && /^\s*resources\b/i.test(heading2)) return "res";
+  if (r?.level && heading2 && /^\s*motivations?\b/i.test(heading2)) return "mot";
+  return null;
+}
+var LEVELS = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
+var WORD_OF = ["0", "Min", "Sig", "Maj", "Ext", "Exq"];
+function levelsOf(r) {
+  if (!r.level) return 0;
+  if (/^\d+$/.test(r.level)) return Math.floor(Number(r.level) / 2);
+  return LEVELS[r.level] ?? 0;
+}
+function levelWord(levels) {
+  return WORD_OF[levels] ?? String(levels * 2);
+}
+var LEVEL_AT = new RegExp(`^(.*?[+${MINUS}]\\s*)${LEVEL}\\b(.*)$`, "is");
+function spend(text, by) {
+  const r = influence(text), m = LEVEL_AT.exec(text);
+  if (!r?.level || !m) return null;
+  const left2 = levelsOf(r) - by;
+  return left2 < 0 ? null : m[1] + levelWord(left2) + m[3];
+}
+var ADJUSTED = new RegExp(`\\s*\\((?:[+${MINUS}]\\s*)?${LEVEL}\\)\\s*$`, "i");
+function unadjusted(text) {
+  return text.replace(ADJUSTED, "");
+}
+function motiveLeft(text) {
+  const a = ADJUSTED.exec(text);
+  if (!a) return levelsOf(influence(text) ?? { name: "", sign: null, level: null });
+  const w = a[1], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
+  return levelsOf({ name: "", sign: null, level: word ?? w });
+}
+function adjust(text, by) {
+  const base = unadjusted(text), r = influence(base);
+  if (!r?.level) return null;
+  const left2 = motiveLeft(text) - by;
+  if (left2 < 0) return null;
+  if (left2 >= levelsOf(r)) return base;
+  if (!left2) return `${base} (0)`;
+  const sign2 = r.sign === -1 ? "-" : "+";
+  return `${base} (${sign2}${levelWord(left2)})`;
+}
+var ATT = new RegExp(`\\b([A-Z][a-z]{2})\\s*([+${MINUS}]?\\d+)\\b`, "g");
+var ATT_LINE = new RegExp(`^\\s*(?:[A-Z][a-z]{2}\\s*[+${MINUS}]?\\d+\\s*){2,}$`);
+function attributes(text) {
+  return Object.fromEntries([...text.matchAll(ATT)].map((m) => [m[1], signed(m[2])]));
+}
+
+// src/text/marks.ts
+var MARKS = ["act", "res", "mot", "att", "inf", "def", "head"];
+var TAG = new RegExp(`<(${MARKS.join("|")})>`, "g");
+function parseLine(src) {
+  const runs = [];
+  let from = 0;
+  TAG.lastIndex = 0;
+  for (let m = TAG.exec(src); m; m = TAG.exec(src)) {
+    const mark2 = m[1], close = `</${mark2}>`;
+    const start = m.index + m[0].length, end = src.indexOf(close, start);
+    if (end < 0) continue;
+    if (m.index > from) runs.push(src.slice(from, m.index));
+    runs.push({ mark: mark2, text: src.slice(start, end) });
+    from = end + close.length;
+    TAG.lastIndex = from;
+  }
+  if (from < src.length || runs.length === 0) runs.push(src.slice(from));
+  return runs;
+}
+function parse(source2) {
+  return source2.split("\n").map(parseLine);
+}
+var runSource = (r) => typeof r === "string" ? r : `<${r.mark}>${r.text}</${r.mark}>`;
+function serialize(lines) {
+  return lines.map((l) => l.map(runSource).join("")).join("\n");
+}
+function plain(line) {
+  return line.map((r) => typeof r === "string" ? r : r.text).join("");
+}
+function marks(lines, tag2) {
+  const out = [];
+  lines.forEach((l, line) => l.forEach((r, run2) => {
+    if (typeof r !== "string" && (!tag2 || r.mark === tag2)) out.push({ line, run: run2, mark: r.mark, text: r.text });
+  }));
+  return out;
+}
+var fits = (mark2, text) => !text.includes("\n") && !text.includes(`</${mark2}>`);
+function replaceLine(lines, i, line) {
+  return lines.map((l, j) => j === i ? line : l);
+}
+function setMark(lines, at3, text) {
+  const r = lines[at3.line]?.[at3.run];
+  if (!r || typeof r === "string" || !fits(r.mark, text)) return lines;
+  return replaceLine(lines, at3.line, lines[at3.line].map((x, k) => k === at3.run ? { mark: r.mark, text } : x));
+}
+function mark(lines, range, tag2) {
+  const r = lines[range.line]?.[range.run];
+  if (typeof r !== "string" || range.start < 0 || range.end > r.length || range.start >= range.end) return lines;
+  const text = r.slice(range.start, range.end);
+  if (!fits(tag2, text)) return lines;
+  const parts = [r.slice(0, range.start), { mark: tag2, text }, r.slice(range.end)].filter((x) => x !== "");
+  const line = lines[range.line];
+  return replaceLine(lines, range.line, [...line.slice(0, range.run), ...parts, ...line.slice(range.run + 1)]);
+}
+function unmark(lines, at3) {
+  const line = lines[at3.line], r = line?.[at3.run];
+  if (!line || !r || typeof r === "string") return lines;
+  const out = [];
+  line.forEach((x, k) => {
+    const run2 = k === at3.run ? r.text : x, last = out[out.length - 1];
+    if (typeof run2 === "string" && typeof last === "string") out[out.length - 1] = last + run2;
+    else out.push(run2);
+  });
+  return replaceLine(lines, at3.line, out);
+}
+function labelEnd(mark2, text) {
+  return mark2 === "act" || mark2 === "def" ? text.indexOf(":") + 1 : 0;
+}
+function render(lines, el3) {
+  const doc = el3.ownerDocument;
+  el3.replaceChildren(...lines.map((l) => {
+    const div = doc.createElement("div");
+    for (const r of l) {
+      if (typeof r === "string") {
+        div.append(r);
+        continue;
+      }
+      const span = doc.createElement("span"), cut = labelEnd(r.mark, r.text);
+      span.className = r.mark;
+      if (cut) {
+        const b = doc.createElement("b");
+        b.textContent = r.text.slice(0, cut);
+        span.append(b, r.text.slice(cut));
+      } else span.textContent = r.text;
+      div.append(span);
+    }
+    return div;
+  }));
+}
+var isMark = (s) => MARKS.includes(s);
+function read(el3) {
+  return scan(el3).lines;
+}
+function locate(el3, node, offset) {
+  return scan(el3, { node, offset }).pos;
+}
+function scan(el3, at3) {
+  const lines = [[]];
+  let pos = null;
+  const cur = () => lines[lines.length - 1];
+  const here = (extra = 0) => {
+    const line = cur(), last = line[line.length - 1];
+    return typeof last === "string" ? { line: lines.length - 1, run: line.length - 1, offset: last.length + extra } : { line: lines.length - 1, run: line.length, offset: extra };
+  };
+  const push = (r) => {
+    const line = cur(), last = line[line.length - 1];
+    if (typeof r === "string" && typeof last === "string") line[line.length - 1] = last + r;
+    else if (r !== "") line.push(r);
+  };
+  const walk = (n, top) => {
+    const kids = Array.from(n.childNodes);
+    kids.forEach((c, k) => {
+      if (c.nodeType === 1 && c.tagName === "DIV" && top && k > 0) lines.push([]);
+      if (at3?.node === n && at3.offset === k) pos ??= here();
+      if (c.nodeType === 3) {
+        if (at3?.node === c) pos = here(at3.offset);
+        return push(c.textContent ?? "");
+      }
+      if (c.nodeType !== 1) return;
+      const e = c, cls = e.className;
+      if (e.tagName === "BR") return void (k < kids.length - 1 && lines.push([]));
+      if (e.tagName === "SPAN" && isMark(cls) && fits(cls, e.textContent ?? "")) {
+        if (at3 && e.contains(at3.node)) pos = { line: lines.length - 1, run: cur().length, offset: offsetIn(e, at3.node, at3.offset) };
+        return push({ mark: cls, text: e.textContent ?? "" });
+      }
+      walk(e, false);
+    });
+    if (at3?.node === n && at3.offset >= kids.length) pos ??= here();
+  };
+  walk(el3, true);
+  return { lines: lines.map((l) => l.length ? l : [""]), pos };
+}
+function offsetIn(el3, node, offset) {
+  let n = 0;
+  const walk = (p) => {
+    for (const [k, c] of Array.from(p.childNodes).entries()) {
+      if (p === node && k === offset) return true;
+      if (c.nodeType !== 3) {
+        if (walk(c)) return true;
+      } else if (c === node) {
+        n += offset;
+        return true;
+      } else n += c.textContent?.length ?? 0;
+    }
+    return false;
+  };
+  walk(el3);
+  return n;
+}
+
+// src/rules/influence.ts
+var LEVELS2 = [
+  { word: "Min", name: "Minor", points: 2 },
+  { word: "Sig", name: "Significant", points: 4 },
+  { word: "Maj", name: "Major", points: 6 },
+  { word: "Ext", name: "Extreme", points: 8 },
+  { word: "Exq", name: "Exquisite", points: 10 }
+];
+var MIN = 2;
+var STEP = 2;
+function raiseChip(chip2) {
+  return { ...chip2, points: chip2.points === 1 ? 2 : chip2.points + STEP };
+}
+function lowerChip(chip2) {
+  if (chip2.points <= 1) return null;
+  if (chip2.points === 2) return { ...chip2, points: 1, rider: false };
+  return { ...chip2, points: chip2.points - STEP };
+}
+function raiseCard(card2) {
+  return { ...card2, points: card2.points + STEP };
+}
+function lowerCard(card2) {
+  return { ...card2, points: Math.max(MIN, card2.points - STEP) };
+}
+function levelName(points2) {
+  if (points2 < MIN) return String(points2);
+  return LEVELS2[Math.floor(points2 / STEP) - 1]?.word ?? String(points2);
+}
+var ROW_LEVELS = { mild: 1, min: 1, sig: 2, maj: 3 };
+function rowLevels(row2) {
+  return ROW_LEVELS[row2];
+}
+var ROOM = [
+  // level, mild, min, sig, absorb
+  [15, 2, 2, 2, 3],
+  [11, 2, 2, 1, 2],
+  [10, 1, 2, 1, 2],
+  [9, 1, 2, 1, 1],
+  [7, 0, 2, 1, 1],
+  [5, 0, 2, 0, 1],
+  [3, 0, 2, 0, 0],
+  [1, 0, 1, 0, 0]
+];
+function room(level) {
+  const [, mild, min2, sig, absorb2] = ROOM.find((r) => level >= r[0]) ?? [0, 0, 0, 0, 0];
+  return { boxes: { mild, min: min2, sig, maj: 0 }, absorb: absorb2 };
+}
+function columnRoom(char, d) {
+  const name2 = d === "injury" ? "Con" : "Wis";
+  for (const m of marks(parse(char.front), "att")) {
+    const level = attributes(m.text)[name2];
+    if (level !== void 0) return room(level);
+  }
+  return null;
+}
+
+// src/rules/tap.ts
+function inFront(char, name2) {
+  const lines = parse(char.front);
+  for (const m of [...marks(lines, "res"), ...marks(lines, "mot")]) {
+    const r = influence(m.text), mot = m.mark === "mot";
+    if (r?.name !== name2 || !r.level) continue;
+    const write = (n) => (mot ? adjust(m.text, n) : spend(m.text, n)) ?? m.text;
+    return {
+      char,
+      name: name2,
+      sign: r.sign ?? 1,
+      left: mot ? motiveLeft(m.text) : levelsOf(r),
+      ...mot && { mot: true },
+      spend: (n) => ({ ...char, front: serialize(setMark(lines, m, write(n))) })
+    };
+  }
+  return null;
+}
+var DAMAGE_SOURCE = new RegExp(`^(${DAMAGE.join("|")})/(${ROWS.join("|")})(?:#(\\d+))?$`);
+function inBack(char, rest) {
+  const m = DAMAGE_SOURCE.exec(rest);
+  if (!m) return null;
+  const damage3 = m[1], row2 = m[2], k = m[3] ? Number(m[3]) : 0;
+  const slot2 = char.back.damage[damage3][row2];
+  if (!slot2.name || k > 0 && !slot2.boxes[k - 1]) return null;
+  const spend2 = (n) => {
+    const spent = [...slot2.spent];
+    spent[k] = (spent[k] ?? 0) + n;
+    const column2 = { ...char.back.damage[damage3], [row2]: { ...slot2, spent: Array.from(spent, (x) => x ?? 0) } };
+    return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage3]: column2 } } };
+  };
+  return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
+}
+function mayTap(viewer, char, rest) {
+  const s = inBack(char, rest) ?? inFront(char, rest);
+  if (!s) return false;
+  return !!s.damage || !!s.mot || !!viewer?.gm || char.owner === viewer?.name;
+}
+function left(char, rest) {
+  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
+}
+function source(chars, id) {
+  const colon = id.indexOf(":");
+  if (colon < 0) return null;
+  const char = chars(id.slice(0, colon));
+  if (!char) return null;
+  const rest = id.slice(colon + 1);
+  return inBack(char, rest) ?? inFront(char, rest);
+}
+function tap(chars, src, where2, oid) {
+  const s = source(chars, src);
+  if (!s || s.left < 1) return null;
+  const card2 = {
+    kind: "influence",
+    oid,
+    home: s.char.oid,
+    where: where2,
+    n: 0,
+    name: s.name,
+    sign: s.sign,
+    points: MIN,
+    used: false,
+    crit: false,
+    tap: { ledger: { [src]: 1 }, current: src },
+    ...s.damage && { damage: s.damage },
+    ...s.mot && { mot: true }
+  };
+  return { card: card2, changed: [s.spend(1)] };
+}
+function feed(chars, card2, src, oid) {
+  if (!card2.tap) return null;
+  const id = src ?? card2.tap.current;
+  if (card2.used) return tap(chars, id, card2.where, oid);
+  const s = source(chars, id);
+  if (!s || s.left < 1 || s.damage !== card2.damage || !!s.mot !== !!card2.mot) return null;
+  const ledger = { ...card2.tap.ledger, [id]: (card2.tap.ledger[id] ?? 0) + 1 };
+  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
+}
+function unfeed(chars, card2) {
+  const id = card2.tap?.current;
+  if (!card2.tap || !id || !(card2.tap.ledger[id] > 0) || card2.points - STEP < MIN) return null;
+  const s = source(chars, id);
+  if (!s) return null;
+  const ledger = { ...card2.tap.ledger, [id]: card2.tap.ledger[id] - 1 };
+  return { card: { ...card2, points: card2.points - STEP, tap: { ledger, current: id } }, changed: [s.spend(-1)] };
+}
+function kill(chars, card2) {
+  if (!card2.tap || card2.used) return [];
+  const out = /* @__PURE__ */ new Map();
+  const now2 = (oid) => out.get(oid) ?? chars(oid);
+  for (const [id, n] of Object.entries(card2.tap.ledger)) {
+    const s = n > 0 ? source(now2, id) : null;
+    if (s) out.set(s.char.oid, s.spend(-n));
+  }
+  return [...out.values()];
+}
+
+// src/ui/gesture.ts
+var LONG_MS = 500;
+var DRAG_PX = 5;
+var real = { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (h) => clearTimeout(h) };
+var shifty = /* @__PURE__ */ new Set();
+var shifted = (e) => !!(e.shiftKey || e.ctrlKey || e.altKey);
+var clickOf = (h, e) => shifted(e) ? h.shift ?? h.click : h.click;
+function gesture(el3, h, timers = real) {
+  if (h.shift) shifty.add(el3);
+  let down = null, long = null, done2 = false;
+  const reset = () => {
+    if (long !== null) timers.clearTimeout(long);
+    long = null;
+    down = null;
+    stop();
+  };
+  const onMove = (ev) => {
+    const e = ev;
+    if (!down || done2 || e.pointerId !== down.pointerId) return;
+    if (Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < DRAG_PX) return;
+    done2 = true;
+    const d = down;
+    reset();
+    h.drag?.(d, e);
+  };
+  const onUp = (ev) => {
+    const e = ev;
+    if (!down || e.pointerId !== down.pointerId) return;
+    const d = down, fired = done2;
+    reset();
+    if (fired) return;
+    clickOf(h, d)?.(e);
+  };
+  const onCancel = () => reset();
+  const target = el3.ownerDocument ?? globalThis.document ?? el3;
+  const stop = () => {
+    target.removeEventListener("pointermove", onMove);
+    target.removeEventListener("pointerup", onUp);
+    target.removeEventListener("pointercancel", onCancel);
+  };
+  const onDown = (ev) => {
+    const e = ev;
+    if ((e.button ?? 0) !== 0) return;
+    if (h.drag) e.stopPropagation();
+    reset();
+    down = e;
+    done2 = false;
+    target.addEventListener("pointermove", onMove);
+    target.addEventListener("pointerup", onUp);
+    target.addEventListener("pointercancel", onCancel);
+    if (h.shift) {
+      long = timers.setTimeout(() => {
+        long = null;
+        if (!down || done2) return;
+        done2 = true;
+        h.shift(down);
+      }, LONG_MS);
+    }
+  };
+  const onKey = (ev) => {
+    const e = ev;
+    if (e.key !== "Enter" && e.key !== " ") return;
+    if (e.target !== el3) return;
+    e.preventDefault();
+    clickOf(h, e)?.(e);
+  };
+  el3.addEventListener("pointerdown", onDown);
+  if (h.click || h.shift) el3.addEventListener("keydown", onKey);
+  return () => {
+    reset();
+    shifty.delete(el3);
+    el3.removeEventListener("pointerdown", onDown);
+    el3.removeEventListener("keydown", onKey);
+  };
+}
+function paced(schedule, apply3) {
+  let pending = null;
+  const pass = () => {
+    if (!pending) return;
+    const { target } = pending;
+    pending = null;
+    apply3(target);
+  };
+  return {
+    to(target) {
+      if (!pending) schedule(pass);
+      pending = { target };
+    },
+    flush: pass,
+    cancel() {
+      pending = null;
+    }
+  };
+}
+
+// src/ui/pens.ts
+var PENS = [
+  { mark: "act", word: "Action" },
+  { mark: "res", word: "Resource" },
+  { mark: "mot", word: "Motivation" },
+  { mark: "att", word: "Attributes" },
+  { mark: "inf", word: "Influence" },
+  { mark: "def", word: "Defend" },
+  { mark: "head", word: "Heading" }
+];
+function before(a, b) {
+  if (a.line !== b.line) return a.line < b.line;
+  if (a.run !== b.run) return a.run < b.run;
+  return a.offset <= b.offset;
+}
+function apply(lines, a, b, tag2) {
+  const [from, to] = before(a, b) ? [a, b] : [b, a];
+  for (const p of [from, to]) {
+    const r2 = lines[p.line]?.[p.run];
+    if (r2 && typeof r2 !== "string") return unmark(lines, p);
+  }
+  const line = lines[from.line] ?? [];
+  if (from.line === to.line && from.run === to.run && from.offset === to.offset) {
+    const r2 = line[from.run], prev = line[from.run - 1], next = line[from.run + 1];
+    if (from.offset === 0 && prev && typeof prev !== "string") return unmark(lines, { line: from.line, run: from.run - 1 });
+    if (typeof r2 === "string" && from.offset === r2.length && next && typeof next !== "string") return unmark(lines, { line: from.line, run: from.run + 1 });
+  }
+  if (from.line !== to.line || from.run !== to.run) return lines;
+  const r = line[from.run];
+  if (typeof r !== "string") return lines;
+  if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag2);
+  if (tag2 === "res" || tag2 === "mot") {
+    const each = entries(r, tag2);
+    if (each) return replaceRun(lines, from.line, from.run, each);
+  }
+  const start = r.length - r.trimStart().length, end = r.trimEnd().length;
+  return mark(lines, { line: from.line, run: from.run, start, end }, tag2);
+}
+function entries(run2, tag2 = "res") {
+  const parts = run2.split(",");
+  if (!parts.every((p) => {
+    const r = influence(p);
+    return !!r?.level && (tag2 === "mot" || r.sign === 1);
+  })) return null;
+  const out = [];
+  const plainRun = (s) => {
+    if (!s) return;
+    const last = out[out.length - 1];
+    if (typeof last === "string") out[out.length - 1] = last + s;
+    else out.push(s);
+  };
+  parts.forEach((p, k) => {
+    if (k > 0) plainRun(",");
+    const t = p.trim(), at3 = p.indexOf(t);
+    plainRun(p.slice(0, at3));
+    out.push({ mark: tag2, text: t });
+    plainRun(p.slice(at3 + t.length));
+  });
+  return out;
+}
+function replaceRun(lines, line, run2, runs) {
+  return lines.map((l, i) => i === line ? [...l.slice(0, run2), ...runs, ...l.slice(run2 + 1)] : l);
+}
+function heading(lines, line) {
+  for (let i = line - 1; i >= 0; i--) {
+    const h = lines[i].find((r) => typeof r !== "string" && r.mark === "head");
+    if (h && typeof h !== "string") return h.text;
+  }
+  return null;
+}
+function offered(lines, line) {
+  const l = lines[line];
+  if (!l || l.some((r) => typeof r !== "string")) return null;
+  const text = plain(l).trim();
+  return text ? offer(text, heading(lines, line)) : null;
+}
+function places(count, k, at3, step) {
+  let y = 0;
+  return Array.from({ length: count }, (_, i) => {
+    if (i === k) return at3;
+    if (y + step > at3 && y < at3 + step) y = at3 + step;
+    const here = y;
+    y += step;
+    return here;
+  });
+}
+function selection(t) {
+  const sel = t.ownerDocument.getSelection();
+  if (!sel?.anchorNode || !sel.focusNode) return null;
+  const a = locate(t, sel.anchorNode, sel.anchorOffset), b = locate(t, sel.focusNode, sel.focusOffset);
+  return a && b ? [a, b] : null;
+}
+function caretAt(t, line) {
+  const doc = t.ownerDocument, div = t.children[line] ?? t.lastElementChild;
+  t.focus();
+  if (!div) return;
+  const range = doc.createRange();
+  range.selectNodeContents(div);
+  range.collapse(false);
+  const sel = doc.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+function tray(piece2) {
+  const doc = piece2.ownerDocument;
+  const box2 = doc.createElement("div");
+  box2.className = "pens";
+  let last = null;
+  const area = (n) => (n?.nodeType === 1 ? n : n?.parentElement)?.closest(".writes") ?? null;
+  const pens = PENS.map((p) => {
+    const b = doc.createElement("button");
+    b.className = `pen pen-${p.mark}`;
+    b.textContent = p.word;
+    b.setAttribute("aria-label", `${p.word} pen`);
+    b.dataset.mark = p.mark;
+    b.addEventListener("mousedown", (ev) => ev.preventDefault());
+    b.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    b.addEventListener("click", () => use(b, p.mark));
+    box2.append(b);
+    return b;
+  });
+  function use(b, tag2) {
+    const t = last;
+    const ends = t && selection(t);
+    if (!t || !ends) return shake(b);
+    const lines = read(t), out = apply(lines, ends[0], ends[1], tag2);
+    if (out === lines) return shake(b);
+    render(out, t);
+    t.dispatchEvent(new Event("input", { bubbles: true }));
+    caretAt(t, Math.min(ends[0].line, ends[1].line));
+    raise();
+  }
+  function shake(b) {
+    b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
+  }
+  function raise() {
+    const t = last, ends = t && t.contains(doc.getSelection()?.anchorNode ?? null) ? selection(t) : null;
+    let k = -1, div;
+    if (t && ends) {
+      const line = ends[1].line, tag2 = offered(read(t), line);
+      k = pens.findIndex((p) => p.dataset.mark === tag2);
+      if (k >= 0) div = t.children[line];
+    }
+    pens.forEach((p, i) => p.classList.toggle("offered", i === k && !!div));
+    if (!div) {
+      for (const p of pens) p.style.removeProperty("--dy");
+      return;
+    }
+    const scale = piece2.getBoundingClientRect().height / piece2.offsetHeight || 1;
+    const at3 = (div.getBoundingClientRect().top - box2.getBoundingClientRect().top) / scale;
+    const step = pens[1].offsetTop - pens[0].offsetTop;
+    places(pens.length, k, at3, step).forEach((y, i) => pens[i].style.setProperty("--dy", `${y - pens[i].offsetTop}px`));
+  }
+  piece2.addEventListener("focusin", (ev) => {
+    const t = area(ev.target);
+    if (t) {
+      last = t;
+      raise();
+    }
+  });
+  piece2.addEventListener("input", raise);
+  piece2.addEventListener("keyup", raise);
+  piece2.addEventListener("mouseup", raise);
+  return box2;
+}
+
+// src/ui/receipt.ts
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var two = (n) => String(n).padStart(2, "0");
+function when(at3) {
+  const d = new Date(at3);
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
+}
+var DIE = { W: "White", G: "Green", R: "Red", B: "Blue", Y: "Yellow" };
+var CRIT = { max: "maximize", dbl: "double" };
+function receiptEl(doc, r) {
+  const el3 = doc.createElement("div");
+  el3.className = "receipt";
+  el3.dataset.id = r.id;
+  const line = (text, cls) => {
+    const div = doc.createElement("div");
+    if (cls) div.className = cls;
+    div.textContent = text;
+    el3.append(div);
+  };
+  const head = doc.createElement("div");
+  const time = doc.createElement("span");
+  time.className = "when";
+  time.textContent = when(r.at);
+  head.append(time, `${r.title}${r.ok ? " \u2713" : ""}`);
+  el3.append(head);
+  if (r.outcome === "missing") return el3;
+  if (r.priv) line("Private: not shown to the table");
+  if (r.by) line(`rolled by ${r.by}`);
+  if (r.influence !== void 0) line(`Total Influence ${r.influence}${r.base !== void 0 ? ` (base ${r.base})` : ""}`);
+  if (r.vs) line(`vs ${r.vs}`);
+  if (r.row) line(`row ${r.row}`);
+  line(r.dice.map((d) => `${DIE[d.c]} ${d.v}${d.dropped ? " (dropped)" : ""}${d.added ? " +" : ""}`).join(", "));
+  line(r.resolution);
+  if (r.crit) {
+    for (const k of ["max", "dbl"]) {
+      const chosen = r.crit.chosen === k;
+      if (r.crit.locked && !chosen) continue;
+      let cls = "other";
+      if (chosen) cls = r.crit.locked ? "chosen punched" : "chosen";
+      line(`${CRIT[k]}: ${r.crit[k]}`, cls);
+    }
+  }
+  line(r.level);
+  line(r.outcome, "outcome");
+  return el3;
+}
+
+// src/ui/piece.ts
+var CLASS = { text: "loose", character: "card" };
+var LEVEL2 = { mild: "Mild", min: "Min", sig: "Sig", maj: "Maj" };
+var COLUMN = {
+  bias: { name: "Biases", mark: "bias" },
+  affliction: { name: "Afflictions", mark: "aff" },
+  injury: { name: "Injuries", mark: "inj" }
+};
+function tilt(oid) {
+  let h = 0;
+  for (const c of oid) h = h * 31 + c.charCodeAt(0) | 0;
+  return `${((h >>> 0) % 13 - 6) * 0.25}deg`;
+}
+var el = (doc, tag2, cls, text) => {
+  const e = doc.createElement(tag2);
+  if (cls) e.className = cls;
+  if (text !== void 0) e.textContent = text;
+  return e;
+};
+function writable(doc, cls, source2, save2) {
+  const t = el(doc, "div", `${cls} writes`);
+  t.contentEditable = "true";
+  t.spellcheck = false;
+  render(parse(source2), t);
+  t.dataset.source = source2;
+  t.addEventListener("input", () => {
+    const s = serialize(read(t));
+    t.dataset.source = s;
+    save2(s);
+  });
+  return t;
+}
+var RULE_PX = 26;
+var RULES = 12;
+function ruled(doc, text) {
+  const NS = "http://www.w3.org/2000/svg", svg = doc.createElementNS(NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  for (let k = 0; k < RULES; k++) {
+    const line = doc.createElementNS(NS, "line"), y = String(RULE_PX * (k + 1) - 0.5);
+    for (const [a, v] of [["x1", "0"], ["x2", "100%"], ["y1", y], ["y2", y]]) line.setAttribute(a, v);
+    svg.append(line);
+  }
+  text.addEventListener("scroll", () => {
+    svg.style.transform = `translateY(${-(text.scrollTop % RULE_PX)}px)`;
+  });
+  const wrap = el(doc, "div", "ruled");
+  wrap.append(svg, text);
+  return wrap;
+}
+function rewrite(t, source2) {
+  if (t.dataset.source === source2) return;
+  if (t.ownerDocument.activeElement && t.contains(t.ownerDocument.activeElement)) return;
+  render(parse(source2), t);
+  t.dataset.source = source2;
+}
+function change(w, rid, fn) {
+  const cur = w.game.get(rid);
+  if (cur) w.game.change((wr) => wr.put(rid, fn(cur)));
+}
+function placeOf(r) {
+  if (r.kind === "character") return r.card;
+  if ("place" in r) return r.place;
+  return null;
+}
+function draw(r, old, w) {
+  const at3 = placeOf(r);
+  if (!at3) return null;
+  const doc = old?.ownerDocument ?? document;
+  const e = old?.dataset.kind === r.kind ? old : make(doc, r, w);
+  e.style.left = `${at3.x}px`;
+  e.style.top = `${at3.y}px`;
+  e.style.zIndex = String(at3.z);
+  e.style.setProperty("--tilt", tilt(r.oid));
+  update(e, r, w);
+  return e;
+}
+function make(doc, r, w) {
+  const rid = ridOf(r.oid);
+  const e = el(doc, "div", `obj ${CLASS[r.kind] ?? r.kind}`);
+  e.dataset.kind = r.kind;
+  e.dataset.rid = rid;
+  e.addEventListener("pointerdown", (ev) => {
+    const t = ev.target;
+    if (t.isContentEditable && t.ownerDocument.activeElement === t.closest("[contenteditable]")) ev.stopPropagation();
+  }, true);
+  gesture(e, { drag: (down, move) => {
+    doc.activeElement?.blur?.();
+    w.drag(rid, down, move);
+  } });
+  switch (r.kind) {
+    case "character": {
+      const flipper = el(doc, "div", "flipper");
+      const front = el(doc, "div", "face front"), back3 = el(doc, "div", "face back");
+      front.append(writable(doc, "text", r.front, (s) => change(w, rid, (c) => ({ ...c, front: s }))));
+      back3.append(
+        el(doc, "div", "damage"),
+        el(doc, "div", "notes-hd", "Notes"),
+        ruled(doc, writable(doc, "notes", r.back.notes, (s) => change(w, rid, (c) => ({ ...c, back: { ...c.back, notes: s } }))))
+      );
+      flipper.append(front, back3);
+      const flip = el(doc, "button", "flip");
+      flip.setAttribute("aria-label", "Flip the card");
+      gesture(flip, { click: () => change(w, rid, (c) => ({ ...c, flipped: !c.flipped })) });
+      e.append(flipper, flip, tray(e));
+      break;
+    }
+    case "sticky":
+    case "text":
+      e.append(writable(doc, "text", r.text, (s) => change(w, rid, (c) => ({ ...c, text: s }))), tray(e));
+      break;
+    case "image": {
+      const img = doc.createElement("img");
+      img.alt = "";
+      e.append(img);
+      break;
+    }
+    case "reference":
+      e.append(...reference(doc, r));
+      break;
+    case "tornroll":
+      break;
+  }
+  return e;
+}
+function update(e, r, w) {
+  switch (r.kind) {
+    case "character": {
+      if (e.classList.contains("flipped") !== r.flipped) turn(e, r.flipped);
+      e.classList.toggle("secret", !canSee(w.viewer, r));
+      const front = e.querySelector(".front > .text");
+      rewrite(front, r.front);
+      frontGlyphs(front, r, w);
+      rewrite(e.querySelector(".back .notes"), r.back.notes);
+      damage2(e.querySelector(".damage"), r, w);
+      dry(e, r);
+      break;
+    }
+    case "sticky":
+    case "text":
+      rewrite(e.querySelector(".text"), r.text);
+      if (r.kind === "sticky") e.classList.toggle("big", !!r.big);
+      break;
+    case "image":
+      image(e, r, w);
+      break;
+    case "tornroll":
+      tornroll(e, r);
+      break;
+    case "reference":
+      break;
+  }
+}
+var TURN_MS = 125;
+function turn(e, flipped) {
+  const flipper = e.querySelector(".flipper");
+  const reduce = e.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (!e.isConnected || reduce || !flipper.animate) {
+    e.classList.toggle("flipped", flipped);
+    return;
+  }
+  flipper.getAnimations().forEach((a) => a.cancel());
+  const half = (from, to) => flipper.animate([{ transform: from }, { transform: to }], { duration: TURN_MS, easing: "ease-in-out" });
+  half("scaleX(1)", "scaleX(0)").onfinish = () => {
+    e.classList.toggle("flipped", flipped);
+    half("scaleX(0)", "scaleX(1)");
+  };
+}
+function image(e, r, w) {
+  const img = e.querySelector("img");
+  if (e.dataset.blob === r.blob) {
+    const why3 = w.missing(r.blob);
+    e.classList.toggle("missing", !!why3 && !img.src);
+    if (why3 && !img.src) e.title = why3;
+    if (!img.src) void show();
+    return;
+  }
+  if (e.dataset.blob) w.imageGone(e.dataset.blob);
+  e.dataset.blob = r.blob;
+  img.removeAttribute("src");
+  e.classList.add("fetching");
+  void show();
+  async function show() {
+    const url = await w.imageUrl(r.blob);
+    if (e.dataset.blob !== r.blob) return;
+    if (url) {
+      img.src = url;
+      e.classList.remove("fetching", "missing");
+      e.removeAttribute("title");
+    } else {
+      const why3 = w.missing(r.blob);
+      e.classList.toggle("missing", !!why3);
+      if (why3) e.title = why3;
+    }
+  }
+}
+function tornroll(e, r) {
+  const key = r.receipts.map((x) => x.id).join(",");
+  if (e.dataset.receipts === key) return;
+  e.dataset.receipts = key;
+  e.replaceChildren(...r.receipts.map((x) => receiptEl(e.ownerDocument, x)));
+}
+var filled = (s) => !!s.name || s.boxes.some((b) => b);
+function frontOrder(front) {
+  const k = front ? DAMAGE.indexOf(front) : 0;
+  return [...DAMAGE.slice(k), ...DAMAGE.slice(0, k)];
+}
+function damage2(box2, c, w) {
+  const doc = box2.ownerDocument, opened = w.opened();
+  const put2 = (fn) => change(w, ridOf(c.oid), fn);
+  const slotAt = (ch, d, row2, s) => ({ ...ch, back: { ...ch.back, damage: { ...ch.back.damage, [d]: { ...ch.back.damage[d], [row2]: { ...ch.back.damage[d][row2], ...s } } } } });
+  if (!box2.children.length) {
+    for (const d of DAMAGE) {
+      const col = el(doc, "div", `column col-${d}`);
+      col.dataset.damage = d;
+      const hd = el(doc, "div", "hd");
+      hd.append(`${COLUMN[d].name} `, el(doc, "span", "absorb"));
+      col.append(hd);
+      gesture(hd, { click: () => {
+        const mine = `${c.oid}:`;
+        w.setOpened(new Set([...w.opened()].filter((k) => !k.startsWith(mine)).concat(mine + d)));
+      } });
+      for (const row2 of ROWS) {
+        const line = el(doc, "div", "slotline");
+        line.dataset.row = row2;
+        const boxes = el(doc, "span", "boxes"), name2 = el(doc, "span", `name ${COLUMN[d].mark}`);
+        name2.contentEditable = "true";
+        name2.spellcheck = false;
+        name2.addEventListener("input", () => put2((ch) => slotAt(ch, d, row2, { name: name2.textContent ?? "" })));
+        line.append(boxes, el(doc, "span", "lvl", LEVEL2[row2]), name2, el(doc, "span", "spent"));
+        col.append(line);
+      }
+      box2.append(col);
+    }
+  }
+  const order = frontOrder(DAMAGE.find((d) => opened.has(`${c.oid}:${d}`)) ?? null);
+  for (const col of box2.children) {
+    const d = col.dataset.damage, slots = c.back.damage[d], room2 = columnRoom(c, d), absorb2 = room2?.absorb ?? 0;
+    const empty2 = !ROWS.some((r) => filled(slots[r])) && !absorb2;
+    col.classList.toggle("empty", empty2);
+    col.classList.toggle("open", opened.has(`${c.oid}:${d}`));
+    col.style.order = String(order.indexOf(d));
+    col.querySelector(".absorb").textContent = absorb2 ? `(absorb ${absorb2})` : "";
+    for (const line of col.querySelectorAll(".slotline")) {
+      const row2 = line.dataset.row, s = slots[row2];
+      const name2 = line.querySelector(".name");
+      if (doc.activeElement !== name2 && name2.textContent !== s.name) name2.textContent = s.name;
+      const spent = s.spent.reduce((a, b) => a + b, 0);
+      line.querySelector(".spent").textContent = spent ? `\u2212${spent}` : "";
+      slotGlyphs(line, s, `${c.oid}:${d}/${row2}`, w);
+      const boxes = line.querySelector(".boxes");
+      const count = room2 ? Math.max(room2.boxes[row2], s.boxes.lastIndexOf(true) + 1) : s.boxes.length;
+      if (boxes.children.length !== count) {
+        boxes.replaceChildren(...Array.from({ length: count }, (_, k) => {
+          const b = el(doc, "button", "box");
+          b.setAttribute("aria-label", `Slot ${k + 2}`);
+          gesture(b, { click: () => put2((ch) => {
+            const cur = ch.back.damage[d][row2];
+            if (!cur.name) {
+              b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
+              return ch;
+            }
+            const next = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_2, i) => !!cur.boxes[i]);
+            next[k] = !next[k];
+            return slotAt(ch, d, row2, { boxes: next });
+          }) });
+          return b;
+        }));
+      }
+      [...boxes.children].forEach((b, k) => b.classList.toggle("on", !!s.boxes[k]));
+    }
+  }
+}
+function glyph(doc, source2, w) {
+  const g = el(doc, "span", "glyph");
+  g.contentEditable = "false";
+  g.dataset.source = source2;
+  g.title = "Drag to tap";
+  g.draggable = false;
+  g.addEventListener("pointerdown", (ev) => ev.preventDefault());
+  g.addEventListener("dragstart", (ev) => ev.preventDefault());
+  gesture(g, { drag: (d, m) => {
+    if (!w.dragGlyph(source2, d, m)) g.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+  } });
+  return g;
+}
+function dry(e, c) {
+  for (const g of e.querySelectorAll(".glyph")) {
+    const s = g.dataset.source ?? "";
+    g.classList.toggle("dry", left(c, s.slice(s.indexOf(":") + 1)) < 1);
+  }
+}
+function frontGlyphs(text, c, w) {
+  const doc = text.ownerDocument;
+  if (doc.activeElement && text.contains(doc.activeElement)) return;
+  for (const g of text.querySelectorAll(".glyph")) g.remove();
+  for (const span of text.querySelectorAll("span.res, span.mot")) {
+    const name2 = influence(span.textContent ?? "")?.name;
+    if (name2) span.before(glyph(doc, `${c.oid}:${name2}`, w));
+  }
+}
+function slotGlyphs(line, s, base, w) {
+  const doc = line.ownerDocument, name2 = line.querySelector(".name");
+  const want = s.name ? [base, ...s.boxes.flatMap((on, k) => on ? [`${base}#${k + 1}`] : [])] : [];
+  const have = [...line.querySelectorAll(".glyph")].map((g) => g.dataset.source);
+  if (want.join() === have.join()) return;
+  for (const g of line.querySelectorAll(".glyph")) g.remove();
+  for (const source2 of want) name2.before(glyph(doc, source2, w));
+}
+function reference(doc, r) {
+  const p = (bold, rest = "") => {
+    const e = el(doc, "p");
+    e.append(el(doc, "b", "", bold), rest);
+    return e;
+  };
+  const hd = (left2, right) => {
+    const e = el(doc, "div", "rhd");
+    e.append(el(doc, "span", "", left2), el(doc, "em", "", right));
+    return e;
+  };
+  if (r.which === "actions") {
+    return [
+      hd("SKILL USE", "ACTIONS"),
+      p("CREATE INFLUENCE"),
+      p("ATTACK", ": Create a Bias or Conviction"),
+      p("INFER", ": Find out an NPC's Skills, Resources, Motivations, Opinions, or information on another character"),
+      p("IMPRESS", ": change an NPC's Opinions"),
+      p("REQUEST", ": get an NPC to transfer a Resource or perform a task")
+    ];
+  }
+  return [
+    hd("How to play the table", "put me away when known"),
+    p("Move", ": drag anything; drag empty table to pan, the wheel zooms."),
+    p("Write", ": click paper to write; the pens mark what the table should read."),
+    p("Shift-click", " (or press and hold) lowers, opens and deletes."),
+    p("Put away", ": drop it on the bar; Boot Hill keeps what was buried."),
+    p("Roll", ": the die by a pool's name docks your dice there.")
+  ];
+}
+
+// src/rules/ownership.ts
+function mayChange(viewer, before2, after) {
+  if (viewer?.gm) return true;
+  if (!viewer) return false;
+  const mine = (c) => c.owner === viewer.name || c.owner === OPEN;
+  if (before2 && !mine(before2)) return false;
+  return !after || mine(after);
 }
 
 // src/net/claims.ts
@@ -304,10 +1359,10 @@ var BODIES = {
 };
 var sealedRoll = (v) => fields({ re: seq, receipt })(v) && fewDice(v.receipt);
 var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) });
-var change = (v) => fields({ rid: str(CAPS.id), rec: () => true })(v) && check(v.rid, v.rec);
-var editBody = fields({ s: seq, base: seq, puts: list(change, LIMITS.batch), dels: list(str(CAPS.id), LIMITS.batch) });
+var change2 = (v) => fields({ rid: str(CAPS.id), rec: () => true })(v) && check(v.rid, v.rec);
+var editBody = fields({ s: seq, base: seq, puts: list(change2, LIMITS.batch), dels: list(str(CAPS.id), LIMITS.batch) });
 var header = fields({ v: oneOf(VERSION), kind: oneOf(...KINDS), tab, at: num(0, 1e15), body: () => true });
-function make(kind, from, body, at3 = Date.now()) {
+function make2(kind, from, body, at3 = Date.now()) {
   return { v: VERSION, kind, tab: from, at: at3, body };
 }
 function check2(raw) {
@@ -1116,11 +2171,11 @@ function invite(base, room2, gm) {
   u.searchParams.set("gm", gm);
   return u.toString();
 }
-var ROOM = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/;
+var ROOM2 = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/;
 var BROWSER = /^[\w-]{20}$/;
 function fromUrl(search) {
   const q = new URLSearchParams(search), room2 = q.get("room"), gm = q.get("gm");
-  return room2 && gm && ROOM.test(room2) && BROWSER.test(gm) ? { room: room2, gm } : null;
+  return room2 && gm && ROOM2.test(room2) && BROWSER.test(gm) ? { room: room2, gm } : null;
 }
 var Presence = class {
   /** tab → who is there. */
@@ -1199,7 +2254,7 @@ function crit(white, blue) {
   return white === 6 && blue >= 5;
 }
 var NAMES = [[20, "Exquisite"], [15, "Extreme"], [10, "Major"], [5, "Significant"], [1, "Minor"]];
-function levelName(result) {
+function levelName2(result) {
   return NAMES.find(([from]) => result >= from)?.[1] ?? "no noticeable effect";
 }
 function resolve(row2, white, other) {
@@ -1239,11 +2294,11 @@ function roll2(row2, yellows, bonus2, rng) {
   }
   const sum2 = result.reduce((a, d) => a + d.v, 0);
   const plain2 = Math.max(0, sum2 + (outcome === "failure" ? 0 : bonus2));
-  if (!isCrit) return { dice, resolved, outcome, result: plain2, level: levelName(plain2) };
+  if (!isCrit) return { dice, resolved, outcome, result: plain2, level: levelName2(plain2) };
   const max = Math.max(0, result.length * 6 + bonus2), dbl = plain2 * 2;
   const chosen = max >= dbl ? "max" : "dbl";
   const value2 = Math.max(max, dbl);
-  return { dice, resolved, outcome, result: value2, level: levelName(value2), crit: { max, dbl, chosen, locked: false } };
+  return { dice, resolved, outcome, result: value2, level: levelName2(value2), crit: { max, dbl, chosen, locked: false } };
 }
 
 // src/rules/odds.ts
@@ -1278,317 +2333,6 @@ function bonus(action2, bonusPool, hand = { yellows: 0, bonus: 0 }) {
     } else b = t;
   }
   return { yellows: Math.max(0, yellows + hand.yellows), bonus: b + hand.bonus };
-}
-
-// src/text/marks.ts
-var MARKS = ["act", "res", "mot", "att", "inf", "def", "head"];
-var TAG = new RegExp(`<(${MARKS.join("|")})>`, "g");
-function parseLine(src) {
-  const runs = [];
-  let from = 0;
-  TAG.lastIndex = 0;
-  for (let m = TAG.exec(src); m; m = TAG.exec(src)) {
-    const mark2 = m[1], close = `</${mark2}>`;
-    const start = m.index + m[0].length, end = src.indexOf(close, start);
-    if (end < 0) continue;
-    if (m.index > from) runs.push(src.slice(from, m.index));
-    runs.push({ mark: mark2, text: src.slice(start, end) });
-    from = end + close.length;
-    TAG.lastIndex = from;
-  }
-  if (from < src.length || runs.length === 0) runs.push(src.slice(from));
-  return runs;
-}
-function parse(source2) {
-  return source2.split("\n").map(parseLine);
-}
-var runSource = (r) => typeof r === "string" ? r : `<${r.mark}>${r.text}</${r.mark}>`;
-function serialize(lines) {
-  return lines.map((l) => l.map(runSource).join("")).join("\n");
-}
-function plain(line) {
-  return line.map((r) => typeof r === "string" ? r : r.text).join("");
-}
-function marks(lines, tag2) {
-  const out = [];
-  lines.forEach((l, line) => l.forEach((r, run2) => {
-    if (typeof r !== "string" && (!tag2 || r.mark === tag2)) out.push({ line, run: run2, mark: r.mark, text: r.text });
-  }));
-  return out;
-}
-var fits = (mark2, text) => !text.includes("\n") && !text.includes(`</${mark2}>`);
-function replaceLine(lines, i, line) {
-  return lines.map((l, j) => j === i ? line : l);
-}
-function setMark(lines, at3, text) {
-  const r = lines[at3.line]?.[at3.run];
-  if (!r || typeof r === "string" || !fits(r.mark, text)) return lines;
-  return replaceLine(lines, at3.line, lines[at3.line].map((x, k) => k === at3.run ? { mark: r.mark, text } : x));
-}
-function mark(lines, range, tag2) {
-  const r = lines[range.line]?.[range.run];
-  if (typeof r !== "string" || range.start < 0 || range.end > r.length || range.start >= range.end) return lines;
-  const text = r.slice(range.start, range.end);
-  if (!fits(tag2, text)) return lines;
-  const parts = [r.slice(0, range.start), { mark: tag2, text }, r.slice(range.end)].filter((x) => x !== "");
-  const line = lines[range.line];
-  return replaceLine(lines, range.line, [...line.slice(0, range.run), ...parts, ...line.slice(range.run + 1)]);
-}
-function unmark(lines, at3) {
-  const line = lines[at3.line], r = line?.[at3.run];
-  if (!line || !r || typeof r === "string") return lines;
-  const out = [];
-  line.forEach((x, k) => {
-    const run2 = k === at3.run ? r.text : x, last = out[out.length - 1];
-    if (typeof run2 === "string" && typeof last === "string") out[out.length - 1] = last + run2;
-    else out.push(run2);
-  });
-  return replaceLine(lines, at3.line, out);
-}
-function labelEnd(mark2, text) {
-  return mark2 === "act" || mark2 === "def" ? text.indexOf(":") + 1 : 0;
-}
-function render(lines, el3) {
-  const doc = el3.ownerDocument;
-  el3.replaceChildren(...lines.map((l) => {
-    const div = doc.createElement("div");
-    for (const r of l) {
-      if (typeof r === "string") {
-        div.append(r);
-        continue;
-      }
-      const span = doc.createElement("span"), cut = labelEnd(r.mark, r.text);
-      span.className = r.mark;
-      if (cut) {
-        const b = doc.createElement("b");
-        b.textContent = r.text.slice(0, cut);
-        span.append(b, r.text.slice(cut));
-      } else span.textContent = r.text;
-      div.append(span);
-    }
-    return div;
-  }));
-}
-var isMark = (s) => MARKS.includes(s);
-function read(el3) {
-  return scan(el3).lines;
-}
-function locate(el3, node, offset) {
-  return scan(el3, { node, offset }).pos;
-}
-function scan(el3, at3) {
-  const lines = [[]];
-  let pos = null;
-  const cur = () => lines[lines.length - 1];
-  const here = (extra = 0) => {
-    const line = cur(), last = line[line.length - 1];
-    return typeof last === "string" ? { line: lines.length - 1, run: line.length - 1, offset: last.length + extra } : { line: lines.length - 1, run: line.length, offset: extra };
-  };
-  const push = (r) => {
-    const line = cur(), last = line[line.length - 1];
-    if (typeof r === "string" && typeof last === "string") line[line.length - 1] = last + r;
-    else if (r !== "") line.push(r);
-  };
-  const walk = (n, top) => {
-    const kids = Array.from(n.childNodes);
-    kids.forEach((c, k) => {
-      if (c.nodeType === 1 && c.tagName === "DIV" && top && k > 0) lines.push([]);
-      if (at3?.node === n && at3.offset === k) pos ??= here();
-      if (c.nodeType === 3) {
-        if (at3?.node === c) pos = here(at3.offset);
-        return push(c.textContent ?? "");
-      }
-      if (c.nodeType !== 1) return;
-      const e = c, cls = e.className;
-      if (e.tagName === "BR") return void (k < kids.length - 1 && lines.push([]));
-      if (e.tagName === "SPAN" && isMark(cls) && fits(cls, e.textContent ?? "")) {
-        if (at3 && e.contains(at3.node)) pos = { line: lines.length - 1, run: cur().length, offset: offsetIn(e, at3.node, at3.offset) };
-        return push({ mark: cls, text: e.textContent ?? "" });
-      }
-      walk(e, false);
-    });
-    if (at3?.node === n && at3.offset >= kids.length) pos ??= here();
-  };
-  walk(el3, true);
-  return { lines: lines.map((l) => l.length ? l : [""]), pos };
-}
-function offsetIn(el3, node, offset) {
-  let n = 0;
-  const walk = (p) => {
-    for (const [k, c] of Array.from(p.childNodes).entries()) {
-      if (p === node && k === offset) return true;
-      if (c.nodeType !== 3) {
-        if (walk(c)) return true;
-      } else if (c === node) {
-        n += offset;
-        return true;
-      } else n += c.textContent?.length ?? 0;
-    }
-    return false;
-  };
-  walk(el3);
-  return n;
-}
-
-// src/rules/readmarks.ts
-var MINUS = "-\u2212\u2013";
-var signed = (s) => Number(s.replace(/\s/g, "").replace(/[−–]/, "-"));
-function splitComma(s) {
-  let depth = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "(") depth++;
-    else if (c === ")") depth = Math.max(0, depth - 1);
-    else if (c === "," && depth === 0) return [s.slice(0, i), s.slice(i + 1)];
-  }
-  return null;
-}
-var BASE = new RegExp(`^\\s*([${MINUS}]?\\d+)(?:\\s|\\(|$)`);
-var DICE2 = new RegExp(`^\\s*(?:(\\d+)d)?\\s*([+${MINUS}]\\s*\\d+)?(?:\\s|\\(|$)`);
-function action(text) {
-  const colon = text.indexOf(":");
-  if (colon <= 0) return null;
-  const label = text.slice(0, colon).trim();
-  const parts = splitComma(text.slice(colon + 1));
-  if (!label || !parts) return null;
-  const b = BASE.exec(parts[0]), d = DICE2.exec(parts[1]);
-  if (!b || !d || d[1] === void 0 && d[2] === void 0) return null;
-  return { label, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0 };
-}
-var LEVEL_WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
-var LEVEL = `(${LEVEL_WORDS.join("|")}|\\d+)`;
-var INFLUENCE = new RegExp(`^(.*?)\\s*([+${MINUS}])\\s*${LEVEL}\\b(.*)$`, "is");
-function influence(text) {
-  const t = text.trim(), m = INFLUENCE.exec(t);
-  const name2 = m?.[1].trim();
-  if (m && name2) {
-    const w = m[3], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
-    return { name: name2, sign: m[2] === "+" ? 1 : -1, level: word ?? w };
-  }
-  return t ? { name: t, sign: null, level: null } : null;
-}
-var N = "(\\d+)";
-var DEF_ONE = new RegExp(`^${N}$`);
-var DEF_TWO = new RegExp(`^${N}\\s*/\\s*${N}$`);
-var DEF_NAMED = new RegExp(`^(mental|psych)\\s*${N}\\s*/\\s*(mental|psych)\\s*${N}$`, "i");
-function defend(text) {
-  const t = text.trim().replace(/^defend\s*:\s*/i, "");
-  let m = DEF_ONE.exec(t);
-  if (m) return { mental: Number(m[1]), psych: Number(m[1]) };
-  m = DEF_TWO.exec(t);
-  if (m) return { mental: Number(m[1]), psych: Number(m[2]) };
-  m = DEF_NAMED.exec(t);
-  if (m && m[1].toLowerCase() !== m[3].toLowerCase()) {
-    const v = { [m[1].toLowerCase()]: Number(m[2]), [m[3].toLowerCase()]: Number(m[4]) };
-    return { mental: v.mental, psych: v.psych };
-  }
-  return null;
-}
-function offer(line, heading2 = null) {
-  if (action(line)) return "act";
-  if (ATT_LINE.test(line)) return "att";
-  const r = influence(line);
-  if (r?.level && r.sign === 1 && heading2 && /^\s*resources\b/i.test(heading2)) return "res";
-  if (r?.level && heading2 && /^\s*motivations?\b/i.test(heading2)) return "mot";
-  return null;
-}
-var LEVELS = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
-var WORD_OF = ["0", "Min", "Sig", "Maj", "Ext", "Exq"];
-function levelsOf(r) {
-  if (!r.level) return 0;
-  if (/^\d+$/.test(r.level)) return Math.floor(Number(r.level) / 2);
-  return LEVELS[r.level] ?? 0;
-}
-function levelWord(levels) {
-  return WORD_OF[levels] ?? String(levels * 2);
-}
-var LEVEL_AT = new RegExp(`^(.*?[+${MINUS}]\\s*)${LEVEL}\\b(.*)$`, "is");
-function spend(text, by) {
-  const r = influence(text), m = LEVEL_AT.exec(text);
-  if (!r?.level || !m) return null;
-  const left2 = levelsOf(r) - by;
-  return left2 < 0 ? null : m[1] + levelWord(left2) + m[3];
-}
-var ADJUSTED = new RegExp(`\\s*\\((?:[+${MINUS}]\\s*)?${LEVEL}\\)\\s*$`, "i");
-function unadjusted(text) {
-  return text.replace(ADJUSTED, "");
-}
-function motiveLeft(text) {
-  const a = ADJUSTED.exec(text);
-  if (!a) return levelsOf(influence(text) ?? { name: "", sign: null, level: null });
-  const w = a[1], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
-  return levelsOf({ name: "", sign: null, level: word ?? w });
-}
-function adjust(text, by) {
-  const base = unadjusted(text), r = influence(base);
-  if (!r?.level) return null;
-  const left2 = motiveLeft(text) - by;
-  if (left2 < 0) return null;
-  if (left2 >= levelsOf(r)) return base;
-  if (!left2) return `${base} (0)`;
-  const sign2 = r.sign === -1 ? "-" : "+";
-  return `${base} (${sign2}${levelWord(left2)})`;
-}
-var ATT = new RegExp(`\\b([A-Z][a-z]{2})\\s*([+${MINUS}]?\\d+)\\b`, "g");
-var ATT_LINE = new RegExp(`^\\s*(?:[A-Z][a-z]{2}\\s*[+${MINUS}]?\\d+\\s*){2,}$`);
-function attributes(text) {
-  return Object.fromEntries([...text.matchAll(ATT)].map((m) => [m[1], signed(m[2])]));
-}
-
-// src/rules/influence.ts
-var LEVELS2 = [
-  { word: "Min", name: "Minor", points: 2 },
-  { word: "Sig", name: "Significant", points: 4 },
-  { word: "Maj", name: "Major", points: 6 },
-  { word: "Ext", name: "Extreme", points: 8 },
-  { word: "Exq", name: "Exquisite", points: 10 }
-];
-var MIN = 2;
-var STEP = 2;
-function raiseChip(chip2) {
-  return { ...chip2, points: chip2.points === 1 ? 2 : chip2.points + STEP };
-}
-function lowerChip(chip2) {
-  if (chip2.points <= 1) return null;
-  if (chip2.points === 2) return { ...chip2, points: 1, rider: false };
-  return { ...chip2, points: chip2.points - STEP };
-}
-function raiseCard(card2) {
-  return { ...card2, points: card2.points + STEP };
-}
-function lowerCard(card2) {
-  return { ...card2, points: Math.max(MIN, card2.points - STEP) };
-}
-function levelName2(points2) {
-  if (points2 < MIN) return String(points2);
-  return LEVELS2[Math.floor(points2 / STEP) - 1]?.word ?? String(points2);
-}
-var ROW_LEVELS = { mild: 1, min: 1, sig: 2, maj: 3 };
-function rowLevels(row2) {
-  return ROW_LEVELS[row2];
-}
-var ROOM2 = [
-  // level, mild, min, sig, absorb
-  [15, 2, 2, 2, 3],
-  [11, 2, 2, 1, 2],
-  [10, 1, 2, 1, 2],
-  [9, 1, 2, 1, 1],
-  [7, 0, 2, 1, 1],
-  [5, 0, 2, 0, 1],
-  [3, 0, 2, 0, 0],
-  [1, 0, 1, 0, 0]
-];
-function room(level) {
-  const [, mild, min2, sig, absorb2] = ROOM2.find((r) => level >= r[0]) ?? [0, 0, 0, 0, 0];
-  return { boxes: { mild, min: min2, sig, maj: 0 }, absorb: absorb2 };
-}
-function columnRoom(char, d) {
-  const name2 = d === "injury" ? "Con" : "Wis";
-  for (const m of marks(parse(char.front), "att")) {
-    const level = attributes(m.text)[name2];
-    if (level !== void 0) return room(level);
-  }
-  return null;
 }
 
 // src/rules/pool.ts
@@ -1694,7 +2438,7 @@ function resolve2(game, intent, rng, at3) {
     by,
     dice: r.dice,
     resolution: row2.auto ? row2.words : `${row2.words}: ${r.resolved}`,
-    level: `${r.result} ${levelName(r.result)}`,
+    level: `${r.result} ${levelName2(r.result)}`,
     outcome: r.crit ? `CRIT! ${OUTCOME.success}` : OUTCOME[r.outcome],
     ...r.crit && { crit: r.crit }
   };
@@ -1741,7 +2485,7 @@ function resolve2(game, intent, rng, at3) {
 function choose(r, choice, lock) {
   if (!r.crit) return r;
   const value2 = choice === "max" ? r.crit.max : r.crit.dbl;
-  return { ...r, level: `${value2} ${levelName(value2)}`, crit: { ...r.crit, chosen: choice, locked: lock } };
+  return { ...r, level: `${value2} ${levelName2(value2)}`, crit: { ...r.crit, chosen: choice, locked: lock } };
 }
 var Rolls = class {
   #w;
@@ -2542,7 +3286,7 @@ var genId = (n) => alloc(n, () => charSet[floor(Math.random() * 62)] ?? "").join
 var selfId = genId(20);
 var all = Promise.all.bind(Promise);
 var isBrowser = typeof window !== "undefined";
-var { entries, fromEntries, keys, values } = Object;
+var { entries: entries2, fromEntries, keys, values } = Object;
 var noOp = () => {
 };
 var candidateType = "candidate";
@@ -2682,7 +3426,7 @@ var createRelayManager = (getSocket) => {
     },
     keyOf,
     scoped,
-    getSockets: () => fromEntries(entries(relays).flatMap(([key, relay]) => {
+    getSockets: () => fromEntries(entries2(relays).flatMap(([key, relay]) => {
       const socket = getSocket(relay);
       return socket ? [[key, socket]] : [];
     }))
@@ -4071,7 +4815,7 @@ var createActionManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeerErro
     waiter.controller.abort();
   };
   const rejectPendingRequestsForPeer = (id, error) => {
-    entries(pendingRequestWaiters).forEach(([requestId, waiter]) => {
+    entries2(pendingRequestWaiters).forEach(([requestId, waiter]) => {
       if (waiter.peerId !== id) return;
       clearPendingRequestWaiter(requestId);
       waiter.reject(error);
@@ -4594,7 +5338,7 @@ var room_default = (onPeer, onPeerLeave, onSelfLeave, { onPeerHandshake, onHands
     await new Promise((res) => setTimeout(res, 99));
     controller.abort();
     try {
-      entries(peerMap).forEach(([id, peer]) => {
+      entries2(peerMap).forEach(([id, peer]) => {
         peer.destroy();
         clearPeerState(id, mkErr("room left"));
       });
@@ -4710,7 +5454,7 @@ var room_default = (onPeer, onPeerLeave, onSelfLeave, { onPeerHandshake, onHands
       return Date.now() - start;
     },
     isPassive: () => isPassive,
-    getPeers: () => fromEntries(entries(activePeerMap).map(([id, peer]) => [id, peer.connection])),
+    getPeers: () => fromEntries(entries2(activePeerMap).map(([id, peer]) => [id, peer.connection])),
     addStream: (stream, options = {}) => mediaManager.addStream(stream, options, streamMetaAction.send),
     removeStream: (stream, options = {}) => {
       mediaManager.removeStream(stream, options.target);
@@ -5837,7 +6581,7 @@ var strategy_default = ({ init, subscribe, announce, deactivate }) => {
     const checkDeactivate = () => {
       if (!isPassive || !ctx.isActive) return;
       let hasActiveWork = false;
-      entries(ctx.peerStates).forEach(([peerId, state]) => {
+      entries2(ctx.peerStates).forEach(([peerId, state]) => {
         if (state.connectedPeer || state.answeringPeer || state.offerInitPromise || state.offerPeer || state.offerRelays.some(Boolean)) hasActiveWork = true;
         else delete ctx.peerStates[peerId];
       });
@@ -5976,7 +6720,7 @@ var strategy_default = ({ init, subscribe, announce, deactivate }) => {
       releaseOccupiedRoom();
       clearLeavingCleanup();
       membership.leave();
-      entries(ctx.peerStates).forEach(([peerId, state]) => {
+      entries2(ctx.peerStates).forEach(([peerId, state]) => {
         if (state.connectedPeer && !state.connectedPeer.isDead) {
           if (!sharedPeers.owns(appId, peerId, state.connectedPeer)) state.connectedPeer.destroy();
         }
@@ -6475,7 +7219,7 @@ var Wire = class {
   async send(kind, body, to) {
     const targets = to ? [this.#byTab.get(to)].filter((p) => !!p && this.#who.has(p)) : this.#peers();
     if (!targets.length) return 0;
-    await this.#msg.send(make(kind, this.tab, body), { target: to ? targets : null });
+    await this.#msg.send(make2(kind, this.tab, body), { target: to ? targets : null });
     return targets.length;
   }
   on(kind, fn) {
@@ -6521,103 +7265,6 @@ var Wire = class {
     return this.#room.leave();
   }
 };
-
-// src/rules/tap.ts
-function inFront(char, name2) {
-  const lines = parse(char.front);
-  for (const m of [...marks(lines, "res"), ...marks(lines, "mot")]) {
-    const r = influence(m.text), mot = m.mark === "mot";
-    if (r?.name !== name2 || !r.level) continue;
-    const write = (n) => (mot ? adjust(m.text, n) : spend(m.text, n)) ?? m.text;
-    return {
-      char,
-      name: name2,
-      sign: r.sign ?? 1,
-      left: mot ? motiveLeft(m.text) : levelsOf(r),
-      ...mot && { mot: true },
-      spend: (n) => ({ ...char, front: serialize(setMark(lines, m, write(n))) })
-    };
-  }
-  return null;
-}
-var DAMAGE_SOURCE = new RegExp(`^(${DAMAGE.join("|")})/(${ROWS.join("|")})(?:#(\\d+))?$`);
-function inBack(char, rest) {
-  const m = DAMAGE_SOURCE.exec(rest);
-  if (!m) return null;
-  const damage3 = m[1], row2 = m[2], k = m[3] ? Number(m[3]) : 0;
-  const slot2 = char.back.damage[damage3][row2];
-  if (!slot2.name || k > 0 && !slot2.boxes[k - 1]) return null;
-  const spend2 = (n) => {
-    const spent = [...slot2.spent];
-    spent[k] = (spent[k] ?? 0) + n;
-    const column2 = { ...char.back.damage[damage3], [row2]: { ...slot2, spent: Array.from(spent, (x) => x ?? 0) } };
-    return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage3]: column2 } } };
-  };
-  return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
-}
-function mayTap(viewer, char, rest) {
-  const s = inBack(char, rest) ?? inFront(char, rest);
-  if (!s) return false;
-  return !!s.damage || !!s.mot || !!viewer?.gm || char.owner === viewer?.name;
-}
-function left(char, rest) {
-  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
-}
-function source(chars, id) {
-  const colon = id.indexOf(":");
-  if (colon < 0) return null;
-  const char = chars(id.slice(0, colon));
-  if (!char) return null;
-  const rest = id.slice(colon + 1);
-  return inBack(char, rest) ?? inFront(char, rest);
-}
-function tap(chars, src, where2, oid) {
-  const s = source(chars, src);
-  if (!s || s.left < 1) return null;
-  const card2 = {
-    kind: "influence",
-    oid,
-    home: s.char.oid,
-    where: where2,
-    n: 0,
-    name: s.name,
-    sign: s.sign,
-    points: MIN,
-    used: false,
-    crit: false,
-    tap: { ledger: { [src]: 1 }, current: src },
-    ...s.damage && { damage: s.damage },
-    ...s.mot && { mot: true }
-  };
-  return { card: card2, changed: [s.spend(1)] };
-}
-function feed(chars, card2, src, oid) {
-  if (!card2.tap) return null;
-  const id = src ?? card2.tap.current;
-  if (card2.used) return tap(chars, id, card2.where, oid);
-  const s = source(chars, id);
-  if (!s || s.left < 1 || s.damage !== card2.damage || !!s.mot !== !!card2.mot) return null;
-  const ledger = { ...card2.tap.ledger, [id]: (card2.tap.ledger[id] ?? 0) + 1 };
-  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
-}
-function unfeed(chars, card2) {
-  const id = card2.tap?.current;
-  if (!card2.tap || !id || !(card2.tap.ledger[id] > 0) || card2.points - STEP < MIN) return null;
-  const s = source(chars, id);
-  if (!s) return null;
-  const ledger = { ...card2.tap.ledger, [id]: card2.tap.ledger[id] - 1 };
-  return { card: { ...card2, points: card2.points - STEP, tap: { ledger, current: id } }, changed: [s.spend(-1)] };
-}
-function kill(chars, card2) {
-  if (!card2.tap || card2.used) return [];
-  const out = /* @__PURE__ */ new Map();
-  const now2 = (oid) => out.get(oid) ?? chars(oid);
-  for (const [id, n] of Object.entries(card2.tap.ledger)) {
-    const s = n > 0 ? source(now2, id) : null;
-    if (s) out.set(s.char.oid, s.spend(-n));
-  }
-  return [...out.values()];
-}
 
 // src/store/blobs.ts
 async function sha256(bytes) {
@@ -7079,7 +7726,7 @@ var GameStore = class {
 var seatKey = (game, viewer) => `hollow.seat.${game}.${viewer}`;
 function fresh() {
   return {
-    view: { x: 0, y: 0, zoom: 1 },
+    view: null,
     roller: null,
     viewAs: null,
     tapeUp: false,
@@ -7100,7 +7747,7 @@ function load(storage, game, viewer) {
   return {
     ...base,
     ...saved,
-    view: { ...base.view, ...isObject(saved.view) ? saved.view : {} },
+    view: isObject(saved.view) ? { x: 0, y: 0, zoom: 1, ...saved.view } : null,
     boothill: { ...base.boothill, ...isObject(saved.boothill) ? saved.boothill : {} },
     open: { ...base.open, ...isObject(saved.open) ? saved.open : {} }
   };
@@ -7229,7 +7876,7 @@ function cardClick(game, rid, shift, mint2) {
   if (shift && c.points <= MIN) return killCard(game, rid);
   if (c.tap) {
     const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
-    return t ? apply(t, c) : null;
+    return t ? apply2(t, c) : null;
   }
   const next = shift ? lowerCard(c) : raiseCard(c);
   return next.points === c.points ? null : (w) => w.put(rid, next);
@@ -7243,7 +7890,7 @@ function restoreUsed(game, rid) {
   const c = item(game, rid);
   return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid, { ...c, where: "drawer", used: false }) : null;
 }
-function apply(t, old) {
+function apply2(t, old) {
   return (w) => {
     if (old && t.card.oid !== old.oid) w.put(ridOf(old.oid), old);
     w.put(ridOf(t.card.oid), t.card);
@@ -7252,7 +7899,7 @@ function apply(t, old) {
 }
 function tapOut(game, src, where2, mint2) {
   const t = tap(lookup(game), src, where2, mint2());
-  return t ? apply(t) : null;
+  return t ? apply2(t) : null;
 }
 function mergeTap(game, fromRid, intoRid, mint2) {
   const from = item(game, fromRid), into = item(game, intoRid);
@@ -7275,101 +7922,6 @@ function mergeTap(game, fromRid, intoRid, mint2) {
     w.del(fromRid);
     w.put(intoRid, card2);
     for (const c of chars.values()) w.put(ridOf(c.oid), c);
-  };
-}
-
-// src/ui/gesture.ts
-var LONG_MS = 500;
-var DRAG_PX = 5;
-var real = { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (h) => clearTimeout(h) };
-var shifty = /* @__PURE__ */ new Set();
-var shifted = (e) => !!(e.shiftKey || e.ctrlKey || e.altKey);
-var clickOf = (h, e) => shifted(e) ? h.shift ?? h.click : h.click;
-function gesture(el3, h, timers = real) {
-  if (h.shift) shifty.add(el3);
-  let down = null, long = null, done2 = false;
-  const reset = () => {
-    if (long !== null) timers.clearTimeout(long);
-    long = null;
-    down = null;
-    stop();
-  };
-  const onMove = (ev) => {
-    const e = ev;
-    if (!down || done2 || e.pointerId !== down.pointerId) return;
-    if (Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) < DRAG_PX) return;
-    done2 = true;
-    const d = down;
-    reset();
-    h.drag?.(d, e);
-  };
-  const onUp = (ev) => {
-    const e = ev;
-    if (!down || e.pointerId !== down.pointerId) return;
-    const d = down, fired = done2;
-    reset();
-    if (fired) return;
-    clickOf(h, d)?.(e);
-  };
-  const onCancel = () => reset();
-  const target = el3.ownerDocument ?? globalThis.document ?? el3;
-  const stop = () => {
-    target.removeEventListener("pointermove", onMove);
-    target.removeEventListener("pointerup", onUp);
-    target.removeEventListener("pointercancel", onCancel);
-  };
-  const onDown = (ev) => {
-    const e = ev;
-    if ((e.button ?? 0) !== 0) return;
-    if (h.drag) e.stopPropagation();
-    reset();
-    down = e;
-    done2 = false;
-    target.addEventListener("pointermove", onMove);
-    target.addEventListener("pointerup", onUp);
-    target.addEventListener("pointercancel", onCancel);
-    if (h.shift) {
-      long = timers.setTimeout(() => {
-        long = null;
-        if (!down || done2) return;
-        done2 = true;
-        h.shift(down);
-      }, LONG_MS);
-    }
-  };
-  const onKey = (ev) => {
-    const e = ev;
-    if (e.key !== "Enter" && e.key !== " ") return;
-    if (e.target !== el3) return;
-    e.preventDefault();
-    clickOf(h, e)?.(e);
-  };
-  el3.addEventListener("pointerdown", onDown);
-  if (h.click || h.shift) el3.addEventListener("keydown", onKey);
-  return () => {
-    reset();
-    shifty.delete(el3);
-    el3.removeEventListener("pointerdown", onDown);
-    el3.removeEventListener("keydown", onKey);
-  };
-}
-function paced(schedule, apply3) {
-  let pending = null;
-  const pass = () => {
-    if (!pending) return;
-    const { target } = pending;
-    pending = null;
-    apply3(target);
-  };
-  return {
-    to(target) {
-      if (!pending) schedule(pass);
-      pending = { target };
-    },
-    flush: pass,
-    cancel() {
-      pending = null;
-    }
   };
 }
 
@@ -7428,7 +7980,7 @@ var LABEL = {
   affliction: "Affliction",
   injury: "Injury"
 };
-var el = (doc, tag2, cls, text) => {
+var el2 = (doc, tag2, cls, text) => {
   const e = doc.createElement(tag2);
   if (cls) e.className = cls;
   if (text !== void 0) e.textContent = text;
@@ -7441,7 +7993,7 @@ var isPile2 = (u) => "members" in u;
 var at2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
 function drawPool(c, items, old, w) {
   const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
-  const e = old ?? make2(doc, c, w);
+  const e = old ?? make3(doc, c, w);
   e.style.left = `${c.pool.x}px`;
   e.style.top = `${c.pool.y}px`;
   e.style.zIndex = String(c.pool.z);
@@ -7484,28 +8036,28 @@ function pop(e) {
   e.classList.add("rolled");
   e.addEventListener("animationend", () => e.classList.remove("rolled"), { once: true });
 }
-function make2(doc, c, w) {
-  const e = el(doc, "div", "obj pool");
+function make3(doc, c, w) {
+  const e = el2(doc, "div", "obj pool");
   e.dataset.part = "pool";
   const rid = ridOf(c.oid);
-  const hd = el(doc, "div", "hd");
-  const gather = el(doc, "button", "gather", "gather");
+  const hd = el2(doc, "div", "hd");
+  const gather = el2(doc, "button", "gather", "gather");
   gesture(gather, { click: () => {
     const cur = w.game.get(rid);
     w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
   } });
-  const name2 = el(doc, "span", "name");
-  hd.append(name2, el(doc, "span", "owner"), gather);
-  const slots = el(doc, "div", "slots");
+  const name2 = el2(doc, "span", "name");
+  hd.append(name2, el2(doc, "span", "owner"), gather);
+  const slots = el2(doc, "div", "slots");
   for (const s of SLOTS) {
-    const slot2 = el(doc, "div", `slot slot-${s}`);
+    const slot2 = el2(doc, "div", `slot slot-${s}`);
     slot2.dataset.slot = s;
     slot2.dataset.owner = c.oid;
-    const label = el(doc, "span", "label", LABEL[s]);
+    const label = el2(doc, "span", "label", LABEL[s]);
     label.dataset.letter = LABEL[s][0];
-    if (s === "stagger") label.append(el(doc, "small", "", "opposition only"));
+    if (s === "stagger") label.append(el2(doc, "small", "", "opposition only"));
     slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
-    slot2.append(label, el(doc, "div", "pos"), el(doc, "div", "neg"));
+    slot2.append(label, el2(doc, "div", "pos"), el2(doc, "div", "neg"));
     gesture(slot2, {
       click: (ev) => {
         if (ev.target.closest(".chip, .pile")) return;
@@ -7522,9 +8074,9 @@ function make2(doc, c, w) {
     });
     slots.append(slot2);
   }
-  const drawer2 = el(doc, "div", "drawer");
+  const drawer2 = el2(doc, "div", "drawer");
   drawer2.dataset.drawer = c.oid;
-  drawer2.append(el(doc, "div", "cards"), el(doc, "div", "tools"));
+  drawer2.append(el2(doc, "div", "cards"), el2(doc, "div", "tools"));
   e.append(hd, slots, drawer2);
   for (const part of [name2, slots, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid, d, m) });
   return e;
@@ -7549,7 +8101,7 @@ function units(slotEl, items, w, shown, drawn) {
 var worthOf = (u) => isPile2(u) ? u.points : worth(u);
 function chip(doc, i, w) {
   const card2 = i.kind === "influence";
-  const b = el(
+  const b = el2(
     doc,
     "button",
     `chip ${i.sign > 0 ? "pos" : "neg"}${card2 ? " card-chip" : ""}${card2 && i.tap ? " res" : ""}${card2 && i.used ? " used" : ""}`,
@@ -7562,7 +8114,7 @@ function chip(doc, i, w) {
     b.dataset.name = i.name;
   }
   if (i.kind === "chip" && i.rider) {
-    const r = el(doc, "span", "rider", "+1");
+    const r = el2(doc, "span", "rider", "+1");
     gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
     b.append(r);
   }
@@ -7576,13 +8128,13 @@ function chip(doc, i, w) {
 }
 function pile(doc, p, open, w) {
   const first = p.members[0]?.oid ?? "";
-  const d = el(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first) ? " open" : ""}`);
-  const disc = el(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
+  const d = el2(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first) ? " open" : ""}`);
+  const disc = el2(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
   disc.title = `${p.members.length} acting as one`;
   gesture(disc, { click: () => w.toggle("piles", first) });
   d.append(disc);
   if (open.has(first)) {
-    const list2 = el(doc, "div", "members");
+    const list2 = el2(doc, "div", "members");
     for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
     d.append(list2);
   }
@@ -7600,7 +8152,7 @@ function drawer(box2, c, cards, w, shown, drawn) {
   }));
   const tools = [];
   for (const sign2 of [1, -1]) {
-    const pen = el(doc, "button", `write ${sign2 > 0 ? "pos" : "neg"}`, sign2 > 0 ? "+" : "\u2212");
+    const pen = el2(doc, "button", `write ${sign2 > 0 ? "pos" : "neg"}`, sign2 > 0 ? "+" : "\u2212");
     pen.title = sign2 > 0 ? "Write a + card" : "Write a \u2212 card";
     gesture(pen, { click: () => {
       const oid = w.mint()();
@@ -7612,15 +8164,15 @@ function drawer(box2, c, cards, w, shown, drawn) {
     } });
     tools.push(pen);
   }
-  const pileTile = el(doc, "div", "usedpile");
-  const tag2 = el(doc, "button", "used", "used");
-  tag2.append(el(doc, "b", "", String(used.length)));
+  const pileTile = el2(doc, "div", "usedpile");
+  const tag2 = el2(doc, "button", "used", "used");
+  tag2.append(el2(doc, "b", "", String(used.length)));
   tag2.title = "Used Influence cards: click to see them, click one to put it back";
   gesture(tag2, { click: () => w.toggle("used", c.oid) });
   pileTile.append(tag2);
   if (opened.used.has(c.oid) && visible) {
-    const list2 = el(doc, "div", "usedlist");
-    if (!used.length) list2.append(el(doc, "p", "", "None used."));
+    const list2 = el2(doc, "div", "usedlist");
+    if (!used.length) list2.append(el2(doc, "p", "", "None used."));
     for (const k of used) {
       const u = card(doc, k, visible, w);
       gesture(u, { click: () => run(w.game, restoreUsed(w.game, ridOf(k.oid))) });
@@ -7628,12 +8180,12 @@ function drawer(box2, c, cards, w, shown, drawn) {
     }
     pileTile.append(list2);
   }
-  tools.push(pileTile, Object.assign(el(doc, "span", "kill", "kill"), { title: "Drop a card here to delete it" }));
+  tools.push(pileTile, Object.assign(el2(doc, "span", "kill", "kill"), { title: "Drop a card here to delete it" }));
   box2.querySelector(".tools").replaceChildren(...tools);
 }
 function card(doc, k, visible, w) {
   const rid = ridOf(k.oid);
-  const e = el(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
+  const e = el2(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
   e.dataset.rid = rid;
   const drag = { drag: (d, m) => w.dragItem(rid, d, m) };
   if (!visible) {
@@ -7641,14 +8193,14 @@ function card(doc, k, visible, w) {
     gesture(e, drag);
     return e;
   }
-  const name2 = el(doc, "span", "iname", k.name);
+  const name2 = el2(doc, "span", "iname", k.name);
   name2.contentEditable = "true";
   name2.spellcheck = false;
   name2.addEventListener("input", () => {
     const cur = w.game.get(rid);
     if (cur) w.game.change((x) => x.put(rid, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
   });
-  const level = el(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName2(k.points)}`);
+  const level = el2(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName(k.points)}`);
   gesture(level, {
     click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
     shift: () => run(w.game, cardClick(w.game, rid, true, w.mint()))
@@ -7689,558 +8241,6 @@ function showGap(drawer2, at3, animate = true) {
     const a = e.getBoundingClientRect(), dx = (b.left - a.left) / k, dy = (b.top - a.top) / k;
     if (dx || dy) e.animate?.([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 150, easing: "ease-out" });
   }
-}
-
-// src/ui/pens.ts
-var PENS = [
-  { mark: "act", word: "Action" },
-  { mark: "res", word: "Resource" },
-  { mark: "mot", word: "Motivation" },
-  { mark: "att", word: "Attributes" },
-  { mark: "inf", word: "Influence" },
-  { mark: "def", word: "Defend" },
-  { mark: "head", word: "Heading" }
-];
-function before(a, b) {
-  if (a.line !== b.line) return a.line < b.line;
-  if (a.run !== b.run) return a.run < b.run;
-  return a.offset <= b.offset;
-}
-function apply2(lines, a, b, tag2) {
-  const [from, to] = before(a, b) ? [a, b] : [b, a];
-  for (const p of [from, to]) {
-    const r2 = lines[p.line]?.[p.run];
-    if (r2 && typeof r2 !== "string") return unmark(lines, p);
-  }
-  const line = lines[from.line] ?? [];
-  if (from.line === to.line && from.run === to.run && from.offset === to.offset) {
-    const r2 = line[from.run], prev = line[from.run - 1], next = line[from.run + 1];
-    if (from.offset === 0 && prev && typeof prev !== "string") return unmark(lines, { line: from.line, run: from.run - 1 });
-    if (typeof r2 === "string" && from.offset === r2.length && next && typeof next !== "string") return unmark(lines, { line: from.line, run: from.run + 1 });
-  }
-  if (from.line !== to.line || from.run !== to.run) return lines;
-  const r = line[from.run];
-  if (typeof r !== "string") return lines;
-  if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag2);
-  if (tag2 === "res" || tag2 === "mot") {
-    const each = entries2(r, tag2);
-    if (each) return replaceRun(lines, from.line, from.run, each);
-  }
-  const start = r.length - r.trimStart().length, end = r.trimEnd().length;
-  return mark(lines, { line: from.line, run: from.run, start, end }, tag2);
-}
-function entries2(run2, tag2 = "res") {
-  const parts = run2.split(",");
-  if (!parts.every((p) => {
-    const r = influence(p);
-    return !!r?.level && (tag2 === "mot" || r.sign === 1);
-  })) return null;
-  const out = [];
-  const plainRun = (s) => {
-    if (!s) return;
-    const last = out[out.length - 1];
-    if (typeof last === "string") out[out.length - 1] = last + s;
-    else out.push(s);
-  };
-  parts.forEach((p, k) => {
-    if (k > 0) plainRun(",");
-    const t = p.trim(), at3 = p.indexOf(t);
-    plainRun(p.slice(0, at3));
-    out.push({ mark: tag2, text: t });
-    plainRun(p.slice(at3 + t.length));
-  });
-  return out;
-}
-function replaceRun(lines, line, run2, runs) {
-  return lines.map((l, i) => i === line ? [...l.slice(0, run2), ...runs, ...l.slice(run2 + 1)] : l);
-}
-function heading(lines, line) {
-  for (let i = line - 1; i >= 0; i--) {
-    const h = lines[i].find((r) => typeof r !== "string" && r.mark === "head");
-    if (h && typeof h !== "string") return h.text;
-  }
-  return null;
-}
-function offered(lines, line) {
-  const l = lines[line];
-  if (!l || l.some((r) => typeof r !== "string")) return null;
-  const text = plain(l).trim();
-  return text ? offer(text, heading(lines, line)) : null;
-}
-function places(count, k, at3, step) {
-  let y = 0;
-  return Array.from({ length: count }, (_, i) => {
-    if (i === k) return at3;
-    if (y + step > at3 && y < at3 + step) y = at3 + step;
-    const here = y;
-    y += step;
-    return here;
-  });
-}
-function selection(t) {
-  const sel = t.ownerDocument.getSelection();
-  if (!sel?.anchorNode || !sel.focusNode) return null;
-  const a = locate(t, sel.anchorNode, sel.anchorOffset), b = locate(t, sel.focusNode, sel.focusOffset);
-  return a && b ? [a, b] : null;
-}
-function caretAt(t, line) {
-  const doc = t.ownerDocument, div = t.children[line] ?? t.lastElementChild;
-  t.focus();
-  if (!div) return;
-  const range = doc.createRange();
-  range.selectNodeContents(div);
-  range.collapse(false);
-  const sel = doc.getSelection();
-  sel?.removeAllRanges();
-  sel?.addRange(range);
-}
-function tray(piece2) {
-  const doc = piece2.ownerDocument;
-  const box2 = doc.createElement("div");
-  box2.className = "pens";
-  let last = null;
-  const area = (n) => (n?.nodeType === 1 ? n : n?.parentElement)?.closest(".writes") ?? null;
-  const pens = PENS.map((p) => {
-    const b = doc.createElement("button");
-    b.className = `pen pen-${p.mark}`;
-    b.textContent = p.word;
-    b.setAttribute("aria-label", `${p.word} pen`);
-    b.dataset.mark = p.mark;
-    b.addEventListener("mousedown", (ev) => ev.preventDefault());
-    b.addEventListener("pointerdown", (ev) => ev.stopPropagation());
-    b.addEventListener("click", () => use(b, p.mark));
-    box2.append(b);
-    return b;
-  });
-  function use(b, tag2) {
-    const t = last;
-    const ends = t && selection(t);
-    if (!t || !ends) return shake(b);
-    const lines = read(t), out = apply2(lines, ends[0], ends[1], tag2);
-    if (out === lines) return shake(b);
-    render(out, t);
-    t.dispatchEvent(new Event("input", { bubbles: true }));
-    caretAt(t, Math.min(ends[0].line, ends[1].line));
-    raise();
-  }
-  function shake(b) {
-    b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
-  }
-  function raise() {
-    const t = last, ends = t && t.contains(doc.getSelection()?.anchorNode ?? null) ? selection(t) : null;
-    let k = -1, div;
-    if (t && ends) {
-      const line = ends[1].line, tag2 = offered(read(t), line);
-      k = pens.findIndex((p) => p.dataset.mark === tag2);
-      if (k >= 0) div = t.children[line];
-    }
-    pens.forEach((p, i) => p.classList.toggle("offered", i === k && !!div));
-    if (!div) {
-      for (const p of pens) p.style.removeProperty("--dy");
-      return;
-    }
-    const scale = piece2.getBoundingClientRect().height / piece2.offsetHeight || 1;
-    const at3 = (div.getBoundingClientRect().top - box2.getBoundingClientRect().top) / scale;
-    const step = pens[1].offsetTop - pens[0].offsetTop;
-    places(pens.length, k, at3, step).forEach((y, i) => pens[i].style.setProperty("--dy", `${y - pens[i].offsetTop}px`));
-  }
-  piece2.addEventListener("focusin", (ev) => {
-    const t = area(ev.target);
-    if (t) {
-      last = t;
-      raise();
-    }
-  });
-  piece2.addEventListener("input", raise);
-  piece2.addEventListener("keyup", raise);
-  piece2.addEventListener("mouseup", raise);
-  return box2;
-}
-
-// src/ui/receipt.ts
-var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-var two = (n) => String(n).padStart(2, "0");
-function when(at3) {
-  const d = new Date(at3);
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`;
-}
-var DIE = { W: "White", G: "Green", R: "Red", B: "Blue", Y: "Yellow" };
-var CRIT = { max: "maximize", dbl: "double" };
-function receiptEl(doc, r) {
-  const el3 = doc.createElement("div");
-  el3.className = "receipt";
-  el3.dataset.id = r.id;
-  const line = (text, cls) => {
-    const div = doc.createElement("div");
-    if (cls) div.className = cls;
-    div.textContent = text;
-    el3.append(div);
-  };
-  const head = doc.createElement("div");
-  const time = doc.createElement("span");
-  time.className = "when";
-  time.textContent = when(r.at);
-  head.append(time, `${r.title}${r.ok ? " \u2713" : ""}`);
-  el3.append(head);
-  if (r.outcome === "missing") return el3;
-  if (r.priv) line("Private: not shown to the table");
-  if (r.by) line(`rolled by ${r.by}`);
-  if (r.influence !== void 0) line(`Total Influence ${r.influence}${r.base !== void 0 ? ` (base ${r.base})` : ""}`);
-  if (r.vs) line(`vs ${r.vs}`);
-  if (r.row) line(`row ${r.row}`);
-  line(r.dice.map((d) => `${DIE[d.c]} ${d.v}${d.dropped ? " (dropped)" : ""}${d.added ? " +" : ""}`).join(", "));
-  line(r.resolution);
-  if (r.crit) {
-    for (const k of ["max", "dbl"]) {
-      const chosen = r.crit.chosen === k;
-      if (r.crit.locked && !chosen) continue;
-      let cls = "other";
-      if (chosen) cls = r.crit.locked ? "chosen punched" : "chosen";
-      line(`${CRIT[k]}: ${r.crit[k]}`, cls);
-    }
-  }
-  line(r.level);
-  line(r.outcome, "outcome");
-  return el3;
-}
-
-// src/ui/piece.ts
-var CLASS = { text: "loose", character: "card" };
-var LEVEL2 = { mild: "Mild", min: "Min", sig: "Sig", maj: "Maj" };
-var COLUMN = {
-  bias: { name: "Biases", mark: "bias" },
-  affliction: { name: "Afflictions", mark: "aff" },
-  injury: { name: "Injuries", mark: "inj" }
-};
-function tilt(oid) {
-  let h = 0;
-  for (const c of oid) h = h * 31 + c.charCodeAt(0) | 0;
-  return `${((h >>> 0) % 13 - 6) * 0.25}deg`;
-}
-var el2 = (doc, tag2, cls, text) => {
-  const e = doc.createElement(tag2);
-  if (cls) e.className = cls;
-  if (text !== void 0) e.textContent = text;
-  return e;
-};
-function writable(doc, cls, source2, save2) {
-  const t = el2(doc, "div", `${cls} writes`);
-  t.contentEditable = "true";
-  t.spellcheck = false;
-  render(parse(source2), t);
-  t.dataset.source = source2;
-  t.addEventListener("input", () => {
-    const s = serialize(read(t));
-    t.dataset.source = s;
-    save2(s);
-  });
-  return t;
-}
-var RULE_PX = 26;
-var RULES = 12;
-function ruled(doc, text) {
-  const NS = "http://www.w3.org/2000/svg", svg = doc.createElementNS(NS, "svg");
-  svg.setAttribute("aria-hidden", "true");
-  for (let k = 0; k < RULES; k++) {
-    const line = doc.createElementNS(NS, "line"), y = String(RULE_PX * (k + 1) - 0.5);
-    for (const [a, v] of [["x1", "0"], ["x2", "100%"], ["y1", y], ["y2", y]]) line.setAttribute(a, v);
-    svg.append(line);
-  }
-  text.addEventListener("scroll", () => {
-    svg.style.transform = `translateY(${-(text.scrollTop % RULE_PX)}px)`;
-  });
-  const wrap = el2(doc, "div", "ruled");
-  wrap.append(svg, text);
-  return wrap;
-}
-function rewrite(t, source2) {
-  if (t.dataset.source === source2) return;
-  if (t.ownerDocument.activeElement && t.contains(t.ownerDocument.activeElement)) return;
-  render(parse(source2), t);
-  t.dataset.source = source2;
-}
-function change2(w, rid, fn) {
-  const cur = w.game.get(rid);
-  if (cur) w.game.change((wr) => wr.put(rid, fn(cur)));
-}
-function placeOf(r) {
-  if (r.kind === "character") return r.card;
-  if ("place" in r) return r.place;
-  return null;
-}
-function draw(r, old, w) {
-  const at3 = placeOf(r);
-  if (!at3) return null;
-  const doc = old?.ownerDocument ?? document;
-  const e = old?.dataset.kind === r.kind ? old : make3(doc, r, w);
-  e.style.left = `${at3.x}px`;
-  e.style.top = `${at3.y}px`;
-  e.style.zIndex = String(at3.z);
-  e.style.setProperty("--tilt", tilt(r.oid));
-  update(e, r, w);
-  return e;
-}
-function make3(doc, r, w) {
-  const rid = ridOf(r.oid);
-  const e = el2(doc, "div", `obj ${CLASS[r.kind] ?? r.kind}`);
-  e.dataset.kind = r.kind;
-  e.dataset.rid = rid;
-  e.addEventListener("pointerdown", (ev) => {
-    const t = ev.target;
-    if (t.isContentEditable && t.ownerDocument.activeElement === t.closest("[contenteditable]")) ev.stopPropagation();
-  }, true);
-  gesture(e, { drag: (down, move) => {
-    doc.activeElement?.blur?.();
-    w.drag(rid, down, move);
-  } });
-  switch (r.kind) {
-    case "character": {
-      const flipper = el2(doc, "div", "flipper");
-      const front = el2(doc, "div", "face front"), back3 = el2(doc, "div", "face back");
-      front.append(writable(doc, "text", r.front, (s) => change2(w, rid, (c) => ({ ...c, front: s }))));
-      back3.append(
-        el2(doc, "div", "damage"),
-        el2(doc, "div", "notes-hd", "Notes"),
-        ruled(doc, writable(doc, "notes", r.back.notes, (s) => change2(w, rid, (c) => ({ ...c, back: { ...c.back, notes: s } }))))
-      );
-      flipper.append(front, back3);
-      const flip = el2(doc, "button", "flip");
-      flip.setAttribute("aria-label", "Flip the card");
-      gesture(flip, { click: () => change2(w, rid, (c) => ({ ...c, flipped: !c.flipped })) });
-      e.append(flipper, flip, tray(e));
-      break;
-    }
-    case "sticky":
-    case "text":
-      e.append(writable(doc, "text", r.text, (s) => change2(w, rid, (c) => ({ ...c, text: s }))), tray(e));
-      break;
-    case "image": {
-      const img = doc.createElement("img");
-      img.alt = "";
-      e.append(img);
-      break;
-    }
-    case "reference":
-      e.append(...reference(doc, r));
-      break;
-    case "tornroll":
-      break;
-  }
-  return e;
-}
-function update(e, r, w) {
-  switch (r.kind) {
-    case "character": {
-      if (e.classList.contains("flipped") !== r.flipped) turn(e, r.flipped);
-      e.classList.toggle("secret", !canSee(w.viewer, r));
-      const front = e.querySelector(".front > .text");
-      rewrite(front, r.front);
-      frontGlyphs(front, r, w);
-      rewrite(e.querySelector(".back .notes"), r.back.notes);
-      damage2(e.querySelector(".damage"), r, w);
-      dry(e, r);
-      break;
-    }
-    case "sticky":
-    case "text":
-      rewrite(e.querySelector(".text"), r.text);
-      if (r.kind === "sticky") e.classList.toggle("big", !!r.big);
-      break;
-    case "image":
-      image(e, r, w);
-      break;
-    case "tornroll":
-      tornroll(e, r);
-      break;
-    case "reference":
-      break;
-  }
-}
-var TURN_MS = 125;
-function turn(e, flipped) {
-  const flipper = e.querySelector(".flipper");
-  const reduce = e.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  if (!e.isConnected || reduce || !flipper.animate) {
-    e.classList.toggle("flipped", flipped);
-    return;
-  }
-  flipper.getAnimations().forEach((a) => a.cancel());
-  const half = (from, to) => flipper.animate([{ transform: from }, { transform: to }], { duration: TURN_MS, easing: "ease-in-out" });
-  half("scaleX(1)", "scaleX(0)").onfinish = () => {
-    e.classList.toggle("flipped", flipped);
-    half("scaleX(0)", "scaleX(1)");
-  };
-}
-function image(e, r, w) {
-  const img = e.querySelector("img");
-  if (e.dataset.blob === r.blob) {
-    const why3 = w.missing(r.blob);
-    e.classList.toggle("missing", !!why3 && !img.src);
-    if (why3 && !img.src) e.title = why3;
-    if (!img.src) void show();
-    return;
-  }
-  if (e.dataset.blob) w.imageGone(e.dataset.blob);
-  e.dataset.blob = r.blob;
-  img.removeAttribute("src");
-  e.classList.add("fetching");
-  void show();
-  async function show() {
-    const url = await w.imageUrl(r.blob);
-    if (e.dataset.blob !== r.blob) return;
-    if (url) {
-      img.src = url;
-      e.classList.remove("fetching", "missing");
-      e.removeAttribute("title");
-    } else {
-      const why3 = w.missing(r.blob);
-      e.classList.toggle("missing", !!why3);
-      if (why3) e.title = why3;
-    }
-  }
-}
-function tornroll(e, r) {
-  const key = r.receipts.map((x) => x.id).join(",");
-  if (e.dataset.receipts === key) return;
-  e.dataset.receipts = key;
-  e.replaceChildren(...r.receipts.map((x) => receiptEl(e.ownerDocument, x)));
-}
-var filled = (s) => !!s.name || s.boxes.some((b) => b);
-function frontOrder(front) {
-  const k = front ? DAMAGE.indexOf(front) : 0;
-  return [...DAMAGE.slice(k), ...DAMAGE.slice(0, k)];
-}
-function damage2(box2, c, w) {
-  const doc = box2.ownerDocument, opened = w.opened();
-  const put2 = (fn) => change2(w, ridOf(c.oid), fn);
-  const slotAt = (ch, d, row2, s) => ({ ...ch, back: { ...ch.back, damage: { ...ch.back.damage, [d]: { ...ch.back.damage[d], [row2]: { ...ch.back.damage[d][row2], ...s } } } } });
-  if (!box2.children.length) {
-    for (const d of DAMAGE) {
-      const col = el2(doc, "div", `column col-${d}`);
-      col.dataset.damage = d;
-      const hd = el2(doc, "div", "hd");
-      hd.append(`${COLUMN[d].name} `, el2(doc, "span", "absorb"));
-      col.append(hd);
-      gesture(hd, { click: () => {
-        const mine = `${c.oid}:`;
-        w.setOpened(new Set([...w.opened()].filter((k) => !k.startsWith(mine)).concat(mine + d)));
-      } });
-      for (const row2 of ROWS) {
-        const line = el2(doc, "div", "slotline");
-        line.dataset.row = row2;
-        const boxes = el2(doc, "span", "boxes"), name2 = el2(doc, "span", `name ${COLUMN[d].mark}`);
-        name2.contentEditable = "true";
-        name2.spellcheck = false;
-        name2.addEventListener("input", () => put2((ch) => slotAt(ch, d, row2, { name: name2.textContent ?? "" })));
-        line.append(boxes, el2(doc, "span", "lvl", LEVEL2[row2]), name2, el2(doc, "span", "spent"));
-        col.append(line);
-      }
-      box2.append(col);
-    }
-  }
-  const order = frontOrder(DAMAGE.find((d) => opened.has(`${c.oid}:${d}`)) ?? null);
-  for (const col of box2.children) {
-    const d = col.dataset.damage, slots = c.back.damage[d], room2 = columnRoom(c, d), absorb2 = room2?.absorb ?? 0;
-    const empty2 = !ROWS.some((r) => filled(slots[r])) && !absorb2;
-    col.classList.toggle("empty", empty2);
-    col.classList.toggle("open", opened.has(`${c.oid}:${d}`));
-    col.style.order = String(order.indexOf(d));
-    col.querySelector(".absorb").textContent = absorb2 ? `(absorb ${absorb2})` : "";
-    for (const line of col.querySelectorAll(".slotline")) {
-      const row2 = line.dataset.row, s = slots[row2];
-      const name2 = line.querySelector(".name");
-      if (doc.activeElement !== name2 && name2.textContent !== s.name) name2.textContent = s.name;
-      const spent = s.spent.reduce((a, b) => a + b, 0);
-      line.querySelector(".spent").textContent = spent ? `\u2212${spent}` : "";
-      slotGlyphs(line, s, `${c.oid}:${d}/${row2}`, w);
-      const boxes = line.querySelector(".boxes");
-      const count = room2 ? Math.max(room2.boxes[row2], s.boxes.lastIndexOf(true) + 1) : s.boxes.length;
-      if (boxes.children.length !== count) {
-        boxes.replaceChildren(...Array.from({ length: count }, (_, k) => {
-          const b = el2(doc, "button", "box");
-          b.setAttribute("aria-label", `Slot ${k + 2}`);
-          gesture(b, { click: () => put2((ch) => {
-            const cur = ch.back.damage[d][row2];
-            if (!cur.name) {
-              b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
-              return ch;
-            }
-            const next = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_2, i) => !!cur.boxes[i]);
-            next[k] = !next[k];
-            return slotAt(ch, d, row2, { boxes: next });
-          }) });
-          return b;
-        }));
-      }
-      [...boxes.children].forEach((b, k) => b.classList.toggle("on", !!s.boxes[k]));
-    }
-  }
-}
-function glyph(doc, source2, w) {
-  const g = el2(doc, "span", "glyph");
-  g.contentEditable = "false";
-  g.dataset.source = source2;
-  g.title = "Drag to tap";
-  g.draggable = false;
-  g.addEventListener("pointerdown", (ev) => ev.preventDefault());
-  g.addEventListener("dragstart", (ev) => ev.preventDefault());
-  gesture(g, { drag: (d, m) => {
-    if (!w.dragGlyph(source2, d, m)) g.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
-  } });
-  return g;
-}
-function dry(e, c) {
-  for (const g of e.querySelectorAll(".glyph")) {
-    const s = g.dataset.source ?? "";
-    g.classList.toggle("dry", left(c, s.slice(s.indexOf(":") + 1)) < 1);
-  }
-}
-function frontGlyphs(text, c, w) {
-  const doc = text.ownerDocument;
-  if (doc.activeElement && text.contains(doc.activeElement)) return;
-  for (const g of text.querySelectorAll(".glyph")) g.remove();
-  for (const span of text.querySelectorAll("span.res, span.mot")) {
-    const name2 = influence(span.textContent ?? "")?.name;
-    if (name2) span.before(glyph(doc, `${c.oid}:${name2}`, w));
-  }
-}
-function slotGlyphs(line, s, base, w) {
-  const doc = line.ownerDocument, name2 = line.querySelector(".name");
-  const want = s.name ? [base, ...s.boxes.flatMap((on, k) => on ? [`${base}#${k + 1}`] : [])] : [];
-  const have = [...line.querySelectorAll(".glyph")].map((g) => g.dataset.source);
-  if (want.join() === have.join()) return;
-  for (const g of line.querySelectorAll(".glyph")) g.remove();
-  for (const source2 of want) name2.before(glyph(doc, source2, w));
-}
-function reference(doc, r) {
-  const p = (bold, rest = "") => {
-    const e = el2(doc, "p");
-    e.append(el2(doc, "b", "", bold), rest);
-    return e;
-  };
-  const hd = (left2, right) => {
-    const e = el2(doc, "div", "rhd");
-    e.append(el2(doc, "span", "", left2), el2(doc, "em", "", right));
-    return e;
-  };
-  if (r.which === "actions") {
-    return [
-      hd("SKILL USE", "ACTIONS"),
-      p("CREATE INFLUENCE"),
-      p("ATTACK", ": Create a Bias or Conviction"),
-      p("INFER", ": Find out an NPC's Skills, Resources, Motivations, Opinions, or information on another character"),
-      p("IMPRESS", ": change an NPC's Opinions"),
-      p("REQUEST", ": get an NPC to transfer a Resource or perform a task")
-    ];
-  }
-  return [
-    hd("How to play the table", "put me away when known"),
-    p("Move", ": drag anything; drag empty table to pan, the wheel zooms."),
-    p("Write", ": click paper to write; the pens mark what the table should read."),
-    p("Shift-click", " (or press and hold) lowers, opens and deletes."),
-    p("Put away", ": drop it on the bar; Boot Hill keeps what was buried."),
-    p("Roll", ": the die by a pool's name docks your dice there.")
-  ];
 }
 
 // src/ui/drag.ts
@@ -8615,7 +8615,13 @@ var Drag = class {
 // src/ui/table.ts
 var GATHER_GAP = 14;
 var ZOOM_MIN = 0.25;
-var ZOOM_MAX = 3;
+var ZOOM_MAX = 2.5;
+var ZOOM_RATE = 12e-4;
+function fitView(b, size) {
+  const bw = b.right - b.left, bh = b.bottom - b.top;
+  const zoom = Math.max(ZOOM_MIN, Math.min(1, (size.w - 40) / bw, (size.h - 30) / bh));
+  return { x: (size.w - bw * zoom) / 2 - b.left * zoom, y: 14 - b.top * zoom, zoom };
+}
 function pushClear(mat, pieces, gap = GATHER_GAP) {
   return pieces.filter(({ box: b }) => b.left < mat.right && b.right > mat.left && b.top < mat.bottom && b.bottom > mat.top).map(({ rid, box: box2 }) => ({ rid, dy: mat.bottom + gap - box2.top }));
 }
@@ -8646,11 +8652,14 @@ var TableView = class {
     this.#root = root;
     this.#world = world;
     this.#w = w;
-    this.view = { ...w.view };
+    this.view = w.view ? { ...w.view } : { x: 0, y: 0, zoom: 1 };
     this.#place();
     w.game.listen((rids) => this.render(rids));
     this.render(w.game.all().map(([rid]) => rid));
     this.#panZoom();
+    this.#images();
+    this.#raisePins();
+    if (!w.view) w.schedule(() => w.schedule(() => this.#fit()));
     world.addEventListener("transitionend", (e) => {
       const t = e.target;
       if (t.parentElement === world && (e.propertyName === "left" || e.propertyName === "top")) t.classList.remove("glide");
@@ -8801,7 +8810,7 @@ var TableView = class {
     else {
       const level = doc.createElement("button");
       level.className = "level";
-      level.textContent = `${i.sign > 0 ? "+" : "\u2212"}${levelName2(i.points)}`;
+      level.textContent = `${i.sign > 0 ? "+" : "\u2212"}${levelName(i.points)}`;
       const click = (shift) => {
         const ch = cardClick(this.#w.game, rid, shift, this.#w.mint());
         if (ch) this.#w.game.change(ch);
@@ -8851,6 +8860,7 @@ var TableView = class {
         this.#els.set(rid, e);
       }
     }
+    this.#pinZ();
     if (!items) {
       this.#drawPools([...characters2]);
       return;
@@ -8859,6 +8869,59 @@ var TableView = class {
     for (const [rid, r] of this.#w.game.all()) if (r.kind === "character") pools2.add(rid);
     for (const rid of this.#pools.keys()) pools2.add(rid);
     this.#drawPools([...pools2]);
+  }
+  #fit() {
+    const els = [...this.#world.children].filter((e) => e instanceof HTMLElement && !e.classList.contains("lifted"));
+    if (!els.length) return;
+    const b = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+    for (const e of els) {
+      b.left = Math.min(b.left, e.offsetLeft);
+      b.top = Math.min(b.top, e.offsetTop);
+      b.right = Math.max(b.right, e.offsetLeft + e.offsetWidth);
+      b.bottom = Math.max(b.bottom, e.offsetTop + e.offsetHeight);
+    }
+    const r = this.#root.getBoundingClientRect();
+    this.view = fitView(b, { w: r.width, h: r.height });
+    this.#place();
+    this.#w.keepView(this.view);
+  }
+  // R272: image files dropped from the desktop, each where it was dropped, a step of 24 apart.
+  #images() {
+    this.#root.addEventListener("dragover", (e) => {
+      if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
+    });
+    this.#root.addEventListener("drop", (e) => {
+      const files = [...e.dataTransfer?.files ?? []].filter((f) => f.type.startsWith("image/"));
+      if (!files.length) return;
+      e.preventDefault();
+      const p = this.toWorld(e.clientX, e.clientY);
+      files.forEach((f, i) => this.#w.addImage(f, { x: Math.round(p.x + i * 24), y: Math.round(p.y + i * 24) }));
+    });
+  }
+  // R273: pinned paper lies on its card: at least one above it, and over it while the card is written on.
+  #pinZ() {
+    const game = this.#w.game;
+    for (const [rid, r] of game.all()) {
+      const p = r, e = this.#els.get(rid);
+      if (!e || !("pin" in p)) continue;
+      e.classList.toggle("pinned", !!p.pin);
+      if (!p.pin) {
+        delete e.dataset.pin;
+        continue;
+      }
+      const card2 = game.get(ridOf(p.pin.card));
+      e.dataset.pin = p.pin.card;
+      if (card2?.kind === "character" && "place" in p) e.style.zIndex = String(Math.max(p.place.z, card2.card.z + 1));
+    }
+  }
+  #raisePins() {
+    const mark2 = (e, on) => {
+      const card2 = e.target.closest?.(".obj.card");
+      const oid = card2?.dataset.rid?.slice(2);
+      if (oid) for (const p of this.#world.querySelectorAll(`.obj.pinned[data-pin="${oid}"]`)) p.classList.toggle("atop", on);
+    };
+    this.#root.addEventListener("focusin", (e) => mark2(e, true));
+    this.#root.addEventListener("focusout", (e) => mark2(e, false));
   }
   /** Screen to table coordinates, for drops. */
   toWorld(clientX, clientY) {
@@ -8903,7 +8966,7 @@ var TableView = class {
     root.addEventListener("wheel", (e) => {
       e.preventDefault();
       const r = root.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this.view.zoom * Math.exp(-e.deltaY * 15e-4)));
+      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this.view.zoom * Math.exp(-e.deltaY * ZOOM_RATE)));
       const k = zoom / this.view.zoom;
       this.view = { x: px - (px - this.view.x) * k, y: py - (py - this.view.y) * k, zoom };
       zoomed.to(this.view);
@@ -8973,6 +9036,12 @@ function views(game, gameId, viewer, blobs, moves, missing) {
     imageUrl: (hash) => blobs.url(hash),
     imageGone: (hash) => blobs.release(hash),
     missing,
+    // R272: an image file dropped on the table: its bytes kept, an Image put on top where it fell.
+    addImage: (file, at3) => void blobs.add(file).then(({ blob, w: iw, h }) => {
+      const oid = mint2()(), z = 1 + Math.max(0, ...game.all().map(([, r]) => ("kind" in r ? placeOf(r) : null)?.z ?? 0));
+      const image2 = { kind: "image", oid, place: { ...at3, z, tilt: 0 }, blob, w: iw, h };
+      game.change((wr) => wr.put(ridOf(oid), image2));
+    }),
     opened: () => new Set(seat.open.columns),
     setOpened: (o) => {
       keep({ ...seat, open: { ...seat.open, columns: [...o] } });

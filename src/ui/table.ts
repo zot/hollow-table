@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R269
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R269, R270, R271, R272, R273
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -15,7 +15,18 @@ import { drawPool, type Box, type PoolWith } from './pool.ts';
 export const GATHER_GAP = 14;
 
 export type View = { x: number; y: number; zoom: number };
-export const ZOOM_MIN = 0.25, ZOOM_MAX = 3;
+// R270: as the mockup: a step of exp(-deltaY × 0.0012), a quarter to two and a half times.
+export const ZOOM_MIN = 0.25, ZOOM_MAX = 2.5, ZOOM_RATE = 0.0012;
+/** A box in world coordinates. */
+export type Bounds = { left: number; top: number; right: number; bottom: number };
+
+// R271: a first visit fits everything into the window: centred, at most full size, a margin round it.
+/** The view that shows `b` in a table of `size`: zoom at most 1, 20 px a side, 14 px from the top. */
+export function fitView(b: Bounds, size: { w: number; h: number }): View {
+  const bw = b.right - b.left, bh = b.bottom - b.top;
+  const zoom = Math.max(ZOOM_MIN, Math.min(1, (size.w - 40) / bw, (size.h - 30) / bh));
+  return { x: (size.w - bw * zoom) / 2 - b.left * zoom, y: 14 - b.top * zoom, zoom };
+}
 
 // CRC: crc-TableView.md | R241
 /** The pieces a mat covers, and how far down each must slide to sit just clear below it. */
@@ -28,8 +39,10 @@ export function pushClear(mat: Box, pieces: readonly { rid: Rid; box: Box }[], g
 export type TableWith = PieceWith & PoolWith & {
   game: Game;
   /** The view (the Seat's), and where to keep it. */
-  view: View;
+  view: View | null;
   keepView: (v: View) => void;
+  /** Stores an image file's bytes and puts an Image record at `at` (R272). */
+  addImage: (file: File, at: { x: number; y: number }) => void;
   /** The next frame, or 100 ms in a hidden tab (R215). */
   schedule: (fn: () => void) => void;
 };
@@ -56,11 +69,15 @@ export class TableView {
     this.#root = root;
     this.#world = world;
     this.#w = w;
-    this.view = { ...w.view };
+    this.view = w.view ? { ...w.view } : { x: 0, y: 0, zoom: 1 };
     this.#place();
     w.game.listen(rids => this.render(rids));
     this.render(w.game.all().map(([rid]) => rid));
     this.#panZoom();
+    this.#images();
+    this.#raisePins();
+    // R271: with no view kept, fit once the first draw has settled (pools sized, cards snapped).
+    if (!w.view) w.schedule(() => w.schedule(() => this.#fit()));
     // R226: a glide lasts until the piece arrives.
     world.addEventListener('transitionend', e => {
       const t = e.target as HTMLElement;
@@ -233,12 +250,63 @@ export class TableView {
       }
       if (e !== old) { old?.remove(); this.#world.append(e); this.#els.set(rid, e); }
     }
+    this.#pinZ();
     // A chip or card changing can change any pool (it may have moved between two).
     if (!items) { this.#drawPools([...characters]); return; }
     const pools = new Set<Rid>();
     for (const [rid, r] of this.#w.game.all()) if ((r as PieceRecord).kind === 'character') pools.add(rid);
     for (const rid of this.#pools.keys()) pools.add(rid);
     this.#drawPools([...pools]);
+  }
+
+  #fit(): void {
+    const els = [...this.#world.children].filter((e): e is HTMLElement => e instanceof HTMLElement && !e.classList.contains('lifted'));
+    if (!els.length) return;
+    const b: Bounds = { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity };
+    for (const e of els) {
+      b.left = Math.min(b.left, e.offsetLeft); b.top = Math.min(b.top, e.offsetTop);
+      b.right = Math.max(b.right, e.offsetLeft + e.offsetWidth); b.bottom = Math.max(b.bottom, e.offsetTop + e.offsetHeight);
+    }
+    const r = this.#root.getBoundingClientRect();
+    this.view = fitView(b, { w: r.width, h: r.height });
+    this.#place();
+    this.#w.keepView(this.view);
+  }
+
+  // R272: image files dropped from the desktop, each where it was dropped, a step of 24 apart.
+  #images(): void {
+    this.#root.addEventListener('dragover', e => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+    this.#root.addEventListener('drop', e => {
+      const files = [...(e.dataTransfer?.files ?? [])].filter(f => f.type.startsWith('image/'));
+      if (!files.length) return;
+      e.preventDefault();
+      const p = this.toWorld(e.clientX, e.clientY);
+      files.forEach((f, i) => this.#w.addImage(f, { x: Math.round(p.x + i * 24), y: Math.round(p.y + i * 24) }));
+    });
+  }
+
+  // R273: pinned paper lies on its card: at least one above it, and over it while the card is written on.
+  #pinZ(): void {
+    const game = this.#w.game;
+    for (const [rid, r] of game.all()) {
+      const p = r as PieceRecord, e = this.#els.get(rid);
+      if (!e || !('pin' in p)) continue;
+      e.classList.toggle('pinned', !!p.pin);
+      if (!p.pin) { delete e.dataset.pin; continue; }
+      const card = game.get(ridOf(p.pin.card)) as Character | undefined;
+      e.dataset.pin = p.pin.card;
+      if (card?.kind === 'character' && 'place' in p) e.style.zIndex = String(Math.max(p.place.z, card.card.z + 1));
+    }
+  }
+
+  #raisePins(): void {
+    const mark = (e: FocusEvent, on: boolean) => {
+      const card = (e.target as HTMLElement).closest?.('.obj.card') as HTMLElement | null;
+      const oid = card?.dataset.rid?.slice(2);
+      if (oid) for (const p of this.#world.querySelectorAll<HTMLElement>(`.obj.pinned[data-pin="${oid}"]`)) p.classList.toggle('atop', on);
+    };
+    this.#root.addEventListener('focusin', e => mark(e, true));
+    this.#root.addEventListener('focusout', e => mark(e, false));
   }
 
   /** Screen to table coordinates, for drops. */
@@ -282,7 +350,7 @@ export class TableView {
     root.addEventListener('wheel', e => {
       e.preventDefault();
       const r = root.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
-      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this.view.zoom * Math.exp(-e.deltaY * 0.0015)));
+      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this.view.zoom * Math.exp(-e.deltaY * ZOOM_RATE)));
       const k = zoom / this.view.zoom;
       this.view = { x: px - (px - this.view.x) * k, y: py - (py - this.view.y) * k, zoom };
       zoomed.to(this.view);

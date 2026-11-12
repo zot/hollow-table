@@ -29,3 +29,15 @@ and so are Sam's and Devreux's opened things, the view kept
 **Fire alarm:** Keep a docked roller whose pool vanished (drop the pool test in prune): the roller survives the restore
 **Inject:** src/store/seat.ts:prune
 **Pulled:** 2026-11-12 — rang: the roller survived a prune after its pool vanished
+
+## Test: a first visit has no view
+**Purpose:** R271: a fresh seat, and a seat never saved, have no view, so the table fits itself; a
+kept view comes back, and a partial one is filled in
+**Input:** fresh(); load with nothing saved; a saved view; a stored seat whose view has only a zoom
+**Expected:** null, null, the saved view, `{x 0, y 0, zoom 2}`
+**Refs:** crc-Seat.md
+**Code:** `src/store/seat.test.ts`
+**Alarm:** 2
+**Fire alarm:** In fresh, start with a view at 0, 0, zoom 1 (as before): a first visit is never fitted
+**Inject:** src/store/seat.ts:fresh
+**Pulled:** 2026-11-12 — rang: fresh() had a view at 0, 0, zoom 1, so a first visit was never fitted

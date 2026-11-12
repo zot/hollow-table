@@ -1,12 +1,12 @@
 # Seat
-**Requirements:** R127, R128, R136
+**Requirements:** R127, R128, R136, R271
 
 Your seat at the table: everything about how you're looking, kept per game and per viewer, never
 checkpointed, exported or sent.
 
 ## Knows
 - Kept in localStorage under `hollow.seat.<game>.<viewer>`.
-- view: pan and zoom.
+- view: pan and zoom, or null until the table has been fitted once (a first visit, R271).
 - roller: the docked roll row (pool, action, opponent and Defend kind, White row and whether picked
   by hand, hand adjustments, dice).
 - viewAs: who the GM is viewing as.

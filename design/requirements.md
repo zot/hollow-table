@@ -19,6 +19,8 @@
 - **R13:** Animation respects the reduced-motion preference.
 - **R14:** Every shift-click action has a long-press equivalent.
 - **R15:** The table fills the window; dragging empty table pans and the wheel zooms.
+- **R270:** The wheel zooms about the pointer by `exp(-deltaY × 0.0012)` a step, from 0.25 to 2.5 times.
+- **R271:** A first visit (no view kept in the Seat) fits everything on the table into the window, centred, at most full size; after that the view is the Seat's, and a resize keeps it.
 - **R16:** A click on a pool's empty space beside its name passes through to the table.
 - **R17:** Labels, slot rows, drawer tools, the roll row, the register and the bar don't select as text.
 - **R215:** Dragging, panning and zooming follow the pointer at most once a frame: a move sets where the thing in hand is headed, and the next frame (or 100 ms in a hidden tab) puts it there.
@@ -38,7 +40,9 @@
 - **R24:** Slot boxes on a card toggle.
 - **R25:** Stickies and loose text are handwritten and edited in place.
 - **R26:** An image is added from the image supply through a file picker, belongs to the game, and survives a reload.
+- **R272:** Image files dropped from the desktop onto the table become images where they were dropped, each a step of 24 apart.
 - **R27:** Stickies, text and images can pin to a card and travel with it.
+- **R273:** Pinned paper is always drawn on its card, and rises with it while the card is carried or written on.
 - **R28:** Each party in a Contest, NPCs included, has a pool with Bonus, Main, Edge, Stagger (opposition only), Bias, Affliction and Injury slots in that order, the character's name, a die button, and a drawer of Influence cards below.
 - **R227:** The pool mat is a white frame round tall rounded slots with a dark hairline edge, each named in its middle in PT Mono, sentence case; Stagger is wider, with "opposition only" under its name.
 - **R229:** The drawer is a tray inside the mat under the slots, its cards on the left and its tools on the right.

@@ -44,7 +44,10 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 
 ## The surface
 
-- The table fills the window. Drag empty table to pan; the wheel zooms.
+- The table fills the window. Drag empty table to pan; the wheel zooms about the pointer, from a
+  quarter size to two and a half times (Bill, 11-12, as the mockup).
+- **A first visit fits the table into the window**: everything on it, centred, at most full size
+  (Bill, 11-12). After that the view is your own and stays as you left it, a resized window included.
 - Dragging, panning and zooming follow the pointer at most once a frame: each move only sets
   where the thing in hand is headed, and the next frame puts it there.
 - A piece in your hand stays glued to the pointer at the spot where you took hold of it, at any
@@ -116,9 +119,11 @@ chip, a torn-off roll of receipts.
 - **Sticky note**: yellow, handwritten, edited in place. It comes in two sizes: the note from the
   supply, and a **big sticky** (330 by 300) for the GM's long notes (Bill, 11-12).
 - **Loose text**: handwriting straight on the table.
-- **Image**: dropped from the bar's image supply (a file picker). Images belong to the game and
-  survive a reload.
-- Stickies, text and images can pin to a card and travel with it.
+- **Image**: dropped from the bar's image supply (a file picker), or **image files dropped from the
+  desktop onto the table**, each where it was dropped, several stepped a little apart (Bill, 11-12).
+  Images belong to the game and survive a reload.
+- Stickies, text and images can pin to a card and travel with it. **Pinned paper lies on its card**
+  (Bill, 11-12): it is always drawn on it, and rises with it while the card is carried or written on.
 
 ## Card text
 
