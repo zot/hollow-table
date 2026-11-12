@@ -184,9 +184,9 @@ var Game = class {
     return changed;
   }
   /** Replaces everything (opening a game, a restore, a full table arriving); every rid is heard. */
-  load(records) {
+  load(records2) {
     const changed = new Set(this.#records.keys());
-    this.#records = new Map(records);
+    this.#records = new Map(records2);
     for (const rid of this.#records.keys()) changed.add(rid);
     this.#tell(changed);
   }
@@ -201,6 +201,92 @@ var Game = class {
     if (rids.size) for (const fn of [...this.#listeners]) fn(rids);
   }
 };
+
+// src/rules/yards.ts
+var NUMBERED = /^Graveyard (\d+)$/;
+function empty() {
+  return { yards: [{ name: "Graveyard 1", named: false, items: [] }] };
+}
+function nextName(y) {
+  const ns = y.yards.flatMap((g) => {
+    const m = NUMBERED.exec(g.name);
+    return m ? [Number(m[1])] : [];
+  });
+  return `Graveyard ${Math.max(0, ...ns) + 1}`;
+}
+var vacant = (g) => g.items.length === 0 && !g.named;
+function sweep(y, at3, cur) {
+  if (y.yards.length < 2 || !vacant(y.yards[at3])) return { yards: y, cur };
+  const yards = { yards: y.yards.filter((_, i) => i !== at3) };
+  return { yards, cur: Math.min(cur > at3 ? cur - 1 : cur, yards.yards.length - 1) };
+}
+var withYard = (y, at3, g) => ({ yards: y.yards.map((x, i) => i === at3 ? g : x) });
+function burialOf(piece2, all2) {
+  if (piece2.kind !== "character") return [piece2];
+  const oid = piece2.oid;
+  return [piece2, ...all2.filter((r) => r.kind === "influence" && r.home === oid || (r.kind === "sticky" || r.kind === "text" || r.kind === "image") && r.pin?.card === oid)];
+}
+function bury(y, cur, records2, name2) {
+  const g = y.yards[cur];
+  return withYard(y, cur, { ...g, items: [...g.items, { name: name2, records: records2 }] });
+}
+function take(y, cur, at3) {
+  const g = y.yards[at3.yard], burial = g?.items[at3.item];
+  if (!g || !burial) return { yards: y, cur, burial: void 0 };
+  return { ...sweep(withYard(y, at3.yard, { ...g, items: g.items.filter((_, i) => i !== at3.item) }), at3.yard, cur), burial };
+}
+function exhume(y, cur, at3) {
+  const { burial, ...b } = take(y, cur, at3);
+  return { ...b, records: burial?.records ?? [] };
+}
+function next(y, cur) {
+  if (cur < y.yards.length - 1) return sweep(y, cur, cur + 1);
+  if (vacant(y.yards[cur])) return { yards: y, cur };
+  return { yards: { yards: [...y.yards, { name: nextName(y), named: false, items: [] }] }, cur: cur + 1 };
+}
+function prev(y, cur) {
+  return cur > 0 ? sweep(y, cur, cur - 1) : { yards: y, cur };
+}
+function rename(y, cur, name2) {
+  const g = y.yards[cur], n = name2.trim();
+  return sweep(withYard(y, cur, { ...g, name: n, named: n !== "" }), cur, cur);
+}
+function forget(y, cur, at3) {
+  const { burial: _gone, ...b } = take(y, cur, at3);
+  return b;
+}
+function forgetAll(y, cur) {
+  return sweep(withYard(y, cur, { ...y.yards[cur], items: [] }), cur, cur);
+}
+var firstLine = (marked2) => marked2.replace(/<[^>]*>/g, "").split("\n").find((l) => l.trim())?.trim().slice(0, 28) || "\u2026";
+function graveName(piece2) {
+  switch (piece2.kind) {
+    case "character":
+      return piece2.name.trim() || "Nameless";
+    case "sticky":
+      return `Note: ${firstLine(piece2.text)}`;
+    case "text":
+      return `Writing: ${firstLine(piece2.text)}`;
+    case "tornroll": {
+      const n = piece2.receipts.length;
+      return `Tape: ${n} roll${n === 1 ? "" : "s"}${n ? `, last ${piece2.receipts[0].title}` : ""}`;
+    }
+    default:
+      return "Image";
+  }
+}
+function raised(records2, at3, z) {
+  const lead = records2[0];
+  if (!lead) return [];
+  const anchor = lead.kind === "character" ? lead.pool : "place" in lead ? lead.place : null;
+  if (!anchor) return records2;
+  const grab = lead.kind === "character" ? GRAB_POOL : GRAB_PIECE;
+  const dx = Math.round(at3.x - grab.x - anchor.x), dy = Math.round(at3.y - grab.y - anchor.y);
+  const moved = (p) => ({ ...p, x: p.x + dx, y: p.y + dy, z });
+  return records2.map((r) => r.kind === "character" ? { ...r, pool: moved(r.pool), card: moved(r.card) } : "place" in r ? { ...r, place: moved(r.place) } : r);
+}
+var GRAB_POOL = { x: 30, y: 14 };
+var GRAB_PIECE = { x: 20, y: 14 };
 
 // src/rules/visibility.ts
 function canSee(viewer, character2) {
@@ -446,7 +532,7 @@ function scan(el3, at3) {
   const lines = [[]];
   let pos = null;
   const cur = () => lines[lines.length - 1];
-  const here = (extra = 0) => {
+  const here2 = (extra = 0) => {
     const line = cur(), last = line[line.length - 1];
     return typeof last === "string" ? { line: lines.length - 1, run: line.length - 1, offset: last.length + extra } : { line: lines.length - 1, run: line.length, offset: extra };
   };
@@ -459,9 +545,9 @@ function scan(el3, at3) {
     const kids = Array.from(n.childNodes);
     kids.forEach((c, k) => {
       if (c.nodeType === 1 && c.tagName === "DIV" && top && k > 0) lines.push([]);
-      if (at3?.node === n && at3.offset === k) pos ??= here();
+      if (at3?.node === n && at3.offset === k) pos ??= here2();
       if (c.nodeType === 3) {
-        if (at3?.node === c) pos = here(at3.offset);
+        if (at3?.node === c) pos = here2(at3.offset);
         return push(c.textContent ?? "");
       }
       if (c.nodeType !== 1) return;
@@ -473,7 +559,7 @@ function scan(el3, at3) {
       }
       walk(e, false);
     });
-    if (at3?.node === n && at3.offset >= kids.length) pos ??= here();
+    if (at3?.node === n && at3.offset >= kids.length) pos ??= here2();
   };
   walk(el3, true);
   return { lines: lines.map((l) => l.length ? l : [""]), pos };
@@ -770,9 +856,9 @@ function apply(lines, a, b, tag2) {
   }
   const line = lines[from.line] ?? [];
   if (from.line === to.line && from.run === to.run && from.offset === to.offset) {
-    const r2 = line[from.run], prev = line[from.run - 1], next = line[from.run + 1];
-    if (from.offset === 0 && prev && typeof prev !== "string") return unmark(lines, { line: from.line, run: from.run - 1 });
-    if (typeof r2 === "string" && from.offset === r2.length && next && typeof next !== "string") return unmark(lines, { line: from.line, run: from.run + 1 });
+    const r2 = line[from.run], prev2 = line[from.run - 1], next2 = line[from.run + 1];
+    if (from.offset === 0 && prev2 && typeof prev2 !== "string") return unmark(lines, { line: from.line, run: from.run - 1 });
+    if (typeof r2 === "string" && from.offset === r2.length && next2 && typeof next2 !== "string") return unmark(lines, { line: from.line, run: from.run + 1 });
   }
   if (from.line !== to.line || from.run !== to.run) return lines;
   const r = line[from.run];
@@ -828,9 +914,9 @@ function places(count, k, at3, step) {
   return Array.from({ length: count }, (_, i) => {
     if (i === k) return at3;
     if (y + step > at3 && y < at3 + step) y = at3 + step;
-    const here = y;
+    const here2 = y;
     y += step;
-    return here;
+    return here2;
   });
 }
 function selection(t) {
@@ -940,13 +1026,13 @@ function receiptEl(doc, r) {
     div.textContent = text;
     el3.append(div);
   };
-  const head = doc.createElement("div"), title = doc.createElement("span"), time = doc.createElement("span");
+  const head = doc.createElement("div"), title = doc.createElement("span"), time2 = doc.createElement("span");
   head.className = "rhead";
   title.className = "title";
   title.textContent = r.title;
-  time.className = "when";
-  time.textContent = when(r.at) + (r.ok ? " \u2713" : "");
-  head.append(title, time);
+  time2.className = "when";
+  time2.textContent = when(r.at) + (r.ok ? " \u2713" : "");
+  head.append(title, time2);
   el3.append(head);
   if (r.outcome === "missing") return el3;
   if (r.by) line(`rolled by ${r.by === "GM" ? "the GM" : r.by}`, "by");
@@ -1239,9 +1325,9 @@ function damage2(box2, c, w) {
               b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
               return ch;
             }
-            const next = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_2, i) => !!cur.boxes[i]);
-            next[k] = !next[k];
-            return slotAt(ch, d, row2, { boxes: next });
+            const next2 = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_2, i) => !!cur.boxes[i]);
+            next2[k] = !next2[k];
+            return slotAt(ch, d, row2, { boxes: next2 });
           }) });
           return b;
         }));
@@ -1361,6 +1447,10 @@ function whoIs(game, name2, browser) {
     return name2;
   }
   return held === browser ? name2 : null;
+}
+function handOver(game, name2, browser) {
+  const b = book(game);
+  game.change((w) => w.put("book", { ...b, claims: { ...b.claims, [name2]: browser } }));
 }
 function why(name2) {
   return `${name2} is played from another browser, so the GM's page shows you only what anyone sees and doesn't take your changes. The GM can hand ${name2} to you by clicking your name in their strip.`;
@@ -1566,8 +1656,8 @@ var Authority = class {
         continue;
       }
       const pv = redact(rec, null, chars), changed = !same(this.#public.get(rid), pv);
-      let stamp;
-      const stampOnce = () => stamp ??= this.#stamp(rid);
+      let stamp2;
+      const stampOnce = () => stamp2 ??= this.#stamp(rid);
       if (changed) {
         this.#public.set(rid, pv);
         puts.push({ rid, ...stampOnce(), rec: pv });
@@ -1614,9 +1704,9 @@ var Authority = class {
     t.holds.clear();
     for (const [rid, rec] of game.all()) {
       if (LOCAL.has(rid)) continue;
-      const stamp = this.#current(rid), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
-      puts.push({ rid, ...stamp, rec: pv });
-      if (!same(tv, pv)) mine.push({ rid, ...stamp, rec: tv });
+      const stamp2 = this.#current(rid), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
+      puts.push({ rid, ...stamp2, rec: pv });
+      if (!same(tv, pv)) mine.push({ rid, ...stamp2, rec: tv });
       t.holds.set(rid, tv);
     }
     const g = game.get("book").gv;
@@ -2206,6 +2296,9 @@ var Moves = class {
 // src/net/presence.ts
 var OFFLINE_MS = 15e3;
 var CHECK_MS = 1e3;
+var HEART_MS = 1e4;
+var STALE_MS = 25e3;
+var GONE_MS = 6e4;
 function newRoom(label = "table") {
   const hex = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
   return `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "table"}-${hex}`;
@@ -2232,6 +2325,9 @@ var Presence = class {
   #name;
   #lastLive;
   #tick = null;
+  /** tab → when it was last heard. */
+  #heard = /* @__PURE__ */ new Map();
+  #beat = 0;
   constructor(w) {
     this.#w = w;
     this.#name = w.name;
@@ -2245,16 +2341,24 @@ var Presence = class {
     w.net.on("here", (body, from) => {
       const person = { name: body.name, role: body.role, browser: from.browser };
       this.people.set(from.tab, person);
+      this.#heard.set(from.tab, w.clock.now());
       w.here?.(person, from);
     });
-    const gone = (tab2) => {
-      if (this.people.delete(tab2)) w.gone?.(tab2);
-    };
-    w.net.onLeave((p) => gone(p.tab));
-    w.net.on("bye", (_, from) => gone(from.tab));
+    w.net.onLeave((p) => this.#gone(p.tab));
+    w.net.on("bye", (_, from) => this.#gone(from.tab));
+  }
+  // R162: forget a tab: no longer heard from, no longer present.
+  #gone(tab2) {
+    this.#heard.delete(tab2);
+    if (this.people.delete(tab2)) this.#w.gone?.(tab2);
   }
   get name() {
     return this.#name;
+  }
+  /** R293: whether a page hasn't been heard for 25 s (its tag dims). */
+  stale(tab2) {
+    const at3 = this.#heard.get(tab2);
+    return at3 !== void 0 && this.#w.clock.now() - at3 >= STALE_MS;
   }
   /** Starts watching whether this page can reach anyone. */
   start() {
@@ -2267,6 +2371,11 @@ var Presence = class {
   // R163: live while a relay or a peer is reachable; offline after 15 s with neither, with why.
   #check() {
     const now2 = this.#w.clock.now(), r = this.#w.net.reachable();
+    if (now2 - this.#beat >= HEART_MS) {
+      this.#beat = now2;
+      this.#w.net.send("here", { name: this.#name, role: this.#w.role });
+    }
+    for (const [tab2, at3] of this.#heard) if (now2 - at3 >= GONE_MS) this.#gone(tab2);
     if (r.relays || r.peers) {
       this.#lastLive = now2;
       this.status = { state: "live" };
@@ -3577,7 +3686,7 @@ var OfferManager = class {
       if (this.destroyed) throw mkErr("room left while preparing offer");
       const peer = this.makeOffer();
       try {
-        const offer3 = await encryptOffer(peer);
+        const offer4 = await encryptOffer(peer);
         if (this.destroyed) throw mkErr("room left while preparing offer");
         if (leaseOffers) {
           this.leased.set(peer, setTimeout(() => {
@@ -3586,14 +3695,14 @@ var OfferManager = class {
           }, offerLeaseTtlMs));
           return {
             peer,
-            offer: offer3,
+            offer: offer4,
             claim: () => this.claimLeased(peer),
             reclaim: () => this.reclaimLeased(peer)
           };
         }
         return {
           peer,
-          offer: offer3
+          offer: offer4
         };
       } catch (error) {
         peer.destroy();
@@ -5310,9 +5419,9 @@ var createMediaManager = ({ iterate, isActive, getSharedMediaPeer, onPeerError }
     },
     receiveRemoteStream: (id, stream) => {
       if (!isActive(id)) return;
-      const next = takePendingMeta(pendingStreamMetas[id], typeof stream.id === "string" ? stream.id : void 0, (meta) => meta.streamId);
-      if (!next) return;
-      emitStream(id, next.key, stream, next.metadata);
+      const next2 = takePendingMeta(pendingStreamMetas[id], typeof stream.id === "string" ? stream.id : void 0, (meta) => meta.streamId);
+      if (!next2) return;
+      emitStream(id, next2.key, stream, next2.metadata);
     },
     receiveRemoteTrack: (id, track, stream) => {
       if (!isActive(id)) return;
@@ -5320,9 +5429,9 @@ var createMediaManager = ({ iterate, isActive, getSharedMediaPeer, onPeerError }
       const trackId = typeof track.id === "string" ? track.id : void 0;
       const streamId = typeof stream.id === "string" ? stream.id : void 0;
       const byTrackIdx = queue && trackId ? queue.findIndex((meta) => meta.trackId === trackId) : -1;
-      const next = byTrackIdx >= 0 ? queue?.splice(byTrackIdx, 1)[0] : takePendingMeta(queue, streamId, (meta) => meta.streamId);
-      if (!next) return;
-      emitTrack(id, next.key, track, stream, next.metadata);
+      const next2 = byTrackIdx >= 0 ? queue?.splice(byTrackIdx, 1)[0] : takePendingMeta(queue, streamId, (meta) => meta.streamId);
+      if (!next2) return;
+      emitTrack(id, next2.key, track, stream, next2.metadata);
     },
     clearPeer: (id) => {
       delete pendingStreamMetas[id];
@@ -6263,14 +6372,14 @@ var ensureOffer = (ctx, state, peerId) => {
       throw error;
     }
     if (!firstOffer) throw mkErr("failed to allocate offer peer");
-    const { peer, offer: offer3 } = firstOffer;
+    const { peer, offer: offer4 } = firstOffer;
     if (ctx.isLeaving() || state.offerInitPromise !== pending) {
       peer.destroy();
       return null;
     }
     state.offerPeer = peer;
     state.offerId = genId(offerIdSize);
-    state.offerSdp = offer3;
+    state.offerSdp = offer4;
     state.offerAnswered = false;
     state.connectionErrorReported = false;
     state.offerSignalBacklog = [];
@@ -6282,7 +6391,7 @@ var ensureOffer = (ctx, state, peerId) => {
     scheduleOfferExpiry(ctx, state, peerId);
     return {
       peer,
-      offer: offer3,
+      offer: offer4,
       offerId: state.offerId
     };
   };
@@ -6341,12 +6450,12 @@ var handleAnnouncement = async (ctx, relayId, peerId, signalPeer, retryAttempt =
   didSendOffer = true;
   state.offerSignalBacklog.forEach((signal) => state.offerSignalRelays[relayId]?.(signal));
 };
-var handleOffer = async (ctx, relayId, peerId, offer3, offerId, signalPeer) => {
+var handleOffer = async (ctx, relayId, peerId, offer4, offerId, signalPeer) => {
   const state = getState(ctx.peerStates, peerId);
   if (state.answeringPeer || state.offerAnswered) {
     const replay2 = state.answerReplay;
     const lastSentAt = replay2?.lastSentAt[relayId];
-    if (state.answeringPeer && !state.answeringPeer.isDead && replay2 && replay2.offer === offer3 && replay2.offerId === offerId && (lastSentAt === void 0 || Date.now() - lastSentAt >= 1e3)) {
+    if (state.answeringPeer && !state.answeringPeer.isDead && replay2 && replay2.offer === offer4 && replay2.offerId === offerId && (lastSentAt === void 0 || Date.now() - lastSentAt >= 1e3)) {
       replay2.lastSentAt[relayId] = Date.now();
       const peerTopic2 = await sha1(topicPath(ctx.rootTopicPlaintext, peerId));
       if (!ctx.isLeaving() && state.answerReplay === replay2 && !state.connectedPeer) {
@@ -6362,7 +6471,7 @@ var handleOffer = async (ctx, relayId, peerId, offer3, offerId, signalPeer) => {
   if (hasTrackedOutgoingOffer) resetOfferState(state);
   const answerPeer = ctx.initPeer(false, ctx.config);
   const replay = {
-    offer: offer3,
+    offer: offer4,
     offerId,
     messages: [],
     lastSentAt: [],
@@ -6389,7 +6498,7 @@ var handleOffer = async (ctx, relayId, peerId, offer3, offerId, signalPeer) => {
   try {
     plainOffer = await ctx.toPlain({
       type: "offer",
-      sdp: offer3
+      sdp: offer4
     });
   } catch {
     clearAnswering(state, answerPeer);
@@ -6522,7 +6631,7 @@ var createSignalHandler = (ctx) => (relayId) => async (topic, msg, signalPeer) =
   const payload = toPayload(msg);
   if (!payload || hasInvalidSignalField(payload, typeof msg === "string")) return;
   const peerId = getString(payload, "peerId") ?? "";
-  const offer3 = getString(payload, "offer");
+  const offer4 = getString(payload, "offer");
   const answer = getString(payload, "answer");
   const candidate = getString(payload, "candidate");
   const offerId = getString(payload, "offerId");
@@ -6556,7 +6665,7 @@ var createSignalHandler = (ctx) => (relayId) => async (topic, msg, signalPeer) =
     }
   }
   if (ctx.reusePeer(peerId)) return;
-  if (Boolean(peerId && !offer3 && !answer && !candidate)) {
+  if (Boolean(peerId && !offer4 && !answer && !candidate)) {
     const announcePeerState = getState(ctx.peerStates, peerId);
     const shouldLeadOffer = selfId < peerId;
     if (announcePeerState.answeringPeer || announcePeerState.connectedPeer || announcePeerState.offerAnswered) return;
@@ -6577,7 +6686,7 @@ var createSignalHandler = (ctx) => (relayId) => async (topic, msg, signalPeer) =
     announcePeerState.offerRelays[relayId] = offerRelayPlaceholder;
     return handleAnnouncement(ctx, relayId, peerId, signalPeer);
   }
-  if (offer3) return handleOffer(ctx, relayId, peerId, offer3, offerId, signalPeer);
+  if (offer4) return handleOffer(ctx, relayId, peerId, offer4, offerId, signalPeer);
   if (candidate) return handleCandidate(ctx, peerId, candidate, offerId, peer);
   if (answer) return handleAnswer(ctx, peerId, answer, offerId, peer);
 };
@@ -7667,8 +7776,8 @@ var EMPTY = { receipts: [] };
 function retitled(tape, id, title) {
   return { receipts: tape.receipts.map((r) => r.id === id ? { ...r, title } : r) };
 }
-function torn(tape, oid, place2) {
-  return { kind: "tornroll", oid, place: place2, receipts: tape.receipts };
+function torn(tape, oid, place3) {
+  return { kind: "tornroll", oid, place: place3, receipts: tape.receipts };
 }
 function mayChoose(viewer, r) {
   return !!r.crit && !r.crit.locked && !!viewer && (viewer.gm || r.by === viewer.name);
@@ -7813,9 +7922,9 @@ var RegisterView = class {
       return e;
     };
     this.#el = el3("div", "register");
-    const win = el3("div", "window"), confirm = el3("span", "tab", "End conflict?");
+    const win = el3("div", "window"), confirm2 = el3("span", "tab", "End conflict?");
     this.#tab = el3("span", "rtab");
-    win.append(el3("small", "label", "Round"), this.#tab, confirm);
+    win.append(el3("small", "label", "Round"), this.#tab, confirm2);
     const keys2 = el3("div", "keys"), up = el3("button", "key up", "\u25B2"), down = el3("button", "key down", "\u25BC"), end = el3("button", "key end", "End");
     const roll3 = el3("button", "paperroll");
     roll3.id = "paperroll";
@@ -7874,6 +7983,891 @@ var RegisterView = class {
     return this.#el.getBoundingClientRect().left;
   }
 };
+
+// src/ui/actions.ts
+function minter(game, gm, rng = Math.random) {
+  const used = new Set(game.all().map(([rid]) => rid).filter(isPiece).map(oidOf));
+  let top = 0;
+  for (const o of used) {
+    const n = parseInt(o, 16);
+    if (n < PLAYER_OIDS) top = Math.max(top, n);
+  }
+  return () => {
+    let oid;
+    do {
+      oid = (gm ? ++top : PLAYER_OIDS + Math.floor(rng() * (4294967295 - PLAYER_OIDS))).toString(16).padStart(8, "0");
+    } while (used.has(oid));
+    used.add(oid);
+    return oid;
+  };
+}
+var lookup = (game) => (oid) => game.get(ridOf(oid));
+var item = (game, rid) => {
+  const r = game.get(rid);
+  return r && "kind" in r && (r.kind === "chip" || r.kind === "influence") ? r : void 0;
+};
+var inSlot2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && i.where.name === slot2;
+function slotItems(game, owner, slot2) {
+  return game.all().map(([rid]) => item(game, rid)).filter((i) => !!i && inSlot2(i, owner, slot2));
+}
+function settle(w, items, mint2) {
+  const plan = rollUp(items, mint2);
+  const gone = new Set(plan.remove);
+  for (const i of items) if (!gone.has(i.oid)) w.put(ridOf(i.oid), i);
+  for (const oid of plan.remove) w.del(ridOf(oid));
+  for (const c of plan.add) w.put(ridOf(c.oid), c);
+}
+function withItem(game, owner, slot2, changed, gone) {
+  const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
+  return changed ? [...rest, changed] : rest;
+}
+function toSlot(game, rid, owner, slot2, mint2) {
+  const i = item(game, rid);
+  if (!i || !accepts(slot2, i)) return null;
+  const home = i.kind === "influence" && i.mot ? { home: owner } : {};
+  const moved = { ...i, ...home, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
+  return (w) => {
+    settle(w, withItem(game, owner, slot2, moved), mint2);
+  };
+}
+function drawerCards(game, owner) {
+  return game.all().map(([, r]) => r).filter((r) => "kind" in r && r.kind === "influence" && r.home === owner && r.where === "drawer").sort((a, b) => a.n - b.n);
+}
+function toDrawer(game, rid, owner, at3) {
+  const i = item(game, rid);
+  if (!i || i.kind !== "influence") return null;
+  const order = drawerCards(game, owner).filter((k) => ridOf(k.oid) !== rid);
+  const card2 = { ...i, home: owner, where: "drawer", used: false };
+  order.splice(at3 === void 0 ? order.length : Math.max(0, Math.min(at3, order.length)), 0, card2);
+  return (w) => order.forEach((k, n) => {
+    if (k === card2 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
+  });
+}
+function toTable(game, rid, at3) {
+  const i = item(game, rid);
+  if (!i) return null;
+  if (i.kind === "influence" && !i.tap) return toDrawer(game, rid, i.home);
+  return (w) => w.put(rid, { ...i, where: { table: at3 } });
+}
+function killCard(game, rid) {
+  const i = item(game, rid);
+  if (!i || i.kind !== "influence") return null;
+  const refunds = kill(lookup(game), i);
+  return (w) => {
+    w.del(rid);
+    for (const c of refunds) w.put(ridOf(c.oid), c);
+  };
+}
+function vanish(game, rid) {
+  const i = item(game, rid);
+  return i?.kind === "chip" ? (w) => w.del(rid) : null;
+}
+function chipClick(game, rid, shift, mint2) {
+  const c = item(game, rid);
+  if (c?.kind !== "chip") return null;
+  const next2 = shift ? lowerChip(c) : raiseChip(c);
+  if (typeof c.where !== "object" || !("slot" in c.where)) {
+    return (w) => {
+      if (next2) w.put(rid, next2);
+      else w.del(rid);
+    };
+  }
+  const { slot: owner, name: name2 } = c.where;
+  return (w) => {
+    if (!next2) w.del(rid);
+    settle(w, withItem(game, owner, name2, next2, next2 ? void 0 : c.oid), mint2);
+  };
+}
+function riderClick(game, rid, shift) {
+  const c = item(game, rid);
+  if (c?.kind !== "chip" || !c.rider || !shift) return null;
+  return (w) => w.put(rid, { ...c, rider: false });
+}
+function addLoose(game, owner, slot2, shift, mint2) {
+  const chip2 = {
+    kind: "chip",
+    oid: mint2(),
+    where: { slot: owner, name: slot2 },
+    n: slotItems(game, owner, slot2).length,
+    sign: shift ? -1 : 1,
+    points: 1,
+    rider: false
+  };
+  return (w) => w.put(ridOf(chip2.oid), chip2);
+}
+function cardClick(game, rid, shift, mint2) {
+  const c = item(game, rid);
+  if (c?.kind !== "influence") return null;
+  if (shift && c.points <= MIN) return killCard(game, rid);
+  if (c.tap) {
+    const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
+    return t ? apply2(t, c) : null;
+  }
+  const next2 = shift ? lowerCard(c) : raiseCard(c);
+  return next2.points === c.points ? null : (w) => w.put(rid, next2);
+}
+function writeCard(game, owner, sign2, name2, mint2) {
+  const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
+  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
+  return (w) => w.put(ridOf(card2.oid), card2);
+}
+function restoreUsed(game, rid) {
+  const c = item(game, rid);
+  return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid, { ...c, where: "drawer", used: false }) : null;
+}
+function apply2(t, old) {
+  return (w) => {
+    if (old && t.card.oid !== old.oid) w.put(ridOf(old.oid), old);
+    w.put(ridOf(t.card.oid), t.card);
+    for (const c of t.changed) w.put(ridOf(c.oid), c);
+  };
+}
+function tapOut(game, src, where2, mint2) {
+  const t = tap(lookup(game), src, where2, mint2());
+  return t ? apply2(t) : null;
+}
+function mergeTap(game, fromRid, intoRid, mint2) {
+  const from = item(game, fromRid), into = item(game, intoRid);
+  if (fromRid === intoRid || from?.kind !== "influence" || into?.kind !== "influence" || !from.tap || !into.tap || from.used) return null;
+  const chars = /* @__PURE__ */ new Map();
+  const now2 = (oid) => chars.get(oid) ?? lookup(game)(oid);
+  for (const c of kill(now2, from)) chars.set(c.oid, c);
+  let card2 = into, fed = false;
+  for (const [src, n] of Object.entries(from.tap.ledger)) {
+    for (let k = 0; k < n; k++) {
+      const t = feed(now2, card2, src, mint2());
+      if (!t || t.card.oid !== into.oid) return null;
+      card2 = t.card;
+      fed = true;
+      for (const c of t.changed) chars.set(c.oid, c);
+    }
+  }
+  if (!fed) return null;
+  return (w) => {
+    w.del(fromRid);
+    w.put(intoRid, card2);
+    for (const c of chars.values()) w.put(ridOf(c.oid), c);
+  };
+}
+
+// src/ui/pool.ts
+var MAT_W = 430;
+var SLOT_W = 72;
+var STAGGER_W = 92;
+var STRIP_W = 16;
+var SLOT_GAP = 6;
+var MAT_PAD = 6;
+function openSlots(holding, width = MAT_W) {
+  const full = (i) => SLOTS[i] === "stagger" ? STAGGER_W : SLOT_W;
+  const open = [...holding];
+  const used = () => open.reduce((a, o, i) => a + (o ? full(i) : STRIP_W), 0) + SLOT_GAP * (open.length - 1);
+  for (let i = 0; i < open.length; i++) {
+    if (open[i]) continue;
+    open[i] = true;
+    if (used() > width - 2 * MAT_PAD) {
+      open[i] = false;
+      break;
+    }
+  }
+  return open;
+}
+function insertAt(cards, x, y) {
+  const k = cards.findIndex((r) => y < r.top || y <= r.bottom && x < (r.left + r.right) / 2);
+  return k < 0 ? cards.length : k;
+}
+function reachFor(holding, at3, from, width = MAT_W) {
+  const open = openSlots(holding, width);
+  if (at3 === null || open[at3]) return open;
+  open[at3] = true;
+  const free = (i) => open[i] && !holding[i] && i !== at3;
+  let close = from !== null && free(from) ? from : -1;
+  for (let i = (from ?? at3) - 1; close < 0 && i >= 0; i--) if (free(i)) close = i;
+  if (close >= 0) open[close] = false;
+  return open;
+}
+function pops(before2, after) {
+  const out = /* @__PURE__ */ new Set();
+  if (!before2) return out;
+  const lost = /* @__PURE__ */ new Map();
+  for (const [k, b] of before2) if (!after.has(k)) lost.set(b.place, (lost.get(b.place) ?? 0) + 1);
+  for (const [k, a] of after) {
+    const b = before2.get(k);
+    if (b ? b.points !== a.points : k.startsWith("pile:") || (lost.get(a.place) ?? 0) >= 2) out.add(k);
+  }
+  return out;
+}
+var LABEL = {
+  bonus: "Bonus",
+  main: "Main",
+  edge: "Edge",
+  stagger: "Stagger",
+  bias: "Bias",
+  affliction: "Affliction",
+  injury: "Injury"
+};
+var el2 = (doc, tag2, cls, text) => {
+  const e = doc.createElement(tag2);
+  if (cls) e.className = cls;
+  if (text !== void 0) e.textContent = text;
+  return e;
+};
+var run = (game, c) => {
+  if (c) game.change(c);
+};
+var isPile2 = (u) => "members" in u;
+var at = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
+function drawPool(c, items, old, w) {
+  const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
+  const e = old ?? make3(doc, c, w);
+  e.style.left = `${c.pool.x}px`;
+  e.style.top = `${c.pool.y}px`;
+  e.style.zIndex = String(c.pool.z);
+  e.querySelector(".name").textContent = c.name;
+  const die3 = e.querySelector(".die-own");
+  die3.textContent = ownerWord(c);
+  die3.title = c.owner === OPEN ? "Open: click to claim this character" : "Click to roll for this character; shift-click to open it for someone else";
+  e.querySelector(".gather").hidden = c.gathered;
+  const opened = w.poolOpen(), shown2 = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
+  const slotEls = [...e.querySelectorAll(".slot")];
+  const mine = slotEls.map((slotEl) => items.filter((i) => at(i, c.oid, slotEl.dataset.slot)));
+  holdingOf.set(e, slotEls.map((slotEl, k) => mine[k].length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
+  layout(e);
+  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown2, drawn));
+  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown2, drawn);
+  for (const k of pops(seen2.get(e), shown2)) pop(drawn.get(k));
+  seen2.set(e, shown2);
+  e.dataset.rid = rid;
+  return e;
+}
+var holdingOf = /* @__PURE__ */ new WeakMap();
+var reaching = /* @__PURE__ */ new WeakMap();
+function layout(e) {
+  const holding = holdingOf.get(e), r = reaching.get(e);
+  if (!holding) return;
+  const ix = (s) => s ? SLOTS.indexOf(s) : null;
+  const open = reachFor(holding, ix(r?.at), ix(r?.from));
+  e.querySelectorAll(".slot").forEach((slotEl, k) => slotEl.classList.toggle("narrow", !open[k]));
+}
+function reach(pool, at3, from) {
+  const was = reaching.get(pool);
+  if (was?.at === at3 && was.from === from) return;
+  if (at3) reaching.set(pool, { at: at3, from });
+  else reaching.delete(pool);
+  layout(pool);
+}
+var seen2 = /* @__PURE__ */ new WeakMap();
+function pop(e) {
+  if (!e) return;
+  e.classList.remove("rolled");
+  void e.offsetWidth;
+  e.classList.add("rolled");
+  e.addEventListener("animationend", () => e.classList.remove("rolled"), { once: true });
+}
+function make3(doc, c, w) {
+  const e = el2(doc, "div", "obj pool");
+  e.dataset.part = "pool";
+  const rid = ridOf(c.oid);
+  const hd = el2(doc, "div", "hd");
+  const gather = el2(doc, "button", "gather", "gather");
+  gesture(gather, { click: () => {
+    const cur = w.game.get(rid);
+    w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
+  } });
+  const name2 = el2(doc, "span", "name");
+  const die3 = el2(doc, "button", "die-own");
+  gesture(die3, { click: () => w.poolDie(c.oid, false, die3), shift: () => w.poolDie(c.oid, true, die3) });
+  hd.append(name2, die3, gather);
+  const slots = el2(doc, "div", "slots");
+  for (const s of SLOTS) {
+    const slot2 = el2(doc, "div", `slot slot-${s}`);
+    slot2.dataset.slot = s;
+    slot2.dataset.owner = c.oid;
+    const label = el2(doc, "span", "label", LABEL[s]);
+    label.dataset.letter = LABEL[s][0];
+    if (s === "stagger") label.append(el2(doc, "small", "", "opposition only"));
+    slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
+    slot2.append(label, el2(doc, "div", "pos"), el2(doc, "div", "neg"));
+    gesture(slot2, {
+      click: (ev) => {
+        if (ev.target.closest(".chip, .pile")) return;
+        if (slot2.classList.contains("narrow")) {
+          w.toggle("slots", `${c.oid}:${s}`, true);
+          return;
+        }
+        run(w.game, addLoose(w.game, c.oid, s, false, w.mint()));
+      },
+      shift: (ev) => {
+        if (ev.target.closest(".chip, .pile") || slot2.classList.contains("narrow")) return;
+        run(w.game, addLoose(w.game, c.oid, s, true, w.mint()));
+      }
+    });
+    slots.append(slot2);
+  }
+  const drawer2 = el2(doc, "div", "drawer");
+  drawer2.dataset.drawer = c.oid;
+  drawer2.append(el2(doc, "div", "cards"), el2(doc, "div", "tools"));
+  e.append(hd, slots, drawer2);
+  for (const part of [name2, slots, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid, d, m) });
+  return e;
+}
+function units(slotEl, items, w, shown2, drawn) {
+  const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
+  const opened = w.poolOpen(), place3 = slotEl.dataset.slot;
+  for (const sign2 of [1, -1]) {
+    const box2 = slotEl.querySelector(sign2 > 0 ? ".pos" : ".neg");
+    const mine = units2.filter((u) => u.sign === sign2).sort((a, b) => sign2 > 0 ? worthOf(b) - worthOf(a) : worthOf(a) - worthOf(b));
+    box2.replaceChildren(...mine.map((u, k) => {
+      const piled = isPile2(u);
+      const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
+      e.style.zIndex = String(50 - k);
+      const key = piled ? `pile:${u.members[0]?.oid ?? ""}` : u.oid;
+      shown2.set(key, { points: u.points, place: place3 });
+      drawn.set(key, e);
+      return e;
+    }));
+  }
+}
+var worthOf = (u) => isPile2(u) ? u.points : worth(u);
+function chipFace(i) {
+  if (i.points === 1) return i.sign < 0 ? "\u22121" : "+1";
+  return `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
+}
+function chip(doc, i, w) {
+  const card2 = i.kind === "influence";
+  const b = el2(
+    doc,
+    "button",
+    `chip ${i.sign > 0 ? "pos" : "neg"}${card2 ? " card-chip" : ""}${card2 && i.tap ? " res" : ""}${card2 && i.used ? " used" : ""}`,
+    chipFace(i)
+  );
+  const rid = ridOf(i.oid);
+  b.dataset.rid = rid;
+  if (card2) {
+    b.title = i.name;
+    b.dataset.name = i.name;
+  }
+  if (i.kind === "chip" && i.rider) {
+    const r = el2(doc, "span", "rider", "+1");
+    gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
+    b.append(r);
+  }
+  const click2 = i.kind === "chip" ? chipClick : cardClick;
+  gesture(b, {
+    click: () => run(w.game, click2(w.game, rid, false, w.mint())),
+    shift: () => run(w.game, click2(w.game, rid, true, w.mint())),
+    drag: (d, m) => w.dragItem(rid, d, m)
+  });
+  return b;
+}
+function pile(doc, p, open, w) {
+  const first = p.members[0]?.oid ?? "";
+  const d = el2(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first) ? " open" : ""}`);
+  const disc = el2(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
+  disc.title = `${p.members.length} acting as one`;
+  gesture(disc, { click: () => w.toggle("piles", first) });
+  d.append(disc);
+  if (open.has(first)) {
+    const list2 = el2(doc, "div", "members");
+    for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
+    d.append(list2);
+  }
+  return d;
+}
+function drawer(box2, c, cards, w, shown2, drawn) {
+  const doc = box2.ownerDocument, opened = w.poolOpen();
+  const visible = canSee(w.viewer, c);
+  const here2 = cards.filter((k) => k.where === "drawer"), used = cards.filter((k) => k.where === "used");
+  box2.querySelector(".cards").replaceChildren(...here2.sort((a, b) => a.n - b.n).map((k) => {
+    const e = card(doc, k, visible, w);
+    shown2.set(k.oid, { points: k.points, place: "drawer" });
+    drawn.set(k.oid, e);
+    return e;
+  }));
+  const tools = [];
+  for (const sign2 of [1, -1]) {
+    const pen = el2(doc, "button", `write ${sign2 > 0 ? "pos" : "neg"}`, sign2 > 0 ? "+" : "\u2212");
+    pen.title = sign2 > 0 ? "Write a + card" : "Write a \u2212 card";
+    gesture(pen, { click: () => {
+      const oid = w.mint()();
+      run(w.game, writeCard(w.game, c.oid, sign2, "Influence", () => oid));
+      const name2 = box2.querySelector(`.icard[data-rid="${ridOf(oid)}"] .iname`);
+      if (!name2) return;
+      name2.focus();
+      doc.getSelection()?.selectAllChildren(name2);
+    } });
+    tools.push(pen);
+  }
+  const pileTile = el2(doc, "div", "usedpile");
+  const tag2 = el2(doc, "button", "used", "used");
+  tag2.append(el2(doc, "b", "", String(used.length)));
+  tag2.title = "Used Influence cards: click to see them, click one to put it back";
+  gesture(tag2, { click: () => w.toggle("used", c.oid) });
+  pileTile.append(tag2);
+  if (opened.used.has(c.oid) && visible) {
+    const list2 = el2(doc, "div", "usedlist");
+    if (!used.length) list2.append(el2(doc, "p", "", "None used."));
+    for (const k of used) {
+      const u = card(doc, k, visible, w);
+      gesture(u, { click: () => run(w.game, restoreUsed(w.game, ridOf(k.oid))) });
+      list2.append(u);
+    }
+    pileTile.append(list2);
+  }
+  tools.push(pileTile, Object.assign(el2(doc, "span", "kill", "kill"), { title: "Drop a card here to delete it" }));
+  box2.querySelector(".tools").replaceChildren(...tools);
+}
+function card(doc, k, visible, w) {
+  const rid = ridOf(k.oid);
+  const e = el2(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
+  e.dataset.rid = rid;
+  const drag = { drag: (d, m) => w.dragItem(rid, d, m) };
+  if (!visible) {
+    e.classList.add("facedown");
+    gesture(e, drag);
+    return e;
+  }
+  const name2 = el2(doc, "span", "iname", k.name);
+  name2.contentEditable = "true";
+  name2.spellcheck = false;
+  name2.addEventListener("input", () => {
+    const cur = w.game.get(rid);
+    if (cur) w.game.change((x) => x.put(rid, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
+  });
+  const level = el2(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName(k.points)}`);
+  gesture(level, {
+    click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
+    shift: () => run(w.game, cardClick(w.game, rid, true, w.mint()))
+  });
+  e.append(name2, level);
+  gesture(e, drag);
+  return e;
+}
+var drawerCardEls = (cards) => [...cards.querySelectorAll(":scope > .icard")];
+function gapAt(drawer2, x, y) {
+  const cards = drawer2.querySelector(".cards"), gap = cards.querySelector(".gap"), next2 = gap?.nextSibling ?? null;
+  gap?.remove();
+  const r = cards.getBoundingClientRect(), k = r.width / cards.offsetWidth || 1;
+  const boxes = drawerCardEls(cards).map((e) => {
+    const left2 = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
+    return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight };
+  });
+  if (gap) cards.insertBefore(gap, next2);
+  return insertAt(boxes, (x - r.left) / k, (y - r.top) / k);
+}
+function showGap(drawer2, at3, animate = true) {
+  const cards = drawer2.querySelector(".cards");
+  if (!cards) return;
+  const els = drawerCardEls(cards);
+  let gap = cards.querySelector(".gap");
+  const now2 = gap ? [...cards.children].filter((c) => c === gap || c.classList.contains("icard")).indexOf(gap) : -1;
+  if (at3 === null ? !gap : now2 === at3) return;
+  const before2 = new Map(els.map((e) => [e, e.getBoundingClientRect()]));
+  if (at3 === null) gap.remove();
+  else {
+    gap ??= Object.assign(cards.ownerDocument.createElement("div"), { className: "gap" });
+    cards.insertBefore(gap, els[at3] ?? null);
+  }
+  const reduce = cards.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (!animate || reduce) return;
+  const k = cards.getBoundingClientRect().width / cards.offsetWidth || 1;
+  for (const [e, b] of before2) {
+    const a = e.getBoundingClientRect(), dx = (b.left - a.left) / k, dy = (b.top - a.top) / k;
+    if (dx || dy) e.animate?.([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 150, easing: "ease-out" });
+  }
+}
+
+// src/ui/bar.ts
+var PAPER = [
+  ["character", "supply card", "character", "A new character: card and pool"],
+  ["sticky", "supply note", "note", "Sticky note"],
+  ["text", "supply aa", "Aa", "Write on the table"],
+  ["howto", "supply howto", "how to play", 'The "How to play the table" card']
+];
+var BarView = class {
+  /** Where the people's tags go (Presence). */
+  folks;
+  /** Where the GM's "You are" goes. */
+  youAre;
+  constructor(bar, w) {
+    const doc = bar.ownerDocument, el3 = (tag2, cls, text = "", title = "") => {
+      const e = doc.createElement(tag2);
+      e.className = cls;
+      e.textContent = text;
+      if (title) e.title = title;
+      return e;
+    };
+    const mark2 = el3("div", "wordmark", "Hollow");
+    mark2.append(el3("span", "stamp", w.stamp, "Which build this is: publish.sh stamps the time it was published; a locally served page says dev"));
+    const take2 = (e, what) => e.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      w.take(what, ev);
+    });
+    const papers = PAPER.map(([what, cls, text, title]) => {
+      const e = el3("div", cls, text, title);
+      take2(e, what);
+      return e;
+    });
+    const image2 = el3("div", "supply image", "image", "Add an image"), file = doc.createElement("input");
+    file.type = "file";
+    file.accept = "image/*";
+    file.multiple = true;
+    file.hidden = true;
+    file.addEventListener("change", () => {
+      w.images([...file.files ?? []]);
+      file.value = "";
+    });
+    image2.addEventListener("click", () => file.click());
+    const chips = el3("div", "supplychips", "", "Influence chips: drag one out");
+    for (const sign2 of [1, -1]) for (const points2 of [2, 4, 6, 1]) {
+      const c = el3("div", `supply chip ${sign2 > 0 ? "pos" : "neg"}${points2 === 1 ? " one" : ""}`, chipFace({ sign: sign2, points: points2 }));
+      take2(c, { sign: sign2, points: points2 });
+      chips.append(c);
+    }
+    this.folks = el3("div", "folks");
+    this.youAre = el3("div", "youare");
+    bar.replaceChildren(mark2, ...papers, image2, file, chips, this.folks, this.youAre);
+  }
+};
+
+// src/ui/boothill.ts
+var DOOM_MS = 3e3;
+var BootHillView = class {
+  #w;
+  #stone;
+  #badge;
+  #panel;
+  #name;
+  #prev;
+  #items;
+  #doomed = null;
+  constructor(bar, root, w) {
+    this.#w = w;
+    const doc = bar.ownerDocument;
+    this.#stone = doc.createElement("button");
+    this.#stone.id = "boothill";
+    this.#stone.title = "Boot Hill: everything put away. Click to see what's buried here.";
+    const stone = doc.createElement("span");
+    stone.className = "stone";
+    stone.append("Boot", doc.createElement("br"), "Hill");
+    this.#badge = doc.createElement("span");
+    this.#badge.className = "n";
+    this.#stone.append(stone, this.#badge);
+    bar.append(this.#stone);
+    this.#panel = doc.createElement("div");
+    this.#panel.id = "graves";
+    const nav = doc.createElement("div");
+    nav.className = "yard";
+    this.#prev = doc.createElement("button");
+    this.#prev.textContent = "\u2039";
+    this.#prev.setAttribute("aria-label", "The graveyard before");
+    const nextB = doc.createElement("button");
+    nextB.textContent = "\u203A";
+    nextB.setAttribute("aria-label", "The next graveyard, or a new one");
+    this.#name = doc.createElement("input");
+    this.#name.className = "yname";
+    this.#name.spellcheck = false;
+    this.#name.placeholder = "Unnamed graveyard";
+    this.#name.setAttribute("aria-label", "Graveyard name");
+    this.#name.title = "Rename this graveyard. Shift-click twice to delete everything in it.";
+    nav.append(this.#prev, this.#name, nextB);
+    this.#items = doc.createElement("div");
+    this.#items.className = "items";
+    this.#panel.append(nav, this.#items);
+    root.append(this.#panel);
+    const browse = (f) => {
+      const b = f(this.#yards(), this.#cur());
+      this.#w.game.change((x) => x.put("yards", b.yards));
+      this.#w.setCur(b.cur);
+      this.render();
+    };
+    gesture(this.#stone, { click: () => {
+      this.#w.setOpen(!this.#w.open());
+      this.render();
+    } });
+    gesture(this.#prev, { click: () => browse(prev) });
+    gesture(nextB, { click: () => browse(next) });
+    this.#name.addEventListener("input", () => {
+      const y = this.#yards(), cur = this.#cur(), n = this.#name.value;
+      this.#w.game.change((x) => x.put("yards", { yards: y.yards.map((g, i) => i === cur ? { ...g, name: n, named: n.trim() !== "" } : g) }));
+    });
+    this.#name.addEventListener("change", () => browse((y, cur) => rename(y, cur, this.#name.value)));
+    gesture(this.#name, { shift: (e) => {
+      e.preventDefault?.();
+      if (this.#yards().yards[this.#cur()]?.items.length) this.#doom(this.#name, "Delete everything here? Shift-click again", () => browse(forgetAll));
+    } });
+    doc.addEventListener("pointerdown", (e) => {
+      if (!this.#w.open() || e.target.closest?.("#graves, #boothill")) return;
+      this.#w.setOpen(false);
+      this.render();
+    }, true);
+    w.game.listen((rids) => {
+      if (rids.has("yards")) this.render();
+    });
+    this.render();
+  }
+  #yards() {
+    return this.#w.game.get("yards") ?? empty();
+  }
+  #cur() {
+    return Math.min(this.#w.cur(), this.#yards().yards.length - 1);
+  }
+  // R289: the badge counts every graveyard; the stone fades when nothing is buried.
+  render() {
+    const y = this.#yards(), cur = this.#cur(), g = y.yards[cur], doc = this.#panel.ownerDocument;
+    const total2 = y.yards.reduce((n, x) => n + x.items.length, 0);
+    this.#badge.textContent = total2 ? String(total2) : "";
+    this.#stone.classList.toggle("empty", !total2);
+    this.#panel.hidden = !this.#w.open();
+    this.#prev.disabled = cur === 0;
+    if (doc.activeElement !== this.#name && this.#doomed?.el !== this.#name) this.#name.value = g.name;
+    if (this.#doomed && this.#doomed.el !== this.#name) {
+      clearTimeout(this.#doomed.t);
+      this.#doomed = null;
+    }
+    if (!g.items.length) {
+      const p = doc.createElement("p");
+      p.textContent = "Nothing is buried here.";
+      this.#items.replaceChildren(p);
+      return;
+    }
+    this.#items.replaceChildren(...g.items.map((burial, item2) => {
+      const b = doc.createElement("button");
+      b.textContent = burial.name;
+      b.title = "Drag this back onto the table. Shift-click twice to delete it forever.";
+      b.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.shiftKey) {
+          this.#doom(b, "Delete forever? Shift-click again", () => {
+            const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item: item2 });
+            this.#w.game.change((x) => x.put("yards", f.yards));
+            this.#w.setCur(f.cur);
+            this.render();
+          });
+          return;
+        }
+        this.#digUp(item2, e);
+      });
+      return b;
+    }));
+  }
+  #digUp(item2, e) {
+    const cur = this.#cur(), dug = exhume(this.#yards(), cur, { yard: cur, item: item2 });
+    const recs = raised(dug.records, this.#w.toWorld(e.clientX, e.clientY), this.#w.top());
+    if (!recs.length) return;
+    this.#w.game.change((x) => {
+      x.put("yards", dug.yards);
+      for (const r of recs) x.put(ridOf(r.oid), r);
+    });
+    this.#w.setCur(dug.cur);
+    this.#w.setOpen(false);
+    this.render();
+    this.#w.carry(recs[0], e);
+  }
+  // R125: the first shift-click arms it red and says so; a second within 3 s deletes; else it reverts.
+  #doom(el3, says, destroy) {
+    if (this.#doomed?.el === el3) {
+      clearTimeout(this.#doomed.t);
+      this.#doomed.undo();
+      this.#doomed = null;
+      destroy();
+      return;
+    }
+    if (this.#doomed) {
+      this.#doomed.undo();
+      clearTimeout(this.#doomed.t);
+    }
+    const input = el3 instanceof HTMLInputElement, was = input ? el3.value : el3.textContent ?? "";
+    el3.classList.add("doom");
+    if (input) {
+      el3.value = says;
+      el3.readOnly = true;
+    } else el3.textContent = says;
+    const undo = () => {
+      el3.classList.remove("doom");
+      if (input) {
+        el3.value = was;
+        el3.readOnly = false;
+      } else el3.textContent = was;
+    };
+    this.#doomed = { el: el3, undo, t: setTimeout(() => {
+      undo();
+      this.#doomed = null;
+    }, DOOM_MS) };
+  }
+};
+
+// src/ui/folks.ts
+function tags(me, people, held = () => void 0) {
+  const mine = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...me.why !== void 0 && { warn: "offline" } };
+  const others = people.map((p) => {
+    const holder = held(p.name), impostor = me.gm && p.role === "player" && holder !== void 0 && holder !== p.browser;
+    return {
+      name: p.name,
+      gm: p.role === "gm",
+      you: false,
+      live: !p.stale,
+      stale: p.stale,
+      tab: p.tab,
+      browser: p.browser,
+      ...impostor && { warn: "impostor" }
+    };
+  });
+  const gm = others.filter((t) => t.gm), rest = others.filter((t) => !t.gm).sort((a, b) => a.name.localeCompare(b.name));
+  return me.gm ? [mine, ...rest] : [...gm, mine, ...rest];
+}
+var NAME_MAX = 32;
+function gmName(answer, was) {
+  return answer === null ? was : answer.trim().slice(0, NAME_MAX) || "GM";
+}
+function arrivalName(answer) {
+  if (answer === null) return "Player";
+  const name2 = answer.trim().slice(0, NAME_MAX);
+  return name2 && name2 !== "GM" ? name2 : null;
+}
+function viewAsChoices(present, owners) {
+  return [.../* @__PURE__ */ new Set(["GM", ...present, ...owners, "Player 1", "Player 2"])].filter((n) => n !== "open");
+}
+var FolksView = class {
+  #w;
+  #folks;
+  #youAre;
+  #shown = "";
+  constructor(folks, youAre, w) {
+    this.#w = w;
+    this.#folks = folks;
+    this.#youAre = youAre;
+    setInterval(() => this.render(), 1e3);
+    this.render();
+  }
+  render() {
+    const me = this.#w.me(), list2 = tags(me, this.#w.people(), this.#w.held);
+    const key = JSON.stringify([list2, this.#w.table?.opened(), this.#w.viewAs?.current()]);
+    if (key === this.#shown) return;
+    this.#shown = key;
+    const doc = this.#folks.ownerDocument;
+    this.#folks.replaceChildren(...list2.map((t) => {
+      const e = doc.createElement("span");
+      e.className = `tag${t.live ? " live" : ""}${t.stale ? " stale" : ""}${t.gm ? " gm" : ""}${t.you ? " you" : ""}${t.warn ? " warn" : ""}`;
+      e.textContent = t.warn === "offline" ? "offline" : t.name;
+      if (t.warn === "offline") e.title = me.why ?? "Offline";
+      else if (t.warn === "impostor") {
+        e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees. Click to hand ${t.name} to them.`;
+        e.addEventListener("click", () => {
+          if (confirm(`${t.name} is held by another computer. Hand ${t.name} to this one?
+
+The other one will see ${t.name}'s things as a stranger does.`)) this.#w.handOver?.(t.name, t.browser);
+        });
+      } else if (t.you) {
+        e.title = me.gm ? "You, the GM. Click to change the name players see." : "You";
+        if (me.gm) e.addEventListener("click", () => this.#w.rename?.());
+      } else e.title = (t.gm ? "The GM" : "A player") + (t.stale ? ", not heard from lately" : "");
+      return e;
+    }));
+    const table = this.#w.table;
+    if (table) {
+      const b = doc.createElement("button");
+      b.className = "invite";
+      if (!table.opened()) {
+        b.textContent = "Open the table";
+        b.title = "Start a room for this game, so players can join";
+        b.addEventListener("click", () => {
+          table.open();
+          this.#shown = "";
+          this.render();
+        });
+      } else {
+        const url = table.invite();
+        b.textContent = "Copy invite";
+        b.title = `Copy the link players open to join:
+${url}
+Shift-click or long-press to close the table.`;
+        gesture(b, {
+          click: () => void navigator.clipboard?.writeText(url).then(() => {
+            b.textContent = "Copied";
+            setTimeout(() => {
+              b.textContent = "Copy invite";
+            }, 1200);
+          }, () => prompt("Copy the invite link", url)),
+          // R14: shift-click or a long press closes the table.
+          shift: () => {
+            table.close();
+            this.#shown = "";
+            this.render();
+          }
+        });
+      }
+      this.#folks.append(b);
+    }
+    const va = this.#w.viewAs;
+    this.#youAre.replaceChildren();
+    if (va) {
+      const label = doc.createElement("small"), b = doc.createElement("button");
+      label.textContent = "You are";
+      b.className = "tag viewas";
+      b.textContent = va.current();
+      b.title = "View the table as this person sees it. Click for the next.";
+      b.addEventListener("click", () => {
+        const all2 = va.choices(), i = all2.indexOf(va.current());
+        va.choose(all2[(i + 1) % all2.length]);
+      });
+      this.#youAre.append(label, b);
+    }
+  }
+};
+
+// src/rules/supplies.ts
+var place2 = (at3, w, h) => ({ x: Math.round(at3.x - w / 2), y: Math.round(at3.y - h / 2), z: 0, tilt: 0 });
+var CARD = { w: 430, h: 316 };
+var STICKY = { w: 230, h: 150 };
+var TEXT = { w: 120, h: 30 };
+var CHIP = 42;
+var POOL_H = 230;
+var BLANK_FRONT = `<head>Name, Rank _</head>
+Cha _   Int _   Wis _
+
+Field _ (_XP)
+Skill
+Skill
+Mental Atk / Req: _
+Infer: _
+Impress: _
+Defend: _
+<head>Resources</head>`;
+var blankBack2 = () => ({
+  damage: damageSlots(() => ({ name: "", boxes: [], spent: [] })),
+  absorb: Object.fromEntries(DAMAGE.map((d) => [d, 0])),
+  notes: ""
+});
+function newCharacter(oid, maker, at3) {
+  const card2 = place2(at3, CARD.w, CARD.h);
+  return {
+    kind: "character",
+    oid,
+    owner: maker?.gm || !maker ? GM : maker.name,
+    name: "Name",
+    pool: { ...card2, y: card2.y - POOL_H },
+    card: card2,
+    flipped: false,
+    gathered: true,
+    front: BLANK_FRONT,
+    back: blankBack2()
+  };
+}
+function newSticky(oid, at3) {
+  return { kind: "sticky", oid, place: place2(at3, STICKY.w, STICKY.h), text: "" };
+}
+function newText(oid, at3) {
+  return { kind: "text", oid, place: place2(at3, TEXT.w, TEXT.h), text: "Write here" };
+}
+function newHowTo(oid, at3) {
+  return { kind: "reference", oid, place: place2(at3, CARD.w, CARD.h), which: "howto" };
+}
+function newChip(oid, sign2, points2, at3) {
+  return { kind: "chip", oid, where: { table: place2(at3, CHIP, CHIP) }, n: 0, sign: sign2, points: points2, rider: false };
+}
 
 // src/store/blobs.ts
 async function sha256(bytes) {
@@ -7993,16 +8987,11 @@ var IdbDb = class _IdbDb {
   }
 };
 
-// src/rules/yards.ts
-function empty() {
-  return { yards: [{ name: "Graveyard 1", named: false, items: [] }] };
-}
-
 // src/store/playtest.ts
 var SAM = "00000001";
 var BEAUFORD = "00000002";
 var DEVREUX = "00000003";
-var at = (x, y) => ({ x, y, z: 0, tilt: 0 });
+var at2 = (x, y) => ({ x, y, z: 0, tilt: 0 });
 function back2(boxes = {}, notes = "") {
   const damage3 = damageSlots((d, r) => {
     const extra = d === "injury" ? 0 : boxes[r] ?? 0;
@@ -8011,7 +9000,7 @@ function back2(boxes = {}, notes = "") {
   return { damage: damage3, absorb: { bias: 0, affliction: 0, injury: 0 }, notes };
 }
 function character(oid, owner, name2, x, front, b) {
-  return { kind: "character", oid, owner, name: name2, pool: at(x, 20), card: at(x, 300), flipped: false, gathered: true, front, back: b };
+  return { kind: "character", oid, owner, name: name2, pool: at2(x, 20), card: at2(x, 300), flipped: false, gathered: true, front, back: b };
 }
 var SAM_FRONT = `<head>Samuel Diamond, Rank 3</head>
 <att>Cha 2   Int 2   Wis 4</att>
@@ -8079,7 +9068,7 @@ Slots: Mild, Min \xD73, Sig, Maj
 <head>Items</head>
 Dead Man's Die
 (Free Token, 9 uses)`;
-var STICKY = `Find: How did Trudy get infected?
+var STICKY2 = `Find: How did Trudy get infected?
 Answer: started less than a month ago, before she lost her doll
 
 Level 3
@@ -8112,8 +9101,8 @@ var infl = (oid, name2, points2, n) => {
 };
 function scene(sam = "Player 1", beauford = "Player 2") {
   const chip2 = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false };
-  const sticky = { kind: "sticky", oid: "00000008", place: at(1430, 20), text: STICKY, big: true };
-  const ref = { kind: "reference", oid: "00000009", place: at(1430, 650), which: "actions" };
+  const sticky = { kind: "sticky", oid: "00000008", place: at2(1430, 20), text: STICKY2, big: true };
+  const ref = { kind: "reference", oid: "00000009", place: at2(1430, 650), which: "actions" };
   return [
     character(SAM, sam, "Sam", 40, SAM_FRONT, back2({ min: 2 }, "Fire tools. Lantern. 6 Candles.\nPocket knife. Bedroll. Canteen.\nRope. Notebook and pencil.")),
     character(BEAUFORD, beauford, "Beauford", 500, BEAUFORD_FRONT, back2({ min: 1 })),
@@ -8139,6 +9128,10 @@ var SAVE_PAUSE = 400;
 var KEEP_AUTO = 20;
 var LAST = "hollow.last";
 var pad = (n, w) => String(n).padStart(w, "0");
+function beforeRestoring(name2) {
+  const m = /^Before (?:restoring|undoing) “(.*)”$/.exec(name2);
+  return m ? `Before undoing \u201C${m[1]}\u201D` : `Before restoring \u201C${name2}\u201D`;
+}
 var GameStore = class {
   /** The open game. */
   game = new Game();
@@ -8152,6 +9145,8 @@ var GameStore = class {
   #saving = Promise.resolve();
   #busy = 0;
   #savedAt = null;
+  /** Why the last save failed, until one succeeds (R291). */
+  #failed = null;
   #quiet = false;
   #seq = 0;
   constructor(db, clock2, storage) {
@@ -8186,12 +9181,12 @@ var GameStore = class {
   }
   // R133: New game is an empty table beside the others.
   /** Stores a new game (not opened): its records, and any checkpoints it brings (an import). */
-  async add(name2, records = singletons(), checkpoints = [], copyOf, id = this.#id("g")) {
+  async add(name2, records2 = singletons(), checkpoints = [], copyOf, id = this.#id("g")) {
     const now2 = this.#clock.now();
     const info = { id, name: name2, made: now2, opened: now2, ...copyOf && { copyOf } };
     await this.#db.tx(["games", "records", "checkpoints"], "readwrite", async (t) => {
       await t.put("games", id, info);
-      for (const [rid, rec] of records) await t.put("records", [id, rid], rec);
+      for (const [rid, rec] of records2) await t.put("records", [id, rid], rec);
       for (const cp of checkpoints) {
         const cid = this.#id("c");
         await t.put("checkpoints", [id, cid], { ...cp, id: cid });
@@ -8202,7 +9197,7 @@ var GameStore = class {
   /** Saves the open game, then opens another. */
   async open(id) {
     await this.save();
-    const { info, records } = await this.#db.tx(["games", "records"], "readwrite", async (t) => {
+    const { info, records: records2 } = await this.#db.tx(["games", "records"], "readwrite", async (t) => {
       const info2 = await t.get("games", id);
       if (!info2) throw new Error(`no game ${id}`);
       const opened = { ...info2, opened: this.#clock.now() };
@@ -8211,7 +9206,7 @@ var GameStore = class {
     });
     this.#quiet = true;
     try {
-      this.game.load(records);
+      this.game.load(records2);
     } finally {
       this.#quiet = false;
     }
@@ -8242,10 +9237,10 @@ var GameStore = class {
     const cur = this.current, rids = [...this.#pending];
     this.#pending.clear();
     if (!cur || !rids.length) return this.#saving;
-    const records = rids.map((rid) => [rid, this.game.get(rid)]);
+    const records2 = rids.map((rid) => [rid, this.game.get(rid)]);
     this.#busy++;
     this.#saving = this.#saving.then(() => this.#db.tx(["records"], "readwrite", async (t) => {
-      for (const [rid, rec] of records) {
+      for (const [rid, rec] of records2) {
         const stored = await t.get("records", [cur.id, rid]);
         if (same(stored, rec)) continue;
         if (rec === void 0) await t.del("records", [cur.id, rid]);
@@ -8253,6 +9248,10 @@ var GameStore = class {
       }
     })).then(() => {
       this.#savedAt = this.#clock.now();
+      this.#failed = null;
+    }, (e) => {
+      this.#failed = e instanceof Error ? e.message : String(e);
+      for (const [rid] of records2) this.#pending.add(rid);
     }).finally(() => {
       this.#busy--;
     });
@@ -8285,10 +9284,10 @@ var GameStore = class {
     const cur = this.#open();
     const cp = await this.#db.tx(["checkpoints"], "readonly", (t) => t.get("checkpoints", [cur.id, id]));
     if (!cp) throw new Error(`no checkpoint ${id}`);
-    await this.checkpoint(`Before restoring \u201C${cp.name}\u201D`, true);
+    await this.checkpoint(beforeRestoring(cp.name), true);
     const book2 = this.game.get("book");
-    const records = Object.entries(cp.records).filter(([rid]) => rid !== "book");
-    this.game.load(book2 ? [...records, ["book", book2]] : records);
+    const records2 = Object.entries(cp.records).filter(([rid]) => rid !== "book");
+    this.game.load(book2 ? [...records2, ["book", book2]] : records2);
     await this.save();
   }
   /** A game as stored, with its checkpoints oldest first (for Exchange). */
@@ -8300,9 +9299,11 @@ var GameStore = class {
       return { info, records: await this.#records(t, id), checkpoints: (await this.#checkpoints(t, id)).reverse() };
     });
   }
-  /** For the Ledger: "Saving…" while something is unwritten, else when it last saved. */
+  /** For the Ledger: "Saving…" while something is unwritten, "Not saved: " and why, or when it last saved (R291). */
   status() {
-    if (this.#pending.size || this.#busy) return "Saving\u2026";
+    if (this.#busy) return "Saving\u2026";
+    if (this.#failed !== null) return `Not saved: ${this.#failed}`;
+    if (this.#pending.size) return "Saving\u2026";
     return this.#savedAt === null ? "Saved" : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
   }
   #open() {
@@ -8367,498 +9368,273 @@ function save(storage, game, viewer, seat) {
   } catch {
   }
 }
-
-// src/ui/actions.ts
-function minter(game, gm, rng = Math.random) {
-  const used = new Set(game.all().map(([rid]) => rid).filter(isPiece).map(oidOf));
-  let top = 0;
-  for (const o of used) {
-    const n = parseInt(o, 16);
-    if (n < PLAYER_OIDS) top = Math.max(top, n);
+function prune(seat, exists, yards) {
+  const here2 = (oid) => exists(ridOf(oid));
+  const owner = (s) => here2(s.slice(0, s.indexOf(":")));
+  let roller = null;
+  if (seat.roller && here2(seat.roller.pool)) {
+    const { opponent } = seat.roller;
+    roller = { ...seat.roller, opponent: opponent && here2(opponent) ? opponent : null };
   }
-  return () => {
-    let oid;
-    do {
-      oid = (gm ? ++top : PLAYER_OIDS + Math.floor(rng() * (4294967295 - PLAYER_OIDS))).toString(16).padStart(8, "0");
-    } while (used.has(oid));
-    used.add(oid);
-    return oid;
+  return {
+    ...seat,
+    roller,
+    boothill: { ...seat.boothill, cur: Math.max(0, Math.min(seat.boothill.cur, yards - 1)) },
+    open: {
+      used: seat.open.used.filter(here2),
+      piles: seat.open.piles.filter(here2),
+      slots: seat.open.slots.filter(owner),
+      columns: seat.open.columns.filter(owner)
+    }
   };
 }
-var lookup = (game) => (oid) => game.get(ridOf(oid));
-var item = (game, rid) => {
-  const r = game.get(rid);
-  return r && "kind" in r && (r.kind === "chip" || r.kind === "influence") ? r : void 0;
+
+// src/store/exchange.ts
+var FORMAT = "hollow-table-game";
+var VERSION2 = 1;
+function imagesIn(records2, into = /* @__PURE__ */ new Set()) {
+  for (const r of records2) {
+    if ("kind" in r && r.kind === "image") into.add(r.blob);
+    if ("yards" in r) for (const g of r.yards) for (const b of g.items) imagesIn(b.records, into);
+  }
+  return into;
+}
+async function toDataUri(blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode(...bytes.subarray(i, i + 32768));
+  return `data:${blob.type || "application/octet-stream"};base64,${btoa(bin)}`;
+}
+function fromDataUri(uri) {
+  const m = /^data:([^;,]*);base64,([A-Za-z0-9+/=]*)$/.exec(uri);
+  if (!m) return null;
+  const bin = atob(m[2]);
+  return new Blob([Uint8Array.from(bin, (c) => c.charCodeAt(0))], { type: m[1] });
+}
+async function exportGame(store, blobs, id) {
+  const { info, records: records2, checkpoints } = await store.read(id);
+  const used = imagesIn(records2.map(([, r]) => r));
+  for (const cp of checkpoints) imagesIn(Object.values(cp.records), used);
+  const images = {};
+  for (const hash of used) {
+    const blob = await blobs.get(hash);
+    if (blob) images[hash] = await toDataUri(blob);
+  }
+  const file = {
+    format: FORMAT,
+    version: VERSION2,
+    name: info.name,
+    records: Object.fromEntries(records2),
+    checkpoints: checkpoints.map(({ id: _, ...cp }) => cp),
+    blobs: images
+  };
+  return { filename: fileName(info.name), text: JSON.stringify(file, null, 2) };
+}
+function fileName(name2) {
+  return `${name2.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "") || "game"}.glimmer.json`;
+}
+var BadFile = class extends Error {
 };
-var inSlot2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && i.where.name === slot2;
-function slotItems(game, owner, slot2) {
-  return game.all().map(([rid]) => item(game, rid)).filter((i) => !!i && inSlot2(i, owner, slot2));
-}
-function settle(w, items, mint2) {
-  const plan = rollUp(items, mint2);
-  const gone = new Set(plan.remove);
-  for (const i of items) if (!gone.has(i.oid)) w.put(ridOf(i.oid), i);
-  for (const oid of plan.remove) w.del(ridOf(oid));
-  for (const c of plan.add) w.put(ridOf(c.oid), c);
-}
-function withItem(game, owner, slot2, changed, gone) {
-  const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
-  return changed ? [...rest, changed] : rest;
-}
-function toSlot(game, rid, owner, slot2, mint2) {
-  const i = item(game, rid);
-  if (!i || !accepts(slot2, i)) return null;
-  const home = i.kind === "influence" && i.mot ? { home: owner } : {};
-  const moved = { ...i, ...home, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
-  return (w) => {
-    settle(w, withItem(game, owner, slot2, moved), mint2);
-  };
-}
-function drawerCards(game, owner) {
-  return game.all().map(([, r]) => r).filter((r) => "kind" in r && r.kind === "influence" && r.home === owner && r.where === "drawer").sort((a, b) => a.n - b.n);
-}
-function toDrawer(game, rid, owner, at3) {
-  const i = item(game, rid);
-  if (!i || i.kind !== "influence") return null;
-  const order = drawerCards(game, owner).filter((k) => ridOf(k.oid) !== rid);
-  const card2 = { ...i, home: owner, where: "drawer", used: false };
-  order.splice(at3 === void 0 ? order.length : Math.max(0, Math.min(at3, order.length)), 0, card2);
-  return (w) => order.forEach((k, n) => {
-    if (k === card2 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
+var isObject2 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+function records(v, where2) {
+  if (!isObject2(v)) throw new BadFile(`${where2}: no records`);
+  return Object.entries(v).map(([rid, rec]) => {
+    if (!check(rid, rec)) throw new BadFile(`${where2}: ${rid} is not a well-formed record`);
+    return [rid, rec];
   });
 }
-function toTable(game, rid, at3) {
-  const i = item(game, rid);
-  if (!i) return null;
-  if (i.kind === "influence" && !i.tap) return toDrawer(game, rid, i.home);
-  return (w) => w.put(rid, { ...i, where: { table: at3 } });
-}
-function killCard(game, rid) {
-  const i = item(game, rid);
-  if (!i || i.kind !== "influence") return null;
-  const refunds = kill(lookup(game), i);
-  return (w) => {
-    w.del(rid);
-    for (const c of refunds) w.put(ridOf(c.oid), c);
-  };
-}
-function vanish(game, rid) {
-  const i = item(game, rid);
-  return i?.kind === "chip" ? (w) => w.del(rid) : null;
-}
-function chipClick(game, rid, shift, mint2) {
-  const c = item(game, rid);
-  if (c?.kind !== "chip") return null;
-  const next = shift ? lowerChip(c) : raiseChip(c);
-  if (typeof c.where !== "object" || !("slot" in c.where)) {
-    return (w) => {
-      if (next) w.put(rid, next);
-      else w.del(rid);
-    };
+async function importGame(store, blobs, text) {
+  let file;
+  try {
+    file = JSON.parse(text);
+  } catch {
+    throw new BadFile("not JSON");
   }
-  const { slot: owner, name: name2 } = c.where;
-  return (w) => {
-    if (!next) w.del(rid);
-    settle(w, withItem(game, owner, name2, next, next ? void 0 : c.oid), mint2);
-  };
-}
-function riderClick(game, rid, shift) {
-  const c = item(game, rid);
-  if (c?.kind !== "chip" || !c.rider || !shift) return null;
-  return (w) => w.put(rid, { ...c, rider: false });
-}
-function addLoose(game, owner, slot2, shift, mint2) {
-  const chip2 = {
-    kind: "chip",
-    oid: mint2(),
-    where: { slot: owner, name: slot2 },
-    n: slotItems(game, owner, slot2).length,
-    sign: shift ? -1 : 1,
-    points: 1,
-    rider: false
-  };
-  return (w) => w.put(ridOf(chip2.oid), chip2);
-}
-function cardClick(game, rid, shift, mint2) {
-  const c = item(game, rid);
-  if (c?.kind !== "influence") return null;
-  if (shift && c.points <= MIN) return killCard(game, rid);
-  if (c.tap) {
-    const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
-    return t ? apply2(t, c) : null;
-  }
-  const next = shift ? lowerCard(c) : raiseCard(c);
-  return next.points === c.points ? null : (w) => w.put(rid, next);
-}
-function writeCard(game, owner, sign2, name2, mint2) {
-  const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
-  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
-  return (w) => w.put(ridOf(card2.oid), card2);
-}
-function restoreUsed(game, rid) {
-  const c = item(game, rid);
-  return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid, { ...c, where: "drawer", used: false }) : null;
-}
-function apply2(t, old) {
-  return (w) => {
-    if (old && t.card.oid !== old.oid) w.put(ridOf(old.oid), old);
-    w.put(ridOf(t.card.oid), t.card);
-    for (const c of t.changed) w.put(ridOf(c.oid), c);
-  };
-}
-function tapOut(game, src, where2, mint2) {
-  const t = tap(lookup(game), src, where2, mint2());
-  return t ? apply2(t) : null;
-}
-function mergeTap(game, fromRid, intoRid, mint2) {
-  const from = item(game, fromRid), into = item(game, intoRid);
-  if (fromRid === intoRid || from?.kind !== "influence" || into?.kind !== "influence" || !from.tap || !into.tap || from.used) return null;
-  const chars = /* @__PURE__ */ new Map();
-  const now2 = (oid) => chars.get(oid) ?? lookup(game)(oid);
-  for (const c of kill(now2, from)) chars.set(c.oid, c);
-  let card2 = into, fed = false;
-  for (const [src, n] of Object.entries(from.tap.ledger)) {
-    for (let k = 0; k < n; k++) {
-      const t = feed(now2, card2, src, mint2());
-      if (!t || t.card.oid !== into.oid) return null;
-      card2 = t.card;
-      fed = true;
-      for (const c of t.changed) chars.set(c.oid, c);
+  if (!isObject2(file) || file.format !== FORMAT) throw new BadFile("not a Hollow Table game");
+  if (file.version !== VERSION2) throw new BadFile(`version ${String(file.version)} is not ${VERSION2}`);
+  if (typeof file.name !== "string" || !file.name) throw new BadFile("no name");
+  const game = records(file.records, "the game");
+  if (!Array.isArray(file.checkpoints)) throw new BadFile("no checkpoints");
+  const checkpoints = file.checkpoints.map((cp, i) => {
+    if (!isObject2(cp) || typeof cp.name !== "string" || typeof cp.at !== "number" || typeof cp.auto !== "boolean") {
+      throw new BadFile(`checkpoint ${i + 1} is malformed`);
     }
+    return { name: cp.name, at: cp.at, auto: cp.auto, records: Object.fromEntries(records(cp.records, `checkpoint \u201C${cp.name}\u201D`)) };
+  });
+  if (!isObject2(file.blobs)) throw new BadFile("no images");
+  const images = [];
+  for (const [hash, uri] of Object.entries(file.blobs)) {
+    const blob = typeof uri === "string" ? fromDataUri(uri) : null;
+    if (!blob || await sha256(blob) !== hash) throw new BadFile(`image ${hash.slice(0, 12)}\u2026 is not what its name says`);
+    images.push([hash, blob]);
   }
-  if (!fed) return null;
-  return (w) => {
-    w.del(fromRid);
-    w.put(intoRid, card2);
-    for (const c of chars.values()) w.put(ridOf(c.oid), c);
-  };
+  const taken = new Set((await store.list()).map((g) => g.name));
+  const name2 = taken.has(file.name) ? `${file.name} (imported)` : file.name;
+  for (const [hash, blob] of images) await blobs.accept(hash, blob);
+  return store.add(name2, game, checkpoints);
 }
 
-// src/ui/pool.ts
-var MAT_W = 430;
-var SLOT_W = 72;
-var STAGGER_W = 92;
-var STRIP_W = 16;
-var SLOT_GAP = 6;
-var MAT_PAD = 6;
-function openSlots(holding, width = MAT_W) {
-  const full = (i) => SLOTS[i] === "stagger" ? STAGGER_W : SLOT_W;
-  const open = [...holding];
-  const used = () => open.reduce((a, o, i) => a + (o ? full(i) : STRIP_W), 0) + SLOT_GAP * (open.length - 1);
-  for (let i = 0; i < open.length; i++) {
-    if (open[i]) continue;
-    open[i] = true;
-    if (used() > width - 2 * MAT_PAD) {
-      open[i] = false;
-      break;
-    }
+// src/ui/ledger.ts
+var time = (at3) => new Date(at3).toTimeString().slice(0, 8);
+function stamp(at3) {
+  return `${new Date(at3).toLocaleString("en-US", { month: "short", day: "numeric" })}, ${time(at3)}`;
+}
+function offer3(round, now2) {
+  return `Round ${round}, ${time(now2)}`;
+}
+function named(answer) {
+  return answer === null ? null : answer.trim() || "Checkpoint";
+}
+function newGame(now2) {
+  return `New game ${stamp(now2)}`;
+}
+var LedgerView = class {
+  #w;
+  #book;
+  #page;
+  #status;
+  #said = null;
+  #tick = null;
+  constructor(bar, root, w) {
+    this.#w = w;
+    const doc = bar.ownerDocument;
+    this.#book = doc.createElement("button");
+    this.#book.id = "ledgerbtn";
+    this.#book.title = "The Ledger: this game, its checkpoints, and your other games";
+    const spine = doc.createElement("span");
+    spine.textContent = "Ledger";
+    this.#book.append(spine);
+    bar.append(this.#book);
+    this.#page = doc.createElement("div");
+    this.#page.id = "ledger";
+    this.#page.hidden = true;
+    this.#status = doc.createElement("p");
+    this.#status.className = "status";
+    root.append(this.#page);
+    gesture(this.#book, { click: () => this.#page.hidden ? this.show() : this.hide() });
+    doc.addEventListener("pointerdown", (e) => {
+      if (!this.#page.hidden && !e.target.closest?.("#ledger, #ledgerbtn")) this.hide();
+    }, true);
   }
-  return open;
-}
-function insertAt(cards, x, y) {
-  const k = cards.findIndex((r) => y < r.top || y <= r.bottom && x < (r.left + r.right) / 2);
-  return k < 0 ? cards.length : k;
-}
-function reachFor(holding, at3, from, width = MAT_W) {
-  const open = openSlots(holding, width);
-  if (at3 === null || open[at3]) return open;
-  open[at3] = true;
-  const free = (i) => open[i] && !holding[i] && i !== at3;
-  let close = from !== null && free(from) ? from : -1;
-  for (let i = (from ?? at3) - 1; close < 0 && i >= 0; i--) if (free(i)) close = i;
-  if (close >= 0) open[close] = false;
-  return open;
-}
-function pops(before2, after) {
-  const out = /* @__PURE__ */ new Set();
-  if (!before2) return out;
-  const lost = /* @__PURE__ */ new Map();
-  for (const [k, b] of before2) if (!after.has(k)) lost.set(b.place, (lost.get(b.place) ?? 0) + 1);
-  for (const [k, a] of after) {
-    const b = before2.get(k);
-    if (b ? b.points !== a.points : k.startsWith("pile:") || (lost.get(a.place) ?? 0) >= 2) out.add(k);
+  hide() {
+    this.#page.hidden = true;
+    if (this.#tick !== null) clearInterval(this.#tick);
+    this.#tick = null;
   }
-  return out;
-}
-var LABEL = {
-  bonus: "Bonus",
-  main: "Main",
-  edge: "Edge",
-  stagger: "Stagger",
-  bias: "Bias",
-  affliction: "Affliction",
-  injury: "Injury"
-};
-var el2 = (doc, tag2, cls, text) => {
-  const e = doc.createElement(tag2);
-  if (cls) e.className = cls;
-  if (text !== void 0) e.textContent = text;
-  return e;
-};
-var run = (game, c) => {
-  if (c) game.change(c);
-};
-var isPile2 = (u) => "members" in u;
-var at2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
-function drawPool(c, items, old, w) {
-  const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
-  const e = old ?? make3(doc, c, w);
-  e.style.left = `${c.pool.x}px`;
-  e.style.top = `${c.pool.y}px`;
-  e.style.zIndex = String(c.pool.z);
-  e.querySelector(".name").textContent = c.name;
-  const die3 = e.querySelector(".die-own");
-  die3.textContent = ownerWord(c);
-  die3.title = c.owner === OPEN ? "Open: click to claim this character" : "Click to roll for this character; shift-click to open it for someone else";
-  e.querySelector(".gather").hidden = c.gathered;
-  const opened = w.poolOpen(), shown2 = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
-  const slotEls = [...e.querySelectorAll(".slot")];
-  const mine = slotEls.map((slotEl) => items.filter((i) => at2(i, c.oid, slotEl.dataset.slot)));
-  holdingOf.set(e, slotEls.map((slotEl, k) => mine[k].length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
-  layout(e);
-  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown2, drawn));
-  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown2, drawn);
-  for (const k of pops(seen2.get(e), shown2)) pop(drawn.get(k));
-  seen2.set(e, shown2);
-  e.dataset.rid = rid;
-  return e;
-}
-var holdingOf = /* @__PURE__ */ new WeakMap();
-var reaching = /* @__PURE__ */ new WeakMap();
-function layout(e) {
-  const holding = holdingOf.get(e), r = reaching.get(e);
-  if (!holding) return;
-  const ix = (s) => s ? SLOTS.indexOf(s) : null;
-  const open = reachFor(holding, ix(r?.at), ix(r?.from));
-  e.querySelectorAll(".slot").forEach((slotEl, k) => slotEl.classList.toggle("narrow", !open[k]));
-}
-function reach(pool, at3, from) {
-  const was = reaching.get(pool);
-  if (was?.at === at3 && was.from === from) return;
-  if (at3) reaching.set(pool, { at: at3, from });
-  else reaching.delete(pool);
-  layout(pool);
-}
-var seen2 = /* @__PURE__ */ new WeakMap();
-function pop(e) {
-  if (!e) return;
-  e.classList.remove("rolled");
-  void e.offsetWidth;
-  e.classList.add("rolled");
-  e.addEventListener("animationend", () => e.classList.remove("rolled"), { once: true });
-}
-function make3(doc, c, w) {
-  const e = el2(doc, "div", "obj pool");
-  e.dataset.part = "pool";
-  const rid = ridOf(c.oid);
-  const hd = el2(doc, "div", "hd");
-  const gather = el2(doc, "button", "gather", "gather");
-  gesture(gather, { click: () => {
-    const cur = w.game.get(rid);
-    w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
-  } });
-  const name2 = el2(doc, "span", "name");
-  const die3 = el2(doc, "button", "die-own");
-  gesture(die3, { click: () => w.poolDie(c.oid, false, die3), shift: () => w.poolDie(c.oid, true, die3) });
-  hd.append(name2, die3, gather);
-  const slots = el2(doc, "div", "slots");
-  for (const s of SLOTS) {
-    const slot2 = el2(doc, "div", `slot slot-${s}`);
-    slot2.dataset.slot = s;
-    slot2.dataset.owner = c.oid;
-    const label = el2(doc, "span", "label", LABEL[s]);
-    label.dataset.letter = LABEL[s][0];
-    if (s === "stagger") label.append(el2(doc, "small", "", "opposition only"));
-    slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
-    slot2.append(label, el2(doc, "div", "pos"), el2(doc, "div", "neg"));
-    gesture(slot2, {
-      click: (ev) => {
-        if (ev.target.closest(".chip, .pile")) return;
-        if (slot2.classList.contains("narrow")) {
-          w.toggle("slots", `${c.oid}:${s}`, true);
-          return;
-        }
-        run(w.game, addLoose(w.game, c.oid, s, false, w.mint()));
-      },
-      shift: (ev) => {
-        if (ev.target.closest(".chip, .pile") || slot2.classList.contains("narrow")) return;
-        run(w.game, addLoose(w.game, c.oid, s, true, w.mint()));
-      }
-    });
-    slots.append(slot2);
+  async show() {
+    this.#page.hidden = false;
+    this.#tick ??= setInterval(() => this.#showStatus(), 1e3);
+    await this.render();
   }
-  const drawer2 = el2(doc, "div", "drawer");
-  drawer2.dataset.drawer = c.oid;
-  drawer2.append(el2(doc, "div", "cards"), el2(doc, "div", "tools"));
-  e.append(hd, slots, drawer2);
-  for (const part of [name2, slots, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid, d, m) });
-  return e;
-}
-function units(slotEl, items, w, shown2, drawn) {
-  const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
-  const opened = w.poolOpen(), place2 = slotEl.dataset.slot;
-  for (const sign2 of [1, -1]) {
-    const box2 = slotEl.querySelector(sign2 > 0 ? ".pos" : ".neg");
-    const mine = units2.filter((u) => u.sign === sign2).sort((a, b) => sign2 > 0 ? worthOf(b) - worthOf(a) : worthOf(a) - worthOf(b));
-    box2.replaceChildren(...mine.map((u, k) => {
-      const piled = isPile2(u);
-      const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
-      e.style.zIndex = String(50 - k);
-      const key = piled ? `pile:${u.members[0]?.oid ?? ""}` : u.oid;
-      shown2.set(key, { points: u.points, place: place2 });
-      drawn.set(key, e);
+  #showStatus() {
+    this.#status.textContent = this.#said ?? this.#w.status();
+  }
+  /** Says something in the status line until the page is drawn again ("Not a game file: …"). */
+  #say(words) {
+    this.#said = words;
+    this.#showStatus();
+  }
+  async render() {
+    const w = this.#w, doc = this.#page.ownerDocument, cur = w.current();
+    const [cps, games] = w.player ? [[], []] : await Promise.all([w.checkpoints(), w.games()]);
+    const el3 = (tag2, cls, text = "", title = "") => {
+      const e = doc.createElement(tag2);
+      e.className = cls;
+      e.textContent = text;
+      if (title) e.title = title;
       return e;
-    }));
-  }
-}
-var worthOf = (u) => isPile2(u) ? u.points : worth(u);
-function chipFace(i) {
-  if (i.points === 1) return i.sign < 0 ? "\u22121" : "+1";
-  return `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
-}
-function chip(doc, i, w) {
-  const card2 = i.kind === "influence";
-  const b = el2(
-    doc,
-    "button",
-    `chip ${i.sign > 0 ? "pos" : "neg"}${card2 ? " card-chip" : ""}${card2 && i.tap ? " res" : ""}${card2 && i.used ? " used" : ""}`,
-    chipFace(i)
-  );
-  const rid = ridOf(i.oid);
-  b.dataset.rid = rid;
-  if (card2) {
-    b.title = i.name;
-    b.dataset.name = i.name;
-  }
-  if (i.kind === "chip" && i.rider) {
-    const r = el2(doc, "span", "rider", "+1");
-    gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
-    b.append(r);
-  }
-  const click2 = i.kind === "chip" ? chipClick : cardClick;
-  gesture(b, {
-    click: () => run(w.game, click2(w.game, rid, false, w.mint())),
-    shift: () => run(w.game, click2(w.game, rid, true, w.mint())),
-    drag: (d, m) => w.dragItem(rid, d, m)
-  });
-  return b;
-}
-function pile(doc, p, open, w) {
-  const first = p.members[0]?.oid ?? "";
-  const d = el2(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first) ? " open" : ""}`);
-  const disc = el2(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
-  disc.title = `${p.members.length} acting as one`;
-  gesture(disc, { click: () => w.toggle("piles", first) });
-  d.append(disc);
-  if (open.has(first)) {
-    const list2 = el2(doc, "div", "members");
-    for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
-    d.append(list2);
-  }
-  return d;
-}
-function drawer(box2, c, cards, w, shown2, drawn) {
-  const doc = box2.ownerDocument, opened = w.poolOpen();
-  const visible = canSee(w.viewer, c);
-  const here = cards.filter((k) => k.where === "drawer"), used = cards.filter((k) => k.where === "used");
-  box2.querySelector(".cards").replaceChildren(...here.sort((a, b) => a.n - b.n).map((k) => {
-    const e = card(doc, k, visible, w);
-    shown2.set(k.oid, { points: k.points, place: "drawer" });
-    drawn.set(k.oid, e);
-    return e;
-  }));
-  const tools = [];
-  for (const sign2 of [1, -1]) {
-    const pen = el2(doc, "button", `write ${sign2 > 0 ? "pos" : "neg"}`, sign2 > 0 ? "+" : "\u2212");
-    pen.title = sign2 > 0 ? "Write a + card" : "Write a \u2212 card";
-    gesture(pen, { click: () => {
-      const oid = w.mint()();
-      run(w.game, writeCard(w.game, c.oid, sign2, "Influence", () => oid));
-      const name2 = box2.querySelector(`.icard[data-rid="${ridOf(oid)}"] .iname`);
-      if (!name2) return;
-      name2.focus();
-      doc.getSelection()?.selectAllChildren(name2);
-    } });
-    tools.push(pen);
-  }
-  const pileTile = el2(doc, "div", "usedpile");
-  const tag2 = el2(doc, "button", "used", "used");
-  tag2.append(el2(doc, "b", "", String(used.length)));
-  tag2.title = "Used Influence cards: click to see them, click one to put it back";
-  gesture(tag2, { click: () => w.toggle("used", c.oid) });
-  pileTile.append(tag2);
-  if (opened.used.has(c.oid) && visible) {
-    const list2 = el2(doc, "div", "usedlist");
-    if (!used.length) list2.append(el2(doc, "p", "", "None used."));
-    for (const k of used) {
-      const u = card(doc, k, visible, w);
-      gesture(u, { click: () => run(w.game, restoreUsed(w.game, ridOf(k.oid))) });
-      list2.append(u);
+    };
+    const name2 = doc.createElement("input");
+    name2.className = "gname";
+    name2.spellcheck = false;
+    name2.value = cur.name;
+    name2.setAttribute("aria-label", "Game name");
+    name2.readOnly = w.player;
+    name2.addEventListener("change", () => {
+      const n = name2.value.trim();
+      if (n) void w.rename(n);
+      else name2.value = w.current().name;
+    });
+    const acts = el3("div", "acts");
+    const act = (text, title, fn) => {
+      const a = el3("button", "act", text, title);
+      gesture(a, { click: () => void fn() });
+      acts.append(a);
+    };
+    if (!w.player) act("Checkpoint", "Save a named copy of the table as it is now", async () => {
+      const n = named(prompt("Name this checkpoint", offer3(w.round(), w.now())));
+      if (n === null) return;
+      await w.checkpoint(n);
+      await this.render();
+    });
+    act("Export", "Download this game, with its checkpoints and images, as one file", async () => {
+      const { filename, text } = await w.exported();
+      const a = doc.createElement("a");
+      a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1e3);
+    });
+    const picker = doc.createElement("input");
+    picker.type = "file";
+    picker.accept = ".json,application/json";
+    picker.hidden = true;
+    picker.addEventListener("change", async () => {
+      const f = picker.files?.[0];
+      picker.value = "";
+      if (f) await w.imported(await f.text()).catch(() => this.#say(`Not a game file: ${f.name}`));
+    });
+    if (!w.player) {
+      act("Import", "Open a game file as a new game", () => picker.click());
+      act("New game", "Start a new, empty table", () => w.newGame(newGame(w.now())));
     }
-    pileTile.append(list2);
+    this.#said = null;
+    this.#showStatus();
+    const parts = [name2, acts, this.#status, picker];
+    if (w.player) {
+      parts.splice(2, 0, el3("p", "copy", "The GM's page holds this game. This browser keeps a copy so a reload shows the table at once; the GM checkpoints and restores."));
+    } else {
+      const list2 = el3("div", "entries");
+      if (!cps.length) list2.append(el3("p", "none", "None yet. End makes one at the end of every conflict."));
+      for (const c of cps) {
+        const b = this.#entry(
+          c.name,
+          c.at,
+          `entry${c.auto ? " auto" : ""}`,
+          "Restore the table to this checkpoint. The table as it stands is checkpointed first, so this can be undone."
+        );
+        gesture(b, { click: async () => {
+          await w.restore(c.id);
+          await this.render();
+        } });
+        list2.append(b);
+      }
+      const gl = el3("div", "entries");
+      for (const g of games) {
+        const here2 = g.id === cur.id, b = this.#entry(
+          g.name,
+          g.opened,
+          `entry${here2 ? " current" : ""}`,
+          here2 ? "The game on the table" : "Put this game on the table (this one is saved as it is)"
+        );
+        if (!here2) gesture(b, { click: () => void w.open(g.id) });
+        else b.disabled = true;
+        gl.append(b);
+      }
+      parts.push(el3("h4", "", "Checkpoints"), list2, el3("h4", "", "Games"), gl);
+    }
+    this.#page.replaceChildren(...parts);
   }
-  tools.push(pileTile, Object.assign(el2(doc, "span", "kill", "kill"), { title: "Drop a card here to delete it" }));
-  box2.querySelector(".tools").replaceChildren(...tools);
-}
-function card(doc, k, visible, w) {
-  const rid = ridOf(k.oid);
-  const e = el2(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
-  e.dataset.rid = rid;
-  const drag = { drag: (d, m) => w.dragItem(rid, d, m) };
-  if (!visible) {
-    e.classList.add("facedown");
-    gesture(e, drag);
-    return e;
+  #entry(text, at3, cls, title) {
+    const doc = this.#page.ownerDocument, b = doc.createElement("button"), span = doc.createElement("span"), t = doc.createElement("time");
+    b.className = cls;
+    b.title = title;
+    span.textContent = text;
+    t.textContent = stamp(at3);
+    b.append(span, t);
+    return b;
   }
-  const name2 = el2(doc, "span", "iname", k.name);
-  name2.contentEditable = "true";
-  name2.spellcheck = false;
-  name2.addEventListener("input", () => {
-    const cur = w.game.get(rid);
-    if (cur) w.game.change((x) => x.put(rid, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
-  });
-  const level = el2(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName(k.points)}`);
-  gesture(level, {
-    click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
-    shift: () => run(w.game, cardClick(w.game, rid, true, w.mint()))
-  });
-  e.append(name2, level);
-  gesture(e, drag);
-  return e;
-}
-var drawerCardEls = (cards) => [...cards.querySelectorAll(":scope > .icard")];
-function gapAt(drawer2, x, y) {
-  const cards = drawer2.querySelector(".cards"), gap = cards.querySelector(".gap"), next = gap?.nextSibling ?? null;
-  gap?.remove();
-  const r = cards.getBoundingClientRect(), k = r.width / cards.offsetWidth || 1;
-  const boxes = drawerCardEls(cards).map((e) => {
-    const left2 = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
-    return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight };
-  });
-  if (gap) cards.insertBefore(gap, next);
-  return insertAt(boxes, (x - r.left) / k, (y - r.top) / k);
-}
-function showGap(drawer2, at3, animate = true) {
-  const cards = drawer2.querySelector(".cards");
-  if (!cards) return;
-  const els = drawerCardEls(cards);
-  let gap = cards.querySelector(".gap");
-  const now2 = gap ? [...cards.children].filter((c) => c === gap || c.classList.contains("icard")).indexOf(gap) : -1;
-  if (at3 === null ? !gap : now2 === at3) return;
-  const before2 = new Map(els.map((e) => [e, e.getBoundingClientRect()]));
-  if (at3 === null) gap.remove();
-  else {
-    gap ??= Object.assign(cards.ownerDocument.createElement("div"), { className: "gap" });
-    cards.insertBefore(gap, els[at3] ?? null);
-  }
-  const reduce = cards.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  if (!animate || reduce) return;
-  const k = cards.getBoundingClientRect().width / cards.offsetWidth || 1;
-  for (const [e, b] of before2) {
-    const a = e.getBoundingClientRect(), dx = (b.left - a.left) / k, dy = (b.top - a.top) / k;
-    if (dx || dy) e.animate?.([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 150, easing: "ease-out" });
-  }
-}
+};
 
 // src/ui/drag.ts
 var TAP_GLYPH_X = 10;
@@ -8942,6 +9718,7 @@ var Drag = class {
       show(dx, dy);
       moves?.drag(items(dx, dy));
       if (pins) lit = light(lit, this.#cardAt(doc, cx, cy, el3)?.el ?? null);
+      this.#lightBar(doc, cy, rec.kind !== "reference" && !this.#fresh.has(rid));
     });
     const onMove = (ev) => {
       const e = ev;
@@ -8959,8 +9736,11 @@ var Drag = class {
       doc.body.classList.remove("dragging");
       const { dx, dy } = delta(e);
       for (const c of carried) c.el.classList.remove("lifted");
+      const away = this.#overBar(doc, e.clientY);
+      this.#lightBar(doc, null, false);
       moves?.drop(items(dx, dy));
-      this.#drop(rec, carried, dx, dy, z, e);
+      if (away) this.#w.game.change(this.#putAway(rec));
+      else this.#drop(rec, carried, dx, dy, z, e);
       for (const c of carried) moves?.release(c.rid);
     };
     doc.addEventListener("pointermove", onMove);
@@ -8971,7 +9751,7 @@ var Drag = class {
   }
   // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it, as a group.
   /** Carries a character's pool. */
-  startPool(rid, down, _move) {
+  startPool(rid, down, _move, done2) {
     const { game, table, moves } = this.#w;
     const c = game.get(rid), mat = table.pool(rid);
     if (!c || c.kind !== "character" || !mat) return;
@@ -8998,19 +9778,54 @@ var Drag = class {
         f.e.style.top = `${f.y + dy}px`;
       }
     };
-    const pace = paced(this.#w.schedule, ({ dx, dy }) => {
+    const pace = paced(this.#w.schedule, ({ dx, dy, cy }) => {
       show(dx, dy);
       moves?.drag(item2(dx, dy));
+      this.#lightBar(doc, cy, !this.#fresh.has(rid));
     });
-    this.#follow(doc, down, (e) => pace.to(delta(e)), (e) => {
+    this.#follow(doc, down, (e) => pace.to({ ...delta(e), cy: e.clientY }), (e) => {
       pace.cancel();
       doc.body.classList.remove("dragging");
       mat.classList.remove("lifted");
-      const { dx, dy } = delta(e);
+      const { dx, dy } = delta(e), away = this.#overBar(doc, e.clientY);
+      this.#lightBar(doc, null, false);
       moves?.drop(item2(dx, dy));
-      this.#drop(c, carried, dx, dy, z, e);
+      if (away) this.#w.game.change(this.#putAway(c));
+      else this.#drop(c, carried, dx, dy, z, e);
       moves?.release(rid);
+      if (!away) done2?.();
     });
+  }
+  /** Pieces just taken from the bar (R19): put back there, they are never made. */
+  #fresh = /* @__PURE__ */ new Set();
+  fresh(rid) {
+    this.#fresh.add(rid);
+  }
+  // R288: over the bar, anything carried turns it red; "→ <graveyard>" when letting go would bury it.
+  #overBar(doc, cy) {
+    const bar = doc.getElementById("bar");
+    return !!bar && cy < bar.getBoundingClientRect().bottom;
+  }
+  #lightBar(doc, cy, buries) {
+    const bar = doc.getElementById("bar");
+    if (!bar) return;
+    const over = cy !== null && this.#overBar(doc, cy);
+    bar.classList.toggle("toss", over);
+    bar.classList.toggle("bury", over && buries);
+    bar.dataset.yard = `\u2192 ${this.#w.yard().name || "Unnamed graveyard"}`;
+  }
+  // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is
+  // buried in the current graveyard, a character with its cards and pinned paper, under its name.
+  #putAway(rec) {
+    const { game } = this.#w, rid = ridOf(rec.oid);
+    if (this.#fresh.delete(rid) || rec.kind === "reference") return (w) => w.del(rid);
+    const all2 = game.all().map(([, r]) => r).filter((r) => "kind" in r);
+    const recs = burialOf(rec, all2), y = game.get("yards") ?? empty();
+    const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
+    return (w) => {
+      w.put("yards", bury(y, cur, recs, graveName(rec)));
+      for (const r of recs) w.del(ridOf(r.oid));
+    };
   }
   /** Pieces pinned to a character's card. */
   #pinned(c) {
@@ -9128,6 +9943,7 @@ var Drag = class {
       const t = this.#itemTarget(rid, doc, x, y);
       lit = light(lit, t?.el ?? null);
       gap(t);
+      this.#lightBar(doc, y, false);
     });
     const to = (e) => pace.to({ x: e.clientX, y: e.clientY });
     to(move);
@@ -9135,13 +9951,14 @@ var Drag = class {
     this.#follow(doc, down, to, (e) => {
       pace.cancel();
       light(lit, null);
+      this.#lightBar(doc, null, false);
       doc.body.classList.remove("dragging", "tapping");
       for (const pool of table.pools()) reach(pool, null, null);
       const t = this.#itemTarget(rid, doc, e.clientX, e.clientY);
       if (gapIn) showGap(gapIn, null, false);
-      const place2 = { ...at3(e.clientX, e.clientY), z: this.#top(), tilt: 0 };
+      const place3 = { ...at3(e.clientX, e.clientY), z: this.#top(), tilt: 0 };
       table.letGo(rid);
-      const change3 = this.#itemDrop(rid, t, place2, mint2());
+      const change3 = this.#itemDrop(rid, t, place3, mint2());
       table.still(() => {
         if (change3) game.change(change3);
       });
@@ -9172,7 +9989,7 @@ var Drag = class {
     const bar = first("#bar");
     return bar ? { kind: "bar", el: bar } : null;
   }
-  #itemDrop(rid, t, place2, mint2) {
+  #itemDrop(rid, t, place3, mint2) {
     const { game } = this.#w;
     switch (t?.kind) {
       case "merge":
@@ -9190,7 +10007,7 @@ var Drag = class {
         return i.kind === "influence" ? toDrawer(game, rid, i.home) : vanish(game, rid);
       }
       default:
-        return toTable(game, rid, place2);
+        return toTable(game, rid, place3);
     }
   }
   /** The card under the pointer, other than the piece itself, and its element. */
@@ -9205,6 +10022,7 @@ var Drag = class {
   // Seq: seq-drag.md#1.7 | R27: one change: the new places, pinned to a card or let go of one.
   #drop(rec, carried, dx, dy, z, e) {
     const { game } = this.#w;
+    this.#fresh.delete(ridOf(rec.oid));
     const moved = (p) => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
     this.#w.table.still(() => game.change((w) => {
       for (const c of carried) {
@@ -9216,14 +10034,14 @@ var Drag = class {
           continue;
         }
         if (!("place" in r)) continue;
-        const place2 = moved(r.place);
+        const place3 = moved(r.place);
         if (c.rid !== ridOf(rec.oid) || !pinnable(r)) {
-          w.put(c.rid, { ...r, place: place2 });
+          w.put(c.rid, { ...r, place: place3 });
           continue;
         }
         const card2 = this.#cardAt(carried[0].el.ownerDocument, e.clientX, e.clientY, carried[0].el)?.card;
         const { pin: _old, ...loose } = r;
-        w.put(c.rid, card2 ? { ...loose, place: place2, pin: { card: card2.oid, dx: place2.x - card2.card.x, dy: place2.y - card2.card.y } } : { ...loose, place: place2 });
+        w.put(c.rid, card2 ? { ...loose, place: place3, pin: { card: card2.oid, dx: place3.x - card2.card.x, dy: place3.y - card2.card.y } } : { ...loose, place: place3 });
       }
     }));
   }
@@ -9635,7 +10453,7 @@ function frame(fn) {
   raf = requestAnimationFrame(go);
   const t = setTimeout(go, 100);
 }
-function views(game, gameId, viewer, blobs, moves, missing, rolling, checkpoint) {
+function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, checkpoint) {
   const who = viewer?.name ?? "nobody", gm = !!viewer?.gm;
   let seat = load(localStorage, gameId, who);
   const keep = (s) => {
@@ -9645,6 +10463,48 @@ function views(game, gameId, viewer, blobs, moves, missing, rolling, checkpoint)
   const redraw = () => table.render(game.all().map(([rid]) => rid));
   const mint2 = () => minter(game, gm);
   let drag, rollRow;
+  const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ("kind" in r ? placeOf(r) : null)?.z ?? 0));
+  const addImage = (file, at3) => void blobs.add(file).then(({ blob, w: iw, h }) => {
+    const oid = mint2()();
+    const image2 = { kind: "image", oid, place: { ...at3, z: topZ(), tilt: 0 }, blob, w: iw, h };
+    game.change((wr) => wr.put(ridOf(oid), image2));
+  });
+  const made = (what, oid, at3) => {
+    switch (what) {
+      case "character":
+        return newCharacter(oid, viewer, at3);
+      case "sticky":
+        return newSticky(oid, at3);
+      case "text":
+        return newText(oid, at3);
+      case "howto":
+        return newHowTo(oid, at3);
+      default:
+        return newChip(oid, what.sign, what.points, at3);
+    }
+  };
+  const clearOfBar = (rid) => {
+    const c = game.get(rid), bar2 = document.getElementById("bar");
+    if (c?.kind !== "character" || !bar2) return;
+    const top = Math.round(table.toWorld(0, bar2.getBoundingClientRect().bottom).y + 10);
+    const dy = top - c.pool.y;
+    if (dy > 0) game.change((w) => w.put(rid, { ...c, pool: { ...c.pool, y: top }, card: { ...c.card, y: c.card.y + dy } }));
+  };
+  const bar = new BarView(document.getElementById("bar"), {
+    stamp: "dev",
+    take: (what, e) => {
+      const oid = mint2()(), rid = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
+      game.change((w) => w.put(rid, rec));
+      drag?.fresh(rid);
+      if (rec.kind === "character") drag?.startPool(rid, e, e, () => clearOfBar(rid));
+      else if (rec.kind === "chip") drag?.startItem(rid, e, e);
+      else drag?.start(rid, e, e);
+    },
+    images: (files) => {
+      const r = document.getElementById("table").getBoundingClientRect(), c = table.toWorld(r.left + r.width / 2, r.top + r.height / 2);
+      files.forEach((f, i) => addImage(f, { x: Math.round(c.x - 120 + i * 24), y: Math.round(c.y - 100 + i * 24) }));
+    }
+  });
   const table = new TableView(document.getElementById("table"), document.getElementById("world"), {
     game,
     viewer,
@@ -9654,12 +10514,7 @@ function views(game, gameId, viewer, blobs, moves, missing, rolling, checkpoint)
     imageUrl: (hash) => blobs.url(hash),
     imageGone: (hash) => blobs.release(hash),
     missing,
-    // R272: an image file dropped on the table: its bytes kept, an Image put on top where it fell.
-    addImage: (file, at3) => void blobs.add(file).then(({ blob, w: iw, h }) => {
-      const oid = mint2()(), z = 1 + Math.max(0, ...game.all().map(([, r]) => ("kind" in r ? placeOf(r) : null)?.z ?? 0));
-      const image2 = { kind: "image", oid, place: { ...at3, z, tilt: 0 }, blob, w: iw, h };
-      game.change((wr) => wr.put(ridOf(oid), image2));
-    }),
+    addImage,
     opened: () => new Set(seat.open.columns),
     setOpened: (o) => {
       keep({ ...seat, open: { ...seat.open, columns: [...o] } });
@@ -9701,7 +10556,11 @@ function views(game, gameId, viewer, blobs, moves, missing, rolling, checkpoint)
     },
     dragPool: (rid, down, move) => drag?.startPool(rid, down, move)
   });
-  drag = new Drag({ game, table, moves, mint: mint2, schedule: frame });
+  const yard = () => {
+    const y = game.get("yards") ?? empty(), cur = Math.min(seat.boothill.cur, y.yards.length - 1);
+    return { cur, name: y.yards[cur].name };
+  };
+  drag = new Drag({ game, table, moves, mint: mint2, schedule: frame, yard });
   const tape = new TapeView(document.getElementById("table"), {
     game,
     viewer,
@@ -9720,6 +10579,22 @@ function views(game, gameId, viewer, blobs, moves, missing, rolling, checkpoint)
       t.style.left = `${Math.max(8, Math.min(innerWidth - 258, register.left() + 2))}px`;
     }
   };
+  new LedgerView(document.getElementById("bar"), document.body, { ...ledger, restore: async (id) => {
+    await ledger.restore(id);
+    const yards = game.get("yards") ?? empty();
+    keep(prune(seat, (rid) => game.get(rid) !== void 0, yards.yards.length));
+    redraw();
+  } });
+  new BootHillView(document.getElementById("bar"), document.body, {
+    game,
+    cur: () => seat.boothill.cur,
+    setCur: (cur) => keep({ ...seat, boothill: { ...seat.boothill, cur } }),
+    open: () => seat.boothill.open,
+    setOpen: (open) => keep({ ...seat, boothill: { ...seat.boothill, open } }),
+    toWorld: (x, y) => table.toWorld(x, y),
+    top: topZ,
+    carry: (lead, e) => lead.kind === "character" ? drag?.startPool(ridOf(lead.oid), e, e) : drag?.start(ridOf(lead.oid), e, e)
+  });
   hang();
   addEventListener("resize", hang);
   void document.fonts?.ready.then(hang);
@@ -9746,7 +10621,41 @@ function views(game, gameId, viewer, blobs, moves, missing, rolling, checkpoint)
       });
     }
   });
-  return { table, drag };
+  return { table, drag, bar };
+}
+function askName() {
+  for (; ; ) {
+    const n = arrivalName(prompt("Your name at the table"));
+    if (n) return n;
+  }
+}
+function meOf(p, name2, gm) {
+  return { name: name2, gm, live: p.status.state === "live", ...p.status.state === "offline" && { why: p.status.why } };
+}
+function here(p) {
+  return [...p.people].map(([tab2, person]) => ({ tab: tab2, ...person, stale: p.stale(tab2) }));
+}
+function ledgerOf(store, blobs, player) {
+  const onto = async (id) => {
+    await store.open(id);
+    location.reload();
+  };
+  return {
+    player,
+    now: () => clock.now(),
+    round: () => store.game.get("meta").round,
+    current: () => store.current,
+    status: () => store.status(),
+    rename: (name2) => store.rename(name2),
+    checkpoints: () => store.checkpoints(),
+    games: () => store.list(),
+    checkpoint: (name2) => store.checkpoint(name2, false),
+    restore: (id) => store.restore(id),
+    open: onto,
+    newGame: async (name2) => onto((await store.add(name2)).id),
+    exported: () => exportGame(store, blobs, store.current.id),
+    imported: async (text) => onto((await importGame(store, blobs, text)).id)
+  };
 }
 async function main() {
   const db = await IdbDb.open();
@@ -9762,7 +10671,7 @@ async function main() {
   });
   if (invited) {
     await store.copyFor(invited.room);
-    const game2 = store.game, name2 = local("hollow.name") ?? "Player";
+    const game2 = store.game, name2 = local("hollow.name") ?? local("hollow.name", askName());
     const wire = new Wire(invited.room, { identity, sealer, tab: tab2, loopback });
     const copy = new Copy({
       game: game2,
@@ -9787,11 +10696,13 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const { table: table2, drag: drag2 } = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, (hash) => images.missing.get(hash), () => rolls2);
+    const { table: table2, drag: drag2, bar: bar2 } = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, (hash) => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls2);
+    new FolksView(bar2.folks, bar2.youAre, { me: () => meOf(presence, name2, false), people: () => here(presence), held: () => void 0 });
     return { stamp: "dev", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
   await store.start();
   const game = store.game;
+  let gmShown = local("hollow.gmname") ?? GM;
   let table = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
   const moves = new Moves({
@@ -9813,7 +10724,7 @@ async function main() {
       net: wire,
       clock,
       role: "gm",
-      name: "GM",
+      name: gmShown,
       here: (p, from) => {
         if (p.role === "player") authority.join(from.tab, p.name, from.browser, from.sealKey);
       }
@@ -9832,16 +10743,47 @@ async function main() {
     return table;
   };
   const link = () => invite(location.href, open().room, identity.id);
-  const { table: view, drag } = views(
+  const close = () => {
+    if (!table) return;
+    void table.presence.close();
+    table = null;
+    rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
+  };
+  const gmSeat = load(localStorage, store.current.id, GM), viewer = gmSeat.viewAs ? { name: gmSeat.viewAs, gm: false } : { name: GM, gm: true };
+  const { table: view, drag, bar } = views(
     game,
     store.current.id,
-    { name: "GM", gm: true },
+    viewer,
     blobs,
     moves,
     (hash) => table?.images.missing.get(hash),
+    ledgerOf(store, blobs, false),
     () => rolls,
     (name2) => store.checkpoint(name2, true)
   );
+  new FolksView(bar.folks, bar.youAre, {
+    me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
+    people: () => table ? here(table.presence) : [],
+    held: (name2) => game.get("book").claims[name2],
+    rename: () => {
+      gmShown = gmName(prompt("Your name, as players see it", gmShown), gmShown);
+      local("hollow.gmname", gmShown);
+      table?.presence.rename(gmShown);
+    },
+    handOver: (name2, browser) => handOver(game, name2, browser),
+    table: { opened: () => !!table, open: () => void open(), invite: link, close },
+    viewAs: {
+      current: () => gmSeat.viewAs ?? GM,
+      choices: () => viewAsChoices(
+        [...table?.presence.people.values() ?? []].filter((p) => p.role === "player").map((p) => p.name),
+        game.all().map(([, r]) => r).filter((c) => c.kind === "character").map((c) => c.owner)
+      ),
+      choose: (name2) => {
+        save(localStorage, store.current.id, GM, { ...gmSeat, viewAs: name2 === GM ? null : name2 });
+        location.reload();
+      }
+    }
+  });
   return {
     stamp: "dev",
     role: "gm",

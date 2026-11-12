@@ -1,13 +1,14 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R179, R183, R285
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R179, R183, R285, R119, R122, R288
 // Lifting, carrying and dropping, and deciding what a drop means. While carried, a piece goes to the
 // room every 100 ms (Moves); the drop is one Game.change. This part moves paper and pins it; pools,
 // the bar and Boot Hill add their drop targets as they land.
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Character, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName } from '../model/records.ts';
+import { ridOf, type Character, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName, type Yards } from '../model/records.ts';
 import type { Item } from '../rules/pool.ts';
 import { chipFace, gapAt, reach, showGap } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
+import { burialOf, bury, empty, graveName } from '../rules/yards.ts';
 import type { MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
 import { placeOf } from './piece.ts';
@@ -17,6 +18,8 @@ export type DragWith = {
   game: Game; table: TableView; moves: Moves | null; mint: () => () => Oid;
   /** The next frame, or 100 ms in a hidden tab (R215). */
   schedule: (fn: () => void) => void;
+  /** The graveyard being browsed (the Seat), where a put-away piece is buried (R122, R288). */
+  yard: () => { cur: number; name: string };
 };
 
 
@@ -104,6 +107,7 @@ export class Drag {
       show(dx, dy);
       moves?.drag(items(dx, dy));
       if (pins) lit = light(lit, this.#cardAt(doc, cx, cy, el)?.el ?? null);
+      this.#lightBar(doc, cy, rec.kind !== 'reference' && !this.#fresh.has(rid));
     });
     const onMove = (ev: Event) => {
       const e = ev as PointerLike;
@@ -121,8 +125,11 @@ export class Drag {
       doc.body.classList.remove('dragging');
       const { dx, dy } = delta(e);
       for (const c of carried) c.el.classList.remove('lifted');
+      const away = this.#overBar(doc, e.clientY);
+      this.#lightBar(doc, null, false);
       moves?.drop(items(dx, dy));
-      this.#drop(rec, carried, dx, dy, z, e);
+      if (away) this.#w.game.change(this.#putAway(rec));
+      else this.#drop(rec, carried, dx, dy, z, e);
       for (const c of carried) moves?.release(c.rid);
     };
     doc.addEventListener('pointermove', onMove);
@@ -134,7 +141,7 @@ export class Drag {
 
   // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it, as a group.
   /** Carries a character's pool. */
-  startPool(rid: Rid, down: PointerLike, _move: PointerLike): void {
+  startPool(rid: Rid, down: PointerLike, _move: PointerLike, done?: () => void): void {
     const { game, table, moves } = this.#w;
     const c = game.get(rid) as Character | undefined, mat = table.pool(rid);
     if (!c || c.kind !== 'character' || !mat) return;
@@ -154,16 +161,57 @@ export class Drag {
       mat.style.left = `${c.pool.x + dx}px`; mat.style.top = `${c.pool.y + dy}px`;
       for (const f of start) { f.e.style.left = `${f.x + dx}px`; f.e.style.top = `${f.y + dy}px`; }
     };
-    const pace = paced<{ dx: number; dy: number }>(this.#w.schedule, ({ dx, dy }) => { show(dx, dy); moves?.drag(item(dx, dy)); });
-    this.#follow(doc, down, e => pace.to(delta(e)), e => {
+    const pace = paced<{ dx: number; dy: number; cy: number }>(this.#w.schedule, ({ dx, dy, cy }) => {
+      show(dx, dy);
+      moves?.drag(item(dx, dy));
+      this.#lightBar(doc, cy, !this.#fresh.has(rid));
+    });
+    this.#follow(doc, down, e => pace.to({ ...delta(e), cy: e.clientY }), e => {
       pace.cancel();
       doc.body.classList.remove('dragging');
       mat.classList.remove('lifted');
-      const { dx, dy } = delta(e);
+      const { dx, dy } = delta(e), away = this.#overBar(doc, e.clientY);
+      this.#lightBar(doc, null, false);
       moves?.drop(item(dx, dy));
-      this.#drop(c, carried, dx, dy, z, e);
+      if (away) this.#w.game.change(this.#putAway(c));
+      else this.#drop(c, carried, dx, dy, z, e);
       moves?.release(rid);
+      if (!away) done?.();
     });
+  }
+
+  /** Pieces just taken from the bar (R19): put back there, they are never made. */
+  #fresh = new Set<Rid>();
+  fresh(rid: Rid): void { this.#fresh.add(rid); }
+
+  // R288: over the bar, anything carried turns it red; "→ <graveyard>" when letting go would bury it.
+  #overBar(doc: Document, cy: number): boolean {
+    const bar = doc.getElementById('bar');
+    return !!bar && cy < bar.getBoundingClientRect().bottom;
+  }
+
+  #lightBar(doc: Document, cy: number | null, buries: boolean): void {
+    const bar = doc.getElementById('bar');
+    if (!bar) return;
+    const over = cy !== null && this.#overBar(doc, cy);
+    bar.classList.toggle('toss', over);
+    bar.classList.toggle('bury', over && buries);
+    bar.dataset.yard = `→ ${this.#w.yard().name || 'Unnamed graveyard'}`;
+  }
+
+  // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is
+  // buried in the current graveyard, a character with its cards and pinned paper, under its name.
+  #putAway(rec: PieceRecord): Change {
+    const { game } = this.#w, rid = ridOf(rec.oid);
+    // R19: a supply dropped back on the bar makes nothing.
+    if (this.#fresh.delete(rid) || rec.kind === 'reference') return w => w.del(rid);
+    const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
+    const recs = burialOf(rec, all), y = (game.get('yards') as Yards | undefined) ?? empty();
+    const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
+    return w => {
+      w.put('yards', bury(y, cur, recs, graveName(rec)));
+      for (const r of recs) w.del(ridOf(r.oid));
+    };
   }
 
   /** Pieces pinned to a character's card. */
@@ -279,6 +327,7 @@ export class Drag {
       const t = this.#itemTarget(rid, doc, x, y);
       lit = light(lit, t?.el ?? null);
       gap(t);
+      this.#lightBar(doc, y, false);
     });
     const to = (e: PointerLike) => pace.to({ x: e.clientX, y: e.clientY });
     to(move);
@@ -286,6 +335,7 @@ export class Drag {
     this.#follow(doc, down, to, e => {
       pace.cancel();
       light(lit, null);
+      this.#lightBar(doc, null, false);
       doc.body.classList.remove('dragging', 'tapping');
       for (const pool of table.pools()) reach(pool, null, null);
       const t = this.#itemTarget(rid, doc, e.clientX, e.clientY);
@@ -352,6 +402,7 @@ export class Drag {
   // Seq: seq-drag.md#1.7 | R27: one change: the new places, pinned to a card or let go of one.
   #drop(rec: PieceRecord, carried: Carried[], dx: number, dy: number, z: number, e: PointerLike): void {
     const { game } = this.#w;
+    this.#fresh.delete(ridOf(rec.oid));   // made now: later, the bar buries it
     const moved = (p: Place): Place => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
     // R217, R226: one change of this page's own, drawn where it was let go.
     this.#w.table.still(() => game.change(w => {

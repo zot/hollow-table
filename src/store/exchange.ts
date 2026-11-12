@@ -53,10 +53,16 @@ export async function exportGame(store: GameStore, blobs: BlobStore, id: string)
     format: FORMAT, version: VERSION, name: info.name, records: Object.fromEntries(records),
     checkpoints: checkpoints.map(({ id: _, ...cp }) => cp), blobs: images,
   };
-  return { filename: `${info.name.replace(/\s+/g, '-')}.glimmer.json`, text: JSON.stringify(file, null, 2) };
+  return { filename: fileName(info.name), text: JSON.stringify(file, null, 2) };
 }
 
 /** An import refused whole, with why. */
+// R292: the file is named after the game, punctuation and spaces as dashes.
+/** The export's file name for a game called `name`. */
+export function fileName(name: string): string {
+  return `${name.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'game'}.glimmer.json`;
+}
+
 export class BadFile extends Error {}
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);

@@ -1,21 +1,26 @@
 # BootHillView
-**Requirements:** R118, R120, R121, R122, R125, R289, R290
+**Requirements:** R118, R120, R121, R123, R124, R125, R289
 
 The gravestone and its graveyard list.
 
 ## Does
 - badge: the count of the buried in every graveyard; the grey Sancreek stone fades when it's 0 (R289).
-- names (R290): a burial is named after its pool (or "Nameless"), "Note: " or "Writing: " and the first
-  line (28 characters), a receipt's title, "Tape: N rolls, last <title>".
+- stone (`src/ui/boothill.ts`): a button after the register; a click opens or closes the list, kept
+  in the Seat with the graveyard browsed. Burials are listed by the names Yards.graveName gave them.
 - panel: opens as the graveyard list below the gravestone: ‹, the editable name, › fixed at the
   top; the burials scroll, oldest first; "Nothing is buried here." when empty; a press anywhere
-  else closes it (R289).
-- drag a burial out: Drag.exhume, at the press, under the pointer; the list closes (R290).
-- doom: shift-click (or long press) arms an item or the graveyard's name red, saying "Delete
-  forever? Shift-click again", reverting after 3 s; a second one deletes (Yards.forget).
+  else closes it (R289). ‹ and › browse (Yards.prev, Yards.next); typing names the graveyard, and
+  leaving the name (change) applies Yards.rename, so an erased, empty one goes (R124).
+- dig up (R120): at the press, Yards.exhume and Yards.raised put the burial back on top, under the
+  pointer, in one change; the list closes and Drag carries it (a character by its pool), so dropped
+  on the bar it is buried again.
+- doom (R125): a shift-click arms an item red, saying "Delete forever? Shift-click again"; the
+  graveyard's name (shift-click or long press) says "Delete everything here? Shift-click again".
+  Either reverts after 3 s; a second one deletes (Yards.forget, Yards.forgetAll). An item has no
+  long press: it comes up the moment it's pressed (gap O7).
 
 ## Collaborators
-- Yards, Drag, Seat (which graveyard, open or not), Gesture
+- Yards, Drag, Seat (which graveyard, open or not), Gesture, TableView (screen to table)
 
 ## Sequences
 - none

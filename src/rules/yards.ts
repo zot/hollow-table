@@ -1,8 +1,8 @@
-// CRC: crc-Yards.md | R121, R122
+// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290
 // Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever. `cur` is the index
 // of the graveyard being browsed (a seat setting); every operation returns the new yards and cur.
 
-import type { Burial, Graveyard, Oid, PieceRecord, Yards } from '../model/records.ts';
+import type { Burial, Graveyard, Oid, PieceRecord, Place, Yards } from '../model/records.ts';
 
 export type At = { yard: number; item: number };
 export type Browse = { yards: Yards; cur: number };
@@ -90,3 +90,37 @@ export function forget(y: Yards, cur: number, at: At): Browse {
 export function forgetAll(y: Yards, cur: number): Browse {
   return sweep(withYard(y, cur, { ...y.yards[cur]!, items: [] }), cur, cur);
 }
+
+// R290: a burial's name: the pool's (or "Nameless"); a sticky's or loose writing's first line;
+// a receipt's title; a torn roll's count and its newest receipt's title.
+const firstLine = (marked: string) => marked.replace(/<[^>]*>/g, '').split('\n').find(l => l.trim())?.trim().slice(0, 28) || '…';
+export function graveName(piece: PieceRecord): string {
+  switch (piece.kind) {
+    case 'character': return piece.name.trim() || 'Nameless';
+    case 'sticky': return `Note: ${firstLine(piece.text)}`;
+    case 'text': return `Writing: ${firstLine(piece.text)}`;
+    case 'tornroll': {
+      const n = piece.receipts.length;
+      return `Tape: ${n} roll${n === 1 ? '' : 's'}${n ? `, last ${piece.receipts[0]!.title}` : ''}`;
+    }
+    default: return 'Image';
+  }
+}
+
+// R120: a burial comes up under the pointer: its lead (a character by its pool) grabbed near its top
+// left, everything with it moved by the same offset, all on top.
+/** The records of a burial placed so the lead is under `at` (table coordinates), at height `z`. */
+export function raised(records: PieceRecord[], at: { x: number; y: number }, z: number): PieceRecord[] {
+  const lead = records[0];
+  if (!lead) return [];
+  const anchor = lead.kind === 'character' ? lead.pool : 'place' in lead ? lead.place : null;
+  if (!anchor) return records;
+  const grab = lead.kind === 'character' ? GRAB_POOL : GRAB_PIECE;
+  const dx = Math.round(at.x - grab.x - anchor.x), dy = Math.round(at.y - grab.y - anchor.y);
+  const moved = (p: Place): Place => ({ ...p, x: p.x + dx, y: p.y + dy, z });
+  return records.map(r => r.kind === 'character' ? { ...r, pool: moved(r.pool), card: moved(r.card) }
+    : 'place' in r ? { ...r, place: moved(r.place) } as PieceRecord : r);
+}
+
+/** Where under a dug-up piece the pointer holds it. */
+const GRAB_POOL = { x: 30, y: 14 }, GRAB_PIECE = { x: 20, y: 14 };

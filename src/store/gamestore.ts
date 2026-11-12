@@ -20,6 +20,13 @@ export const LAST = 'hollow.last';
 
 const pad = (n: number, w: number) => String(n).padStart(w, '0');
 
+// R292: a restore's own checkpoint; restoring one of those again says undoing, so names never nest.
+/** The name of the checkpoint made before restoring `name`. */
+export function beforeRestoring(name: string): string {
+  const m = /^Before (?:restoring|undoing) “(.*)”$/.exec(name);
+  return m ? `Before undoing “${m[1]}”` : `Before restoring “${name}”`;
+}
+
 export class GameStore {
   /** The open game. */
   game = new Game();
@@ -33,6 +40,8 @@ export class GameStore {
   #saving: Promise<void> = Promise.resolve();
   #busy = 0;
   #savedAt: number | null = null;
+  /** Why the last save failed, until one succeeds (R291). */
+  #failed: string | null = null;
   #quiet = false;
   #seq = 0;
 
@@ -132,7 +141,11 @@ export class GameStore {
         if (rec === undefined) await t.del('records', [cur.id, rid]);
         else await t.put('records', [cur.id, rid], rec);
       }
-    })).then(() => { this.#savedAt = this.#clock.now(); }).finally(() => { this.#busy--; });
+    })).then(() => { this.#savedAt = this.#clock.now(); this.#failed = null; }, (e: unknown) => {
+      // R291: a failed save says why, and its records are tried again with the next change.
+      this.#failed = e instanceof Error ? e.message : String(e);
+      for (const [rid] of records) this.#pending.add(rid);
+    }).finally(() => { this.#busy--; });
     return this.#saving;
   }
 
@@ -165,7 +178,7 @@ export class GameStore {
     const cur = this.#open();
     const cp = await this.#db.tx(['checkpoints'], 'readonly', t => t.get<Checkpoint>('checkpoints', [cur.id, id]));
     if (!cp) throw new Error(`no checkpoint ${id}`);
-    await this.checkpoint(`Before restoring “${cp.name}”`, true);
+    await this.checkpoint(beforeRestoring(cp.name), true);
     const book = this.game.get('book');
     const records = Object.entries(cp.records).filter(([rid]) => rid !== 'book');
     this.game.load(book ? [...records, ['book', book]] : records);
@@ -182,9 +195,11 @@ export class GameStore {
     });
   }
 
-  /** For the Ledger: "Saving…" while something is unwritten, else when it last saved. */
+  /** For the Ledger: "Saving…" while something is unwritten, "Not saved: " and why, or when it last saved (R291). */
   status(): string {
-    if (this.#pending.size || this.#busy) return 'Saving…';
+    if (this.#busy) return 'Saving…';
+    if (this.#failed !== null) return `Not saved: ${this.#failed}`;
+    if (this.#pending.size) return 'Saving…';
     return this.#savedAt === null ? 'Saved' : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
   }
 

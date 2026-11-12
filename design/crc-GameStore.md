@@ -1,5 +1,5 @@
 # GameStore
-**Requirements:** R129, R130, R131, R133, R134, R135, R137, R140, R141
+**Requirements:** R129, R130, R131, R133, R134, R135, R137, R140, R141, R291, R292
 
 The browser's games: the list, each game's records, checkpoints, and the write-through that keeps
 them current. Talks to the database only through Db.
@@ -28,10 +28,13 @@ them current. Talks to the database only through Db.
 - checkpoint(name, auto): a copy of every record. Automatic ones keep the newest 20; named ones are
   kept. End's is automatic, named by Register ("End of conflict, round 2").
 - checkpoints(): the open game's, newest first, for the Ledger.
-- restore(id): checkpoints the current table first ("Before restoring “…”", automatic), then loads
+- restore(id): checkpoints the current table first (automatic, named by beforeRestoring), then loads
   the checkpoint into Game. The book (claims, the table's version gv, tombstones) is not taken
   back: the current one is kept.
-- status(): "Saved 18:36:31" or "Saving…", for the Ledger.
+- beforeRestoring(name) (R292): "Before restoring “X”", or "Before undoing “X”" when X was itself
+  one, so the names never nest.
+- status() (R291): "Saving…", "Not saved: " and why the last save failed, or "Saved 18:36:31", for
+  the Ledger. A failed save keeps its records pending, so the next change tries them again.
 
 ## Collaborators
 - Db: the database (IndexedDB on the page, memory in tests).

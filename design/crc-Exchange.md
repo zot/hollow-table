@@ -1,11 +1,11 @@
 # Exchange
-**Requirements:** R138, R139
+**Requirements:** R138, R139, R292
 
 Export and import: a game as one readable file.
 
 ## Knows
 - The file: `{format: 'hollow-table-game', version, name, records, checkpoints, blobs: {sha256:
-  data URI}}`, saved as `<name>.glimmer.json` with spaces as hyphens. Each image appears once.
+  data URI}}`, saved as fileName(name): `<name>.glimmer.json` with every run of spaces and punctuation one dash (R292). Each image appears once.
   `records` is rid → record; a checkpoint is `{name, at, auto, records}`.
 
 ## Does

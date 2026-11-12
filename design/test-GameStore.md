@@ -48,3 +48,26 @@ round 0); `last` never names the copy
 **Fire alarm:** Remember any game opened as the last (drop the `copyOf` test): `hollow.last` names `m-room-1`
 **Inject:** src/store/gamestore.ts:open
 **Pulled:** 2026-11-12 — rang: `hollow.last` named `m-room-1`, the copy
+
+## Test: a restore's checkpoint names never nest
+**Purpose:** R292: "Before restoring “X”", or "Before undoing “X”" when X was itself one
+**Input:** `Two rolls in`; `Before restoring “Two rolls in”`; `Before undoing “Two rolls in”`
+**Expected:** `Before restoring “Two rolls in”`, then `Before undoing “Two rolls in”` twice
+**Refs:** crc-GameStore.md
+**Code:** `src/store/gamestore.test.ts`
+**Alarm:** 4
+**Fire alarm:** Always say restoring: the second reads `Before restoring “Before restoring “Two rolls in””`
+**Inject:** src/store/gamestore.ts:beforeRestoring
+**Pulled:** 2026-11-13 — rang: the second read `Before restoring “Before restoring “Two rolls in””`
+
+## Test: a save that fails says why, and is tried again
+**Purpose:** R291: "Not saved: " and why; the change is written by the next save that works
+**Input:** the database refusing every transaction ("the disk is full") while Round 4 is saved;
+then working again
+**Expected:** `Not saved: the disk is full`; then "Saved" with the time, and Round 4 stored
+**Refs:** crc-GameStore.md
+**Code:** `src/store/gamestore.test.ts`
+**Alarm:** 5
+**Fire alarm:** Drop the failed records instead of keeping them pending: Round 4 is never stored
+**Inject:** src/store/gamestore.ts:GameStore.save
+**Pulled:** 2026-11-13 — rang: with the database back, the status stayed `Not saved: the disk is full`, nothing retried

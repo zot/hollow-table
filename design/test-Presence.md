@@ -27,3 +27,16 @@ only `room` and `gm`, and reads back; the plain page and the malformed one are t
 **Fire alarm:** Keep the base's query in the invite: the link carries `test` and the hash
 **Inject:** src/net/presence.ts:invite
 **Pulled:** 2026-11-12 — rang: the invite kept the base query (`test`)
+
+## Test: a page that goes quiet
+**Purpose:** R293: a heartbeat every 10 s keeps a page fresh; unheard for 25 s it is stale, and
+after 60 s it is gone as if it had left
+**Input:** the GM's page and Dana's, both started, for 40 s; then Ann joins and never starts her
+heartbeat, for 25 s, then to 60 s
+**Expected:** Dana fresh and still there; Ann stale at 25 s; Ann gone (and reported gone) at 60 s
+**Refs:** crc-Presence.md
+**Code:** `src/net/presence.test.ts`
+**Alarm:** 3
+**Fire alarm:** Never let a quiet page go (drop the 60 s check): Ann is still there at 60 s
+**Inject:** src/net/presence.ts:Presence
+**Pulled:** 2026-11-13 — rang: Ann was still there at 60 s

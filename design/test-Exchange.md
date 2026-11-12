@@ -24,3 +24,15 @@ games listed
 **Fire alarm:** Skip the hash check on an image: the file with the wrong bytes imports and a game is created
 **Inject:** src/store/exchange.ts:importGame
 **Pulled:** 2026-11-12 — rang: the file with the wrong image bytes imported (`Missing expected rejection (BadFile)`)
+
+## Test: the file is named after the game
+**Purpose:** R292: punctuation and spaces as dashes, letters of any language kept
+**Input:** `The 11-08 playtest`; `Sam's game: part 2!`; `¿Qué?`; `!!!`
+**Expected:** `The-11-08-playtest.glimmer.json`, `Sam-s-game-part-2.glimmer.json`, `Qué.glimmer.json`,
+`game.glimmer.json`
+**Refs:** crc-Exchange.md
+**Code:** `src/store/exchange.test.ts`
+**Alarm:** 3
+**Fire alarm:** Turn only spaces to dashes: `Sam's-game:-part-2!.glimmer.json`
+**Inject:** src/store/exchange.ts:fileName
+**Pulled:** 2026-11-13 — rang: `Sam's-game:-part-2!.glimmer.json`

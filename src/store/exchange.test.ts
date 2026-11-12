@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { MemoryDb } from './db.ts';
 import { BlobStore } from './blobs.ts';
 import { GameStore } from './gamestore.ts';
-import { BadFile, exportGame, importGame, type GameFile } from './exchange.ts';
+import { BadFile, exportGame, fileName, importGame, type GameFile } from './exchange.ts';
 import { ridOf, type Image, type Meta } from '../model/records.ts';
 import { PLAYTEST } from './playtest.ts';
 import { fakeClock, memoryStorage } from './fakes.ts';
@@ -63,4 +63,12 @@ test('a bad file is refused whole', async () => {
   await assert.rejects(importGame(store, blobs, JSON.stringify(badImage)), BadFile);
 
   assert.equal((await store.list()).length, games, 'no game created');
+});
+
+test('the file is named after the game, punctuation as dashes', () => {
+  // R292.
+  assert.equal(fileName('The 11-08 playtest'), 'The-11-08-playtest.glimmer.json');
+  assert.equal(fileName('Sam\'s game: part 2!'), 'Sam-s-game-part-2.glimmer.json');
+  assert.equal(fileName('¿Qué?'), 'Qué.glimmer.json');
+  assert.equal(fileName('!!!'), 'game.glimmer.json');
 });

@@ -1,4 +1,4 @@
-// CRC: crc-Presence.md | Seq: seq-join.md#1.8, seq-join.md#1.9 | R155, R157, R158, R159, R161, R162, R163
+// CRC: crc-Presence.md | Seq: seq-join.md#1.8, seq-join.md#1.9 | R155, R157, R158, R159, R161, R162, R163, R293
 // Who's at the table, and the room itself. The room's name is the capability: whoever has the
 // invite can join, and nobody else hears anything.
 
@@ -6,6 +6,8 @@ import type { Clock } from '../store/gamestore.ts';
 import type { Net, Peer } from './link.ts';
 
 export const OFFLINE_MS = 15_000, CHECK_MS = 1000;
+// R293: a heartbeat every 10 s; a page unheard for 25 s is stale, and after 60 s it's gone.
+export const HEART_MS = 10_000, STALE_MS = 25_000, GONE_MS = 60_000;
 
 export type Role = 'gm' | 'player';
 export type Person = { name: string; role: Role; browser: string };
@@ -54,6 +56,9 @@ export class Presence {
   #name: string;
   #lastLive: number;
   #tick: unknown = null;
+  /** tab → when it was last heard. */
+  #heard = new Map<string, number>();
+  #beat = 0;
 
   constructor(w: PresenceWith) {
     this.#w = w;
@@ -65,15 +70,24 @@ export class Presence {
     w.net.on('here', (body: { name: string; role: Role }, from: Peer) => {
       const person = { name: body.name, role: body.role, browser: from.browser };
       this.people.set(from.tab, person);
+      this.#heard.set(from.tab, w.clock.now());
       w.here?.(person, from);
     });
     // R162: a connection that closes is a goodbye.
-    const gone = (tab: string) => { if (this.people.delete(tab)) w.gone?.(tab); };
-    w.net.onLeave(p => gone(p.tab));
-    w.net.on('bye', (_: never, from: Peer) => gone(from.tab));
+    w.net.onLeave(p => this.#gone(p.tab));
+    w.net.on('bye', (_: never, from: Peer) => this.#gone(from.tab));
   }
 
+  // R162: forget a tab: no longer heard from, no longer present.
+  #gone(tab: string): void { this.#heard.delete(tab); if (this.people.delete(tab)) this.#w.gone?.(tab); }
+
   get name(): string { return this.#name; }
+
+  /** R293: whether a page hasn't been heard for 25 s (its tag dims). */
+  stale(tab: string): boolean {
+    const at = this.#heard.get(tab);
+    return at !== undefined && this.#w.clock.now() - at >= STALE_MS;
+  }
 
   /** Starts watching whether this page can reach anyone. */
   start(): void {
@@ -84,6 +98,9 @@ export class Presence {
   // R163: live while a relay or a peer is reachable; offline after 15 s with neither, with why.
   #check(): void {
     const now = this.#w.clock.now(), r = this.#w.net.reachable();
+    // R293: the heartbeat, and pages unheard for 60 s are gone.
+    if (now - this.#beat >= HEART_MS) { this.#beat = now; this.#w.net.send('here', { name: this.#name, role: this.#w.role }); }
+    for (const [tab, at] of this.#heard) if (now - at >= GONE_MS) this.#gone(tab);
     if (r.relays || r.peers) { this.#lastLive = now; this.status = { state: 'live' }; return; }
     if (now - this.#lastLive >= OFFLINE_MS) {
       this.status = { state: 'offline', why: 'No relay or other page has been reachable for 15 seconds; still trying.' };

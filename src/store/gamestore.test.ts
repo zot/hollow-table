@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryDb } from './db.ts';
-import { GameStore, KEEP_AUTO, LAST } from './gamestore.ts';
+import { GameStore, KEEP_AUTO, LAST, beforeRestoring } from './gamestore.ts';
 import { fakeClock, memoryStorage } from './fakes.ts';
 import { ridOf, type Character, type Chip, type Image, type Meta, type Receipt, type Tape, type Yards } from '../model/records.ts';
 import { BEAUFORD, DEVREUX, PLAYTEST, SAM } from './playtest.ts';
@@ -140,4 +140,28 @@ test('games and copies', async () => {
   assert.equal(copy.id, 'm-room-1');
   assert.equal(storage.data.get(LAST), second.id, 'the copy is never last');
   assert.deepEqual((await store.list()).map(g => g.name), ['Second table', PLAYTEST], 'nor listed');
+});
+
+test("a restore's checkpoint names never nest", () => {
+  // R292.
+  assert.equal(beforeRestoring('Two rolls in'), 'Before restoring “Two rolls in”');
+  assert.equal(beforeRestoring('Before restoring “Two rolls in”'), 'Before undoing “Two rolls in”');
+  assert.equal(beforeRestoring('Before undoing “Two rolls in”'), 'Before undoing “Two rolls in”');
+});
+
+test('a save that fails says why, and is tried again', async () => {
+  // R291.
+  const db = new MemoryDb(), { clock, advance } = fakeClock();
+  const store = new GameStore(db, clock, memoryStorage());
+  await store.start();
+  const tx = db.tx.bind(db);
+  db.tx = (() => Promise.reject(new Error('the disk is full'))) as typeof db.tx;
+  store.game.change(w => w.put('meta', { round: 4, rolls: 0 }));
+  advance(400);
+  await store.save();
+  assert.equal(store.status(), 'Not saved: the disk is full');
+  db.tx = tx;
+  await store.save();
+  assert.match(store.status(), /^Saved \d\d:\d\d:\d\d$/);
+  assert.equal(((await store.read(store.current!.id)).records.find(([rid]) => rid === 'meta')![1] as Meta).round, 4);
 });

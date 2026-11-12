@@ -7,7 +7,7 @@ Who's at the table, and the room itself.
 - role: the GM (a plain page) or a player (an invite, carrying `room` and `gm`).
 - room: `<label>-<128-bit hex>`; the GM's is remembered per game (seat tier), never put in the URL.
 - name: a player's, asked once per browser.
-- people: tab → `{name, role, browser, live}`.
+- people: tab → `{name, role, browser}`, and when each tab was last heard.
 - status: off, live, or offline with why.
 
 ## Does
@@ -20,6 +20,8 @@ Who's at the table, and the room itself.
   Authority).
 - liveness: live while a relay or a peer is reachable; offline after 15 s with neither, with why,
   and keeps trying.
+- heartbeat: every 10 s a page says `here` to everyone; stale(tab) once a page is unheard for 25 s
+  (its tag dims), and after 60 s it is gone, as if it had left.
 - rename(): the GM's own name tag.
 
 ## Collaborators

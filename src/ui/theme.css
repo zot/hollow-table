@@ -54,7 +54,43 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
   display: flex; align-items: center; gap: 18px; padding: 0 16px;
 }
 #bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
-#bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; }
+#bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; text-align: center; margin-top: 2px; user-select: text; -webkit-user-select: text; cursor: text; }
+/* R286: the supplies: paper you take from a stack, and the chips in two rows. */
+#bar .supply { cursor: grab; display: grid; place-items: center; text-align: center; touch-action: none; flex: none; }
+#bar .supply.card { width: 68px; height: 40px; background: #fff; color: #222; border: 1px solid #888; border-radius: 7px; font: 700 15px var(--hand);
+  box-shadow: 2px 2px 0 #ddd, 4px 4px 0 #bbb; }
+#bar .supply.note { width: 46px; height: 42px; background: var(--sticky); color: #222; font: 700 15px/1 var(--hand); box-shadow: 2px 2px 0 #d6cb00; }
+#bar .supply.aa { width: 40px; font: 700 24px var(--hand); color: #f3e9d8; }
+#bar .supply.howto { width: 60px; height: 40px; background: var(--card); color: #222; border: 1px solid #888; border-radius: 6px; font: 11px/1.1 var(--mono); }
+#bar .supply.image { width: 56px; height: 40px; background: #fff; color: #222; border: 1px solid #888; border-radius: 4px; font: 700 13px var(--hand); cursor: pointer; }
+#bar .supplychips { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 6px; align-items: center; justify-items: center; flex: none; }
+#bar .supply.chip { width: 30px; height: 30px; border-radius: 50%; font: 700 13px var(--mono); color: #fff; cursor: pointer; box-shadow: 0 2px 0 rgba(0,0,0,.45); }
+#bar .supply.chip.pos { background: var(--chip-pos); } #bar .supply.chip.neg { background: var(--chip-neg); }
+#bar .supply.chip.one { width: 22px; height: 22px; font-size: 10px; }
+/* R288: anything carried over the bar turns it red; "→ <graveyard>" by the gravestone when it would bury. */
+#bar.toss { background: linear-gradient(#4a1f1a, #2a110e); }
+#bar.bury::after { content: attr(data-yard); position: absolute; right: 64px; top: 28px; font: 11px var(--mono); color: #f3e1c2; }
+/* R161, R293: the people: a tag each in the hand font beside a dot, lit when live; the GM's reddish,
+   your own outlined, dimmed when not heard lately; red with no dot for a warning. */
+#bar .folks { display: flex; flex-wrap: wrap; gap: 4px; max-width: 240px; align-content: center; flex: none; }
+#bar .tag { font: 600 15px/1 var(--hand); padding: 3px 8px 3px 18px; border-radius: 10px; background: #3a2b1d; color: #a8957b; position: relative; white-space: nowrap; border: 0; }
+#bar .tag::before { content: ""; position: absolute; left: 6px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: #6a5a48; }
+#bar .tag.live { color: #f3e1c2; }
+#bar .tag.live::before { background: #7bd389; box-shadow: 0 0 6px #7bd389; }
+#bar .tag.stale { opacity: .5; }
+#bar .tag.gm { background: #4a2a2a; }
+#bar .tag.you { outline: 1px solid #a8957b; }
+#bar .tag.gm.you, #bar .tag.warn { cursor: pointer; }
+#bar .tag.warn { background: var(--chip-neg); color: #fff; padding-left: 8px; }
+#bar .tag.warn::before { display: none; }
+#bar .invite { font: 11px/1 var(--mono); padding: 4px 7px; border-radius: 10px; border: 1px solid #a8957b; background: none; color: #f3e1c2; cursor: pointer; }
+#bar .invite:hover { background: #3a2b1d; }
+/* R153: the real GM's "You are", a tag that cycles. */
+#bar .youare { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+#bar .youare:empty { display: none; }
+#bar .youare small { font: 10px/1 var(--mono); color: #a8957b; }
+#bar .tag.viewas { cursor: pointer; padding-left: 8px; color: #f3e1c2; }
+#bar .tag.viewas::before { display: none; }
 /* R115, R116, R284: the register at the bar's right end: quartersawn oak, a glass window with the
    Round on a pop-up tab, red enamel keys, End a white key, and the tape's paper roll. */
 .register { margin-left: auto; position: relative; display: grid; grid-template-columns: auto auto auto auto; align-items: center; gap: 10px;
@@ -457,3 +493,56 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* R289: Boot Hill: a grey stone carved in Sancreek, the red badge counting every graveyard, faded when
+   nothing is buried; its list under the bar, the header fixed while the burials scroll (R121). */
+#boothill { flex: none; position: relative; width: 58px; height: 70px; border: none; background: none; cursor: pointer; padding: 0; }
+#boothill .stone { position: absolute; inset: 6px 6px 0 6px; border-radius: 22px 22px 3px 3px; background: linear-gradient(160deg, #9c988f, #6f6b63);
+  box-shadow: inset 0 -4px 0 #57534c, 0 2px 0 #1a120c; color: #2b2925; font: 13px/1.05 "Sancreek", serif; display: grid; place-items: center; text-align: center; }
+#boothill .n { position: absolute; right: 0; top: 0; min-width: 20px; height: 20px; border-radius: 10px; background: var(--chip-neg); color: #fff;
+  font: 700 12px/20px var(--mono); text-align: center; }
+#boothill .n:empty { display: none; }
+#boothill.empty .stone { opacity: .55; }
+#boothill:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+#graves { position: fixed; right: 12px; top: 96px; z-index: 50; width: 260px; max-height: calc(100vh - 120px); background: #fbfaf6; border-radius: 8px;
+  padding: 10px; box-shadow: 0 8px 18px rgba(0,0,0,.5); font: 13px/1.3 var(--mono); display: flex; flex-direction: column; gap: 8px; color: #222; }
+#graves[hidden] { display: none; }
+#graves p { margin: 0; color: #555; }
+#graves .items { display: grid; gap: 6px; overflow-y: auto; min-height: 0; align-content: start; }
+#graves .yard { display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #ddd; padding-bottom: 8px; flex: none; }
+#graves .yard button { font: 700 18px/1 var(--mono); width: 30px; height: 28px; padding: 0; text-align: center; cursor: pointer; }
+#graves .yard button:disabled { opacity: .3; cursor: default; }
+#graves .yname { flex: 1; min-width: 0; font: 600 19px/1.1 var(--hand); border: none; border-bottom: 1px solid #bbb; background: transparent; padding: 2px 4px; }
+#graves .items button { font: 600 20px/1.1 var(--hand); text-align: left; background: none; border: 1px solid #ccc; border-radius: 6px; padding: 4px 10px; cursor: grab; touch-action: none; }
+#graves .items button:hover { background: #f1ead9; }
+#graves .doom { background: var(--chip-neg) !important; color: #fff !important; }
+
+/* R291: the Ledger, a green cloth-bound book with "Ledger" up its spine. R132: it opens to a ruled
+   ledger page: a red margin rule, a rule every 28 px, the actions written on the page, entries
+   written on the rules with their dates in the right-hand column. */
+#ledgerbtn { flex: none; width: 44px; height: 62px; border: none; padding: 0; cursor: pointer; border-radius: 3px 6px 6px 3px;
+  background: linear-gradient(90deg, #1f3a2b 0 7px, #2f5a41 7px); box-shadow: inset -3px 0 0 #e9e1cc, 0 2px 4px rgba(0,0,0,.5); }
+#ledgerbtn span { display: block; transform: rotate(-90deg); font: 600 15px/1 var(--hand); color: #e6c878; }
+#ledgerbtn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+#ledger { --rule: 28px; position: fixed; right: 80px; top: 96px; z-index: 50; width: 320px; max-height: calc(100vh - 120px); overflow-y: auto;
+  padding: 6px 12px 14px 40px; color: #2a2a2a; border-radius: 3px; box-shadow: 0 8px 24px rgba(0,0,0,.45);
+  background: linear-gradient(90deg, transparent 31px, #d98c8c 31px 32px, transparent 32px),
+    repeating-linear-gradient(transparent 0 calc(var(--rule) - 1px), #b9cfe0 calc(var(--rule) - 1px) var(--rule)), #fbf8ee;
+  background-attachment: local; font: 600 18px/var(--rule) var(--hand); }
+#ledger[hidden] { display: none; }
+#ledger .gname { display: block; width: 100%; height: calc(var(--rule) * 2); font: 700 26px/1 var(--hand); color: #1f3a2b; border: 0;
+  background: transparent; padding: 18px 0 0; }
+#ledger .acts { display: flex; flex-wrap: wrap; column-gap: 16px; min-height: var(--rule); }
+#ledger .act { font: inherit; color: #2f5a41; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+#ledger .act:hover, #ledger .act:focus-visible { color: #1f3a2b; text-decoration-thickness: 2px; outline: none; }
+#ledger .status, #ledger .copy, #ledger .none { margin: 0; font: 12px/var(--rule) var(--mono); color: #2f5a41; min-height: var(--rule); }
+#ledger .copy, #ledger .none { color: #555; font: 600 16px/var(--rule) var(--hand); }
+#ledger h4 { margin: 0; font: 700 19px/var(--rule) var(--hand); color: #555; height: var(--rule); }
+#ledger .entries { display: grid; }
+#ledger .entry { display: flex; justify-content: space-between; gap: 8px; height: var(--rule); align-items: baseline; text-align: left;
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+#ledger .entry span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#ledger .entry:hover:not(:disabled) span, #ledger .entry:focus-visible span { text-decoration: underline; }
+#ledger .entry time { font: 11px/var(--rule) var(--mono); color: #777; white-space: nowrap; }
+#ledger .entry.auto { color: #8a8a8a; font-weight: 400; }
+#ledger .entry.current { color: #9a9a9a; cursor: default; }

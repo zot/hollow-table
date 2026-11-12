@@ -45,3 +45,17 @@
 **Fire alarm:** Leave pinned pieces out of a character's burial: the sticky pinned to Devreux stays behind
 **Inject:** src/rules/yards.ts:burialOf
 **Pulled:** 2026-11-12 — rang: the sticky pinned to Devreux was left out of the burial
+
+## Test: a burial comes up under the pointer
+**Purpose:** R120: a character by its pool, grabbed 30, 14 in, its card and pinned paper moved by the
+same offset; anything else by its place, grabbed 20, 14 in; all on top
+**Input:** Sam's burial raised to 1000, 800 at height 77; a sticky raised to 100, 50 at height 3;
+nothing raised
+**Expected:** Sam's pool at 970, 786, z 77, the card where it was against the pool, every placed
+record moved alike at z 77; the sticky at 80, 36, z 3; nothing
+**Refs:** crc-Yards.md
+**Code:** `src/rules/yards.test.ts`
+**Alarm:** 4
+**Fire alarm:** Move only the lead: Sam's card stays where it was buried
+**Inject:** src/rules/yards.ts:raised
+**Pulled:** 2026-11-13 — rang: Sam's card stayed where it was buried

@@ -1,22 +1,27 @@
 # Ledger
-**Requirements:** R132, R141, R291, R292
+**Requirements:** R132, R133, R134, R139, R141, R291
 
-The green cloth-bound book beside Boot Hill, opening to a ruled ledger page.
+The green cloth-bound book between the register and Boot Hill, opening to a ruled ledger page.
 
 ## Does
-- page(): the game's name (editable), the save status, the actions written on the page
-  (Checkpoint, Export, Import, New game), the checkpoints and the games as ruled entries.
-- player: shows only the name, the save status and Export, and says the GM's page holds the game
-  and this browser keeps a copy.
-- book (R291): green cloth with "Ledger" up the spine, between the register and Boot Hill; a press
-  anywhere else closes it. Status words from GameStore ("Saved hh:mm:ss", "Not saved: …"), and
-  "Not a game file: …" from Exchange. Checkpoint asks a name, offering "Round N, hh:mm:ss" (blank is
-  "Checkpoint"); automatic checkpoints in grey; New game, unasked, "New game <date and time>"; the
-  current game greyed.
-- restore (R292): unasked, undoable; Export's file named after the game, punctuation as dashes.
+- book (R291, `src/ui/ledger.ts`): green cloth with "Ledger" up the spine, after the register and
+  before Boot Hill; a click opens or closes the page, a press anywhere else closes it.
+- page (R132): ruled, with a red margin rule: the game's name (editable; a blank one is not taken),
+  the actions written on the page (Checkpoint, Export, Import, New game), the save status, then the
+  checkpoints and the games as entries on the rules, their dates in the right-hand column.
+- status (R291): GameStore.status() ("Saving…", "Not saved: …", "Saved hh:mm:ss"), every second
+  while open; "Not a game file: " and the file's name when an import is refused.
+- words (pure): stamp(at) "Nov 12, 14:03:22"; offer(round, now) "Round N, hh:mm:ss", what Checkpoint
+  offers; named(answer): blank is "Checkpoint", cancel makes none; newGame(now) "New game <stamp>".
+- checkpoints (R134): newest first, automatic ones in grey; clicking one restores it, unasked (the
+  page keeps the seat, pruned of whatever vanished, R136).
+- games: the current one greyed; clicking another saves this one and reloads onto it. New game
+  (R133) and Import (R139) make the game and reload onto it.
+- player (R141): only the name (read-only), Export and the status, and a note that the GM's page
+  holds the game and this browser keeps a copy.
 
 ## Collaborators
-- GameStore, Exchange
+- GameStore, Exchange, Seat (pruned after a restore), Gesture
 
 ## Sequences
 - seq-restore.md
