@@ -17,8 +17,14 @@ How the sources become the page, and how the page is published and tested.
 - `publish.sh`: builds, stamps the build time, publishes `dist/` under the IPNS key (15 s TTL), and
   waits until the test machine serves it.
 - GitHub Pages serves `dist/` for players.
-- testHook: with `?test`, the page exposes one object, `window.hollow`, holding Game, the views and
-  the network for Playwright; without it, the bundle exposes nothing.
+- main (`src/main.ts`): assembles the page. The plain page is the GM's: GameStore opens its game, and
+  `open()` makes (or reopens) this game's room: Wire, Presence, Authority, Rolls, ImageExchange.
+  An invite makes a player: its copy of the room's table (GameStore.copyFor), Wire, Copy, Presence,
+  Rolls, ImageExchange. The tab id is kept in sessionStorage; a native passed as a callback is
+  called detached. Moves is wired with Drag, among the views.
+- testHook: with `?test`, the page exposes one object, `window.hollow`, whose `ready` holds the
+  page's parts (the store, the network, and the views as they land) for Playwright; without it, the
+  bundle exposes nothing.
 
 ## Collaborators
 - none

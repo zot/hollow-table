@@ -11,11 +11,13 @@ Who's at the table, and the room itself.
 - status: off, live, or offline with why.
 
 ## Does
-- open(): makes a room (GM).
-- invite(): the link: this origin, `room`, and `gm=<the GM's browser id>`.
-- close(): leaves the room (shift-click on Copy invite).
+- newRoom(label): a room name, the game's name as label (the GM's page remembers it per game).
+- invite(base, room, gm): the link: the page's address with only `room` and `gm=<the GM's browser
+  id>`. fromUrl(search): what an address makes a page, a player (room and GM) or the GM.
+- start(): watches liveness. close(): says bye and leaves the room (shift-click on Copy invite).
 - greet: a newly connected peer is sent `hello` and answers `here` to that peer only; a closed
-  connection removes it.
+  connection or a `bye` removes it. `here` is handed on (the GM's page joins a player to
+  Authority).
 - liveness: live while a relay or a peer is reachable; offline after 15 s with neither, with why,
   and keeps trying.
 - rename(): the GM's own name tag.

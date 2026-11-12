@@ -58,17 +58,17 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-BlobStore.md → `src/store/blobs.ts`
 - [x] crc-Exchange.md → `src/store/exchange.ts`
 - [x] crc-Seat.md → `src/store/seat.ts`
-- [ ] crc-Wire.md → `src/net/wire.ts`, `src/net/link.ts`, `src/net/fakeroom.ts`
+- [x] crc-Wire.md → `src/net/wire.ts`, `src/net/link.ts`, `src/net/fakeroom.ts`
 - [x] crc-Identity.md → `src/net/identity.ts`, `src/net/b64.ts`
 - [x] crc-Seal.md → `src/net/seal.ts`
 - [x] crc-Envelope.md → `src/net/envelope.ts`
-- [ ] crc-Presence.md → `src/net/presence.ts`
+- [x] crc-Presence.md → `src/net/presence.ts`
 - [x] crc-Claims.md → `src/net/claims.ts`
 - [x] crc-Stamps.md → `src/net/stamps.ts`
 - [x] crc-Moves.md → `src/net/moves.ts`
 - [x] crc-Authority.md → `src/net/authority.ts`
 - [x] crc-Copy.md → `src/net/copy.ts`
-- [ ] crc-ImageExchange.md → `src/net/images.ts`
+- [x] crc-ImageExchange.md → `src/net/images.ts`
 - [x] crc-Rolls.md → `src/net/rolls.ts`
 - [x] crc-Yards.md → `src/rules/yards.ts`
 - [ ] crc-TableView.md → `src/ui/table.ts`
@@ -119,6 +119,8 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Game.md → `src/model/game.test.ts`
 - [x] test-Db.md → `src/store/db.test.ts`
 - [x] test-Rolls.md → `src/net/rolls.test.ts`
+- [x] test-Presence.md → `src/net/presence.test.ts`
+- [x] test-Images.md → `src/net/images.test.ts`
 - [x] test-GameStore.md → `src/store/gamestore.test.ts`
 - [x] test-BlobStore.md → `src/store/blobs.test.ts`
 - [x] test-Exchange.md → `src/store/exchange.test.ts`

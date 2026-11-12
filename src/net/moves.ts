@@ -93,7 +93,7 @@ export class Moves {
     }
     run.length = 0;
     if (placed.size) this.#w.place([...placed.values()]);
-    if (this.#filling.length) this.#w.schedule(() => this.pass());
+    if (this.#filling.length) this.#later();
     else this.#acting = false;
   }
 
@@ -113,7 +113,13 @@ export class Moves {
 
   /** Starts an actor if none is running. */
   #startActor(): void {
-    if (!this.#acting) { this.#acting = true; this.#w.schedule(() => this.pass()); }
+    if (!this.#acting) { this.#acting = true; this.#later(); }
+  }
+
+  /** The next pass. `schedule` is called detached, so a native like requestAnimationFrame works as given. */
+  #later(): void {
+    const { schedule } = this.#w;
+    schedule(() => this.pass());
   }
 
   #hold(c: Command): void {

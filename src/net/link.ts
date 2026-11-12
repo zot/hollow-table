@@ -17,3 +17,18 @@ export interface Link {
   /** Checked messages of a kind (Envelope), with who sent them. */
   on(kind: Kind, fn: (body: never, from: Peer) => void | Promise<void>): void;
 }
+
+/** All of Wire, as Presence and ImageExchange see it. */
+export interface Net extends Link {
+  /** A peer passed the handshake and is at the table. */
+  onJoin(fn: (peer: Peer) => void): void;
+  /** A peer's connection closed: it left. */
+  onLeave(fn: (peer: Peer) => void): void;
+  /** Asks the table for an image's bytes; the first answer, or null. */
+  request(hash: string): Promise<Blob | null>;
+  /** How this page answers another's request. */
+  answer(fn: (hash: string) => Promise<Blob | undefined>): void;
+  /** Relays reachable and peers connected, for liveness. */
+  reachable(): { relays: number; peers: number };
+  leave(): Promise<void>;
+}

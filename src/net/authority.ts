@@ -141,7 +141,8 @@ export class Authority {
     for (const rid of rids) this.#pending.add(rid);
     if (this.#flushing) return;
     this.#flushing = true;
-    this.#w.schedule(() => { this.#flushing = false; this.#out(); });
+    const { schedule } = this.#w;   // called detached, so a native like queueMicrotask works as given
+    schedule(() => { this.#flushing = false; this.#out(); });
   }
 
   #stamp(rid: Rid): Stamp {

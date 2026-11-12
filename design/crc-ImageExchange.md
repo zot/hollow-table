@@ -8,11 +8,12 @@ Images peer to peer: bytes stay in each page's BlobStore; a page missing one ask
 - RETRY_MS: 10 s.
 
 ## Does
-- want(hash): asks the table; the first answer whose bytes hash right is kept (BlobStore.accept),
-  so this page can answer the next asker.
-- answer(hash): sends the bytes if this page has them.
-- sweep(): every RETRY_MS, asks again for what is still missing; the image shows striped and marked
-  missing with why until then.
+- want(hash): asks the table unless this page has it; the first answer whose bytes hash right is
+  kept (BlobStore.accept), so this page can answer the next asker. True once it has it.
+- answer: this page answers requests with what its BlobStore has.
+- watch(game): every image the game shows is wanted as it arrives.
+- start() / stop(): every RETRY_MS, asks again for what is still missing; the image shows striped and
+  marked missing with why until then.
 
 ## Collaborators
 - Wire, BlobStore

@@ -34,7 +34,7 @@ holds `<script>` and an attributed tag; things that are no message, and an envel
 version
 **Expected:** the 7 drops the roll, and so do 41 dice (40 pass); the name is kept as text; the 9-item move and the bad records
 are dropped; the text keeps its tags as plain text; no message is no envelope. That no element is
-made from the name is the views' (test-Table); a late batch part is tested with `parts` if it lands
+made from the name is the views' (test-Table); big batches travel whole, chunked by Trystero
 (crc-Envelope.md)
 **Refs:** crc-Envelope.md, crc-MarkedText.md
 **Code:** `src/net/envelope.test.ts`

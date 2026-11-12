@@ -13,9 +13,9 @@ is dropped whole.
   dels: [{rid, s, by?}], sealed: {tab: box}}`, `edit` `{box}`, `move` `{s, items: [{rid, x, y, z,
   part?}]}`, `intent`, `roll` `{n, receipt, sealed: {tab: box of {re, receipt}}}`, `crit`, `refuse`, `claim`, `here` `{name, role}`.
 - Limits: string caps, at most 40 dice per roll, 8 items per move.
-- @undecided: whether a big batch needs splitting into parts of at most 20,000 characters (partial
-  batches dropped after 30 s), or Trystero's own chunking carries it; settled with Wire (prototype
-  9.3.5), and `parts`/`join` land then if needed.
+- A big batch goes whole: Trystero splits an action's payload into chunks and reassembles it, up to
+  Wire's `maxReceiveBytes` (checked 2026-11-12 in Trystero 0.26.0's action wire), so there are no
+  parts here.
 
 ## Does
 - make(kind, tab, body): an envelope `{v, kind, tab, at, body}` with this page's tab id and time.
