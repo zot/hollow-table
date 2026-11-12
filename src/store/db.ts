@@ -2,7 +2,8 @@
 // A small interface over the browser's database, so the store is tested without a browser.
 // MemoryDb is the test's; IdbDb is the page's, over IndexedDB (database `hollow-table`).
 
-export const STORES = ['games', 'records', 'checkpoints', 'blobs'] as const;
+// `identity` holds this browser's key pair (Identity), beside the games.
+export const STORES = ['games', 'records', 'checkpoints', 'blobs', 'identity'] as const;
 export type StoreName = (typeof STORES)[number];
 /** A key: a string, or `[game, id]` for the stores kept per game. */
 export type Key = string | [string, string];
@@ -73,7 +74,7 @@ export class IdbDb implements Db {
   private constructor(db: IDBDatabase) { this.#db = db; }
 
   static async open(name = 'hollow-table'): Promise<IdbDb> {
-    const req = indexedDB.open(name, 1);
+    const req = indexedDB.open(name, 2);
     req.onupgradeneeded = () => { for (const s of STORES) if (!req.result.objectStoreNames.contains(s)) req.result.createObjectStore(s); };
     return new IdbDb(await done(req));
   }

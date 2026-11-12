@@ -4,7 +4,8 @@
 A small interface over the browser's database, so the store is testable without a browser.
 
 ## Knows
-- Stores by name, keyed by string or `[string, string]`.
+- Stores by name, keyed by string or `[string, string]`: `games`, `records`, `checkpoints`, `blobs`,
+  and `identity` (Identity's key pair).
 
 ## Does
 - tx(stores, mode, fn): one transaction; everything `fn` does lands together or not at all.

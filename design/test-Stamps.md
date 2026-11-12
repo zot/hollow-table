@@ -11,8 +11,15 @@ number; lower numbers are discarded
 3. A 115 to x 650: 700 (lower than A's 120: discarded)
 4. A 121 to x 610: 610
 5. pages A and B are numbered with small local integers, 3 and 4
+6. the piece held, A 122 to x 620: 610; let go: 620
+7. sending: two drags within 100 ms go as one, the last place; a drag then a drop sends the drop at
+   once, with a higher number
 **Refs:** crc-Stamps.md, crc-Moves.md, seq-move.md
 **Code:** `src/net/moves.test.ts`
+**Alarm:** 1
+**Fire alarm:** Run the drained buffer oldest arrival first: step 2 reads 600 (A placed it, though B arrived last)
+**Inject:** src/net/moves.ts:pass
+**Pulled:** 2026-11-12 — rang: step 2 read 600, not 700
 
 ## Test: a deletion after a drag is not stale
 **Purpose:** the 11-11 bug: the GM drags a piece to the bar (moves numbered s+1..s+n), which
@@ -22,3 +29,18 @@ sends it
 **Expected:** fresh; the piece is removed
 **Refs:** crc-Stamps.md, crc-Authority.md, seq-sync.md
 **Code:** `src/net/stamps.test.ts`
+**Alarm:** 2
+**Fire alarm:** Call nothing stale (fresh always true): the piece's last number reads fresh after the drag
+**Inject:** src/net/stamps.ts:fresh
+**Pulled:** 2026-11-12 — rang: the piece's last number read fresh after the drag
+
+## Test: the counter continues across a reload
+**Purpose:** a reload keeps numbering where it stopped, so its sends aren't stale
+**Input:** two numbers taken, then a new Stamps on the same storage
+**Expected:** the storage holds 2; the new Stamps' next is 3
+**Refs:** crc-Stamps.md
+**Code:** `src/net/stamps.test.ts`
+**Alarm:** 3
+**Fire alarm:** Start every Stamps at 0, ignoring the storage: the new Stamps' next is 1
+**Inject:** src/net/stamps.ts:constructor
+**Pulled:** 2026-11-12 — rang: the new Stamps' next was 1, not 3

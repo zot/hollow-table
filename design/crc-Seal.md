@@ -9,8 +9,10 @@ shared AES-GCM key per pair, and additional data naming what the box is and who 
 - Shared keys by the other page's sealing key.
 
 ## Does
+- make(): this page load's key pair (Sealer); `pub` is what the handshake vouches for.
 - seal(theirKey, what, from, to, value): `{iv, data}`; the additional data is `what:from>to`.
-- open(theirKey, what, from, to, box): the value, or nothing if the box was made for anything else.
+- open(theirKey, what, from, to, box): the value, or undefined if the box was made for anything
+  else, or is no box.
 
 ## Collaborators
 - none (WebCrypto)

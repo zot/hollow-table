@@ -107,21 +107,22 @@ export function ridOf(oid: Oid): Rid { return 'o:' + oid; }
 
 export const CAPS = { name: 200, text: 20_000, id: 64, coord: 1e6, list: 500 };
 
-type Shape = (v: unknown) => boolean;
-const obj = (v: unknown): v is Record<string, unknown> =>
+// The shape combinators below are shared with Envelope, which checks messages the same way (R177).
+export type Shape = (v: unknown) => boolean;
+export const obj = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
-const num = (lo: number, hi: number): Shape => v => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
-const int = (lo: number, hi: number): Shape => v => num(lo, hi)(v) && Number.isInteger(v);
-const str = (cap: number): Shape => v => typeof v === 'string' && v.length <= cap;
-const bool: Shape = v => typeof v === 'boolean';
-const oneOf = (...xs: readonly unknown[]): Shape => v => xs.includes(v);
-const list = (each: Shape, cap = CAPS.list): Shape => v => Array.isArray(v) && v.length <= cap && v.every(each);
-const dict = (each: Shape): Shape => v => obj(v) && Object.keys(v).length <= CAPS.list
+export const num = (lo: number, hi: number): Shape => v => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
+export const int = (lo: number, hi: number): Shape => v => num(lo, hi)(v) && Number.isInteger(v);
+export const str = (cap: number): Shape => v => typeof v === 'string' && v.length <= cap;
+export const bool: Shape = v => typeof v === 'boolean';
+export const oneOf = (...xs: readonly unknown[]): Shape => v => xs.includes(v);
+export const list = (each: Shape, cap = CAPS.list): Shape => v => Array.isArray(v) && v.length <= cap && v.every(each);
+export const dict = (each: Shape): Shape => v => obj(v) && Object.keys(v).length <= CAPS.list
   && Object.keys(v).every(k => k.length <= CAPS.name && each(v[k]));
-const isOid: Shape = v => typeof v === 'string' && /^[0-9a-f]{8}$/.test(v);
+export const isOid: Shape = v => typeof v === 'string' && /^[0-9a-f]{8}$/.test(v);
 
 /** A record with exactly these fields (optional ones may be absent), each of its shape. */
-function fields(req: Record<string, Shape>, opt: Record<string, Shape> = {}): Shape {
+export function fields(req: Record<string, Shape>, opt: Record<string, Shape> = {}): Shape {
   return v => obj(v)
     && Object.keys(req).every(k => k in v && req[k]!(v[k]))
     && Object.keys(v).every(k => k in req || (k in opt && opt[k]!(v[k])));
@@ -141,7 +142,7 @@ const damage = fields(Object.fromEntries(DAMAGE.map(d => [d, column])));
 const absorb = fields(Object.fromEntries(DAMAGE.map(d => [d, int(0, 100)])));
 const back = fields({ damage, absorb, notes: marked });
 const die = fields({ c: oneOf(...DICE), v: int(1, 6), added: bool, dropped: bool }); // R109
-const receipt = fields(
+export const receipt = fields(
   { id: str(CAPS.id), at: num(0, 1e15), title: str(CAPS.name), dice: list(die, 200),
     resolution: str(CAPS.name), level: str(CAPS.name), outcome: str(CAPS.name) },
   { by: str(CAPS.name), influence: int(-1000, 1000), vs: str(CAPS.name), row: str(CAPS.name),

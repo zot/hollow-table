@@ -11,10 +11,11 @@ highest number it has applied from each page.
 - highest: rid → (peer int → highest number applied).
 
 ## Does
-- next(): the next number.
-- fresh(rid, peer, s): whether `s` is not lower than the highest applied for that piece from that
-  peer.
-- mark(rid, peer, s).
+- next(): the next number. The storage is passed in (sessionStorage on the page).
+- peer(tab): a sending page's small local integer, in the order this page meets them.
+- fresh(rid, tab, s): whether `s` is not lower than the highest applied for that piece from that
+  page.
+- mark(rid, tab, s).
 - A **deletion is a fresh change**: it is sent under `next()`, never under the piece's last change
   number. (On 11-11 a deletion reused the last change number; the drag to the bar had already sent
   higher-numbered moves, so the players' pages discarded it as stale.)

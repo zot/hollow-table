@@ -1,0 +1,123 @@
+// CRC: crc-Moves.md | Seq: seq-move.md#1, seq-move.md#1.1, seq-move.md#1.2, seq-move.md#1.3, seq-move.md#1.5, seq-move.md#2 | R178, R179, R182, R183
+// Drags go straight to the room, without passing through the GM's page. A receiving page queues
+// what arrives and an actor works through it in passes, newest arrival first; the GM's saved records
+// settle where things end up.
+
+import type { Rid } from '../model/records.ts';
+import type { Stamps } from './stamps.ts';
+
+export const SEND_MS = 100;
+
+export type MoveItem = { rid: Rid; x: number; y: number; z: number; part?: string };
+export type Move = { s: number; items: MoveItem[] };
+/** One item of a move as the actor sees it: who sent it and under what number. */
+export type Command = MoveItem & { tab: string; s: number };
+
+export type Timers = { setTimeout(fn: () => void, ms: number): unknown; clearTimeout(h: unknown): void };
+/** Runs `fn` once, on the next animation frame or after SEND_MS, whichever comes first. */
+export type Schedule = (fn: () => void) => void;
+
+export type MovesWith = {
+  stamps: Stamps;
+  /** This page's tab id. */
+  tab: string;
+  /** Sends a move to the room. */
+  send: (move: Move) => void;
+  /** Applies a pass's winners (through Game.change). */
+  place: (commands: Command[]) => void;
+  timers: Timers;
+  schedule: Schedule;
+};
+
+export class Moves {
+  #w: MovesWith;
+  #filling: Command[] = [];
+  #draining: Command[] = [];
+  #acting = false;
+  #inHand: MoveItem[] = [];
+  #timer: unknown = null;
+  #held = new Set<Rid>();
+  #waiting = new Map<Rid, Command[]>();
+
+  constructor(w: MovesWith) { this.#w = w; }
+
+  // Seq: seq-move.md#1 | R178: at most every SEND_MS while in hand.
+  /** The pieces in hand moved: they go out within SEND_MS, as they are then. */
+  drag(items: MoveItem[]): void {
+    this.#inHand = items;
+    if (this.#timer === null) {
+      this.#timer = this.#w.timers.setTimeout(() => { this.#timer = null; this.#sendNow(this.#inHand); }, SEND_MS);
+    }
+  }
+
+  // Seq: seq-move.md#2: a drop is a move with its own number; what it changed goes out after it.
+  /** The pieces were let go: their places go out now. */
+  drop(items: MoveItem[]): void {
+    if (this.#timer !== null) { this.#w.timers.clearTimeout(this.#timer); this.#timer = null; }
+    this.#sendNow(items);
+  }
+
+  #sendNow(items: MoveItem[]): void {
+    if (!items.length) return;
+    const s = this.#w.stamps.next();
+    for (const i of items) this.#w.stamps.mark(i.rid, this.#w.tab, s);
+    this.#w.send({ s, items });
+  }
+
+  // Seq: seq-move.md#1.1, seq-move.md#1.2
+  /** A move from another page joins the queue; an actor starts if none is running. */
+  receive(from: string, move: Move): void {
+    for (const i of move.items) this.#filling.push({ ...i, tab: from, s: move.s });
+    this.#startActor();
+  }
+
+  // Seq: seq-move.md#1.3, seq-move.md#1.5 | R179, R182
+  /**
+   * Swaps the buffers and works through what arrived, newest arrival first. The first command to
+   * reach a piece places it; an older arrival changes it only if it is from the same page with a
+   * higher number. Anything lower than what was applied from its page is discarded.
+   */
+  pass(): void {
+    const run = this.#filling;
+    this.#filling = this.#draining;
+    this.#draining = run;
+    const placed = new Map<Rid, Command>();
+    for (let k = run.length - 1; k >= 0; k--) {
+      const c = run[k]!;
+      if (this.#held.has(c.rid)) { this.#hold(c); continue; }
+      if (!this.#w.stamps.fresh(c.rid, c.tab, c.s)) continue;
+      this.#w.stamps.mark(c.rid, c.tab, c.s);
+      const first = placed.get(c.rid);
+      if (first && (first.tab !== c.tab || c.s <= first.s)) continue;
+      placed.set(c.rid, c);
+    }
+    run.length = 0;
+    if (placed.size) this.#w.place([...placed.values()]);
+    if (this.#filling.length) this.#w.schedule(() => this.pass());
+    else this.#acting = false;
+  }
+
+  // R183: a piece in your hand, or one you're writing in, waits until you let go.
+  /** This page holds `rid`: what arrives for it waits. */
+  hold(rid: Rid): void { this.#held.add(rid); }
+
+  /** Let go of `rid`: what waited for it is checked again, as if it had just arrived. */
+  release(rid: Rid): void {
+    this.#held.delete(rid);
+    const waited = this.#waiting.get(rid);
+    if (!waited) return;
+    this.#waiting.delete(rid);
+    this.#filling.push(...waited);
+    this.#startActor();
+  }
+
+  /** Starts an actor if none is running. */
+  #startActor(): void {
+    if (!this.#acting) { this.#acting = true; this.#w.schedule(() => this.pass()); }
+  }
+
+  #hold(c: Command): void {
+    const w = this.#waiting.get(c.rid);
+    if (w) w.unshift(c); else this.#waiting.set(c.rid, [c]);
+  }
+}
