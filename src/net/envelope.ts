@@ -24,8 +24,9 @@ const box = fields({ iv: str(24), data: str(LIMITS.box) });
 const put: Shape = v => fields({ rid: str(CAPS.id), s: seq, rec: () => true }, { by: tab })(v)
   && checkRecord((v as { rid: string }).rid, (v as { rec: unknown }).rec);
 const del = fields({ rid: str(CAPS.id), s: seq }, { by: tab });
-const roll: Shape = v => fields({ n: seq, receipt })(v)
-  && (v as { receipt: { dice: unknown[] } }).receipt.dice.length <= LIMITS.dice;
+const fewDice = (r: unknown) => (r as { dice: unknown[] }).dice.length <= LIMITS.dice;
+// A roll: the table view in the clear; the roller's own view sealed to their tab.
+const roll: Shape = v => fields({ n: seq, receipt, sealed: dict(box) })(v) && fewDice((v as { receipt: unknown }).receipt);
 
 /** Each kind's body. Provisional where the module that owns the kind has not landed yet. */
 const BODIES: Record<Kind, Shape> = {
@@ -47,6 +48,8 @@ const BODIES: Record<Kind, Shape> = {
 };
 
 // What a sealed box holds is checked the same way once it is opened.
+/** The roller's own view of a roll, and which of their requests it answers. */
+export const sealedRoll: Shape = v => fields({ re: seq, receipt })(v) && fewDice((v as { receipt: unknown }).receipt);
 /** A tab's own part of a batch: `{g, puts}`. */
 export const sealedRecs: Shape = fields({ g: seq, puts: list(put, LIMITS.batch) });
 const change: Shape = v => fields({ rid: str(CAPS.id), rec: () => true })(v)

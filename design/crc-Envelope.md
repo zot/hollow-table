@@ -11,7 +11,7 @@ is dropped whole.
 - Each kind's body shape, built from the same combinators as `Records.check`. They are provisional
   where the module that owns the kind hasn't landed: `recs` `{g, full, puts: [{rid, s, rec, by?}],
   dels: [{rid, s, by?}], sealed: {tab: box}}`, `edit` `{box}`, `move` `{s, items: [{rid, x, y, z,
-  part?}]}`, `intent`, `roll` `{n, receipt}`, `crit`, `refuse`, `claim`, `here` `{name, role}`.
+  part?}]}`, `intent`, `roll` `{n, receipt, sealed: {tab: box of {re, receipt}}}`, `crit`, `refuse`, `claim`, `here` `{name, role}`.
 - Limits: string caps, at most 40 dice per roll, 8 items per move.
 - @undecided: whether a big batch needs splitting into parts of at most 20,000 characters (partial
   batches dropped after 30 s), or Trystero's own chunking carries it; settled with Wire (prototype

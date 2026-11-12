@@ -174,8 +174,10 @@ var receipt = fields(
   {
     by: str(CAPS.name),
     influence: int(-1e3, 1e3),
+    base: int(-1e3, 1e3),
     vs: str(CAPS.name),
     row: str(CAPS.name),
+    ok: bool,
     crit: fields({ max: int(0, 1e4), dbl: int(0, 1e4), chosen: oneOf("max", "dbl"), locked: bool }),
     priv: bool
   }

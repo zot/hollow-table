@@ -76,8 +76,10 @@ export type DieColour = (typeof DICE)[number];
 export type Die = { c: DieColour; v: number; added: boolean; dropped: boolean };
 export type Crit = { max: number; dbl: number; chosen: 'max' | 'dbl'; locked: boolean };
 export type Receipt = {
-  id: string; at: number; title: string; by?: string; dice: Die[]; influence?: number; vs?: string;
+  id: string; at: number; title: string; by?: string; dice: Die[]; influence?: number; base?: number; vs?: string;
   row?: string; resolution: string; level: string; outcome: string; crit?: Crit; priv?: boolean;
+  /** This page's own roll has reached the table (R107). */
+  ok?: boolean;
 };
 
 export type TornRoll = { kind: 'tornroll'; oid: Oid; place: Place; receipts: Receipt[] };
@@ -150,7 +152,7 @@ const die = fields({ c: oneOf(...DICE), v: int(1, 6), added: bool, dropped: bool
 export const receipt = fields(
   { id: str(CAPS.id), at: num(0, 1e15), title: str(CAPS.name), dice: list(die, 200),
     resolution: str(CAPS.name), level: str(CAPS.name), outcome: str(CAPS.name) },
-  { by: str(CAPS.name), influence: int(-1000, 1000), vs: str(CAPS.name), row: str(CAPS.name),
+  { by: str(CAPS.name), influence: int(-1000, 1000), base: int(-1000, 1000), vs: str(CAPS.name), row: str(CAPS.name), ok: bool,
     crit: fields({ max: int(0, 10_000), dbl: int(0, 10_000), chosen: oneOf('max', 'dbl'), locked: bool }),
     priv: bool });
 

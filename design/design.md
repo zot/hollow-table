@@ -69,7 +69,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Authority.md → `src/net/authority.ts`
 - [x] crc-Copy.md → `src/net/copy.ts`
 - [ ] crc-ImageExchange.md → `src/net/images.ts`
-- [ ] crc-Rolls.md → `src/net/rolls.ts`
+- [x] crc-Rolls.md → `src/net/rolls.ts`
 - [x] crc-Yards.md → `src/rules/yards.ts`
 - [ ] crc-TableView.md → `src/ui/table.ts`
 - [ ] crc-PieceView.md → `src/ui/piece.ts`
@@ -118,6 +118,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Ownership.md → `src/rules/ownership.test.ts`
 - [x] test-Game.md → `src/model/game.test.ts`
 - [x] test-Db.md → `src/store/db.test.ts`
+- [x] test-Rolls.md → `src/net/rolls.test.ts`
 - [x] test-GameStore.md → `src/store/gamestore.test.ts`
 - [x] test-BlobStore.md → `src/store/blobs.test.ts`
 - [x] test-Exchange.md → `src/store/exchange.test.ts`

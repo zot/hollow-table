@@ -35,8 +35,9 @@ record crosses the wire, the database and an export file unchanged.
 - Image: `{kind: 'image', oid, place, blob: sha256, w, h, pin?}`.
 - TornRoll: `{kind: 'tornroll', oid, place, receipts: Receipt[]}`.
 - Reference: `{kind: 'reference', oid, place, which: 'howto' | 'actions'}`.
-- Receipt: `{id, at, title, by?, dice: Die[], influence?, vs?, row?, resolution, level, outcome,
-  crit?: {max, dbl, chosen: 'max' | 'dbl', locked}, priv?}`. Die: `{c: W|G|R|B|Y, v, added, dropped}`.
+- Receipt: `{id, at, title, by?, dice: Die[], influence?, base?, vs?, row?, resolution, level, outcome,
+  crit?: {max, dbl, chosen: 'max' | 'dbl', locked}, priv?, ok?}`; `ok` is this page's own roll
+  having reached the table. Die: `{c: W|G|R|B|Y, v, added, dropped}`.
 - Yards: `{yards: [{name, named, items: [{name, records: PieceRecord[]}]}]}`; a burial keeps the
   records buried together (a character with its cards, a sticky).
 - Meta: `{round, rolls}`.

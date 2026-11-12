@@ -10,21 +10,28 @@ know.
 - lastRoll: sender tab → the last roll number heard.
 
 ## Does
-- request(row): a player's Roll: an `intent` naming the character, the action, the opponent and
-  Defend kind, hand adjustments, and a hand-picked row if any; never numbers. Roll shows "GM…"
-  until the answer, at most WAIT_MS.
-- resolve(intent, from): the GM's page: refuses a character the sender doesn't own (saying why);
-  otherwise looks up the action on its own records, totals both sides (Odds, Pool), picks the White
-  row unless the player picked one, rolls (Dice), applies its effects (used cards, a CRIT! card),
-  prints its full receipt, and sends the result.
-- receipt(result, viewer): the receipt this page may print: the roller's owner gets their Total
-  Influence and base and `vs` as they may see it; everyone else the table view; the GM's tape
-  everything.
-- here(): with no GM at the table nobody can roll; a page with no table rolls for itself.
-- private: the GM's own roll prints "Private: not shown to the table" and sends nothing.
+- request(intent): a player's Roll: an `intent` naming the character, the action, the opponent and
+  Defend kind, hand adjustments, and a hand-picked row if any; never numbers. Resolves with null
+  when answered, or why not (refused, no GM heard, or nothing within WAIT_MS); Roll shows "GM…"
+  meanwhile.
+- resolve(game, intent, rng, at): pure: looks up the action on the GM's own records, totals both
+  sides (Odds, Pool), picks the White row from the Difference unless the player picked one, rolls
+  (Dice), and gives three receipts and the roll's effects (the roll counter, used cards, a CRIT!
+  card: an Influence with `crit`, minted in the drawer, or the one there strengthened by a Level).
+  The receipts: the GM's has everything; the roller's has their Total Influence and base, and `vs`
+  and the row as the character's owner may see them (dice only, "White + 1", when they can't see
+  the opponent); the table's has neither.
+- On the GM's page, an intent: refuses a character the sender doesn't own (saying why), else
+  resolves, applies, prints the full receipt, and sends `roll {n, receipt: the table's, sealed:
+  {tab: the roller's, with which request it answers}}`.
+- roll(intent, private): the GM's own roll; private (or with no table) it prints on the GM's tape
+  only, "Private: not shown to the table", and sends nothing.
 - crit(id, choice, lock): the owner or the GM switches or locks a CRIT; the GM's page applies it
-  and every tape updates that receipt.
-- gaps: a skipped roll number prints "N rolls from … didn't arrive" ("Many" over 20).
+  and every tape updates that receipt (by id). A locked CRIT stays.
+- Each page prints on its own tape (the `tape` record, never sent), newest first; its own answered
+  roll gets ✓ (`ok`).
+- gaps: a skipped roll number prints "N rolls from the GM didn't arrive" ("Many" over 20), as a
+  receipt with outcome `missing`.
 
 ## Collaborators
 - Wire, Seal, Odds, Pool, Dice, Visibility, Ownership, Game

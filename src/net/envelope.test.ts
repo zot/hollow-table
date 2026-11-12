@@ -11,16 +11,16 @@ const sticky = (text: string): Sticky => ({ kind: 'sticky', oid: '00000008', pla
 
 test('hostile envelopes are dropped', () => {
   // A die showing 7 drops the roll.
-  assert.ok(check(make('roll', 'tab-a', { n: 1, receipt: receipt('Sam', 4) })));
-  assert.equal(check(make('roll', 'tab-a', { n: 1, receipt: receipt('Sam', 7) })), null);
+  assert.ok(check(make('roll', 'tab-a', { n: 1, receipt: receipt('Sam', 4), sealed: {} })));
+  assert.equal(check(make('roll', 'tab-a', { n: 1, receipt: receipt('Sam', 7), sealed: {} })), null);
   // At most 40 dice.
   const dice = (n: number) => ({ ...receipt('Sam', 4), dice: Array.from({ length: n }, () => ({ c: 'Y' as const, v: 2, added: false, dropped: false })) });
-  assert.ok(check(make('roll', 'tab-a', { n: 1, receipt: dice(40) })));
-  assert.equal(check(make('roll', 'tab-a', { n: 1, receipt: dice(41) })), null);
+  assert.ok(check(make('roll', 'tab-a', { n: 1, receipt: dice(40), sealed: {} })));
+  assert.equal(check(make('roll', 'tab-a', { n: 1, receipt: dice(41), sealed: {} })), null);
 
   // Markup in a name is kept as text.
   const evil = '<img src=x onerror=alert(1)>';
-  assert.equal((check(make('roll', 'tab-a', { n: 2, receipt: receipt(evil, 4) }))!.body as { receipt: Receipt }).receipt.title, evil);
+  assert.equal((check(make('roll', 'tab-a', { n: 2, receipt: receipt(evil, 4), sealed: {} }))!.body as { receipt: Receipt }).receipt.title, evil);
 
   // A move with 9 items.
   const item = (i: number) => ({ rid: ridOf('0000000' + i), x: i, y: 0, z: 0 });
