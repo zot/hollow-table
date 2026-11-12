@@ -8,11 +8,12 @@ nobody until the GM hands the name over.
 - book.claims: name → browser id (saved with the game, never sent).
 
 ## Does
-- whoIs(name, browser): the name if this browser holds it or the name is free (claiming it);
-  nobody otherwise. "GM" can't be claimed.
-- handOver(name, browser): the GM gives the name to another browser; secrets follow the new holder.
-- strip(): the pages to mark in red on the GM's strip, each with the name it wants.
-- tell(tab): sends that tab a `claim` saying why it is nobody, for its "not yours" chip.
+- whoIs(game, name, browser): the name if this browser holds it or the name is free (claiming it in
+  the book); nobody (null) otherwise. "GM" can't be claimed.
+- handOver(game, name, browser): the GM gives the name to another browser; secrets follow the new
+  holder (Authority.recheck).
+- why(name): what the "not yours" chip says; Authority sends it to that tab as a `claim`.
+- The GM's strip marks in red the pages whose name another browser holds (the bar, prototype 9.4).
 
 ## Collaborators
 - Game (book), Wire

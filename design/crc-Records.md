@@ -40,7 +40,9 @@ record crosses the wire, the database and an export file unchanged.
 - Yards: `{yards: [{name, named, items: [{name, records: PieceRecord[]}]}]}`; a burial keeps the
   records buried together (a character with its cards, a sticky).
 - Meta: `{round, rolls}`.
-- Book (the GM's page only, never sent): `{claims: {name: browser id}, gv, tomb: {rid: gv}}`.
+- Book (the GM's page only, never sent): `{claims: {name: browser id}, gv, tomb: {rid: gv}, hillGv?}`:
+  the table's version, the version each piece was deleted at (at most 3,000), and the version Boot
+  Hill last changed at.
 - Tape (each page's own, never sent): `{receipts: Receipt[]}`.
 - Marked: card text with marks (see crc-MarkedText.md), stored as its source string.
 

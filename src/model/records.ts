@@ -90,7 +90,12 @@ export type Graveyard = { name: string; named: boolean; items: Burial[] };
 export type Yards = { yards: Graveyard[] };
 export type Meta = { round: number; rolls: number };
 /** The GM's page only, never sent. */
-export type Book = { claims: Record<string, string>; gv: number; tomb: Record<Rid, number> };
+/**
+ * The GM's page only, never sent: who holds which name, the table's version, the version each piece
+ * was deleted at (at most TOMBS), and the version Boot Hill last changed at.
+ */
+export type Book = { claims: Record<string, string>; gv: number; tomb: Record<Rid, number>; hillGv?: number };
+export const TOMBS = 3000;
 /** Each page's own, never sent (R111). */
 export type Tape = { receipts: Receipt[] };
 
@@ -117,7 +122,7 @@ export const str = (cap: number): Shape => v => typeof v === 'string' && v.lengt
 export const bool: Shape = v => typeof v === 'boolean';
 export const oneOf = (...xs: readonly unknown[]): Shape => v => xs.includes(v);
 export const list = (each: Shape, cap = CAPS.list): Shape => v => Array.isArray(v) && v.length <= cap && v.every(each);
-export const dict = (each: Shape): Shape => v => obj(v) && Object.keys(v).length <= CAPS.list
+export const dict = (each: Shape, cap = CAPS.list): Shape => v => obj(v) && Object.keys(v).length <= cap
   && Object.keys(v).every(k => k.length <= CAPS.name && each(v[k]));
 export const isOid: Shape = v => typeof v === 'string' && /^[0-9a-f]{8}$/.test(v);
 
@@ -170,7 +175,8 @@ const SINGLETONS: Record<string, Shape> = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool,
     items: list(fields({ name: str(CAPS.name), records: list(piece) })) }), 100) }),
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }),
-  book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER)) }),
+  book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
+    { hillGv: int(0, Number.MAX_SAFE_INTEGER) }),
   tape: fields({ receipts: list(receipt, 10_000) }),
 };
 

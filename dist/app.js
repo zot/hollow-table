@@ -59,7 +59,7 @@ var BlobStore = class {
 };
 
 // src/store/db.ts
-var STORES = ["games", "records", "checkpoints", "blobs"];
+var STORES = ["games", "records", "checkpoints", "blobs", "identity"];
 var done = (r) => new Promise((ok, fail) => {
   r.onsuccess = () => ok(r.result);
   r.onerror = () => fail(r.error);
@@ -70,7 +70,7 @@ var IdbDb = class _IdbDb {
     this.#db = db;
   }
   static async open(name = "hollow-table") {
-    const req = indexedDB.open(name, 1);
+    const req = indexedDB.open(name, 2);
     req.onupgradeneeded = () => {
       for (const s of STORES) if (!req.result.objectStoreNames.contains(s)) req.result.createObjectStore(s);
     };
@@ -125,6 +125,7 @@ function damageSlots(f) {
   return Object.fromEntries(DAMAGE.map((d) => [d, column2(d)]));
 }
 var DICE = ["W", "G", "R", "B", "Y"];
+var TOMBS = 3e3;
 function isPiece(rid) {
   return rid.startsWith("o:");
 }
@@ -142,7 +143,7 @@ var str = (cap) => (v) => typeof v === "string" && v.length <= cap;
 var bool = (v) => typeof v === "boolean";
 var oneOf = (...xs) => (v) => xs.includes(v);
 var list = (each, cap = CAPS.list) => (v) => Array.isArray(v) && v.length <= cap && v.every(each);
-var dict = (each) => (v) => obj(v) && Object.keys(v).length <= CAPS.list && Object.keys(v).every((k) => k.length <= CAPS.name && each(v[k]));
+var dict = (each, cap = CAPS.list) => (v) => obj(v) && Object.keys(v).length <= cap && Object.keys(v).every((k) => k.length <= CAPS.name && each(v[k]));
 var isOid = (v) => typeof v === "string" && /^[0-9a-f]{8}$/.test(v);
 function fields(req, opt = {}) {
   return (v) => obj(v) && Object.keys(req).every((k) => k in v && req[k](v[k])) && Object.keys(v).every((k) => k in req || k in opt && opt[k](v[k]));
@@ -229,7 +230,10 @@ var SINGLETONS = {
     items: list(fields({ name: str(CAPS.name), records: list(piece) }))
   }), 100) }),
   meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }),
-  book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER)) }),
+  book: fields(
+    { claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
+    { hillGv: int(0, Number.MAX_SAFE_INTEGER) }
+  ),
   tape: fields({ receipts: list(receipt, 1e4) })
 };
 function check(rid, value) {

@@ -46,6 +46,14 @@ const BODIES: Record<Kind, Shape> = {
   claim: fields({ name, why }),
 };
 
+// What a sealed box holds is checked the same way once it is opened.
+/** A tab's own part of a batch: `{g, puts}`. */
+export const sealedRecs: Shape = fields({ g: seq, puts: list(put, LIMITS.batch) });
+const change: Shape = v => fields({ rid: str(CAPS.id), rec: () => true })(v)
+  && checkRecord((v as { rid: string }).rid, (v as { rec: unknown }).rec);
+/** A player's change, opened: `{s, base, puts: [{rid, rec}], dels: [rid]}`. */
+export const editBody: Shape = fields({ s: seq, base: seq, puts: list(change, LIMITS.batch), dels: list(str(CAPS.id), LIMITS.batch) });
+
 const header = fields({ v: oneOf(VERSION), kind: oneOf(...KINDS), tab, at: num(0, 1e15), body: () => true });
 
 /** An envelope from this page. */

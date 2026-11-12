@@ -16,6 +16,8 @@ highest number it has applied from each page.
 - fresh(rid, tab, s): whether `s` is not lower than the highest applied for that piece from that
   page.
 - mark(rid, tab, s).
+- forget(rid, tab): drops what was applied to a piece from one page; Copy forgets its own numbers
+  for a change it gives up on, so the GM's version, sent under an older number of ours, can win.
 - A **deletion is a fresh change**: it is sent under `next()`, never under the piece's last change
   number. (On 11-11 a deletion reused the last change number; the drag to the bar had already sent
   higher-numbered moves, so the players' pages discarded it as stale.)

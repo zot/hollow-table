@@ -45,6 +45,11 @@ export class Stamps {
     return s >= this.highest(rid, tab);
   }
 
+  /** Forget what was applied to `rid` from one page: a change given up on lets the GM's version win. */
+  forget(rid: Rid, tab: string): void {
+    this.#highest.get(rid)?.delete(this.peer(tab));
+  }
+
   mark(rid: Rid, tab: string, s: number): void {
     let m = this.#highest.get(rid);
     if (!m) this.#highest.set(rid, m = new Map());

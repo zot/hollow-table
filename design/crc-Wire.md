@@ -20,6 +20,11 @@ after the identity handshake, and sends envelopes to everyone or to one peer.
 - request(hash) / answer(fn): the image request action (ImageExchange).
 - onLeave(fn): a closed connection counts as leaving.
 
+- Link (`src/net/link.ts`): the face it shows the rest of the page, `{tab, send(kind, body, to?),
+  on(kind, fn)}`; Authority, Copy, Presence and Rolls see only this. FakeRoom
+  (`src/net/fakeroom.ts`) is the tests' Link: a room in memory that checks every message as Wire
+  will and can drop, delay or cut off a page.
+
 ## Collaborators
 - Identity: proves this browser and checks the other's proof.
 - Seal: this page's sealing key, vouched for in the handshake.
