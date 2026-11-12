@@ -63,8 +63,16 @@ chip, a torn-off roll of receipts.
 
 - **Character card**: a rounded index card with two faces, edited in place and flipped at the
   corner. The front holds name and Rank, `Cha Int Wis`, Fields and Skills, and a right column
-  (actions, Defend, Sparked/Grains, Resources). The back holds Biases (and Afflictions) by
-  Mild/Min/Sig/Maj with a checkbox per extra Slot, and ruled Notes lines. Slot boxes toggle.
+  (actions, Defend, Sparked/Grains, Resources). The back holds three **Damage columns**, Biases,
+  Afflictions and Injuries, and ruled Notes lines (Bill, 11-12). Each column has a Mild, Min, Sig
+  and Maj **slot**: a line for one name, with a checkbox per extra Slot of that Level. Slot boxes
+  toggle. As on the printed cards, a slot's boxes sit in front of its Level word (Bill, 11-12).
+- **A column's heading carries its absorb**, *Biases (absorb 2)*: how much of each Attack's Result
+  the character absorbs before any Slot fills (Hollow Folks, *Absorbing Damage*). It is edited on
+  the back and shown only when it isn't 0 (Bill, 11-12).
+- **A slot's column says what its entry is.** The entry is stored as a plain name (*The mayor can
+  pardon criminals*); the table draws it as a `<bias>`, `<aff>` or `<inj>` mark, for its look and
+  its tap glyph, so a Damage mark can't appear anywhere but its own column (Bill, 11-12).
 - **An empty column on a card's back collapses** to its name at the top (Bill, 11-11). Empty means
   nothing written and no box checked. Clicking anywhere in the column opens it so a slot can be
   filled in; left empty, it closes again at the next click elsewhere.
@@ -85,13 +93,13 @@ italic or underline.
 | `<act>` | an action line | Base, Yellows and bonus; gets a die |
 | `<res>` | a Resource | `Name +Level`; gets a tap glyph; its Level is rewritten when spent |
 | `<inf>` | a named Influence | `Name ±Level` |
-| `<bias>` | a Bias line | Level and name; tap glyph and Slot boxes |
-| `<aff>` | an Affliction line | Level and name; tap glyph and Slot boxes |
-| `<inj>` | an Injury | Level and name; tap glyph |
 | `<def>` | the Defend line | mental and psych Defend |
 | `<head>` | a section heading | nothing; drawn like the printed headings |
 
-- The table reads game meaning **only from marks**, never by guessing from plain text.
+- `<bias>`, `<aff>` and `<inj>` are never written in text: they are how a Damage slot's entry is
+  drawn (see *Character card*). Written in text, they are plain text like any other tag.
+- The table reads game meaning **only from marks** and Damage slots, never by guessing from plain
+  text.
 - **Marking is done with highlighter pens**, one per mark, in place of a formatting toolbar: select
   text, pick a pen. A pen on marked text unmarks it.
 - **The table offers.** When a line typed in plain text matches a mark's grammar (an action line,

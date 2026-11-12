@@ -124,6 +124,6 @@ this section and the book disagree, the book wins and this section is wrong.
 - A cash register in the bar keeps the **Round**: a pop-up tab with a bold number in a glass case,
   ▲ ▼ keys, and **End**.
 - **End** ends the Conflict. Pressing it raises an orange "End conflict?" tab; press again within 3 s
-  to end it. End resets the Round to 0, recharges Biases and Afflictions, empties the used piles
+  to end it. End resets the Round to 0, recharges Biases, Afflictions and Injuries, empties the used piles
   (plain cards go home, tapped cards are spent and gone), clears "used", clears CRIT! Influences,
   and checkpoints the game first.

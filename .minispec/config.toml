@@ -1,1 +1,6 @@
 track = "private-trajectory"
+
+# build.mjs is a JavaScript module; tsconfig.json is JSON with comments.
+[[languages]]
+name = "javascript"
+files = ["build.mjs", "tsconfig.json"]

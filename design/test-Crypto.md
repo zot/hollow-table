@@ -17,9 +17,11 @@ different sealing key
 **Code:** `src/net/seal.test.ts`
 
 ## Test: hostile envelopes are dropped
-**Purpose:** the mockup's `tablerolls.cjs` and `clean.cjs` cases, as records
-**Input:** a roll with a 7; a name holding markup; a move with 9 items; a record failing check; a
-batch part arriving 31 s after its first
-**Expected:** each dropped whole; markup kept as text where it is text
-**Refs:** crc-Envelope.md
+**Purpose:** nothing a peer sends is parsed as markup or accepted out of range
+**Input:** a roll with a die showing 7; a roll whose character name is `<img src=x onerror=alert(1)>`;
+a move with 9 items; a record failing check; a batch part arriving 31 s after its first; a record
+whose text holds `<script>` and an attributed tag
+**Expected:** the 7 drops the roll; the name is kept as text and no element is made; the 9-item
+move, the bad record and the late part are dropped; the text keeps its tags as plain text
+**Refs:** crc-Envelope.md, crc-MarkedText.md
 **Code:** `src/net/envelope.test.ts`

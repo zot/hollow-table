@@ -10,16 +10,24 @@ a record to what's stored
 **Code:** `src/store/gamestore.test.ts`
 
 ## Test: checkpoints and restore
-**Purpose:** the mockup's `persist.cjs` sequence
-**Input:** roll twice, checkpoint "Two rolls in", roll, restore, restore "Before restoring…", End
-twice; then 25 automatic checkpoints
-**Expected:** `persist.cjs` results; 20 automatic kept, named ones all kept
+**Purpose:** the checkpoint and restore round trip
+**Input and Expected**, in order:
+1. first visit: the playtest scene (8 pieces, round 0, no images, nothing buried) saved as a game
+2. changes (Devreux moved, a chip, two rolls, round 2, an image, a burial); reopen: identical
+3. checkpoint "Two rolls in", roll a third time (3 rolls)
+4. restore "Two rolls in": 2 rolls; checkpoints newest first: "Before restoring “Two rolls in”",
+   "Two rolls in"
+5. restore "Before restoring …": 3 rolls
+6. End twice: round 0; newest checkpoint "End of conflict, round 2"
+7. the Ledger shows the name, "Saved hh:mm:ss", 4 checkpoints, 1 game
+8. 25 automatic checkpoints: the newest 20 automatic kept; named ones all kept
 **Refs:** crc-GameStore.md, seq-restore.md
 **Code:** `src/store/gamestore.test.ts`
 
 ## Test: games and copies
 **Purpose:** a list of games each with its own table; a player's copy is never listed or last
-**Input:** create two games, change one, open the other; make a copy for a room
-**Expected:** each game's records intact; list shows two; `last` never names the copy
+**Input:** create two games, change one, open the other and back; make a copy for a room; New game
+**Expected:** each game's records intact; the list shows the games; New game is empty (no pieces,
+round 0); `last` never names the copy
 **Refs:** crc-GameStore.md
 **Code:** `src/store/gamestore.test.ts`

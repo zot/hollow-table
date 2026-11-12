@@ -1,5 +1,5 @@
 # UI: a character card
-**Requirements:** R5, R22, R23, R24, R75, R202, R203
+**Requirements:** R5, R22, R23, R24, R75, R202, R203, R209, R213, R214
 
 Front:
 ```
@@ -13,14 +13,27 @@ Front:
 └────────────────────────────────────────────────╱┘ ← flip corner
 ```
 
-Back (Min and Maj empty, so collapsed to their names):
+Front and back follow Samuel Diamond's card in *A Ghoulish Problem*; the back adds an Injuries
+column beside the printed Biases and Afflictions (Hollow Folks, *Injury, Bias, and Affliction
+Pools*). The boxes and the absorb heading follow the example card in *Bunkum*, where Biases is the
+only column used.
+
+Back (Injuries empty, so collapsed to its name):
 ```
-┌─────────────────────────────────────────────────┐
-│ Mild           │Min│ Sig             │Maj│ Notes  │
-│ ▭ Distrust     │   │ ▭ Uncertain □□  │   │ ______ │
-│   (bias)       │   │   (bias)        │   │ ______ │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ BIASES (absorb 2)            AFFLICTIONS              │INJ│ │
+│ □     Mild ▭ Distrust        Mild ______________      │   │ │
+│ □ □   Min  ______________    Min  ______________      │   │ │
+│ ☑     Sig  ▭ Uncertain ▭     Sig  ______________      │   │ │
+│       Maj  ______________    Maj  ______________      │   │ │
+│ NOTES                                                        │
+│ ____________________________________________________________ │
+└──────────────────────────────────────────────────────────────┘
 ```
+- A slot's boxes sit in front of its Level word (R213). An entry is drawn as its column's mark
+  (`bias`, `aff`, `inj`) with a tap glyph ▭ before it; a checked box adds a glyph after the entry,
+  one per checked box.
+- A heading shows `(absorb N)` only when N isn't 0 (R214); clicking the heading edits it.
 
 - ⚀ is the action die: die-shaped, so it can't be taken for a Slot box □ or a tap glyph ▭.
 - Paper is tilted; it squares up while it holds the cursor.

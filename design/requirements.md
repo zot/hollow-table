@@ -25,7 +25,7 @@
 - **R20:** The bar shows the people at the table, and the register, the Ledger and Boot Hill at its right end.
 - **R21:** Dropping a piece on the bar puts it away: characters, stickies, loose text, images and torn rolls are buried on Boot Hill, plain chips vanish, and Influence cards go home to their drawer.
 - **R22:** A character card has two faces, is edited in place, and flips at the corner.
-- **R23:** A character card's front holds name and Rank, `Cha Int Wis`, Fields and Skills, and a right column of actions, Defend, Sparked/Grains and Resources; its back holds Biases and Afflictions by Mild/Min/Sig/Maj with a box per extra Slot, and ruled Notes lines.
+- **R23:** A character card's front holds name and Rank, `Cha Int Wis`, Fields and Skills, and a right column of actions, Defend, Sparked/Grains and Resources; its back holds three Damage columns, Biases, Afflictions and Injuries, each with a Mild, Min, Sig and Maj slot and a box per extra Slot of that Level, and ruled Notes lines.
 - **R24:** Slot boxes on a card toggle.
 - **R25:** Stickies and loose text are handwritten and edited in place.
 - **R26:** An image is added from the image supply through a file picker, belongs to the game, and survives a reload.
@@ -40,7 +40,10 @@
 - **R35:** A new pool never pops out under the bar; with no room above, the card slides down under it.
 - **R202:** Something waiting to be filled in shrinks to its name and opens when reached for.
 - **R203:** An empty column on a card's back (nothing written, no box checked) collapses to its name; clicking anywhere in it opens it, and left empty it closes at the next click elsewhere.
-- **R204:** Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<inf>`, `<bias>`, `<aff>`, `<inj>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
+- **R204:** Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
+- **R209:** A Damage slot's entry is stored as a plain name; its column makes it a Bias, Affliction or Injury, and the table draws it as a `<bias>`, `<aff>` or `<inj>` mark. Those tags written in text are plain text.
+- **R213:** A slot's boxes sit in front of its Level word.
+- **R214:** Each Damage column's heading carries its absorb, the Result absorbed from each Attack before any Slot fills; it is edited on the back and shown only when it isn't 0.
 - **R205:** Game meaning is read only from marks, never inferred from plain text.
 - **R206:** Text is marked with highlighter pens, one per mark; a pen on marked text unmarks it.
 - **R207:** A plain line matching a mark's grammar is offered that mark's pen.
@@ -67,15 +70,18 @@
 - **R51:** Clicking a drawer card's Level raises it; cards stop at Min when lowered.
 - **R52:** Three equal Influence cards in a slot form a pile showing the value they act as, without merging.
 - **R53:** Clicking a pile opens or closes it; an open pile lists its members by name; dragging a member out breaks the pile.
-- **R54:** A tap glyph sits before each `<res>` mark, each named `<bias>`, `<aff>` or `<inj>` mark, and each checked Slot box; only `Name +Level` inside the mark is read.
+- **R54:** A tap glyph sits before each `<res>` mark, each named Damage slot, and each checked Slot box; only `Name +Level` inside a `<res>` mark is read, and a Damage slot's Level is its row's.
 - **R55:** Dragging a glyph onto the table makes an Influence card named after the Resource, born at Min with the glyph under the pointer, marked resource-made, and drops the Resource's written Level by one.
 - **R56:** On a resource-made card, click moves a Level from the current source; shift-click moves one back, never below what that source put in (a per-source ledger).
 - **R57:** Dropping another Resource's glyph on a resource-made card anywhere (table, pool, drawer) moves a Level from it and makes it the current source; this works across characters.
 - **R58:** A Resource can't feed a plain Influence card.
 - **R59:** Killing an unused tap refunds it.
 - **R60:** A tap may wait loose on the table without going home.
-- **R61:** Bias and Affliction rows are worth Mild and Min 1 Level, Sig 2, Maj 3; a line shows the Levels spent.
-- **R62:** A Slot box can't be checked until its line has a name.
+- **R61:** Bias, Affliction and Injury slots are worth Mild and Min 1 Level, Sig 2, Maj 3; a slot shows the Levels spent.
+- **R62:** A Slot box can't be checked until its slot has a name.
+- **R210:** A checked Slot box is a Resource of its own, named after its slot and worth the slot's Level.
+- **R211:** A card tapped from a Damage Resource is an Influence of its kind: it goes only into its kind's pool slot (dropped in another slot, it goes home to its drawer) and only Resources of its kind feed it; a `<res>` Resource can't feed a Damage card, nor a Damage Resource a card made from a `<res>`.
+- **R212:** Anyone may tap any character's Damage Resources; Biases, Afflictions and Injuries may all apply to one action.
 - **R63:** A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); Resources can't feed used cards, and click and shift-click still change them.
 - **R64:** At a character's next roll, still-used cards are swept into the drawer's used pile first; clicking one there puts it back.
 - **R65:** Plain chips are never marked used.
@@ -134,7 +140,7 @@
 - **R114:** A torn roll buries as "Tape: N rolls".
 - **R115:** The register shows the Round as a pop-up tab with ▲ ▼ keys and End.
 - **R116:** End needs a second press within 3 s of the first, which raises an orange "End conflict?" tab.
-- **R117:** End checkpoints the game, then resets the Round to 0, recharges Biases and Afflictions, empties the used piles (plain cards home, tapped cards gone), and clears used marks.
+- **R117:** End checkpoints the game, then resets the Round to 0, recharges Biases, Afflictions and Injuries, empties the used piles (plain cards home, tapped cards gone), and clears used marks.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

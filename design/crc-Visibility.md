@@ -10,7 +10,8 @@ page ever holds, in the clear, a secret its person may not read.
 ## Does
 - canSee(viewer, character): the GM always; an open character, everyone; otherwise its owner.
 - redact(record, viewer, characters): the record as that viewer may see it.
-  - A character it can't see: `front` and `back` blanked to their shape (lines kept, text gone).
+  - A character it can't see: `front` and `back` blanked to their shape (lines kept, text gone; Damage
+    slots unnamed, boxes unchecked, nothing spent, absorb 0).
   - An Influence card whose `home` it can't see: name gone; points gone unless the card is in a
     pool slot (chip values in pools are public).
   - A burial in Boot Hill: each record in it redacted the same way.

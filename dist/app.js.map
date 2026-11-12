@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/main.ts"],
+  "sourcesContent": ["// CRC: crc-Build.md | R196, R201\n// The page's entry point. The table, store and network attach here as their layers land; with\n// `?test` the page exposes one object, `window.hollow`, for Playwright, and nothing otherwise.\n\ndeclare const HOLLOW_STAMP: string;\n\nconst hollow: Record<string, unknown> = { stamp: HOLLOW_STAMP };\n\nif (new URLSearchParams(location.search).has('test')) {\n  (window as unknown as { hollow: typeof hollow }).hollow = hollow;\n}\n"],
+  "mappings": ";AAMA,IAAM,SAAkC,EAAE,OAAO,MAAa;AAE9D,IAAI,IAAI,gBAAgB,SAAS,MAAM,EAAE,IAAI,MAAM,GAAG;AACpD,EAAC,OAAgD,SAAS;AAC5D;",
+  "names": []
+}

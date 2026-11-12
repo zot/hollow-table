@@ -35,9 +35,11 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 ## Tapping Resources
 
-- A small card **glyph** sits before each `<res>` Resource, each named `<bias>`, `<aff>` or `<inj>`
-  line, and each checked Slot box (see *Card text* in `table.md`). The text stays handwriting; the
-  table reads only the `Name +Level` inside the mark.
+- A small card **glyph** sits before each `<res>` Resource, each named Damage slot, and each checked
+  Slot box (see *Character card* and *Card text* in `table.md`). The text stays handwriting; the
+  table reads only the `Name +Level` inside a `<res>` mark. A Damage slot's Level is its row's.
+- **A checked Slot box is a Resource of its own**, named after its slot and worth the slot's Level
+  (Bill, 11-12).
 - **Dragging a glyph onto the table** makes an Influence card named after the Resource, born at Min
   (the drag spends the first Level), positioned with its glyph under the pointer. The card shows the
   same glyph before its name (resource-made). The Resource's text drops a Level in place (*Money
@@ -48,10 +50,16 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - Dropping another Resource's glyph onto a resource-made card (on the table, in a pool, or in a
   drawer) moves a Level from it and makes it the current source. Merging across characters is
   allowed. **A Resource can't feed a plain Influence card.**
+- **A Damage Resource makes an Influence of its kind** (Hollow Folks *Damage Resources*): a card
+  tapped from a Bias is a Bias Influence. It goes only into a Bias slot (dropped in any other slot,
+  it goes home to its drawer), and only Biases feed it. Likewise Afflictions and Injuries. A `<res>`
+  Resource can't feed a Damage card, nor a Damage Resource a card made from a `<res>`.
+- **Anyone may tap any character's Damage Resources** into Influences for the current action; the
+  GM decides what applies. Biases, Afflictions and Injuries may all apply to one action (Bill, 11-12).
 - Killing an unused tap refunds it. A tap may wait loose on the table, the one exception to "never
   lost".
-- **Biases and Afflictions** recharge each Conflict. Mild and Min are 1 Level, Sig 2, Maj 3. A line
-  shows the Levels spent (−2). **A box can't be checked until its line has a name.**
+- **Biases, Afflictions and Injuries** recharge each Conflict. Mild and Min are 1 Level, Sig 2, Maj
+  3. A slot shows the Levels spent (−2). **A box can't be checked until its slot has a name.**
 
 ## After a roll
 
@@ -64,4 +72,4 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 ## Open
 
-- What a card tapped from a **Mild** row is worth. Proposal: Min (2), vanishing at End.
+- What a card tapped from a **Mild** slot is worth. Proposal: Min (2), vanishing at End.

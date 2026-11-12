@@ -4,8 +4,7 @@
 
 A shared table for Hollow stories in the browser, peer to peer: the GM's page holds the game and
 resolves rolls, players' pages show copies and send changes, and each page shows only what its
-person may know. Written in TypeScript, poured fresh from the specs; the mockup (`index.html`,
-`net/`) is the wax it replaces.
+person may know. Written in TypeScript; the page is `src/index.html`, built into `dist/`.
 
 ## Cross-cutting Concerns
 
@@ -22,6 +21,10 @@ person may know. Written in TypeScript, poured fresh from the specs; the mockup 
 - **The rules are pure.** Influence, Pool, Tap, Odds, Dice, Visibility and Ownership take records and
   return values or plans; they touch no DOM, store or network, and are tested under `node --test`.
   The rules follow Hollow Folks IV; where a rule here and the book disagree, the book wins.
+- **Citing the game books.** The Hollow books (*Hollow Folks*, *Glimmer*, *Bunkum*, *Bunkum
+  Mission*, *A Ghoulish Problem*) are well known to this project and live outside it. Design docs
+  cite them by title and section (Hollow Folks, *Damage Resources*), and an example card by the name
+  on it and its book (Samuel Diamond's card, *A Ghoulish Problem*), figures included.
 - **One door for change** (crc-Game.md). Every mutation of the game goes through `Game.change`,
   which checks, applies and records what changed; saving and sending read that record rather than
   diffing the table. The store reaches the database only through Db, so it is tested in memory.
@@ -39,16 +42,16 @@ person may know. Written in TypeScript, poured fresh from the specs; the mockup 
 ## Artifacts
 
 ### CRC Cards
-- [ ] crc-Records.md → `src/model/records.ts`
-- [ ] crc-MarkedText.md → `src/text/marks.ts`
-- [ ] crc-MarkReader.md → `src/rules/readmarks.ts`
-- [ ] crc-Influence.md → `src/rules/influence.ts`
-- [ ] crc-Pool.md → `src/rules/pool.ts`
-- [ ] crc-Tap.md → `src/rules/tap.ts`
-- [ ] crc-Odds.md → `src/rules/odds.ts`
-- [ ] crc-Dice.md → `src/rules/dice.ts`
-- [ ] crc-Visibility.md → `src/rules/visibility.ts`
-- [ ] crc-Ownership.md → `src/rules/ownership.ts`
+- [x] crc-Records.md → `src/model/records.ts`
+- [x] crc-MarkedText.md → `src/text/marks.ts`
+- [x] crc-MarkReader.md → `src/rules/readmarks.ts`
+- [x] crc-Influence.md → `src/rules/influence.ts`
+- [x] crc-Pool.md → `src/rules/pool.ts`
+- [x] crc-Tap.md → `src/rules/tap.ts`
+- [x] crc-Odds.md → `src/rules/odds.ts`
+- [x] crc-Dice.md → `src/rules/dice.ts`
+- [x] crc-Visibility.md → `src/rules/visibility.ts`
+- [x] crc-Ownership.md → `src/rules/ownership.ts`
 - [ ] crc-Game.md → `src/model/game.ts`
 - [ ] crc-GameStore.md → `src/store/gamestore.ts`
 - [ ] crc-Db.md → `src/store/db.ts`
@@ -67,7 +70,7 @@ person may know. Written in TypeScript, poured fresh from the specs; the mockup 
 - [ ] crc-Copy.md → `src/net/copy.ts`
 - [ ] crc-ImageExchange.md → `src/net/images.ts`
 - [ ] crc-Rolls.md → `src/net/rolls.ts`
-- [ ] crc-Yards.md → `src/rules/yards.ts`
+- [x] crc-Yards.md → `src/rules/yards.ts`
 - [ ] crc-TableView.md → `src/ui/table.ts`
 - [ ] crc-PieceView.md → `src/ui/piece.ts`
 - [ ] crc-PoolView.md → `src/ui/pool.ts`
@@ -103,15 +106,16 @@ person may know. Written in TypeScript, poured fresh from the specs; the mockup 
 - [ ] ui-ledger.md → `src/ui/ledger.ts`
 
 ### Test Designs
-- [ ] test-MarkedText.md → `src/text/marks.test.ts`
-- [ ] test-MarkReader.md → `src/rules/readmarks.test.ts`
-- [ ] test-Influence.md → `src/rules/influence.test.ts`
-- [ ] test-Pool.md → `src/rules/pool.test.ts`
-- [ ] test-Tap.md → `src/rules/tap.test.ts`
-- [ ] test-Odds.md → `src/rules/odds.test.ts`
-- [ ] test-Dice.md → `src/rules/dice.test.ts`
-- [ ] test-Visibility.md → `src/rules/visibility.test.ts`
-- [ ] test-Ownership.md → `src/rules/ownership.test.ts`
+- [x] test-Records.md → `src/model/records.test.ts`
+- [x] test-MarkedText.md → `src/text/marks.test.ts`
+- [x] test-MarkReader.md → `src/rules/readmarks.test.ts`
+- [x] test-Influence.md → `src/rules/influence.test.ts`
+- [x] test-Pool.md → `src/rules/pool.test.ts`
+- [x] test-Tap.md → `src/rules/tap.test.ts`
+- [x] test-Odds.md → `src/rules/odds.test.ts`
+- [x] test-Dice.md → `src/rules/dice.test.ts`
+- [x] test-Visibility.md → `src/rules/visibility.test.ts`
+- [x] test-Ownership.md → `src/rules/ownership.test.ts`
 - [ ] test-GameStore.md → `src/store/gamestore.test.ts`
 - [ ] test-Exchange.md → `src/store/exchange.test.ts`
 - [ ] test-Seat.md → `tests/seat.spec.ts`
@@ -119,7 +123,7 @@ person may know. Written in TypeScript, poured fresh from the specs; the mockup 
 - [ ] test-Authority.md → `src/net/authority.test.ts`
 - [ ] test-Copy.md → `src/net/copy.test.ts`
 - [ ] test-Crypto.md → `src/net/identity.test.ts`, `src/net/seal.test.ts`, `src/net/envelope.test.ts`
-- [ ] test-Yards.md → `src/rules/yards.test.ts`
+- [x] test-Yards.md → `src/rules/yards.test.ts`
 - [ ] test-Table.md → `tests/table.spec.ts`, `tests/rolls-local.spec.ts`, `tests/floor.spec.ts`
 - [ ] test-Network.md → `tests/sync.spec.ts`, `tests/secret.spec.ts`, `tests/away.spec.ts`, `tests/deletion.spec.ts`, `tests/rolls.spec.ts`
 

@@ -4,8 +4,7 @@
 How the sources become the page, and how the page is published and tested.
 
 ## Knows
-- The mockup (`index.html`, `net/` at the top level) stays playable beside the pour until the pour
-  replaces it; the pour's page is `src/index.html`, built into `dist/`.
+- The page is `src/index.html`, built into `dist/`.
 - `package.json`: `typescript` and `esbuild` as dev dependencies, Trystero as a dependency, all at
   pinned versions; scripts `build`, `check` (`tsc --noEmit`), `test` (`node --test`), `spec`
   (Playwright).

@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75, R202, R203
+**Requirements:** R5, R22-27, R62, R75, R202, R203, R209, R213, R214
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -9,9 +9,13 @@ stickies, loose text, images, torn rolls and reference cards.
 
 ## Does
 - card(record): two faces, flipped at the corner; the front's marks drawn by MarkedText.render with
-  their dice (`act`) and tap glyphs (`res`, and on the back `bias`, `aff`, `inj`); the back's level
-  columns, empty ones collapsed to their names until clicked (and closed again at the next click
-  elsewhere if still empty); Slot boxes toggle (a box can't be checked until its column has a name).
+  their dice (`act`) and tap glyphs (`res`); the back's three Damage columns (Biases, Afflictions,
+  Injuries), each a Mild, Min, Sig and Maj slot whose name is drawn as a span of its column's mark
+  (`bias`, `aff`, `inj`) with a tap glyph, so CSS and the glyph handler treat it like a `res`; empty
+  columns collapsed to their names until clicked (and closed again at the next click elsewhere if
+  still empty); Slot boxes, in front of their slot's Level word, toggle (a box can't be checked
+  until its slot has a name), each checked box with a tap glyph of its own; a column's heading
+  shows its absorb when it isn't 0, edited in place.
 - sticky, text: handwriting, edited in place.
 - image: from BlobStore by hash; striped and marked missing with why when absent.
 - tornroll: its receipts, scrolling inside (the wheel scrolls it rather than zooming).
