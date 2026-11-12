@@ -1,7 +1,7 @@
 // CRC: crc-PoolView.md | Test: test-PoolView.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { insertAt, openSlots, pops, reachFor, type Shown } from './pool.ts';
+import { chipFace, insertAt, openSlots, pops, reachFor, type Shown } from './pool.ts';
 
 const none = [false, false, false, false, false, false, false];
 const show = (...e: [string, number, string][]): Shown => new Map(e.map(([k, points, place]) => [k, { points, place }]));
@@ -54,4 +54,9 @@ test('a carry over a strip trades space', () => {
   assert.deepEqual(reachFor(none, 5, null), [T, T, T, F, F, T, F]);
   // Nothing empty to close: the mat grows by that one slot.
   assert.deepEqual(reachFor([T, T, T, T, F, F, F], 4, null), [T, T, T, T, T, F, F]);
+});
+
+test('a chip\'s face', () => {
+  // R285: a +1 reads "+1" (a red one "−1"); other chips show their points, a red one its sign.
+  assert.deepEqual([[1, 1], [-1, 1], [1, 4], [-1, 6]].map(([sign, points]) => chipFace({ sign: sign!, points: points! })), ['+1', '−1', '4', '−6']);
 });

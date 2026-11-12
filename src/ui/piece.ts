@@ -1,15 +1,15 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
 
 import type { Game } from '../model/game.ts';
 import {
-  DAMAGE, ROWS, ridOf, type Character, type Damage, type DamageSlot, type Image, type PieceRecord, type Place, type Reference,
+  DAMAGE, ROWS, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
 } from '../model/records.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
-import { influence } from '../rules/readmarks.ts';
+import { action as readAction, influence } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
 import { columnRoom } from '../rules/influence.ts';
 import { parse, read, render, serialize } from '../text/marks.ts';
@@ -32,6 +32,10 @@ export type PieceWith = {
   drag: (rid: string, down: PointerLike, move: PointerLike) => void;
   /** Starts carrying a tap glyph, `<character oid>:<source>` (Drag). */
   dragGlyph: (source: string, down: PointerLike, move: PointerLike) => boolean;
+  /** An action's die (R76): false when this page can't roll for the character. */
+  useAction: (oid: Oid, label: string) => boolean;
+  /** The action in use on a character, for its swish (R77). */
+  inUse: (oid: Oid) => string | null;
 };
 
 /** The class a kind is drawn with, where it isn't the kind's own name. */
@@ -160,7 +164,13 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       break;
     }
     case 'reference': e.append(...reference(doc, r)); break;
-    case 'tornroll': break;
+    case 'tornroll':
+      // R283: the wheel scrolls a torn roll, and zooms the table only once it can scroll no further.
+      e.addEventListener('wheel', ev => {
+        const more = ev.deltaY < 0 ? e.scrollTop > 0 : e.scrollTop + e.clientHeight < e.scrollHeight - 1;
+        if (more) ev.stopPropagation();
+      }, { passive: true });
+      break;
   }
   return e;
 }
@@ -345,12 +355,26 @@ function dry(e: HTMLElement, c: Character): void {
 
 /** Glyphs before the front's `<res>` and `<mot>` marks (R258); left alone while the front is being written in. */
 function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
-  const doc = text.ownerDocument;
+  const doc = text.ownerDocument, using = w.inUse(c.oid);
+  // R77: the action in use gets its highlighter swish, matched by label, so it survives edits.
+  for (const span of text.querySelectorAll<HTMLElement>('span.act')) span.classList.toggle('inuse', !!using && readAction(span.textContent ?? '')?.label === using);
   if (doc.activeElement && text.contains(doc.activeElement)) return;
-  for (const g of text.querySelectorAll('.glyph')) g.remove();
+  for (const g of text.querySelectorAll('.glyph, .actdie')) g.remove();
   for (const span of text.querySelectorAll<HTMLElement>('span.res, span.mot')) {
     const name = influence(span.textContent ?? '')?.name;
     if (name) span.before(glyph(doc, `${c.oid}:${name}`, w));
+  }
+  // R75, R76: a small die at the start of each action; it brings the roll row and fills it.
+  for (const span of text.querySelectorAll<HTMLElement>('span.act')) {
+    const label = readAction(span.textContent ?? '')?.label;
+    if (!label) continue;
+    const d = doc.createElement('span');
+    d.className = 'actdie';
+    d.contentEditable = 'false';
+    d.title = `Roll this: ${label}`;
+    d.addEventListener('pointerdown', ev => ev.preventDefault());
+    gesture(d, { click: () => { if (!w.useAction(c.oid, label)) d.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); } });
+    span.before(d);
   }
 }
 

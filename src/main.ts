@@ -18,6 +18,10 @@ import { Sealer } from './net/seal.ts';
 import { Stamps } from './net/stamps.ts';
 import { Wire } from './net/wire.ts';
 import { mayTap } from './rules/tap.ts';
+import { click, shiftClick } from './rules/ownership.ts';
+import { RollRowView, intentOf } from './ui/rollrow.ts';
+import { TapeView } from './ui/tape.ts';
+import { RegisterView } from './ui/register.ts';
 import type { Viewer } from './rules/visibility.ts';
 import { BlobStore, type Size } from './store/blobs.ts';
 import { IdbDb } from './store/db.ts';
@@ -63,13 +67,14 @@ function frame(fn: () => void): void {
 }
 
 /** The table's views for this page: drawn from the game, the view kept in this viewer's seat. */
-function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, missing: (hash: string) => string | undefined): { table: TableView; drag: Drag } {
+function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, missing: (hash: string) => string | undefined,
+  rolling: () => Rolls, checkpoint?: (name: string) => Promise<unknown>): { table: TableView; drag: Drag } {
   const who = viewer?.name ?? 'nobody', gm = !!viewer?.gm;
   let seat: Seat = loadSeat(localStorage, gameId, who);
   const keep = (s: Seat) => { seat = s; saveSeat(localStorage, gameId, who, s); };
   const redraw = () => table.render(game.all().map(([rid]) => rid));
   const mint = () => minter(game, gm);
-  let drag: Drag | undefined;
+  let drag: Drag | undefined, rollRow: RollRowView | undefined;
   const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
     game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }), schedule: frame,
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
@@ -98,9 +103,48 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       redraw();
     },
     dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
+    // R75–R77: an action's die brings the roll row; the action in use gets its swish.
+    useAction: (oid, label) => rollRow?.action(oid, label) ?? false,
+    inUse: oid => rollRow?.inUse(oid) ?? null,
+    // R142, R144, R146, R68: the die by a pool's name claims, opens, or docks the roll row.
+    poolDie: (oid, shift, die) => {
+      const c = game.get(ridOf(oid)) as Character | undefined;
+      if (c?.kind !== 'character') return;
+      const r = shift ? shiftClick(viewer, c) : click(viewer, c);
+      if ('owner' in r) game.change(w => w.put(ridOf(oid), { ...c, owner: r.owner }));
+      else if ('dock' in r) rollRow?.dock(oid);
+      else { die.title = r.refused; die.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); }
+    },
     dragPool: (rid, down, move) => drag?.startPool(rid, down, move),
   });
   drag = new Drag({ game, table, moves, mint, schedule: frame });
+  // R110–R113: this page's tape, under the pieces; a torn roll is carried off like any piece.
+  const tape = new TapeView(document.getElementById('table')!, {
+    game, viewer, up: () => seat.tapeUp, setUp: up => keep({ ...seat, tapeUp: up }),
+    crit: (id, choice, lock) => rolling().crit(id, choice, lock), mint: () => mint()(),
+    toWorld: (x, y) => table.toWorld(x, y), carry: (rid, down, move) => drag?.start(rid, down, move),
+  });
+  // R115–R117: the register at the bar's right end; the tape hangs under it (R282).
+  const register = new RegisterView(document.getElementById('bar')!, { game, viewer, checkpoint, paperRoll: () => tape.toggleUp() });
+  const hang = () => {
+    const t = document.getElementById('tape');
+    if (t) { t.style.right = 'auto'; t.style.left = `${Math.max(8, Math.min(innerWidth - 258, register.left() + 2))}px`; }
+  };
+  hang();
+  addEventListener('resize', hang);
+  void document.fonts?.ready.then(hang);
+  rollRow = new RollRowView({
+    game, viewer, roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
+    pool: oid => table.pool(ridOf(oid)), redraw: oids => table.render(oids.map(ridOf)),
+    // R100–R104, R281: the GM's page rolls at once (privately if switched); a player's asks it, Roll
+    // reading "GM…" meanwhile; why not prints as a note on the tape.
+    roll: r => {
+      const rolls = rolling(), intent = intentOf(r);
+      if (gm) { const why = rolls.roll(intent, !!r.priv); if (why) rolls.note(why); return; }
+      rollRow!.waiting(true);
+      void rolls.request(intent).then(why => { rollRow!.waiting(false); if (why) rolls.note(why); });
+    },
+  });
   return { table, drag };
 }
 
@@ -132,7 +176,7 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const { table, drag } = views(game, store.current!.id, { name, gm: false }, blobs, moves, hash => images.missing.get(hash));
+    const { table, drag } = views(game, store.current!.id, { name, gm: false }, blobs, moves, hash => images.missing.get(hash), () => rolls);
     return { stamp: HOLLOW_STAMP, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
 
@@ -168,7 +212,8 @@ async function main() {
   };
   // R158: the invite carries the room and the GM's browser id.
   const link = () => invite(location.href, open().room, identity.id);
-  const { table: view, drag } = views(game, store.current!.id, { name: 'GM', gm: true }, blobs, moves, hash => table?.images.missing.get(hash));
+  const { table: view, drag } = views(game, store.current!.id, { name: 'GM', gm: true }, blobs, moves, hash => table?.images.missing.get(hash), () => rolls,
+    name => store.checkpoint(name, true));
   return { stamp: HOLLOW_STAMP, role: 'gm' as const, tab, identity, store, blobs, open, invite: link, moves, view, drag,
     get table() { return table; }, get rolls() { return rolls; } };
 }

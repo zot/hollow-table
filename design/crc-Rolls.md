@@ -1,11 +1,16 @@
 # Rolls
-**Requirements:** R97, R100, R101, R102, R103, R104, R106, R107, R108, R278, R279, R281
+**Requirements:** R69, R97, R100, R101, R102, R103, R104, R106, R107, R108, R278, R279, R281
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
 
 ## Knows
 - WAIT_MS: 10 s for the GM's page to answer.
+- The receipt's words (R279), from the book: rowWords (range nearer zero first below zero, name,
+  dice: "+7 to +9 Strong Advantage: Green + 1"), resolutionWords ("higher of White 4 and Green 6 +
+  1"), levelWords (the Blue and remaining Yellows, "+ 2 bonus" unless a Failure), outcomeWords
+  ("Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger"). A receipt
+  carries the action's label, its title "Sam, roll 3" from `meta.counts` (R278).
 - rollNo: this page's roll counter (sessionStorage), so receivers can notice skipped rolls.
 - lastRoll: sender tab → the last roll number heard.
 
@@ -14,7 +19,8 @@ know.
   Defend kind, hand adjustments, and a hand-picked row if any; never numbers. Resolves with null
   when answered, or why not (refused, no GM heard, or nothing within WAIT_MS); Roll shows "GM…"
   meanwhile.
-- resolve(game, intent, rng, at): pure: looks up the action on the GM's own records, totals both
+- resolve(game, intent, rng, at): pure: with no action (R69), the row as set, its hand the dice, no
+  Total Influence; otherwise looks up the action on the GM's own records, totals both
   sides (Odds, Pool), picks the White row from the Difference unless the player picked one, rolls
   (Dice), and gives three receipts in R279's words and the roll's effects (the character's own roll
   count, R278, kept in meta by character; used cards; a CRIT!
@@ -31,6 +37,7 @@ know.
   and every tape updates that receipt (by id). A locked CRIT stays.
 - Each page prints on its own tape (the `tape` record, never sent), newest first; its own answered
   roll gets ✓ (`ok`).
+- note(text) (R281): a refusal or an unanswered roll printed on this page's tape as a red note.
 - gaps: a skipped roll number prints "N rolls from the GM didn't arrive" ("Many" over 20), as a
   receipt with outcome `missing`; an error (refused, unanswered) prints the same way, a red note
   with the time (R281).

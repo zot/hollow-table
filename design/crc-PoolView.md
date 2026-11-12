@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -8,6 +8,11 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   its used pile.
 
 ## Does
+- chipFace(i) (R285): a chip's face, its points with a red one's sign; a +1 reads "+1" ("−1") since it
+  modifies another chip. Every chip drawn uses it: in a slot, carried (Drag), loose (TableView).
+- die (R142, R144, R146): the die by the pool's name shows its owner (GM, open, or the player);
+  click claims an open character or docks the roll row (Ownership.click), shift-click opens it
+  (Ownership.shiftClick); a refusal shakes the die and titles it with why.
 - toSlot (actions): a `mot` card dropped into a Main slot joins that character's drawer, its
   `home` set to the slot's character (R260), so a card tapped from an NPC's Motivation is the
   tapper's.

@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263, R264, R265
+**Requirements:** R5, R22-27, R62, R75, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263, R264, R265, R75-77
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -29,6 +29,9 @@ stickies, loose text, images, torn rolls and reference cards.
   and the absorb a column's heading shows when it isn't 0, come from Influence.columnRoom (R264,
   R265): never typed; a box checked beyond the count stays drawn until unchecked; with no attribute
   marked, the boxes the card has.
+- actions (R75–R77): a small die before each `<act>` mark at rest (like the glyphs), which calls
+  useAction (the roll row docks and fills, or the die shakes); the action in use (inUse, matched by
+  label) carries `inuse`, its highlighter swish, even while written on.
 - refuse (R259): a glyph whose tap the page refuses (someone else's Resource) shakes and carries
   nothing.
 - dry (R250): each glyph is marked dry when its source has no Levels left (Tap.left), redrawn

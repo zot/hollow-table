@@ -89,6 +89,7 @@
 - **R36:** Chips are green (positive) or red (negative) and show their Influence points (Min 2, Sig 4, Maj 6, Ext 8, Exq 10) with no ceiling.
 - **R37:** A red chip shows its sign.
 - **R38:** A +1 riding a chip belongs to that chip.
+- **R285:** A +1 chip reads "+1" (a red one "−1") wherever it is, loose or in hand, since it modifies another chip; other chips show their points, a red one with its sign.
 - **R39:** Chips snap into slots as stacks, positive from the top and negative from the bottom, each sorted strongest nearest the edge and drawn on top.
 - **R234:** A chip is a flat disc with one dark rim, its number bold in PT Mono in the middle and a little shade along the bottom; a card in a slot adds a thin white inner ring, a resource-made one a tiny card glyph at its corner.
 - **R235:** In a slot's stack each chip tucks under the stronger one before it.

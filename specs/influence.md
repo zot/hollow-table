@@ -8,7 +8,8 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   Maj 6, Ext 8, Exq 10**, with no ceiling. **A red chip shows its sign** (−2, −4), so a chip reads
   correctly without telling red from green.
 - A **+1** is the odd point. It rides on another chip ("put a small token on top of its stack");
-  a +1 riding a chip belongs to that chip.
+  a +1 riding a chip belongs to that chip. **It reads +1** wherever it is, loose too (Bill, 11-12:
+  it modifies another chip), and a red one −1.
 - **A chip is a flat disc** (Bill, 11-12): one dark rim, its number bold in PT Mono in the middle,
   a little shade along the bottom. A card in a slot adds a thin white inner ring, and a
   resource-made one a tiny card glyph at its corner.

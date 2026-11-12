@@ -80,7 +80,10 @@ export type DieColour = (typeof DICE)[number];
 export type Die = { c: DieColour; v: number; added: boolean; dropped: boolean };
 export type Crit = { max: number; dbl: number; chosen: 'max' | 'dbl'; locked: boolean };
 export type Receipt = {
-  id: string; at: number; title: string; by?: string; dice: Die[]; influence?: number; base?: number; vs?: string;
+  id: string; at: number; title: string; by?: string; dice: Die[];
+  /** R279: the action's label, on every page's receipt. */
+  action?: string;
+  influence?: number; base?: number; vs?: string;
   row?: string; resolution: string; level: string; outcome: string; crit?: Crit; priv?: boolean;
   /** This page's own roll has reached the table (R107). */
   ok?: boolean;
@@ -94,7 +97,8 @@ export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image |
 export type Burial = { name: string; records: PieceRecord[] };
 export type Graveyard = { name: string; named: boolean; items: Burial[] };
 export type Yards = { yards: Graveyard[] };
-export type Meta = { round: number; rolls: number };
+// R278: `counts` numbers each character's rolls on their own.
+export type Meta = { round: number; rolls: number; counts?: Record<Oid, number> };
 /** The GM's page only, never sent. */
 /**
  * The GM's page only, never sent: who holds which name, the table's version, the version each piece
@@ -156,7 +160,7 @@ const die = fields({ c: oneOf(...DICE), v: int(1, 6), added: bool, dropped: bool
 export const receipt = fields(
   { id: str(CAPS.id), at: num(0, 1e15), title: str(CAPS.name), dice: list(die, 200),
     resolution: str(CAPS.name), level: str(CAPS.name), outcome: str(CAPS.name) },
-  { by: str(CAPS.name), influence: int(-1000, 1000), base: int(-1000, 1000), vs: str(CAPS.name), row: str(CAPS.name), ok: bool,
+  { by: str(CAPS.name), action: str(CAPS.name), influence: int(-1000, 1000), base: int(-1000, 1000), vs: str(CAPS.name), row: str(CAPS.name), ok: bool,
     crit: fields({ max: int(0, 10_000), dbl: int(0, 10_000), chosen: oneOf('max', 'dbl'), locked: bool }),
     priv: bool });
 
@@ -180,7 +184,7 @@ const piece: Shape = v => obj(v) && typeof v.kind === 'string' && Object.hasOwn(
 const SINGLETONS: Record<string, Shape> = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool,
     items: list(fields({ name: str(CAPS.name), records: list(piece) })) }), 100) }),
-  meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }),
+  meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000) }),
   book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     { hillGv: int(0, Number.MAX_SAFE_INTEGER) }),
   tape: fields({ receipts: list(receipt, 10_000) }),

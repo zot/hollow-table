@@ -10,6 +10,8 @@ import type { KeyValue } from './gamestore.ts';
 export type Roller = {
   pool: Oid; action: string; opponent: Oid | null; defend: 'mental' | 'psych'; row: string | null;
   byHand: boolean; hand: { yellows: number; bonus: number }; dice: Die[];
+  /** R104, R275: the GM's private switch. */
+  priv?: boolean;
 };
 
 export type Seat = {

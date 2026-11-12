@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R179, R183
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R179, R183, R285
 // Lifting, carrying and dropping, and deciding what a drop means. While carried, a piece goes to the
 // room every 100 ms (Moves); the drop is one Game.change. This part moves paper and pins it; pools,
 // the bar and Boot Hill add their drop targets as they land.
@@ -6,7 +6,7 @@
 import type { Game } from '../model/game.ts';
 import { ridOf, type Character, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName } from '../model/records.ts';
 import type { Item } from '../rules/pool.ts';
-import { gapAt, reach, showGap } from './pool.ts';
+import { chipFace, gapAt, reach, showGap } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
 import type { MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
@@ -34,7 +34,7 @@ const TAP_GLYPH_X = 10;
 // R243: a card over the slots is a chip: its points in the middle, its name on hover.
 function asChip(el: HTMLElement, i: Item): void {
   el.className = `loose-item chip ${i.sign > 0 ? 'pos' : 'neg'}`;
-  el.textContent = `${i.sign < 0 ? '−' : ''}${i.points}`;
+  el.textContent = chipFace(i);
   if (i.kind === 'influence') el.title = i.name;
 }
 

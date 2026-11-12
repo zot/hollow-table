@@ -3,7 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
 import { ridOf, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
-import { Rolls, resolve, WAIT_MS, type Intent } from './rolls.ts';
+import { Rolls, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
+import { ADV } from '../rules/odds.ts';
+import type { Die } from '../model/records.ts';
 import { FakeRoom } from './fakeroom.ts';
 import { Sealer } from './seal.ts';
 import { fakeClock, memoryStorage } from '../store/fakes.ts';
@@ -34,16 +36,27 @@ test('resolve', () => {
   const r = resolve(game, { ...infer(), n: 1 }, faces(4, 3), 1000);
   if ('refused' in r) throw new Error(r.refused);
   const pick = (x: Receipt) => [x.influence, x.base, x.row, x.vs];
-  assert.deepEqual(pick(r.full), [10, 4, '+1', 'Devreux 6 (+4)']);
-  assert.deepEqual([r.full.resolution, r.full.level, r.full.outcome, r.full.by], ['Weak Advantage: 5', '5 Significant', 'Success', 'Dana']);
+  // R279: the receipt in the book's words.
+  assert.deepEqual(pick(r.full), [10, 4, '+3 to +4 Weak Advantage: White + 1', 'Devreux (mental 6), Difference +4']);
+  assert.deepEqual([r.full.title, r.full.action, r.full.resolution, r.full.level, r.full.outcome, r.full.by],
+    ['Sam, roll 1', 'Infer', 'White 4 + 1', '3 + 2 bonus', 'Success 5, Significant', 'Dana']);
   assert.deepEqual(pick(r.roller), [10, 4, 'White + 1', 'Devreux']);
   assert.deepEqual(pick(r.table), [undefined, undefined, undefined, 'Devreux']);
   game.change(r.apply);
-  assert.equal((game.get('meta') as Meta).rolls, 1);
+  assert.deepEqual((game.get('meta') as Meta).counts, { [SAM]: 1 }, 'R278: counted for Sam');
   assert.equal((game.get(ridOf('0000000b')) as Influence).used, true);
 
   const red = resolve(game, { ...infer(), n: 2, row: 'red' }, faces(4, 2, 3), 1000);
-  assert.ok(!('refused' in red) && red.full.row === 'red' && red.full.dice.some(d => d.c === 'R'));
+  assert.ok(!('refused' in red) && red.full.row === '−5 to −6 Disadvantage: Red' && red.full.dice.some(d => d.c === 'R'));
+  assert.equal(red.full.resolution, 'lower of White 4 and Red 2');
+  assert.equal(red.full.title, 'Sam, roll 2');
+  // R278: Devreux rolling in between doesn't move Sam's count.
+  const dev = resolve(game, { pool: DEVREUX, action: 'Attack', vs: null, defend: 'mental', hand: { yellows: 0, bonus: 0 }, n: 4 }, faces(4, 3), 1000);
+  if ('refused' in dev) throw new Error(dev.refused);
+  assert.equal(dev.full.title, 'Devreux, roll 1');
+  game.change(dev.apply);
+  const again = resolve(game, { ...infer(), n: 5 }, faces(4, 3), 1000);
+  assert.ok(!('refused' in again) && again.full.title === 'Sam, roll 2');
   const none = resolve(game, { ...infer(), n: 3, action: 'Fly' }, faces(), 1000);
   assert.deepEqual(none, { refused: 'Sam has no action “Fly”.' });
 });
@@ -87,7 +100,7 @@ test('a roll at the table', async () => {
   const [mine] = t.tape('dana'), [annSees] = t.tape('ann'), [gmSees] = t.tape('gm');
   assert.deepEqual([mine!.influence, mine!.vs, mine!.row, mine!.ok], [10, 'Devreux', 'White + 1', true]);
   assert.deepEqual([annSees!.influence, annSees!.row, annSees!.vs, annSees!.by], [undefined, undefined, 'Devreux', 'Dana']);
-  assert.deepEqual([gmSees!.influence, gmSees!.vs], [10, 'Devreux 6 (+4)']);
+  assert.deepEqual([gmSees!.influence, gmSees!.vs], [10, 'Devreux (mental 6), Difference +4']);
 
   assert.equal(await ask(t, { ...infer(), pool: BEAUFORD }), "Beauford isn't yours to roll.");
 
@@ -150,4 +163,38 @@ test('private rolls and gaps', async () => {
   gm.roll(devreux);
   await t.room.settle();
   assert.equal(t.tape('ann')[1]!.title, "Many rolls from the GM didn't arrive");
+});
+
+test('a receipt in the book\'s words', () => {
+  // R279: each row's range (nearer zero first below zero), the book's name, and its dice.
+  assert.deepEqual(ADV.map(rowWords), [
+    '+10 or more Outclass: automatic success', '+7 to +9 Strong Advantage: Green + 1', '+5 to +6 Advantage: Green',
+    '+3 to +4 Weak Advantage: White + 1', '−2 to +2 No Advantage: White', '−3 to −4 Weak Disadvantage: White − 1',
+    '−5 to −6 Disadvantage: Red', '−7 to −9 Strong Disadvantage: Red − 1', '−10 or less Outclassed: automatic failure']);
+  const d = (c: Die['c'], v: number, dropped = false, added = false): Die => ({ c, v, dropped, added });
+  const dice = [d('W', 2), d('B', 6), d('Y', 4, true), d('Y', 3, false, true)];
+  assert.equal(levelWords(dice, 2, false), '6 + 3 + 2 bonus');
+  assert.equal(levelWords(dice, -1, false), '6 + 3 − 1 bonus');
+  assert.equal(levelWords(dice, 2, true), '6 + 3', 'the bonus is ignored on a Failure');
+  assert.deepEqual([outcomeWords('success', 12), outcomeWords('cost', 5), outcomeWords('failure', 3)],
+    ['Success 12, Major', 'Success at cost 5, Significant', 'Failure 3, Minor Stagger']);
+});
+
+test('a roll with no action, and a note', () => {
+  // R69: the row as set, its hand the dice, no Total Influence; R281: why not, as a note.
+  const game = scene();
+  const r = resolve(game, { pool: SAM, action: '', vs: null, defend: 'mental', hand: { yellows: 2, bonus: 1 }, n: 1, row: 'green' }, faces(4, 2, 3, 5, 1), 1000);
+  if ('refused' in r) throw new Error(r.refused);
+  assert.deepEqual([r.full.title, r.full.action, r.full.influence, r.full.dice.filter(d => d.c === 'Y').length, r.full.row],
+    ['Sam, roll 1', undefined, undefined, 2, '+5 to +6 Advantage: Green']);
+  assert.equal(r.full.level, '3 + 5 + 1 + 1 bonus');
+});
+
+test('why not, on the tape', async () => {
+  // R281: a refusal or an unanswered roll prints as a short note with the time.
+  const game = scene(), { clock } = fakeClock();
+  const rolls = new Rolls({ game, sealer: await Sealer.make(), clock, rng: faces(), link: null, session: memoryStorage(), gm: true });
+  rolls.note("The GM's page didn't answer that roll.");
+  const [n] = (game.get('tape') as Tape).receipts;
+  assert.deepEqual([n!.title, n!.outcome, n!.at], ["The GM's page didn't answer that roll.", 'missing', clock.now()]);
 });

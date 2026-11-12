@@ -58,6 +58,7 @@ var receipt = fields(
   },
   {
     by: str(CAPS.name),
+    action: str(CAPS.name),
     influence: int(-1e3, 1e3),
     base: int(-1e3, 1e3),
     vs: str(CAPS.name),
@@ -116,7 +117,7 @@ var SINGLETONS = {
     named: bool,
     items: list(fields({ name: str(CAPS.name), records: list(piece) }))
   }), 100) }),
-  meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }),
+  meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4) }),
   book: fields(
     { claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     { hillGv: int(0, Number.MAX_SAFE_INTEGER) }
@@ -647,6 +648,9 @@ function kill(chars, card2) {
   }
   return [...out.values()];
 }
+function recharge(char) {
+  return { ...char, back: { ...char.back, damage: damageSlots((d, r) => ({ ...char.back.damage[d][r], spent: [] })) } };
+}
 
 // src/ui/gesture.ts
 var LONG_MS = 500;
@@ -918,9 +922,17 @@ function when(at3) {
 }
 var DIE = { W: "White", G: "Green", R: "Red", B: "Blue", Y: "Yellow" };
 var CRIT = { max: "maximize", dbl: "double" };
+function dieEl(doc, d, k) {
+  const e = doc.createElement("span");
+  e.className = `rdie ${d.c}${d.added ? " added" : ""}${d.dropped ? " dropped" : ""}`;
+  e.textContent = String(d.v);
+  e.title = DIE[d.c] + (d.added ? ", exploded" : "") + (d.dropped ? ", removed on a Failure" : "");
+  e.style.animationDelay = `${k * 60}ms`;
+  return e;
+}
 function receiptEl(doc, r) {
   const el3 = doc.createElement("div");
-  el3.className = "receipt";
+  el3.className = r.outcome === "missing" ? "receipt note" : "receipt";
   el3.dataset.id = r.id;
   const line = (text, cls) => {
     const div = doc.createElement("div");
@@ -928,20 +940,26 @@ function receiptEl(doc, r) {
     div.textContent = text;
     el3.append(div);
   };
-  const head = doc.createElement("div");
-  const time = doc.createElement("span");
+  const head = doc.createElement("div"), title = doc.createElement("span"), time = doc.createElement("span");
+  head.className = "rhead";
+  title.className = "title";
+  title.textContent = r.title;
   time.className = "when";
-  time.textContent = when(r.at);
-  head.append(time, `${r.title}${r.ok ? " \u2713" : ""}`);
+  time.textContent = when(r.at) + (r.ok ? " \u2713" : "");
+  head.append(title, time);
   el3.append(head);
   if (r.outcome === "missing") return el3;
-  if (r.priv) line("Private: not shown to the table");
-  if (r.by) line(`rolled by ${r.by}`);
-  if (r.influence !== void 0) line(`Total Influence ${r.influence}${r.base !== void 0 ? ` (base ${r.base})` : ""}`);
+  if (r.by) line(`rolled by ${r.by === "GM" ? "the GM" : r.by}`, "by");
+  const dice = doc.createElement("div");
+  dice.className = "rdice";
+  dice.append(...r.dice.map((d, k) => dieEl(doc, d, k)));
+  el3.append(dice);
+  if (r.influence !== void 0) line(`${r.action ? `${r.action}: ` : ""}Total Influence ${r.influence}${r.base !== void 0 ? ` (base ${r.base})` : ""}`);
+  else if (r.action) line(r.action);
   if (r.vs) line(`vs ${r.vs}`);
-  if (r.row) line(`row ${r.row}`);
-  line(r.dice.map((d) => `${DIE[d.c]} ${d.v}${d.dropped ? " (dropped)" : ""}${d.added ? " +" : ""}`).join(", "));
-  line(r.resolution);
+  if (r.row) line(r.row);
+  if (r.resolution) line(`Resolution: ${r.resolution}`);
+  if (r.level) line(`Level: ${r.level}`);
   if (r.crit) {
     for (const k of ["max", "dbl"]) {
       const chosen = r.crit.chosen === k;
@@ -951,8 +969,8 @@ function receiptEl(doc, r) {
       line(`${CRIT[k]}: ${r.crit[k]}`, cls);
     }
   }
-  line(r.level);
   line(r.outcome, "outcome");
+  if (r.priv) line("Private: not shown to the table", "privnote");
   return el3;
 }
 
@@ -1076,6 +1094,10 @@ function make(doc, r, w) {
       e.append(...reference(doc, r));
       break;
     case "tornroll":
+      e.addEventListener("wheel", (ev) => {
+        const more = ev.deltaY < 0 ? e.scrollTop > 0 : e.scrollTop + e.clientHeight < e.scrollHeight - 1;
+        if (more) ev.stopPropagation();
+      }, { passive: true });
       break;
   }
   return e;
@@ -1248,12 +1270,26 @@ function dry(e, c) {
   }
 }
 function frontGlyphs(text, c, w) {
-  const doc = text.ownerDocument;
+  const doc = text.ownerDocument, using = w.inUse(c.oid);
+  for (const span of text.querySelectorAll("span.act")) span.classList.toggle("inuse", !!using && action(span.textContent ?? "")?.label === using);
   if (doc.activeElement && text.contains(doc.activeElement)) return;
-  for (const g of text.querySelectorAll(".glyph")) g.remove();
+  for (const g of text.querySelectorAll(".glyph, .actdie")) g.remove();
   for (const span of text.querySelectorAll("span.res, span.mot")) {
     const name2 = influence(span.textContent ?? "")?.name;
     if (name2) span.before(glyph(doc, `${c.oid}:${name2}`, w));
+  }
+  for (const span of text.querySelectorAll("span.act")) {
+    const label = action(span.textContent ?? "")?.label;
+    if (!label) continue;
+    const d = doc.createElement("span");
+    d.className = "actdie";
+    d.contentEditable = "false";
+    d.title = `Roll this: ${label}`;
+    d.addEventListener("pointerdown", (ev) => ev.preventDefault());
+    gesture(d, { click: () => {
+      if (!w.useAction(c.oid, label)) d.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+    } });
+    span.before(d);
   }
 }
 function slotGlyphs(line, s, base, w) {
@@ -1296,6 +1332,17 @@ function reference(doc, r) {
 }
 
 // src/rules/ownership.ts
+var own = (viewer, c) => !!viewer && c.owner === (viewer.gm ? GM : viewer.name);
+function click(viewer, c) {
+  if (!viewer) return { refused: "Only someone at the table can take a character." };
+  if (c.owner === OPEN) return { owner: viewer.gm ? GM : viewer.name };
+  if (viewer.gm || own(viewer, c)) return { dock: true };
+  return { refused: `${c.name} is ${c.owner === GM ? "the GM's" : `${c.owner}'s`}.` };
+}
+function shiftClick(viewer, c) {
+  if (viewer && (viewer.gm || own(viewer, c))) return { owner: OPEN };
+  return { refused: `${c.name} isn't yours to open.` };
+}
 function mayChange(viewer, before2, after) {
   if (viewer?.gm) return true;
   if (!viewer) return false;
@@ -1609,8 +1656,8 @@ var Authority = class {
   #take(edit, tab2) {
     const t = this.#tabs.get(tab2), { game, stamps } = this.#w;
     if (!t) return;
-    const fresh2 = (rid) => stamps.fresh(rid, tab2, edit.s);
-    const current = { ...edit, puts: edit.puts.filter((p) => fresh2(p.rid)), dels: edit.dels.filter(fresh2) };
+    const fresh3 = (rid) => stamps.fresh(rid, tab2, edit.s);
+    const current = { ...edit, puts: edit.puts.filter((p) => fresh3(p.rid)), dels: edit.dels.filter(fresh3) };
     const verdict = judge(game, current, this.#viewer(t)?.name ?? null);
     for (const rid of [...current.puts.map((p) => p.rid), ...current.dels]) stamps.mark(rid, tab2, edit.s);
     const theirs = (rid) => {
@@ -1766,8 +1813,8 @@ var Copy = class {
       if (box2) {
         const mine = await this.#w.sealer.open(from.sealKey, "recs", from.tab, this.#w.link.tab, box2);
         if (sealedRecs(mine) && mine.g === batch.g) {
-          const own = new Set(mine.puts.map((p) => p.rid));
-          puts = [...puts.filter((p) => !own.has(p.rid)), ...mine.puts];
+          const own2 = new Set(mine.puts.map((p) => p.rid));
+          puts = [...puts.filter((p) => !own2.has(p.rid)), ...mine.puts];
         }
       }
       const last = this.#lastG;
@@ -2393,9 +2440,35 @@ function accepts(slot2, item2) {
 // src/net/rolls.ts
 var WAIT_MS = 1e4;
 var MANY = 20;
-var OUTCOME = { success: "Success", cost: "Success at a cost", failure: "Failure" };
+var OUTCOME = { success: "Success", cost: "Success at cost", failure: "Failure" };
 var signed2 = (n) => n >= 0 ? `+${n}` : `\u2212${-n}`;
 var DIE_NAME = { G: "Green", R: "Red" };
+function rowWords(r) {
+  const i = ADV.indexOf(r), above = ADV[i - 1];
+  let range;
+  if (r.auto === "success") range = `${signed2(r.min)} or more`;
+  else if (r.auto === "failure") range = `${signed2(above.min - 1)} or less`;
+  else {
+    const hi = above.min - 1;
+    range = hi < 0 ? `${signed2(hi)} to ${signed2(r.min)}` : `${signed2(r.min)} to ${signed2(hi)}`;
+  }
+  return `${range} ${r.words}: ${r.auto ? `automatic ${r.auto}` : diceOnly(r)}`;
+}
+function resolutionWords(r, dice) {
+  if (r.auto) return `${r.words}: automatic ${r.auto}`;
+  const w = dice.find((d) => d.c === "W").v, o = dice.find((d) => d.c === "G" || d.c === "R");
+  let read2 = `White ${w}`;
+  if (o) read2 = `${o.c === "G" ? "higher" : "lower"} of White ${w} and ${DIE_NAME[o.c]} ${o.v}`;
+  return read2 + (r.mod ? ` ${r.mod > 0 ? "+" : "\u2212"} 1` : "");
+}
+function levelWords(dice, bonus2, failure) {
+  const parts = dice.filter((d) => (d.c === "B" || d.c === "Y") && !d.dropped).map((d) => String(d.v));
+  const b = failure || !bonus2 ? "" : ` ${bonus2 > 0 ? "+" : "\u2212"} ${Math.abs(bonus2)} bonus`;
+  return parts.join(" + ") + b;
+}
+function outcomeWords(outcome, result) {
+  return `${OUTCOME[outcome]} ${result}, ${levelName2(result)}${outcome === "failure" ? " Stagger" : ""}`;
+}
 function diceOnly(r) {
   if (r.auto) return r.auto === "success" ? "\u2713" : "\u2717";
   const die3 = r.die ? DIE_NAME[r.die] : "White";
@@ -2413,49 +2486,50 @@ function mint(game) {
 function resolve2(game, intent, rng, at3) {
   const character2 = game.get(ridOf(intent.pool));
   if (character2?.kind !== "character") return { refused: "That character is not on the table." };
-  const act = marks(parse(character2.front), "act").map((m) => action(m.text)).find((a) => a?.label === intent.action);
-  if (!act) return { refused: `${character2.name} has no action \u201C${intent.action}\u201D.` };
+  const act = intent.action ? marks(parse(character2.front), "act").map((m) => action(m.text)).find((a) => a?.label === intent.action) : null;
+  if (intent.action && !act) return { refused: `${character2.name} has no action \u201C${intent.action}\u201D.` };
   const items = game.all().map(([, r2]) => r2).filter((r2) => "kind" in r2 && (r2.kind === "chip" || r2.kind === "influence"));
-  const mine = pools(character2.oid, items), sum2 = total(act.base, mine);
+  const mine = pools(character2.oid, items), sum2 = act ? total(act.base, mine) : null;
   let opp, against;
-  if (intent.vs) {
+  if (intent.vs && sum2) {
     opp = game.get(ridOf(intent.vs));
     if (opp?.kind !== "character") return { refused: "That opponent is not on the table." };
     const def = marks(parse(opp.front), "def").map((m) => defend(m.text)).find((d) => d);
     against = opposition(def ? def[intent.defend] : 0, pools(opp.oid, items)).total;
   }
-  const diff = against === void 0 ? void 0 : sum2.total - against;
-  const picked = intent.row ? ADV.find((r2) => r2.key === intent.row) : void 0;
-  const row2 = picked ?? (diff === void 0 ? ADV.find((r2) => r2.key === "white") : row(diff));
-  const dice = bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, intent.hand);
+  const diff = against === void 0 || !sum2 ? void 0 : sum2.total - against;
+  const picked2 = intent.row ? ADV.find((r2) => r2.key === intent.row) : void 0;
+  const row2 = picked2 ?? (diff === void 0 ? ADV.find((r2) => r2.key === "white") : row(diff));
+  const dice = act ? bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, intent.hand) : { yellows: Math.max(0, intent.hand.yellows), bonus: intent.hand.bonus };
   const r = roll2(row2, dice.yellows, dice.bonus, rng);
-  const meta = game.get("meta"), n = meta.rolls + 1;
+  const meta = game.get("meta"), n = (meta.counts?.[character2.oid] ?? 0) + 1;
   const by = character2.owner === GM ? "GM" : character2.owner;
   const base = {
-    id: `roll-${n}`,
+    id: `roll-${character2.oid}-${n}`,
     at: at3,
-    title: `${character2.name} #${n}: ${act.label}`,
+    title: `${character2.name}, roll ${n}`,
     by,
+    ...act && { action: act.label },
     dice: r.dice,
-    resolution: row2.auto ? row2.words : `${row2.words}: ${r.resolved}`,
-    level: `${r.result} ${levelName2(r.result)}`,
-    outcome: r.crit ? `CRIT! ${OUTCOME.success}` : OUTCOME[r.outcome],
+    resolution: resolutionWords(row2, r.dice),
+    level: levelWords(r.dice, dice.bonus, r.outcome === "failure"),
+    outcome: outcomeWords(r.crit ? "success" : r.outcome, r.result),
     ...r.crit && { crit: r.crit }
   };
-  const vsFull = opp && `${opp.name} ${against} (${signed2(diff)})`;
+  const vsFull = opp && `${opp.name} (${intent.defend} ${against}), Difference ${signed2(diff)}`;
   const owner = character2.owner === GM ? { name: GM, gm: true } : { name: character2.owner, gm: false };
   const seesOpp = !opp || canSee(owner, opp);
-  const full = { ...base, influence: sum2.total, base: act.base, row: row2.key, ...vsFull && { vs: vsFull } };
+  const numbers = sum2 && act ? { influence: sum2.total, base: act.base } : {};
+  const full = { ...base, ...numbers, row: rowWords(row2), ...vsFull && { vs: vsFull } };
   const roller = {
     ...base,
-    influence: sum2.total,
-    base: act.base,
-    row: seesOpp ? row2.key : diceOnly(row2),
+    ...numbers,
+    row: seesOpp ? rowWords(row2) : diceOnly(row2),
     ...opp && { vs: seesOpp ? vsFull : opp.name }
   };
   const table = { ...base, ...opp && { vs: opp.name } };
   const apply3 = (w) => {
-    w.put("meta", { ...meta, rolls: n });
+    w.put("meta", { ...meta, rolls: meta.rolls + 1, counts: { ...meta.counts, [character2.oid]: n } });
     for (const i of items) {
       if (i.kind === "influence" && typeof i.where === "object" && "slot" in i.where && i.where.slot === character2.oid && !i.used) {
         w.put(ridOf(i.oid), { ...i, used: true });
@@ -2485,7 +2559,7 @@ function resolve2(game, intent, rng, at3) {
 function choose(r, choice, lock) {
   if (!r.crit) return r;
   const value2 = choice === "max" ? r.crit.max : r.crit.dbl;
-  return { ...r, level: `${value2} ${levelName2(value2)}`, crit: { ...r.crit, chosen: choice, locked: lock } };
+  return { ...r, outcome: outcomeWords("success", value2), crit: { ...r.crit, chosen: choice, locked: lock } };
 }
 var Rolls = class {
   #w;
@@ -2514,6 +2588,11 @@ var Rolls = class {
   }
   idle() {
     return this.#work;
+  }
+  // R281: an error or a lost roll, as a short red note on this page's tape.
+  note(text) {
+    const at3 = this.#w.clock.now();
+    this.#print({ id: `note-${at3}`, at: at3, title: text, dice: [], resolution: "", level: "", outcome: "missing" });
   }
   #count(key) {
     let n = 0;
@@ -7266,6 +7345,536 @@ var Wire = class {
   }
 };
 
+// src/ui/rollrow.ts
+function fresh(pool) {
+  return { pool, action: "", opponent: null, defend: "mental", row: null, byHand: false, hand: { yellows: 1, bonus: 0 }, dice: [] };
+}
+function dock(r, pool) {
+  return { ...fresh(pool), ...r?.priv && { priv: true } };
+}
+function withAction(r, label) {
+  return { ...r, action: label, hand: { yellows: 0, bonus: 0 }, ...!r.opponent && { row: null, byHand: false } };
+}
+function cleared(r) {
+  return dock(r, r.pool);
+}
+function handStep(r, what, by) {
+  return { ...r, hand: { ...r.hand, [what]: r.hand[what] + by } };
+}
+function picked(r, key) {
+  return { ...r, row: key, byHand: true };
+}
+function aimed(r, opponent, defend2) {
+  return { ...r, opponent, defend: defend2, row: null, byHand: false };
+}
+function unaimed(r) {
+  return { ...r, opponent: null, ...!r.byHand && { row: null } };
+}
+function defendOf(c) {
+  return marks(parse(c.front), "def").map((m) => defend(m.text)).find((d) => d) ?? null;
+}
+var ownerAsViewer = (c) => c.owner === GM ? { name: GM, gm: true } : { name: c.owner, gm: false };
+function intentOf(r) {
+  const row2 = r.row && (r.byHand || !r.opponent) ? { row: r.row } : {};
+  return { pool: r.pool, action: r.action, vs: r.opponent, defend: r.defend, hand: r.hand, ...row2 };
+}
+function rollsFor(viewer, c) {
+  return !!viewer && !!c && c.owner !== OPEN && (viewer.gm || c.owner === viewer.name);
+}
+function actionOf(c, label) {
+  return marks(parse(c.front), "act").map((m) => action(m.text)).find((a) => a?.label === label) ?? null;
+}
+function shown(game, r) {
+  const c = game.get(ridOf(r.pool));
+  const items = game.all().map(([, x]) => x).filter((x) => "kind" in x && (x.kind === "chip" || x.kind === "influence"));
+  const mine = c ? pools(c.oid, items) : null;
+  const act = c && r.action ? actionOf(c, r.action) : null;
+  const row2 = ADV.find((x) => x.key === r.row) ?? row(0);
+  if (!act || !mine) return { label: "", base: null, total: null, parts: {}, yellows: Math.max(0, r.hand.yellows), bonus: r.hand.bonus, row: row2 };
+  const sum2 = total(act.base, mine), dice = bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, r.hand);
+  const out = { label: act.label, base: act.base, total: sum2.total, parts: sum2.parts, yellows: dice.yellows, bonus: dice.bonus, row: row2 };
+  const opp = r.opponent ? game.get(ridOf(r.opponent)) : void 0;
+  if (opp?.kind !== "character") return out;
+  const against = opposition(defendOf(opp)?.[r.defend] ?? 0, pools(opp.oid, items)).total, diff = sum2.total - against;
+  return { ...out, row: r.byHand ? row2 : row(diff), vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c), opp) } };
+}
+var ownerWord = (c) => c.owner === GM ? "GM" : c.owner === OPEN ? "open" : c.owner;
+var SIGN = (n) => n < 0 ? `\u2212${-n}` : `+${n}`;
+var RollRowView = class {
+  #w;
+  #row;
+  #info;
+  #menu;
+  #waiting = false;
+  constructor(w) {
+    this.#w = w;
+    const doc = document;
+    this.#row = doc.createElement("div");
+    this.#row.className = "roller";
+    this.#info = doc.createElement("span");
+    this.#info.className = "rollinfo";
+    this.#menu = doc.createElement("div");
+    this.#menu.className = "advmenu";
+    this.#menu.hidden = true;
+    doc.addEventListener("pointerdown", (e) => {
+      if (!this.#menu.hidden && !e.target.closest?.(".advmenu, .white")) this.#menu.hidden = true;
+    }, true);
+    w.game.listen(() => this.render());
+    this.render();
+  }
+  #set(r) {
+    const was = this.#w.roller();
+    this.#w.keep(r);
+    this.#w.redraw([...new Set([was?.pool, r?.pool].filter((x) => !!x))]);
+    this.render();
+  }
+  /** A player's roll is waiting on the GM's page (R102). */
+  waiting(on) {
+    this.#waiting = on;
+    this.render();
+  }
+  /** The die by a pool's name docked here (R68, R69). */
+  dock(oid) {
+    this.#set(dock(this.#w.roller(), oid));
+  }
+  /** An action's die (R76): false when the viewer can't roll for that character. */
+  action(oid, label) {
+    const c = this.#w.game.get(ridOf(oid));
+    if (!rollsFor(this.#w.viewer, c)) return false;
+    const r = this.#w.roller();
+    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label));
+    return true;
+  }
+  /** The action in use on this character, for its swish (R77). */
+  inUse(oid) {
+    const r = this.#w.roller();
+    return r?.pool === oid && r.action ? r.action : null;
+  }
+  render() {
+    const { game, viewer } = this.#w;
+    let r = this.#w.roller();
+    const c = r ? game.get(ridOf(r.pool)) : void 0;
+    if (r && !rollsFor(viewer, c)) {
+      this.#w.keep(null);
+      this.#w.redraw([r.pool]);
+      r = null;
+    }
+    const mat = r ? this.#w.pool(r.pool) : void 0;
+    if (!r || !mat) {
+      this.#row.remove();
+      this.#info.remove();
+      this.#menu.remove();
+      return;
+    }
+    const hd = mat.querySelector(".hd");
+    if (this.#row.parentElement !== mat) {
+      hd.after(this.#row);
+      mat.append(this.#menu);
+    }
+    if (this.#info.parentElement !== hd) hd.append(this.#info);
+    this.#draw(r, shown(game, r));
+  }
+  #draw(r, s) {
+    const doc = this.#row.ownerDocument, die3 = (c, title = "") => {
+      const d = doc.createElement("span");
+      d.className = `rrdie ${c}`;
+      if (title) d.title = title;
+      return d;
+    };
+    const step = (r2) => this.#set(r2);
+    const hidden = !!s.vs && !s.vs.sees, gm = !!this.#w.viewer?.gm, locked = hidden && !gm;
+    const white = doc.createElement("span");
+    white.className = locked ? "white locked" : "white";
+    white.title = locked ? `${diceOnly(s.row)} (set by the GM)` : `Difference ${rowWords(s.row)}. Click to choose the row.`;
+    white.append(die3("W"));
+    if (s.row.die) white.append(die3(s.row.die));
+    if (s.row.mod || s.row.auto) {
+      const mod = doc.createElement("span");
+      mod.className = s.row.auto ? "mod outclass" : "mod";
+      mod.textContent = s.row.auto ? s.row.words : s.row.mod > 0 ? "+1" : "\u22121";
+      white.append(mod);
+    }
+    gesture(white, { click: () => {
+      if (!locked) this.#openMenu(r, s.row.key);
+    } });
+    const ys = doc.createElement("span");
+    ys.className = "ydice";
+    ys.title = "Yellow dice: click to add one, shift-click to remove one";
+    ys.append(...s.yellows ? Array.from({ length: s.yellows }, () => die3("Y")) : [die3("ghost")]);
+    gesture(ys, { click: () => step(handStep(r, "yellows", 1)), shift: () => step(handStep(r, "yellows", -1)) });
+    const b = doc.createElement("span");
+    b.className = s.bonus ? "bonus" : "bonus zero";
+    b.textContent = SIGN(s.bonus);
+    b.title = "Success Bonus: click to raise, shift-click to lower";
+    gesture(b, { click: () => step(handStep(r, "bonus", 1)), shift: () => step(handStep(r, "bonus", -1)) });
+    const parts = [white, die3("B", "Blue: always rolled"), ys, b];
+    if (this.#w.viewer?.gm) {
+      const p = doc.createElement("button");
+      p.className = r.priv ? "priv on" : "priv";
+      p.textContent = r.priv ? "private" : "to table";
+      p.title = r.priv ? "Behind the screen: this roll prints on your tape only. Click to show rolls to the table." : "Rolls go to everyone at the table (what they would see: the dice and the result). Click to roll behind the screen.";
+      gesture(p, { click: () => step({ ...r, priv: !r.priv }) });
+      parts.push(p);
+    }
+    const roll3 = doc.createElement("button");
+    roll3.className = "roll";
+    roll3.textContent = this.#waiting ? "GM\u2026" : "Roll";
+    roll3.disabled = this.#waiting;
+    if (this.#waiting) roll3.title = "Waiting for the GM's page to roll";
+    gesture(roll3, { click: () => {
+      if (!this.#waiting) this.#w.roll(r);
+    } });
+    parts.push(roll3);
+    this.#row.replaceChildren(...parts);
+    this.#info.replaceChildren();
+    if (s.label) {
+      const base = doc.createElement("span"), n = doc.createElement("b");
+      base.className = "base";
+      n.textContent = s.total !== s.base ? `${s.base} \u2192 ${s.total}` : String(s.base);
+      base.append(s.label, n);
+      const breakdown = Object.entries(s.parts).filter(([k, v]) => k !== "base" && v).map(([k, v]) => `${k[0].toUpperCase()}${k.slice(1)} ${SIGN(v)}`);
+      base.title = `Total Influence ${s.total}: Base ${s.base}${breakdown.length ? `, ${breakdown.join(", ")}` : ""}. Click to clear.`;
+      gesture(base, { click: () => step(cleared(r)), drag: (d, m) => this.#aim(r, d, m) });
+      this.#info.append(base);
+    }
+    if (s.vs) {
+      const vs = doc.createElement("span"), shows = s.vs.sees || this.#w.viewer?.gm;
+      vs.className = "vs";
+      vs.append(`vs ${s.vs.name}`);
+      if (s.vs.sees) {
+        const n = doc.createElement("b");
+        n.textContent = ` ${s.vs.total} (${SIGN(s.vs.diff)})`;
+        vs.append(n);
+      }
+      vs.title = shows ? `${s.vs.name}: ${r.defend} Defend, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
+      gesture(vs, { click: () => step(unaimed(r)) });
+      this.#info.append(vs);
+    }
+    for (const p of doc.querySelectorAll(".pool.targeted")) p.classList.remove("targeted");
+    if (s.vs) this.#w.pool(s.vs.oid)?.classList.add("targeted");
+  }
+  // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
+  // the pointing hand holds; let go to aim, through the Defend chooser when they have two.
+  #aim(r, down, move) {
+    const doc = this.#row.ownerDocument, body = doc.body;
+    const under = (e) => {
+      for (const el3 of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
+        const rid = el3.closest?.(".pool, .obj.card")?.dataset.rid;
+        if (rid) return rid.slice(2);
+      }
+      return null;
+    };
+    let lit;
+    const light2 = (oid) => {
+      lit?.classList.remove("aimed");
+      lit = oid && oid !== r.pool ? this.#w.pool(oid) : void 0;
+      lit?.classList.add("aimed");
+    };
+    body.classList.add("tapping", "dragging");
+    doc.getSelection()?.removeAllRanges();
+    const onMove = (ev) => light2(under(ev));
+    const onUp = (ev) => {
+      const e = ev;
+      if (e.pointerId !== down.pointerId) return;
+      doc.removeEventListener("pointermove", onMove);
+      doc.removeEventListener("pointerup", onUp);
+      body.classList.remove("tapping", "dragging");
+      light2(null);
+      const oid = under(e), opp = oid && oid !== r.pool ? this.#w.game.get(ridOf(oid)) : void 0;
+      if (opp?.kind !== "character") return;
+      const viewer = this.#w.viewer;
+      if (!viewer?.gm && !canSee(viewer, opp)) {
+        this.#note(`Only the GM can aim at ${opp.name}.`, e);
+        return;
+      }
+      const def = defendOf(opp);
+      if (!def || def.mental === def.psych) {
+        this.#set(aimed(r, opp.oid, "mental"));
+        return;
+      }
+      this.#choose(opp, def, e, (kind) => this.#set(aimed(r, opp.oid, kind)));
+    };
+    doc.addEventListener("pointermove", onMove);
+    doc.addEventListener("pointerup", onUp);
+    onMove(move);
+  }
+  /** A small box at the pointer: a note that goes after about 2 s, or the Defend chooser (R87, R277). */
+  #box(at3) {
+    const doc = this.#row.ownerDocument;
+    doc.querySelector("#defchoice")?.remove();
+    const box2 = doc.createElement("div");
+    box2.id = "defchoice";
+    box2.style.left = `${Math.min(at3.clientX + 8, innerWidth - 260)}px`;
+    box2.style.top = `${Math.min(at3.clientY + 8, innerHeight - 120)}px`;
+    doc.body.append(box2);
+    const close = (e) => {
+      if (e.type === "keydown" ? e.key !== "Escape" : box2.contains(e.target)) return;
+      box2.remove();
+      doc.removeEventListener("pointerdown", close, true);
+      doc.removeEventListener("keydown", close);
+    };
+    doc.addEventListener("pointerdown", close, true);
+    doc.addEventListener("keydown", close);
+    return box2;
+  }
+  #note(text, at3) {
+    const box2 = this.#box(at3), p = box2.ownerDocument.createElement("p");
+    p.textContent = text;
+    box2.append(p);
+    setTimeout(() => box2.remove(), 2200);
+  }
+  #choose(opp, def, at3, pick) {
+    const box2 = this.#box(at3), doc = box2.ownerDocument, p = doc.createElement("p");
+    p.textContent = `Against ${opp.name}'s Defend`;
+    box2.append(p);
+    for (const kind of ["mental", "psych"]) {
+      const b = doc.createElement("button");
+      b.textContent = `${kind === "mental" ? "Mental" : "Psych"} ${def[kind]}`;
+      b.addEventListener("click", () => {
+        box2.remove();
+        pick(kind);
+      });
+      box2.append(b);
+    }
+    box2.querySelector("button")?.focus();
+  }
+  // R72: each row, its words first and its dice at the right; picking one sets the row.
+  #openMenu(r, current) {
+    const doc = this.#menu.ownerDocument;
+    if (!this.#menu.hidden) {
+      this.#menu.hidden = true;
+      return;
+    }
+    this.#menu.replaceChildren(...ADV.map((row2) => {
+      const b = doc.createElement("button"), words = doc.createElement("span"), dice = doc.createElement("span");
+      b.className = row2.key === current ? "on" : "";
+      words.textContent = rowWords(row2).split(": ")[0];
+      dice.className = "dice";
+      dice.textContent = row2.auto ? `auto ${row2.auto === "success" ? "\u2713" : "\u2717"}` : diceOnly(row2);
+      b.append(words, dice);
+      gesture(b, { click: () => {
+        this.#menu.hidden = true;
+        this.#set(picked(r, row2.key));
+      } });
+      return b;
+    }));
+    this.#menu.hidden = false;
+  }
+};
+
+// src/ui/tape.ts
+var EMPTY = { receipts: [] };
+function retitled(tape, id, title) {
+  return { receipts: tape.receipts.map((r) => r.id === id ? { ...r, title } : r) };
+}
+function torn(tape, oid, place2) {
+  return { kind: "tornroll", oid, place: place2, receipts: tape.receipts };
+}
+function mayChoose(viewer, r) {
+  return !!r.crit && !r.crit.locked && !!viewer && (viewer.gm || r.by === viewer.name);
+}
+var TEAR_PX = 5;
+var TapeView = class {
+  #w;
+  #el;
+  #strip;
+  #shown = "";
+  constructor(root, w) {
+    this.#w = w;
+    const doc = root.ownerDocument;
+    this.#el = doc.createElement("div");
+    this.#el.id = "tape";
+    this.#strip = doc.createElement("div");
+    this.#strip.className = "strip";
+    this.#el.append(this.#strip);
+    root.prepend(this.#el);
+    doc.addEventListener("pointerdown", (e) => {
+      const t = e.target;
+      if (!t.closest?.("#tape, #paperroll, .roller .roll")) this.#el.classList.remove("raised");
+    }, true);
+    this.#strip.addEventListener("pointerdown", (e) => this.#press(e));
+    this.#strip.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+    w.game.listen((rids) => {
+      if (rids.has("tape")) this.render();
+    });
+    this.render();
+  }
+  /** The paper roll on the register: up to a sliver, and down again (raised as it comes down). */
+  toggleUp() {
+    const up = !this.#w.up();
+    this.#w.setUp(up);
+    if (!up) this.#el.classList.add("raised");
+    this.render();
+  }
+  render() {
+    const tape = this.#w.game.get("tape") ?? EMPTY, doc = this.#el.ownerDocument;
+    this.#el.classList.toggle("empty", !tape.receipts.length);
+    this.#el.classList.toggle("up", this.#w.up());
+    const key = JSON.stringify(tape.receipts);
+    if (key === this.#shown) return;
+    const first = !this.#shown, was = first ? void 0 : JSON.parse(this.#shown)[0]?.id;
+    this.#shown = key;
+    this.#strip.replaceChildren(...tape.receipts.map((r) => this.#receipt(doc, r)));
+    const top = this.#strip.firstElementChild;
+    if (!first && top && tape.receipts[0].id !== was) {
+      top.classList.add("printing");
+      this.#el.classList.add("raised");
+      this.#strip.scrollTop = 0;
+    }
+  }
+  #receipt(doc, r) {
+    const e = receiptEl(doc, r), title = e.querySelector(".title");
+    title.contentEditable = "true";
+    title.spellcheck = false;
+    title.addEventListener("blur", () => {
+      const tape = this.#w.game.get("tape") ?? EMPTY, text = title.textContent?.trim() ?? "";
+      if (text && text !== r.title) this.#w.game.change((w) => w.put("tape", retitled(tape, r.id, text)));
+    });
+    if (mayChoose(this.#w.viewer, r)) {
+      const chosen = r.crit.chosen, other = chosen === "max" ? "dbl" : "max";
+      e.querySelector(".other")?.addEventListener("click", () => this.#w.crit(r.id, other, false));
+      const lock = doc.createElement("button");
+      lock.className = "lock";
+      lock.textContent = "punch";
+      lock.title = "Lock this result in";
+      lock.addEventListener("click", () => this.#w.crit(r.id, chosen, true));
+      e.querySelector(".chosen")?.append(lock);
+    }
+    return e;
+  }
+  // R113, R283: a press on the tape raises it; dragged a few pixels, the whole roll tears off.
+  #press(e) {
+    if (e.button !== 0) return;
+    const t = e.target;
+    e.stopPropagation();
+    this.#el.classList.add("raised");
+    if (t.closest(".title[contenteditable]") || t.closest("button, .other")) return;
+    const tape = this.#w.game.get("tape") ?? EMPTY;
+    if (!tape.receipts.length) return;
+    e.preventDefault();
+    const doc = this.#el.ownerDocument, box2 = this.#strip.getBoundingClientRect();
+    const onMove = (ev) => {
+      if (ev.pointerId !== e.pointerId || Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < TEAR_PX) return;
+      stop();
+      const oid = this.#w.mint(), at3 = this.#w.toWorld(box2.left, box2.top);
+      this.#w.game.change((w) => {
+        w.put(ridOf(oid), torn(tape, oid, { x: Math.round(at3.x), y: Math.round(at3.y), z: 0, tilt: 0 }));
+        w.put("tape", EMPTY);
+      });
+      this.#el.classList.remove("raised");
+      this.#w.carry(ridOf(oid), e, ev);
+    };
+    const stop = () => {
+      doc.removeEventListener("pointermove", onMove);
+      doc.removeEventListener("pointerup", stop);
+    };
+    doc.addEventListener("pointermove", onMove);
+    doc.addEventListener("pointerup", stop);
+  }
+};
+
+// src/ui/register.ts
+var ROUND_MAX = 99;
+var END_MS = 3e3;
+function stepped(meta, by) {
+  return { ...meta, round: Math.max(0, Math.min(ROUND_MAX, meta.round + by)) };
+}
+function ended(game) {
+  return (w) => {
+    const meta = game.get("meta");
+    w.put("meta", { ...meta, round: 0 });
+    for (const [rid, r] of game.all()) {
+      const p = r;
+      if (!("kind" in p)) continue;
+      if (p.kind === "character") {
+        w.put(rid, recharge(p));
+        continue;
+      }
+      if (p.kind !== "influence") continue;
+      const k = p;
+      if (k.crit || k.where === "used" && k.tap) w.del(rid);
+      else if (k.where === "used") w.put(rid, { ...k, where: "drawer", used: false });
+      else if (k.used) w.put(rid, { ...k, used: false });
+    }
+  };
+}
+var RegisterView = class {
+  #w;
+  #el;
+  #tab;
+  #shown = -1;
+  #armed = null;
+  constructor(bar, w) {
+    this.#w = w;
+    const doc = bar.ownerDocument, el3 = (tag2, cls, text = "") => {
+      const e = doc.createElement(tag2);
+      e.className = cls;
+      e.textContent = text;
+      return e;
+    };
+    this.#el = el3("div", "register");
+    const win = el3("div", "window"), confirm = el3("span", "tab", "End conflict?");
+    this.#tab = el3("span", "rtab");
+    win.append(el3("small", "label", "Round"), this.#tab, confirm);
+    const keys2 = el3("div", "keys"), up = el3("button", "key up", "\u25B2"), down = el3("button", "key down", "\u25BC"), end = el3("button", "key end", "End");
+    const roll3 = el3("button", "paperroll");
+    roll3.id = "paperroll";
+    roll3.title = "Roll the tape up, or down again";
+    up.title = "The next Round";
+    down.title = "The Round before";
+    end.title = "End the Conflict: Round to 0, Biases, Afflictions and Injuries recharged, the used piles emptied";
+    keys2.append(up, down, end);
+    this.#el.append(el3("span", "rslot"), win, keys2, roll3);
+    bar.append(this.#el);
+    const gm = !!w.viewer?.gm && !!w.checkpoint;
+    for (const k of [up, down, end]) k.disabled = !gm;
+    const step = (by) => w.game.change((x) => x.put("meta", stepped(w.game.get("meta"), by)));
+    gesture(up, { click: () => step(1) });
+    gesture(down, { click: () => step(-1) });
+    gesture(end, { click: () => {
+      if (this.#armed === null) {
+        this.#el.classList.add("armed");
+        this.#armed = setTimeout(() => {
+          this.#armed = null;
+          this.#el.classList.remove("armed");
+        }, END_MS);
+        return;
+      }
+      clearTimeout(this.#armed);
+      this.#armed = null;
+      this.#el.classList.remove("armed");
+      const round = w.game.get("meta").round;
+      void w.checkpoint?.(`End of conflict, round ${round}`).then(() => w.game.change(ended(w.game)));
+    } });
+    gesture(roll3, { click: () => w.paperRoll() });
+    w.game.listen((rids) => {
+      if (rids.has("meta")) this.render();
+    });
+    this.render();
+  }
+  // R284: a changed Round drops its tab and brings it back up with the new number.
+  render() {
+    const round = this.#w.game.get("meta")?.round ?? 0;
+    if (round === this.#shown) return;
+    const first = this.#shown < 0;
+    this.#shown = round;
+    const reduce = this.#el.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (first || reduce) {
+      this.#tab.textContent = String(round);
+      return;
+    }
+    this.#tab.classList.add("down");
+    setTimeout(() => {
+      this.#tab.textContent = String(round);
+      this.#tab.classList.remove("down");
+    }, 110);
+  }
+  /** The register's left edge on screen, for hanging the tape under it (R282). */
+  left() {
+    return this.#el.getBoundingClientRect().left;
+  }
+};
+
 // src/store/blobs.ts
 async function sha256(bytes) {
   const buf = bytes instanceof Blob ? await bytes.arrayBuffer() : bytes;
@@ -7301,10 +7910,10 @@ var BlobStore = class {
   }
   /** An object URL for showing the image; each url() is paired with a release(). */
   async url(hash) {
-    const shown = this.#shown.get(hash);
-    if (shown) {
-      shown.n++;
-      return shown.url;
+    const shown2 = this.#shown.get(hash);
+    if (shown2) {
+      shown2.n++;
+      return shown2.url;
     }
     const blob = await this.get(hash);
     if (!blob) return void 0;
@@ -7319,9 +7928,9 @@ var BlobStore = class {
   }
   /** One image stops showing; the URL is revoked when none does. */
   release(hash) {
-    const shown = this.#shown.get(hash);
-    if (!shown || --shown.n > 0) return;
-    this.#urls.revoke(shown.url);
+    const shown2 = this.#shown.get(hash);
+    if (!shown2 || --shown2.n > 0) return;
+    this.#urls.revoke(shown2.url);
     this.#shown.delete(hash);
   }
 };
@@ -7724,7 +8333,7 @@ var GameStore = class {
 
 // src/store/seat.ts
 var seatKey = (game, viewer) => `hollow.seat.${game}.${viewer}`;
-function fresh() {
+function fresh2() {
   return {
     view: null,
     roller: null,
@@ -7740,10 +8349,10 @@ function load(storage, game, viewer) {
   try {
     saved = JSON.parse(storage.getItem(seatKey(game, viewer)) ?? "null");
   } catch {
-    return fresh();
+    return fresh2();
   }
-  if (!isObject(saved)) return fresh();
-  const base = fresh();
+  if (!isObject(saved)) return fresh2();
+  const base = fresh2();
   return {
     ...base,
     ...saved,
@@ -7998,17 +8607,19 @@ function drawPool(c, items, old, w) {
   e.style.top = `${c.pool.y}px`;
   e.style.zIndex = String(c.pool.z);
   e.querySelector(".name").textContent = c.name;
-  e.querySelector(".owner").textContent = c.owner === "open" ? "open" : c.owner;
+  const die3 = e.querySelector(".die-own");
+  die3.textContent = ownerWord(c);
+  die3.title = c.owner === OPEN ? "Open: click to claim this character" : "Click to roll for this character; shift-click to open it for someone else";
   e.querySelector(".gather").hidden = c.gathered;
-  const opened = w.poolOpen(), shown = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
+  const opened = w.poolOpen(), shown2 = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
   const slotEls = [...e.querySelectorAll(".slot")];
   const mine = slotEls.map((slotEl) => items.filter((i) => at2(i, c.oid, slotEl.dataset.slot)));
   holdingOf.set(e, slotEls.map((slotEl, k) => mine[k].length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
   layout(e);
-  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown, drawn));
-  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown, drawn);
-  for (const k of pops(seen2.get(e), shown)) pop(drawn.get(k));
-  seen2.set(e, shown);
+  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown2, drawn));
+  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown2, drawn);
+  for (const k of pops(seen2.get(e), shown2)) pop(drawn.get(k));
+  seen2.set(e, shown2);
   e.dataset.rid = rid;
   return e;
 }
@@ -8047,7 +8658,9 @@ function make3(doc, c, w) {
     w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
   } });
   const name2 = el2(doc, "span", "name");
-  hd.append(name2, el2(doc, "span", "owner"), gather);
+  const die3 = el2(doc, "button", "die-own");
+  gesture(die3, { click: () => w.poolDie(c.oid, false, die3), shift: () => w.poolDie(c.oid, true, die3) });
+  hd.append(name2, die3, gather);
   const slots = el2(doc, "div", "slots");
   for (const s of SLOTS) {
     const slot2 = el2(doc, "div", `slot slot-${s}`);
@@ -8081,7 +8694,7 @@ function make3(doc, c, w) {
   for (const part of [name2, slots, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid, d, m) });
   return e;
 }
-function units(slotEl, items, w, shown, drawn) {
+function units(slotEl, items, w, shown2, drawn) {
   const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
   const opened = w.poolOpen(), place2 = slotEl.dataset.slot;
   for (const sign2 of [1, -1]) {
@@ -8092,20 +8705,24 @@ function units(slotEl, items, w, shown, drawn) {
       const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
       e.style.zIndex = String(50 - k);
       const key = piled ? `pile:${u.members[0]?.oid ?? ""}` : u.oid;
-      shown.set(key, { points: u.points, place: place2 });
+      shown2.set(key, { points: u.points, place: place2 });
       drawn.set(key, e);
       return e;
     }));
   }
 }
 var worthOf = (u) => isPile2(u) ? u.points : worth(u);
+function chipFace(i) {
+  if (i.points === 1) return i.sign < 0 ? "\u22121" : "+1";
+  return `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
+}
 function chip(doc, i, w) {
   const card2 = i.kind === "influence";
   const b = el2(
     doc,
     "button",
     `chip ${i.sign > 0 ? "pos" : "neg"}${card2 ? " card-chip" : ""}${card2 && i.tap ? " res" : ""}${card2 && i.used ? " used" : ""}`,
-    `${i.sign < 0 ? "\u2212" : ""}${i.points}`
+    chipFace(i)
   );
   const rid = ridOf(i.oid);
   b.dataset.rid = rid;
@@ -8118,10 +8735,10 @@ function chip(doc, i, w) {
     gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
     b.append(r);
   }
-  const click = i.kind === "chip" ? chipClick : cardClick;
+  const click2 = i.kind === "chip" ? chipClick : cardClick;
   gesture(b, {
-    click: () => run(w.game, click(w.game, rid, false, w.mint())),
-    shift: () => run(w.game, click(w.game, rid, true, w.mint())),
+    click: () => run(w.game, click2(w.game, rid, false, w.mint())),
+    shift: () => run(w.game, click2(w.game, rid, true, w.mint())),
     drag: (d, m) => w.dragItem(rid, d, m)
   });
   return b;
@@ -8140,13 +8757,13 @@ function pile(doc, p, open, w) {
   }
   return d;
 }
-function drawer(box2, c, cards, w, shown, drawn) {
+function drawer(box2, c, cards, w, shown2, drawn) {
   const doc = box2.ownerDocument, opened = w.poolOpen();
   const visible = canSee(w.viewer, c);
   const here = cards.filter((k) => k.where === "drawer"), used = cards.filter((k) => k.where === "used");
   box2.querySelector(".cards").replaceChildren(...here.sort((a, b) => a.n - b.n).map((k) => {
     const e = card(doc, k, visible, w);
-    shown.set(k.oid, { points: k.points, place: "drawer" });
+    shown2.set(k.oid, { points: k.points, place: "drawer" });
     drawn.set(k.oid, e);
     return e;
   }));
@@ -8247,7 +8864,7 @@ function showGap(drawer2, at3, animate = true) {
 var TAP_GLYPH_X = 10;
 function asChip(el3, i) {
   el3.className = `loose-item chip ${i.sign > 0 ? "pos" : "neg"}`;
-  el3.textContent = `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
+  el3.textContent = chipFace(i);
   if (i.kind === "influence") el3.title = i.name;
 }
 function light(was, now2) {
@@ -8727,12 +9344,13 @@ var TableView = class {
   #push(rid) {
     const { game, viewer } = this.#w, mat = this.#pools.get(rid), c = game.get(rid);
     if (!mat || !c || c.kind !== "character" || mat.ownerDocument.body.classList.contains("dragging")) return;
-    const h = mat.offsetHeight, was = this.#heights.get(rid);
+    const row2 = mat.querySelector(".roller"), own2 = row2 ? row2.offsetHeight + parseFloat(getComputedStyle(row2).marginBottom || "0") : 0;
+    const h = mat.offsetHeight - own2, was = this.#heights.get(rid);
     this.#heights.set(rid, h);
     if (was === void 0 || h <= was || !viewer?.gm) return;
-    const box2 = (e) => {
+    const box2 = (e, less = 0) => {
       const left2 = parseFloat(e.style.left), top = parseFloat(e.style.top);
-      return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight };
+      return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight - less };
     };
     const pieces = [];
     for (const [r, e] of this.#els) {
@@ -8742,7 +9360,7 @@ var TableView = class {
     }
     for (const [r, e] of this.#pools) if (r !== rid) pieces.push({ rid: `${r}#pool`, box: box2(e) });
     for (const [r, e] of this.#loose) pieces.push({ rid: r, box: box2(e) });
-    const moves = pushClear(box2(mat), pieces);
+    const moves = pushClear(box2(mat, own2), pieces);
     if (!moves.length) return;
     game.change((w) => {
       const out = /* @__PURE__ */ new Map();
@@ -8806,16 +9424,16 @@ var TableView = class {
       this.#loose.set(rid, e);
     }
     e.className = `obj loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
-    if (i.kind === "chip") e.textContent = `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
+    if (i.kind === "chip") e.textContent = chipFace(i);
     else {
       const level = doc.createElement("button");
       level.className = "level";
       level.textContent = `${i.sign > 0 ? "+" : "\u2212"}${levelName(i.points)}`;
-      const click = (shift) => {
+      const click2 = (shift) => {
         const ch = cardClick(this.#w.game, rid, shift, this.#w.mint());
         if (ch) this.#w.game.change(ch);
       };
-      gesture(level, { click: () => click(false), shift: () => click(true) });
+      gesture(level, { click: () => click2(false), shift: () => click2(true) });
       e.replaceChildren(`${i.name} `, level);
     }
     e.style.left = `${where2.x}px`;
@@ -9017,7 +9635,7 @@ function frame(fn) {
   raf = requestAnimationFrame(go);
   const t = setTimeout(go, 100);
 }
-function views(game, gameId, viewer, blobs, moves, missing) {
+function views(game, gameId, viewer, blobs, moves, missing, rolling, checkpoint) {
   const who = viewer?.name ?? "nobody", gm = !!viewer?.gm;
   let seat = load(localStorage, gameId, who);
   const keep = (s) => {
@@ -9026,7 +9644,7 @@ function views(game, gameId, viewer, blobs, moves, missing) {
   };
   const redraw = () => table.render(game.all().map(([rid]) => rid));
   const mint2 = () => minter(game, gm);
-  let drag;
+  let drag, rollRow;
   const table = new TableView(document.getElementById("table"), document.getElementById("world"), {
     game,
     viewer,
@@ -9066,9 +9684,68 @@ function views(game, gameId, viewer, blobs, moves, missing) {
       redraw();
     },
     dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
+    // R75–R77: an action's die brings the roll row; the action in use gets its swish.
+    useAction: (oid, label) => rollRow?.action(oid, label) ?? false,
+    inUse: (oid) => rollRow?.inUse(oid) ?? null,
+    // R142, R144, R146, R68: the die by a pool's name claims, opens, or docks the roll row.
+    poolDie: (oid, shift, die3) => {
+      const c = game.get(ridOf(oid));
+      if (c?.kind !== "character") return;
+      const r = shift ? shiftClick(viewer, c) : click(viewer, c);
+      if ("owner" in r) game.change((w) => w.put(ridOf(oid), { ...c, owner: r.owner }));
+      else if ("dock" in r) rollRow?.dock(oid);
+      else {
+        die3.title = r.refused;
+        die3.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+      }
+    },
     dragPool: (rid, down, move) => drag?.startPool(rid, down, move)
   });
   drag = new Drag({ game, table, moves, mint: mint2, schedule: frame });
+  const tape = new TapeView(document.getElementById("table"), {
+    game,
+    viewer,
+    up: () => seat.tapeUp,
+    setUp: (up) => keep({ ...seat, tapeUp: up }),
+    crit: (id, choice, lock) => rolling().crit(id, choice, lock),
+    mint: () => mint2()(),
+    toWorld: (x, y) => table.toWorld(x, y),
+    carry: (rid, down, move) => drag?.start(rid, down, move)
+  });
+  const register = new RegisterView(document.getElementById("bar"), { game, viewer, checkpoint, paperRoll: () => tape.toggleUp() });
+  const hang = () => {
+    const t = document.getElementById("tape");
+    if (t) {
+      t.style.right = "auto";
+      t.style.left = `${Math.max(8, Math.min(innerWidth - 258, register.left() + 2))}px`;
+    }
+  };
+  hang();
+  addEventListener("resize", hang);
+  void document.fonts?.ready.then(hang);
+  rollRow = new RollRowView({
+    game,
+    viewer,
+    roller: () => seat.roller,
+    keep: (r) => keep({ ...seat, roller: r }),
+    pool: (oid) => table.pool(ridOf(oid)),
+    redraw: (oids) => table.render(oids.map(ridOf)),
+    // R100–R104, R281: the GM's page rolls at once (privately if switched); a player's asks it, Roll
+    // reading "GM…" meanwhile; why not prints as a note on the tape.
+    roll: (r) => {
+      const rolls = rolling(), intent = intentOf(r);
+      if (gm) {
+        const why3 = rolls.roll(intent, !!r.priv);
+        if (why3) rolls.note(why3);
+        return;
+      }
+      rollRow.waiting(true);
+      void rolls.request(intent).then((why3) => {
+        rollRow.waiting(false);
+        if (why3) rolls.note(why3);
+      });
+    }
+  });
   return { table, drag };
 }
 async function main() {
@@ -9110,7 +9787,7 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const { table: table2, drag: drag2 } = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, (hash) => images.missing.get(hash));
+    const { table: table2, drag: drag2 } = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, (hash) => images.missing.get(hash), () => rolls2);
     return { stamp: "dev", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
   await store.start();
@@ -9155,7 +9832,16 @@ async function main() {
     return table;
   };
   const link = () => invite(location.href, open().room, identity.id);
-  const { table: view, drag } = views(game, store.current.id, { name: "GM", gm: true }, blobs, moves, (hash) => table?.images.missing.get(hash));
+  const { table: view, drag } = views(
+    game,
+    store.current.id,
+    { name: "GM", gm: true },
+    blobs,
+    moves,
+    (hash) => table?.images.missing.get(hash),
+    () => rolls,
+    (name2) => store.checkpoint(name2, true)
+  );
   return {
     stamp: "dev",
     role: "gm",

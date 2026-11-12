@@ -55,6 +55,31 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 }
 #bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
 #bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; }
+/* R115, R116, R284: the register at the bar's right end: quartersawn oak, a glass window with the
+   Round on a pop-up tab, red enamel keys, End a white key, and the tape's paper roll. */
+.register { margin-left: auto; position: relative; display: grid; grid-template-columns: auto auto auto auto; align-items: center; gap: 10px;
+  padding: 8px 12px; border-radius: 6px; border: 1.5px solid #3b2512;
+  background: repeating-linear-gradient(95deg, rgba(255,255,255,.05) 0 3px, transparent 3px 11px), linear-gradient(#a06a3a, #8a5a2e 55%, #6e4522);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 2px 4px rgba(0,0,0,.5); }
+.register .rslot { width: 8px; height: 34px; border-radius: 3px; background: #1d140f; box-shadow: inset 0 1px 2px #000; }
+.register .window { position: relative; width: 84px; height: 48px; overflow: hidden; border-radius: 4px; border: 3px solid #c9cccf;
+  border-color: #e3e5e7 #9a9da0 #9a9da0 #e3e5e7; background: linear-gradient(#2a2a2a, #111); display: grid; place-items: center; }
+.register .label { position: absolute; top: 2px; left: 4px; font: 9px var(--mono); color: #c9cccf; }
+.register .rtab { width: 38px; height: 33px; margin-top: 10px; display: grid; place-items: center; background: #fbfaf6; color: #111;
+  font: 900 21px Georgia, serif; border-radius: 3px 3px 0 0; transition: transform .16s; }
+.register .rtab.down { transform: translateY(105%); transition-duration: .1s; }
+.register .tab { position: absolute; inset: auto 4px 0 4px; height: 26px; display: grid; place-items: center; border-radius: 3px 3px 0 0;
+  background: linear-gradient(#f08a3a, #d8661c); color: #fff; font: 12px var(--mono); transform: translateY(110%); transition: transform .16s; }
+.register.armed .tab { transform: none; }
+.register .keys { display: grid; grid-template-columns: 24px 24px; gap: 4px; }
+.register .key { width: 24px; height: 24px; border-radius: 50%; border: 1px solid #5a1410; background: radial-gradient(circle at 35% 30%, #e0584b, #c8372d 60%, #8e2219);
+  color: #fff; font: 10px var(--mono); cursor: pointer; padding: 0; box-shadow: 0 2px 0 #4a120d; }
+.register .key.end { grid-column: span 2; width: auto; height: 22px; border-radius: 11px; background: #fbfaf6; color: #111; border-color: #111; box-shadow: 0 2px 0 #111; }
+.register .key:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 #4a120d; }
+.register .key:disabled { cursor: default; opacity: .75; }
+.register .paperroll { width: 18px; height: 34px; border-radius: 9px / 6px; border: 1px solid #857f6e; cursor: pointer; padding: 0;
+  background: radial-gradient(circle at 50% 50%, #6e4522 0 3px, transparent 3.5px), linear-gradient(90deg, #e9e2cf, #fbfaf6 50%, #d9d1bb); }
+@media (prefers-reduced-motion: reduce) { .register .rtab, .register .tab { transition: none; } }
 
 /* ---- R2: the table, oiled walnut, lamp-lit ---- */
 #table {
@@ -68,7 +93,25 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 }
 body.panning #table { cursor: grabbing; }
 body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
-#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; z-index: 1; }
+/* R110, R112, R282: the tape hangs under the register, under the pieces until raised; 250 wide, at
+   most 380 tall; a new receipt slides in; rolled up, a sliver. */
+#tape { position: fixed; top: calc(var(--bar-h) - 3px); right: 12px; width: 250px; z-index: 0; filter: drop-shadow(0 4px 6px rgba(0,0,0,.45)); }
+#tape.raised { z-index: 2; }
+#tape.empty { display: none; }
+#tape .strip { max-height: 380px; overflow-y: auto; overscroll-behavior: contain; background: #fbfaf6; cursor: grab; transition: max-height .25s;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 95% calc(100% - 5px), 90% 100%, 85% calc(100% - 5px), 80% 100%, 75% calc(100% - 5px), 70% 100%, 65% calc(100% - 5px), 60% 100%, 55% calc(100% - 5px), 50% 100%, 45% calc(100% - 5px), 40% 100%, 35% calc(100% - 5px), 30% 100%, 25% calc(100% - 5px), 20% 100%, 15% calc(100% - 5px), 10% 100%, 5% calc(100% - 5px), 0 100%); padding-bottom: 6px; }
+#tape .strip:hover { background: #f3eedf; }
+#tape.up .strip { max-height: 16px; overflow: hidden; }
+#tape .receipt.printing { animation: printing .35s ease-out; }
+@keyframes printing { from { margin-top: -60px; opacity: 0; } }
+/* R97: a CRIT's other line switches; the punch locks the chosen one. */
+.receipt .other { cursor: pointer; opacity: .6; }
+.receipt .other:hover { opacity: 1; text-decoration: underline; }
+.receipt .chosen { font-weight: 700; }
+.receipt .chosen.punched::before { content: "●"; margin-right: 4px; }
+.receipt .lock { margin-left: 8px; font: 11px var(--mono); border: 1px solid #8a7458; border-radius: 10px; background: none; cursor: pointer; padding: 0 6px; }
+@media (prefers-reduced-motion: reduce) { #tape .receipt.printing { animation: none; } #tape .strip { transition: none; } }
 
 /* ---- every piece: R5, tilted at random, square while written in ---- */
 .obj { position: absolute; transform: rotate(var(--tilt, 0deg)); transition: box-shadow .15s, transform .15s; }
@@ -150,6 +193,14 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .obj:has([contenteditable]:focus, .pens:focus-within) .aff:not(:empty) { background: var(--pen-aff); }
 .obj:has([contenteditable]:focus, .pens:focus-within) .inj:not(:empty) { background: var(--pen-inj); }
 .obj:has([contenteditable]:focus, .pens:focus-within) .def { background: var(--pen-def); text-decoration: underline double; }
+/* R75: an action's die, die-shaped so it can't be taken for a Slot box or a glyph; it brings the roll row. */
+.actdie { display: inline-block; width: 12px; height: 12px; margin: 0 4px 0 0; vertical-align: -1px; border-radius: 3px; border: 1.5px solid #2a2a2a;
+  background: radial-gradient(circle at 50% 50%, #2a2a2a 0 1.6px, transparent 2px), #fff; box-shadow: 1px 1px 0 #2a2a2a; cursor: pointer; }
+.actdie:hover { background-color: #fff6a8; }
+/* R77: the action in use, a highlighter swish over its line. */
+.act.inuse { margin: 0 -.25em; padding: 0 .25em; border-radius: .8em .3em .9em .4em; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  background: linear-gradient(104deg, #ffe44d00 .9%, #ffe44df0 2.4%, #ffd633d0 5.8%, #ffe44d99 93%, #ffe44de0 96%, #ffe44d00 98%),
+    linear-gradient(183deg, #ffe44d00 0%, #ffe44d66 7.9%, #ffe44d00 15%); }
 /* R246: the print's weights, from the marks: a label up to its colon, headings, the card's name. */
 :is(.act, .def) > b { font-weight: 700; }
 .head { font-weight: 700; font-size: 1.125em; }
@@ -221,15 +272,80 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 /* ---- a torn-off roll of receipts; it scrolls inside ---- */
 .tornroll { width: 210px; max-height: 360px; overflow-y: auto; background: var(--paper); padding: 6px 8px;
   box-shadow: 0 4px 9px rgba(0,0,0,.4); font: 11px/1.3 var(--mono); clip-path: polygon(0 0, 100% 0, 100% 100%, 92% 99%, 84% 100%, 76% 99%, 68% 100%, 60% 99%, 52% 100%, 44% 99%, 36% 100%, 28% 99%, 20% 100%, 12% 99%, 4% 100%, 0 99%); }
-.receipt { border-bottom: 1px dashed #bbb; padding: 4px 0; }
-.receipt .when { float: right; opacity: .7; }
+/* R279, R280: a receipt on cream paper in PT Mono; its dice drawn as dice. */
+.receipt { border-bottom: 1.5px dashed #c9c2ae; padding: 9px 12px 10px; font: 13px/1.4 var(--mono); color: #222; overflow-wrap: anywhere; }
+.receipt .rhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.receipt .title { font: 700 20px/1.1 var(--hand); outline: none; }
+.receipt .when { font: 11px var(--mono); color: #666; white-space: nowrap; }
+.receipt .by { font: 600 15px var(--hand); color: #666; }
+.receipt .outcome { font-weight: 700; font-size: 14px; }
+.receipt .privnote { font: 15px var(--hand); color: #7a5a2a; }
+.rdice { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+.rdie { width: 28px; height: 28px; border-radius: 6px; border: 1.5px solid #2a2a2a; display: grid; place-items: center;
+  font: 700 15px/1 var(--mono); position: relative; animation: tumble .45s backwards; }
+.rdie.W { background: #f6f6f2; } .rdie.G { background: #6aa84f; } .rdie.R { background: #cc4125; color: #fff; }
+.rdie.B { background: #3d85c6; color: #fff; } .rdie.Y { background: #f1c232; }
+.rdie.added { border-style: dashed; }
+.rdie.dropped { opacity: .35; }
+.rdie.dropped::after { content: ""; position: absolute; left: -3px; right: -3px; top: 50%; border-top: 2px solid #2a2a2a; transform: rotate(-35deg); }
+@keyframes tumble { from { transform: translateY(-14px) rotate(-200deg); opacity: 0; } }
+/* R281: an error or a lost roll: a short red note with the time. */
+.receipt.note .title { font: italic 15px var(--hand); color: #a33; }
+@media (prefers-reduced-motion: reduce) { .rdie { animation: none; } }
 
 /* ---- R28, R227: a pool mat, its slots, chips, piles and drawer (ui-pool.md); sizes match pool.ts ---- */
 /* R244: 430px, growing past it only when a carry opens a strip and no slot can close. */
 .pool { min-width: 430px; width: max-content; font: 12px/1.2 var(--mono); color: #f3e9d8; user-select: none; -webkit-user-select: none; }
 .pool .hd { display: flex; gap: 8px; align-items: baseline; padding: 0 4px 6px; }
 .pool .hd .name { font: 700 24px/1 var(--hand); color: #9fe08a; text-shadow: 0 1px 2px rgba(0,0,0,.5); cursor: grab; }
-.pool .hd .owner { opacity: .75; }
+/* R142: the die by the name shows the owner; it claims, opens, or docks the roll row. */
+.pool .die-own { min-width: 30px; height: 26px; padding: 0 6px; border-radius: 5px; border: 1.5px solid #2a2a2a; background: #f6f6f2;
+  color: #222; font: 700 12px var(--mono); box-shadow: 1.5px 1.5px 0 #2a2a2a; cursor: pointer; }
+/* R78, R79: the action and opponent in the header; the action in the hand font, its number bold. */
+.rollinfo { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.rollinfo .base { font: 17px var(--hand); color: #f3e9d8; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.rollinfo .base b { font: 700 16px var(--mono); margin-left: 4px; }
+.rollinfo .vs { font: 16px var(--hand); color: #f6c6a8; cursor: pointer; }
+/* R274: the roll row, a dark walnut strip under the header, the drawer's width; blank dice. */
+.roller { display: flex; align-items: center; gap: 10px; width: 416px; margin: 0 0 6px; padding: 6px 8px; border-radius: 4px;
+  background: linear-gradient(#2e2117, #22170f); box-shadow: inset 0 1px 3px rgba(0,0,0,.6); color: #f3e1c2; font: 12px var(--mono); }
+.rrdie { width: 24px; height: 24px; border-radius: 5px; display: inline-block; box-shadow: inset -2px -2px 0 rgba(0,0,0,.18); }
+.rrdie.W { background: #f6f6f2; } .rrdie.G { background: #6aa84f; } .rrdie.R { background: #cc4125; }
+.rrdie.B { background: #3d85c6; } .rrdie.Y { background: #f1c232; }
+.rrdie.ghost { background: none; border: 1.5px dashed #f1c232; box-shadow: none; box-sizing: border-box; }
+.roller .white, .roller .ydice, .roller .bonus { display: flex; align-items: center; gap: 4px; padding: 3px; border-radius: 6px; cursor: pointer; }
+.roller .white:hover, .roller .ydice:hover, .roller .bonus:hover { background: #ffffff14; }
+.roller .mod { font: 700 13px var(--mono); }
+.roller .mod.outclass { font: 17px var(--hand); }
+.roller .bonus { font: 700 18px var(--mono); min-width: 38px; }
+.roller .bonus.zero { opacity: .45; }
+.roller .priv { margin-left: auto; font: 11px var(--mono); border-radius: 10px; padding: 3px 9px; background: none; border: 1px solid #ffffff55; color: #ffffffcc; cursor: pointer; }
+.roller .priv.on { background: #2a1d14; border-color: #000; color: #e6c878; }
+.roller .roll { margin-left: auto; background: #3d85c6; color: #fff; font: 700 13px var(--mono); padding: 7px 14px; border: 1px solid #12324f; border-radius: 4px; cursor: pointer; }
+.roller .priv + .roll { margin-left: 0; }
+.roller .roll:focus-visible { outline: 2px solid #fff; }
+.roller .roll:disabled { opacity: .7; cursor: wait; }
+/* R277: the pool under an aiming drag, dashed; R86: the current opponent, ringed, ⌖ by the name. */
+.pool.aimed .slots { outline: 3px dashed #ffd36b; outline-offset: 3px; }
+.pool.targeted .slots { outline: 3px solid var(--amber); outline-offset: 3px; }
+.pool.targeted .hd .name::after { content: " ⌖"; color: var(--amber); }
+/* R88: a row set by the GM can't be opened. */
+.roller .white.locked { cursor: default; }
+.roller .white.locked:hover { background: none; }
+/* R87, R277: the Defend chooser or a short note, at the pointer. */
+#defchoice { position: fixed; z-index: 200; background: #fbfaf6; color: #222; border-radius: 8px; padding: 8px 10px; box-shadow: 0 6px 14px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; gap: 4px; font: 12px var(--mono); }
+#defchoice p { margin: 0 0 2px; }
+#defchoice button { font: 18px var(--hand); background: none; border: 0; text-align: left; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
+#defchoice button:hover, #defchoice button:focus-visible { background: #efe6d2; outline: none; }
+/* R72: the Difference menu, words first and dice at the right. */
+.advmenu { position: absolute; left: 4px; top: 40px; z-index: 96; background: #fbfaf6; color: #222; border-radius: 8px; min-width: 250px; padding: 6px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.5); display: flex; flex-direction: column; }
+.advmenu[hidden] { display: none; }
+.advmenu button { display: flex; justify-content: space-between; gap: 12px; text-align: left; font: 12px var(--mono); background: none; border: 0; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+.advmenu button:hover, .advmenu button:focus-visible { background: #efe6d2; outline: none; }
+.advmenu button.on { background: #e2d6b8; font-weight: 700; }
+.advmenu .dice { min-width: 66px; text-align: right; font-weight: 700; }
 .pool .gather { font: 11px var(--mono); background: none; border: 1px solid #8a7458; color: #e6d6bd; border-radius: 4px; cursor: pointer; }
 /* R227: a white frame round tall rounded slots, each named in its middle. */
 .slots { display: flex; gap: 6px; padding: 6px; background: #fff; border-radius: 4px; box-shadow: 0 3px 6px rgba(0,0,0,.35); }

@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R269, R270, R271, R272, R273
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R269, R270, R271, R272, R273, R285
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -9,7 +9,7 @@ import { cardClick } from './actions.ts';
 import type { Item } from '../rules/pool.ts';
 import { gesture, paced } from './gesture.ts';
 import { draw, type PieceWith } from './piece.ts';
-import { drawPool, type Box, type PoolWith } from './pool.ts';
+import { chipFace, drawPool, type Box, type PoolWith } from './pool.ts';
 
 /** How far under its pool a gathered card sits (R33). */
 export const GATHER_GAP = 14;
@@ -141,12 +141,14 @@ export class TableView {
   #push(rid: Rid): void {
     const { game, viewer } = this.#w, mat = this.#pools.get(rid), c = game.get(rid) as Character | undefined;
     if (!mat || !c || c.kind !== 'character' || mat.ownerDocument.body.classList.contains('dragging')) return;
-    const h = mat.offsetHeight, was = this.#heights.get(rid);
+    // The docked roll row is this page's alone (R68): it never pushes anyone's pieces.
+    const row = mat.querySelector<HTMLElement>('.roller'), own = row ? row.offsetHeight + parseFloat(getComputedStyle(row).marginBottom || '0') : 0;
+    const h = mat.offsetHeight - own, was = this.#heights.get(rid);
     this.#heights.set(rid, h);
     if (was === undefined || h <= was || !viewer?.gm) return;
-    const box = (e: HTMLElement): Box => {
+    const box = (e: HTMLElement, less = 0): Box => {
       const left = parseFloat(e.style.left), top = parseFloat(e.style.top);
-      return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+      return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight - less };
     };
     const pieces: { rid: Rid; box: Box }[] = [];
     for (const [r, e] of this.#els) {
@@ -156,7 +158,7 @@ export class TableView {
     }
     for (const [r, e] of this.#pools) if (r !== rid) pieces.push({ rid: `${r}#pool`, box: box(e) });
     for (const [r, e] of this.#loose) pieces.push({ rid: r, box: box(e) });
-    const moves = pushClear(box(mat), pieces);
+    const moves = pushClear(box(mat, own), pieces);
     if (!moves.length) return;
     game.change(w => {
       const out = new Map<Rid, PieceRecord>();
@@ -207,7 +209,7 @@ export class TableView {
       this.#loose.set(rid, e);
     }
     e.className = `obj loose-item ${i.kind === 'chip' ? `chip ${i.sign > 0 ? 'pos' : 'neg'}` : `icard ${i.sign > 0 ? 'pos' : 'neg'} tapped`}`;
-    if (i.kind === 'chip') e.textContent = `${i.sign < 0 ? '−' : ''}${i.points}`;
+    if (i.kind === 'chip') e.textContent = chipFace(i);
     else {
       // R269: a loose card's Level answers clicks as in a drawer.
       const level = doc.createElement('button');

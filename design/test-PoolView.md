@@ -56,3 +56,14 @@ Stagger closes for Affliction; Bias opens and nothing closes
 **Inject:** src/ui/pool.ts:reachFor
 **Pulled:** 2026-11-12 — rang: the chip from Stagger over Bias closed Edge, not Stagger
 
+
+## Test: a chip's face
+**Purpose:** R285: a +1 reads "+1" (a red one "−1"), never a bare 1; other chips their points, a red one its sign
+**Input:** green 1, red 1, green 4, red 6
+**Expected:** `+1`, `−1`, `4`, `−6`
+**Refs:** crc-PoolView.md
+**Code:** `src/ui/pool.test.ts`
+**Alarm:** 5
+**Fire alarm:** In chipFace, drop the +1 case: a loose +1 reads `1`
+**Inject:** src/ui/pool.ts:chipFace
+**Pulled:** 2026-11-12 — rang: a loose +1 read `1`

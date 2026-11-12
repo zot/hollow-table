@@ -1,14 +1,15 @@
-// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64, R251, R268, R269
+// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64, R251, R268, R269, R285
 // A character's pool mat: the seven slots, the drawer of Influence cards with its writers, used pile
 // and kill box, and the header. What a click or a drop does is in actions.ts; this only draws and
 // listens.
 
 import type { Game } from '../model/game.ts';
-import { SLOTS, ridOf, type Character, type Influence, type Oid, type SlotName } from '../model/records.ts';
+import { OPEN, SLOTS, ridOf, type Character, type Influence, type Oid, type SlotName } from '../model/records.ts';
 import { levelName } from '../rules/influence.ts';
 import { rollUp, worth, type Item, type Unit } from '../rules/pool.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { addLoose, cardClick, chipClick, restoreUsed, riderClick, writeCard, type Change } from './actions.ts';
+import { ownerWord } from './rollrow.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 
 export type PoolWith = {
@@ -20,6 +21,8 @@ export type PoolWith = {
   toggle: (kind: 'piles' | 'slots' | 'used', key: string, on?: boolean) => void;
   dragItem: (rid: string, down: PointerLike, move: PointerLike) => void;
   dragPool: (rid: string, down: PointerLike, move: PointerLike) => void;
+  /** The die by the pool's name (R142, R68): claim, open, or dock the roll row; shift for the other. */
+  poolDie: (oid: Oid, shift: boolean, die: HTMLElement) => void;
 };
 
 // R228: the mat keeps its drawer's width; these are the sizes its slots are laid out with (theme.css
@@ -115,7 +118,9 @@ export function drawPool(c: Character, items: Item[], old: HTMLElement | undefin
   e.style.top = `${c.pool.y}px`;
   e.style.zIndex = String(c.pool.z);
   e.querySelector('.name')!.textContent = c.name;
-  e.querySelector('.owner')!.textContent = c.owner === 'open' ? 'open' : c.owner;
+  const die = e.querySelector<HTMLElement>('.die-own')!;
+  die.textContent = ownerWord(c);
+  die.title = c.owner === OPEN ? 'Open: click to claim this character' : 'Click to roll for this character; shift-click to open it for someone else';
   e.querySelector<HTMLElement>('.gather')!.hidden = c.gathered;
   const opened = w.poolOpen(), shown: Shown = new Map(), drawn = new Map<string, HTMLElement>();
   const slotEls = [...e.querySelectorAll<HTMLElement>('.slot')];
@@ -175,7 +180,10 @@ function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
   // R33: Gather snaps the card back under the drawer.
   gesture(gather, { click: () => { const cur = w.game.get(rid) as Character; w.game.change(x => x.put(rid, { ...cur, gathered: true })); } });
   const name = el(doc, 'span', 'name');
-  hd.append(name, el(doc, 'span', 'owner'), gather);
+  // R142, R68: the die by the name shows the owner; click claims or docks the roll row, shift opens.
+  const die = el(doc, 'button', 'die-own');
+  gesture(die, { click: () => w.poolDie(c.oid, false, die), shift: () => w.poolDie(c.oid, true, die) });
+  hd.append(name, die, gather);
   const slots = el(doc, 'div', 'slots');
   for (const s of SLOTS) {
     const slot = el(doc, 'div', `slot slot-${s}`);
@@ -234,13 +242,20 @@ function units(slotEl: HTMLElement, items: Item[], w: PoolWith, shown: Shown, dr
 
 const worthOf = (u: Unit): number => isPile(u) ? u.points : worth(u);
 
+// R285: a chip's face: its points, a red one with its sign; a +1 reads "+1" (or "−1"), since it
+// modifies another chip.
+export function chipFace(i: { sign: number; points: number }): string {
+  if (i.points === 1) return i.sign < 0 ? '−1' : '+1';
+  return `${i.sign < 0 ? '−' : ''}${i.points}`;
+}
+
 // R36, R37, R38, R47, R234, R233: a chip shows its points, a red one its sign; a +1 rides on it; a
 // card in a slot is a chip with a white inner ring and its name on hover, a resource-made one a
 // glyph at its corner, a used one greyed with a tag.
 function chip(doc: Document, i: Item, w: PoolWith): HTMLElement {
   const card = i.kind === 'influence';
   const b = el(doc, 'button', `chip ${i.sign > 0 ? 'pos' : 'neg'}${card ? ' card-chip' : ''}${card && i.tap ? ' res' : ''}${card && i.used ? ' used' : ''}`,
-    `${i.sign < 0 ? '−' : ''}${i.points}`);
+    chipFace(i));
   const rid = ridOf(i.oid);
   b.dataset.rid = rid;
   if (card) { b.title = i.name; b.dataset.name = i.name; }

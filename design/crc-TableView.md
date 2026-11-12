@@ -16,7 +16,8 @@ DOM a view of the records.
   at `at`, squared up and raised (`lifted`); pools and the loose layer skip it while held, so a
   redraw neither recreates nor moves it. letGo puts it back in the loose layer if it was loose, and
   removes it otherwise, before the drop's change draws it where it landed.
-- push (R241): on the GM's page, when a pool's mat grows, the pieces it now covers (other characters'
+- push (R241): on the GM's page, when a pool's mat grows (not counting the docked roll row, which is
+  this page's alone), the pieces it now covers (other characters'
   cards with what's pinned to them, unpinned paper, other pools with their gathered cards) move
   just clear below it in one change (pushClear); they glide on every page. One pass, no chains.
 - glide (R226, R178): a piece whose place changes in a redraw slides there (`glide`, taken off at

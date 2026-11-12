@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -38,12 +38,13 @@ record crosses the wire, the database and an export file unchanged.
 - Image: `{kind: 'image', oid, place, blob: sha256, w, h, pin?}`.
 - TornRoll: `{kind: 'tornroll', oid, place, receipts: Receipt[]}`.
 - Reference: `{kind: 'reference', oid, place, which: 'howto' | 'actions'}`.
-- Receipt: `{id, at, title, by?, dice: Die[], influence?, base?, vs?, row?, resolution, level, outcome,
+- Receipt: `{id, at, title, by?, action?, dice: Die[], influence?, base?, vs?, row?, resolution, level, outcome,
   crit?: {max, dbl, chosen: 'max' | 'dbl', locked}, priv?, ok?}`; `ok` is this page's own roll
   having reached the table. Die: `{c: W|G|R|B|Y, v, added, dropped}`.
 - Yards: `{yards: [{name, named, items: [{name, records: PieceRecord[]}]}]}`; a burial keeps the
   records buried together (a character with its cards, a sticky).
-- Meta: `{round, rolls}`.
+- Meta: `{round, rolls, counts?: {[character oid]: number}}`; `counts` numbers each character's rolls
+  (R278).
 - Book (the GM's page only, never sent): `{claims: {name: browser id}, gv, tomb: {rid: gv}, hillGv?}`:
   the table's version, the version each piece was deleted at (at most 3,000), and the version Boot
   Hill last changed at.

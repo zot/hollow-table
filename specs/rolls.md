@@ -119,7 +119,7 @@ this section and the book disagree, the book wins and this section is wrong.
   is Sam's third.
 - **A receipt reads** (Bill, 11-12, as the mockup), in this order: the title (*Sam, roll 3*) and the
   time; "rolled by Dana"; the dice; the action's numbers (*Infer: Total Influence 8 (base 4)*); the
-  opponent (*vs Sam (mental −2), Difference +10*); the row in its words (*+7 to +9: Green + 1*);
+  opponent (*vs Sam (mental −2), Difference +10*); the row in the book's words (*+7 to +9 Strong Advantage: Green + 1*);
   *Resolution: higher of White 4 and Green 6 + 1*; *Level: 3 + 6 + 2 + 1 bonus*; and the outcome:
   *Success 12, Major*, *Success at cost 5, Significant*, or *Failure 3, Minor Stagger*. Each page
   leaves out what it may not know. The title can be edited. An error or a lost roll prints on your

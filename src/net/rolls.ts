@@ -1,11 +1,11 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R279, R69, R281
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
 // tape what its person may know.
 
 import type { Game, Writer } from '../model/game.ts';
-import { GM, PLAYER_OIDS, isPiece, oidOf, ridOf, type Character, type Influence, type Meta, type Oid, type Receipt, type Tape } from '../model/records.ts';
+import { GM, PLAYER_OIDS, isPiece, oidOf, ridOf, type Character, type Die, type Influence, type Meta, type Oid, type Receipt, type Tape } from '../model/records.ts';
 import { roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
@@ -29,9 +29,45 @@ export type Intent = {
 export type RollMsg = { n: number; receipt: Receipt; sealed: Record<string, Box> };
 export type SealedRoll = { re: number; receipt: Receipt };
 
-const OUTCOME = { success: 'Success', cost: 'Success at a cost', failure: 'Failure' } as const;
+const OUTCOME = { success: 'Success', cost: 'Success at cost', failure: 'Failure' } as const;
 const signed = (n: number) => n >= 0 ? `+${n}` : `−${-n}`;
 const DIE_NAME = { G: 'Green', R: 'Red' } as const;
+
+// R279: a receipt's lines in the book's words (Hollow Folks, IV. Dice & Resolution).
+/** A row in full: its range, the book's name, and its dice: "+7 to +9 Strong Advantage: Green + 1". */
+export function rowWords(r: Row): string {
+  const i = ADV.indexOf(r), above = ADV[i - 1];
+  let range: string;
+  if (r.auto === 'success') range = `${signed(r.min)} or more`;
+  else if (r.auto === 'failure') range = `${signed(above!.min - 1)} or less`;
+  else {
+    // As the book writes them: the end nearer zero first below zero ("−5 to −6"), else low to high.
+    const hi = above!.min - 1;
+    range = hi < 0 ? `${signed(hi)} to ${signed(r.min)}` : `${signed(r.min)} to ${signed(hi)}`;
+  }
+  return `${range} ${r.words}: ${r.auto ? `automatic ${r.auto}` : diceOnly(r)}`;
+}
+
+/** How the White was read: "higher of White 4 and Green 6 + 1", or the automatic row. */
+export function resolutionWords(r: Row, dice: readonly Die[]): string {
+  if (r.auto) return `${r.words}: automatic ${r.auto}`;
+  const w = dice.find(d => d.c === 'W')!.v, o = dice.find(d => d.c === 'G' || d.c === 'R');
+  let read = `White ${w}`;
+  if (o) read = `${o.c === 'G' ? 'higher' : 'lower'} of White ${w} and ${DIE_NAME[o.c as 'G' | 'R']} ${o.v}`;
+  return read + (r.mod ? ` ${r.mod > 0 ? '+' : '−'} 1` : '');
+}
+
+/** What the result adds up: the Blue and remaining Yellows, and the bonus unless a Failure. */
+export function levelWords(dice: readonly Die[], bonus: number, failure: boolean): string {
+  const parts = dice.filter(d => (d.c === 'B' || d.c === 'Y') && !d.dropped).map(d => String(d.v));
+  const b = failure || !bonus ? '' : ` ${bonus > 0 ? '+' : '−'} ${Math.abs(bonus)} bonus`;
+  return parts.join(' + ') + b;
+}
+
+/** "Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger". */
+export function outcomeWords(outcome: keyof typeof OUTCOME, result: number): string {
+  return `${OUTCOME[outcome]} ${result}, ${levelName(result)}${outcome === 'failure' ? ' Stagger' : ''}`;
+}
 
 /** A row as its dice, never its range: what a roller who can't see the opponent is told (R106). */
 export function diceOnly(r: Row): string {
@@ -68,43 +104,46 @@ export type Resolved = {
 export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resolved | { refused: string } {
   const character = game.get(ridOf(intent.pool)) as Character | undefined;
   if (character?.kind !== 'character') return { refused: 'That character is not on the table.' };
-  const act = marks(parse(character.front), 'act').map(m => readAction(m.text)).find(a => a?.label === intent.action);
-  if (!act) return { refused: `${character.name} has no action “${intent.action}”.` };
+  // R69: a roll with no action is the row as set: its hand is the dice, and there is no Total Influence.
+  const act = intent.action ? marks(parse(character.front), 'act').map(m => readAction(m.text)).find(a => a?.label === intent.action) : null;
+  if (intent.action && !act) return { refused: `${character.name} has no action “${intent.action}”.` };
   const items = game.all().map(([, r]) => r).filter((r): r is Item => 'kind' in r && (r.kind === 'chip' || r.kind === 'influence'));
-  const mine = pools(character.oid, items), sum = total(act.base, mine);
+  const mine = pools(character.oid, items), sum = act ? total(act.base, mine) : null;
 
   let opp: Character | undefined, against: number | undefined;
-  if (intent.vs) {
+  if (intent.vs && sum) {
     opp = game.get(ridOf(intent.vs)) as Character | undefined;
     if (opp?.kind !== 'character') return { refused: 'That opponent is not on the table.' };
     const def = marks(parse(opp.front), 'def').map(m => readDefend(m.text)).find(d => d);
     against = opposition(def ? def[intent.defend] : 0, pools(opp.oid, items)).total;
   }
-  const diff = against === undefined ? undefined : sum.total - against;
+  const diff = against === undefined || !sum ? undefined : sum.total - against;
   const picked = intent.row ? ADV.find(r => r.key === intent.row) : undefined;
   const row = picked ?? (diff === undefined ? ADV.find(r => r.key === 'white')! : rowFor(diff));
-  const dice = bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, intent.hand);
+  const dice = act ? bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, intent.hand)
+    : { yellows: Math.max(0, intent.hand.yellows), bonus: intent.hand.bonus };
   const r = rollDice(row, dice.yellows, dice.bonus, rng);
 
-  const meta = game.get('meta') as Meta, n = meta.rolls + 1;
+  // R278: each character's rolls are numbered on their own.
+  const meta = game.get('meta') as Meta, n = (meta.counts?.[character.oid] ?? 0) + 1;
   const by = character.owner === GM ? 'GM' : character.owner;
   const base: Receipt = {
-    id: `roll-${n}`, at, title: `${character.name} #${n}: ${act.label}`, by, dice: r.dice,
-    resolution: row.auto ? row.words : `${row.words}: ${r.resolved}`,
-    level: `${r.result} ${levelName(r.result)}`, outcome: r.crit ? `CRIT! ${OUTCOME.success}` : OUTCOME[r.outcome],
-    ...(r.crit && { crit: r.crit }),
+    id: `roll-${character.oid}-${n}`, at, title: `${character.name}, roll ${n}`, by, ...(act && { action: act.label }), dice: r.dice,
+    resolution: resolutionWords(row, r.dice), level: levelWords(r.dice, dice.bonus, r.outcome === 'failure'),
+    outcome: outcomeWords(r.crit ? 'success' : r.outcome, r.result), ...(r.crit && { crit: r.crit }),
   };
-  const vsFull = opp && `${opp.name} ${against} (${signed(diff!)})`;
+  const vsFull = opp && `${opp.name} (${intent.defend} ${against}), Difference ${signed(diff!)}`;
   const owner: Viewer = character.owner === GM ? { name: GM, gm: true } : { name: character.owner, gm: false };
   const seesOpp = !opp || canSee(owner, opp);
-  const full: Receipt = { ...base, influence: sum.total, base: act.base, row: row.key, ...(vsFull && { vs: vsFull }) };
-  const roller: Receipt = { ...base, influence: sum.total, base: act.base, row: seesOpp ? row.key : diceOnly(row),
+  const numbers = sum && act ? { influence: sum.total, base: act.base } : {};
+  const full: Receipt = { ...base, ...numbers, row: rowWords(row), ...(vsFull && { vs: vsFull }) };
+  const roller: Receipt = { ...base, ...numbers, row: seesOpp ? rowWords(row) : diceOnly(row),
     ...(opp && { vs: seesOpp ? vsFull : opp.name }) };
   const table: Receipt = { ...base, ...(opp && { vs: opp.name }) };
 
   // Seq: seq-roll.md#1.5 | R98: the roll marks the pool's cards used; a CRIT adds or strengthens CRIT!.
   const apply = (w: Writer) => {
-    w.put('meta', { ...meta, rolls: n });
+    w.put('meta', { ...meta, rolls: meta.rolls + 1, counts: { ...meta.counts, [character.oid]: n } });
     for (const i of items) {
       if (i.kind === 'influence' && typeof i.where === 'object' && 'slot' in i.where && i.where.slot === character.oid && !i.used) {
         w.put(ridOf(i.oid), { ...i, used: true });
@@ -126,7 +165,7 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
 export function choose(r: Receipt, choice: 'max' | 'dbl', lock: boolean): Receipt {
   if (!r.crit) return r;
   const value = choice === 'max' ? r.crit.max : r.crit.dbl;
-  return { ...r, level: `${value} ${levelName(value)}`, crit: { ...r.crit, chosen: choice, locked: lock } };
+  return { ...r, outcome: outcomeWords('success', value), crit: { ...r.crit, chosen: choice, locked: lock } };
 }
 
 export type RollsWith = {
@@ -171,6 +210,12 @@ export class Rolls {
   }
 
   idle(): Promise<void> { return this.#work; }
+
+  // R281: an error or a lost roll, as a short red note on this page's tape.
+  note(text: string): void {
+    const at = this.#w.clock.now();
+    this.#print({ id: `note-${at}`, at, title: text, dice: [], resolution: '', level: '', outcome: 'missing' });
+  }
 
   #count(key: string): number {
     let n = 0;
