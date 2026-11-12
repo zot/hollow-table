@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R97, R100, R101, R102, R103, R104, R106, R107, R108
+**Requirements:** R97, R100, R101, R102, R103, R104, R106, R107, R108, R278, R279, R281
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -16,7 +16,8 @@ know.
   meanwhile.
 - resolve(game, intent, rng, at): pure: looks up the action on the GM's own records, totals both
   sides (Odds, Pool), picks the White row from the Difference unless the player picked one, rolls
-  (Dice), and gives three receipts and the roll's effects (the roll counter, used cards, a CRIT!
+  (Dice), and gives three receipts in R279's words and the roll's effects (the character's own roll
+  count, R278, kept in meta by character; used cards; a CRIT!
   card: an Influence with `crit`, minted in the drawer, or the one there strengthened by a Level).
   The receipts: the GM's has everything; the roller's has their Total Influence and base, and `vs`
   and the row as the character's owner may see them (dice only, "White + 1", when they can't see
@@ -31,7 +32,8 @@ know.
 - Each page prints on its own tape (the `tape` record, never sent), newest first; its own answered
   roll gets ✓ (`ok`).
 - gaps: a skipped roll number prints "N rolls from the GM didn't arrive" ("Many" over 20), as a
-  receipt with outcome `missing`.
+  receipt with outcome `missing`; an error (refused, unanswered) prints the same way, a red note
+  with the time (R281).
 
 ## Collaborators
 - Wire, Seal, Odds, Pool, Dice, Visibility, Ownership, Game

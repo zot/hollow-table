@@ -14,6 +14,13 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   at the right (Green or Red, ±1, or auto ✓ / ✗). Picking one sets the White die.
 - Yellows: click adds, shift-click removes. Bonus: click raises, shift-click lowers (it shows −n
   below zero).
+- **The roll row's look** (Bill, 11-12, as the mockup): it docks between the pool's header and its
+  slots, a dark walnut strip as wide as the drawer. The dice are blank, 24 px, in their colours
+  (White `#f6f6f2`, Green `#6aa84f`, Red `#cc4125`, Blue `#3d85c6`, Yellow `#f1c232`); Roll is a blue
+  key at the right. With no Yellows a dashed yellow ghost die holds their place; a bonus of 0 shows
+  a faint "+0". The parts you click light faintly under the pointer. In the pool's header the
+  action reads in the hand font with its number bold (`Infer 4 → 8`), and `vs` in peach.
+- **The private switch** reads "to table" or "private"; its title says who will see the roll.
 
 ## Actions
 
@@ -25,7 +32,8 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
 - Each action gets a small **die** at its start, shaped like a die so it can't be taken for a Slot
   box or a Resource glyph on the same card; the text stays editable, and actions marked later get
   dice too. Clicking it brings the roll row to that character (its owner, or the GM)
-  and fills the Base, Yellows and bonus. The action in use gets a **highlighter swish** on its line;
+  and fills the Base, Yellows and bonus. **A new action starts the row at White** unless the row is
+  aiming at someone (Bill, 11-12). The action in use gets a **highlighter swish** on its line;
   it moves with the choice, survives edits, and clears when the action does.
 - The action and opponent show in the **pool's header**, after gather (`Attack 4 → 8`, `vs Sam 4
   (+0)`), and travel with the roll row. Clicking the Base clears the action.
@@ -50,6 +58,10 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   again).
 - The current opponent is marked (an amber ring round their pool, ⌖ by their name). Clicking `vs`
   stops aiming.
+- **Aiming feels like aiming** (Bill, 11-12, as the mockup): while dragging from the Base, the pool
+  under the pointer gets a dashed amber outline (the solid ring only once aimed) and the pointing
+  hand holds. The Defend chooser opens at the pointer with its first choice ready, and closes on
+  Escape or a click elsewhere. "Only the GM can aim at …" goes after about two seconds.
 - **No probing:** players can't aim at characters hidden from them ("Only the GM can aim at
   Devreux."). The player picks the action, the GM points it.
 - **The roll row is the rolling character's**, so its numbers follow that character's owner, not the
@@ -103,7 +115,19 @@ this section and the book disagree, the book wins and this section is wrong.
 
 - Every roll prints a **receipt**: the character and roll number, the date and time at the upper
   right (24-hour with seconds, "Nov 9, 17:57:16"), the dice, how the result was resolved, the Level,
-  and the outcome.
+  and the outcome. **Each character's rolls are numbered on their own** (Bill, 11-12): *Sam, roll 3*
+  is Sam's third.
+- **A receipt reads** (Bill, 11-12, as the mockup), in this order: the title (*Sam, roll 3*) and the
+  time; "rolled by Dana"; the dice; the action's numbers (*Infer: Total Influence 8 (base 4)*); the
+  opponent (*vs Sam (mental −2), Difference +10*); the row in its words (*+7 to +9: Green + 1*);
+  *Resolution: higher of White 4 and Green 6 + 1*; *Level: 3 + 6 + 2 + 1 bonus*; and the outcome:
+  *Success 12, Major*, *Success at cost 5, Significant*, or *Failure 3, Minor Stagger*. Each page
+  leaves out what it may not know. The title can be edited. An error or a lost roll prints on your
+  tape as a short red note with the time.
+- **Receipt dice are dice**: 28 px, with their numbers, in their colours. An exploded Yellow has a
+  dashed edge; a die removed on a Failure is faded with a stroke through it. They tumble in one after
+  another. Each die's title names it (*Yellow, exploded*). The receipt is cream paper, about 300 px,
+  in PT Mono, with a torn zigzag bottom.
 - **Each page prints what its owner may know.** The roller's page shows their Total Influence and
   base, and `vs` as they're allowed to see it. Everyone else gets the **table view**: the character,
   the action, `vs` name, the dice, the resolution, the Level and the outcome, "rolled by Dana"; no
@@ -112,17 +136,20 @@ this section and the book disagree, the book wins and this section is wrong.
   rolls from Dana didn't arrive" ("Many" over 20). A receipt is built from text, never from a
   sender's markup; a die outside 1–6 drops the roll.
 - Receipts print on a **paper tape** from the register's slot, newest first, about three visible and
-  the rest scrolling. **The tape is each page's own**: it never goes over the wire.
+  the rest scrolling. The tape hangs under the register, 250 px wide and at most 380 tall; a new
+  receipt slides in; rolled up, it leaves a sliver to pull it down by. **The tape is each page's own**: it never goes over the wire.
 - The tape lies under the table's pieces. A new roll or a press raises it; pressing anything else
   lowers it. The register's paper roll rolls it up to a sliver and back.
-- **Dragging the tape tears off the whole roll** as one strip onto the table (it scrolls inside; the
-  wheel scrolls it instead of zooming). The next roll starts a fresh tape. A torn roll is a table
+- **Dragging the tape tears off the whole roll** as one strip onto the table, once the drag has gone
+  a few pixels, landing slightly tilted (it scrolls inside; the wheel scrolls it, and zooms the table
+  only at its ends). Pressing a receipt's title to edit it doesn't tear. The next roll starts a fresh tape. A torn roll is a table
   piece; dropped on the bar it buries as "Tape: N rolls".
 
 ## The register
 
 - A cash register in the bar keeps the **Round**: a pop-up tab with a bold number in a glass case,
-  ▲ ▼ keys, and **End**.
+  ▲ ▼ keys, and **End**. The Round runs from 0 to 99; when it changes, the tab drops and comes back
+  up with the new number.
 - **End** ends the Conflict. Pressing it raises an orange "End conflict?" tab; press again within 3 s
   to end it. End resets the Round to 0, recharges Biases, Afflictions and Injuries, empties the used piles
   (plain cards go home, tapped cards are spent and gone), clears "used", clears CRIT! Influences,

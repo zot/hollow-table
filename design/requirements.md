@@ -154,9 +154,12 @@
 - **R71:** The GM can dock and work any character's roll row without taking the character.
 - **R72:** The White die opens the Difference menu, each row with its words first and its dice at the right; picking one sets the row.
 - **R73:** Yellows: click adds, shift-click removes; bonus: click raises, shift-click lowers, showing −n below zero.
+- **R274:** The roll row docks between the pool's header and its slots, a dark walnut strip the drawer's width: blank 24 px dice in their colours (White `#f6f6f2`, Green `#6aa84f`, Red `#cc4125`, Blue `#3d85c6`, Yellow `#f1c232`), Roll a blue key at the right, a dashed yellow ghost die for no Yellows, a faint "+0" for no bonus, the clickable parts lit faintly under the pointer; in the header the action in the hand font with its number bold, `vs` in peach.
+- **R275:** The GM's private switch reads "to table" or "private", its title saying who will see the roll.
 - **R74:** Text marked `<act>` reads `LABEL: N [stuff], [Nd][±N] [stuff]`, giving Base N, Yellows `Nd` and bonus `±N` as written, split at the first comma outside parentheses.
 - **R75:** Each `<act>` mark, including ones marked later, gets a small die-shaped button at its start, and its text stays editable.
 - **R76:** Clicking an action's die brings the roll row to that character (owner or GM) and fills Base, Yellows and bonus.
+- **R276:** A new action starts the row at White unless the row is aiming at someone.
 - **R77:** The action in use gets a highlighter swish that follows the choice, survives edits, and clears with the action.
 - **R78:** The action and opponent show in the pool's header after Gather and travel with the roll row; clicking the Base clears the action.
 - **R79:** Total Influence is Base + Main + Edge + Bias + Affliction + Injury; the row shows it live with the breakdown on hover, and the receipt records it.
@@ -169,6 +172,7 @@
 - **R86:** The current opponent is marked with an amber ring and ⌖; clicking `vs` stops aiming.
 - **R87:** A player can't aim at a character hidden from them and is told "Only the GM can aim at" that character.
 - **R88:** The roll row's numbers follow the rolling character's owner: if the owner can't see the opponent, the row shows `vs` name and the White setting as dice only, and the White menu is locked ("set by the GM"); the GM's hover still shows the Difference.
+- **R277:** While dragging from the Base, the pool under the pointer has a dashed amber outline and the pointing hand holds; the Defend chooser opens at the pointer with its first choice focused and closes on Escape or a click elsewhere; "Only the GM can aim at …" goes after about 2 s.
 - **R89:** Dice are White, Green, Red, Blue and Yellow d6; the basic roll is White, Blue and the Yellows.
 - **R90:** The Difference table maps +10 or more to Outclass, +7..+9 Green + 1, +5..+6 Green, +3..+4 +1, −2..+2 White, −3..−4 −1, −5..−6 Red, −7..−9 Red − 1, −10 or less Outclassed.
 - **R91:** Resolution takes the higher of White and Green, or the lower of White and Red, then adds the row's ±1; 1–2 is Failure, 3 Success at a cost, 4+ Success; Outclass and Outclassed are automatic.
@@ -186,16 +190,23 @@
 - **R103:** With no GM at the table, nobody can roll; a page with no table rolls for itself.
 - **R104:** The GM's private switch makes a roll print "Private: not shown to the table" on the GM's tape and send nothing.
 - **R105:** A receipt shows the character and roll number, the time at the upper right (24-hour with seconds), the dice, the resolution, the Level and the outcome.
+- **R278:** Each character's rolls are numbered on their own ("Sam, roll 3" is Sam's third).
+- **R279:** A receipt reads, in order: the title ("Sam, roll 3") and time; "rolled by …"; the dice; "<action>: Total Influence T (base B)"; "vs <name> (<kind> <total>), Difference ±D"; the row in its words; "Resolution: …" naming the dice ("higher of White 4 and Green 6 + 1"); "Level: …" adding them ("3 + 6 + 2 + 1 bonus"); and the outcome ("Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger"); each page leaving out what it may not know. Its title can be edited.
+- **R280:** Receipt dice are drawn as dice, 28 px with their numbers in their colours: an exploded Yellow dashed, a die removed on a Failure faded and struck through; they tumble in one after another; each titled with its colour and fate. The receipt is cream paper about 300 px wide in PT Mono with a torn zigzag bottom.
+- **R281:** An error or a lost roll prints on your tape as a short red note with the time.
 - **R106:** The roller's page shows their Total Influence, base and `vs` as they may see it; other pages get the table view (character, action, `vs` name, dice, resolution, Level, outcome, "rolled by"); the GM's tape gets everything.
 - **R107:** Your own receipt gets a ✓ when the roll has reached the table.
 - **R108:** A skipped roll number prints "N rolls from Dana didn't arrive", "Many" over 20.
 - **R109:** A receipt is built from text, never from a sender's markup; a die outside 1–6 drops the roll.
 - **R110:** Receipts print on a paper tape from the register, newest first, about three visible and the rest scrolling.
+- **R282:** The tape hangs under the register, 250 px wide and at most 380 tall; a new receipt slides in; rolled up, it leaves a sliver.
 - **R111:** The tape is each page's own and never goes over the wire.
 - **R112:** The tape lies under the pieces; a new roll or a press raises it, pressing anything else lowers it; the register's paper roll rolls it up and down.
 - **R113:** Dragging the tape tears off the whole roll as one table piece that scrolls inside; the next roll starts a fresh tape.
+- **R283:** A tear starts once the drag has gone a few pixels, and the torn roll lands slightly tilted; a torn roll's wheel scrolls it and zooms the table only at its ends; pressing a receipt's title to edit it doesn't tear.
 - **R114:** A torn roll buries as "Tape: N rolls".
 - **R115:** The register shows the Round as a pop-up tab with ▲ ▼ keys and End.
+- **R284:** The Round runs from 0 to 99; when it changes, its tab drops and comes back up with the new number.
 - **R116:** End needs a second press within 3 s of the first, which raises an orange "End conflict?" tab.
 - **R117:** End checkpoints the game, then resets the Round to 0, recharges Biases, Afflictions and Injuries, empties the used piles (plain cards home, tapped cards gone), and clears used marks.
 
