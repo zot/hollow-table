@@ -1,7 +1,7 @@
 // CRC: crc-Gesture.md | Test: test-Gesture.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gesture, shifty, DRAG_PX, LONG_MS } from './gesture.ts';
+import { gesture, paced, shifty, DRAG_PX, LONG_MS } from './gesture.ts';
 import { fakeClock } from '../store/fakes.ts';
 
 const ev = (type: string, x = 0, y = 0, extra: Record<string, unknown> = {}) =>
@@ -32,4 +32,25 @@ test('one reading of the pointer', () => {
   assert.ok(shifty.has(el), 'registered for the quality floor');
   stop();
   assert.ok(!shifty.has(el));
+});
+
+test('moves are paced to frames', () => {
+  const passes: (() => void)[] = [], got: string[] = [];
+  const run = () => passes.shift()!();
+  const p = paced<[number, number]>(fn => passes.push(fn), ([x, y]) => got.push(`${x},${y}`));
+  p.to([1, 1]); p.to([2, 2]); p.to([3, 3]);
+  assert.equal(passes.length, 1);
+  assert.deepEqual(got, []);
+  run();
+  assert.deepEqual(got, ['3,3']);
+  p.to([4, 4]);
+  assert.equal(passes.length, 1);
+  run();
+  assert.deepEqual(got, ['3,3', '4,4']);
+  p.to([5, 5]); p.cancel(); run();
+  assert.deepEqual(got, ['3,3', '4,4']);
+  p.to([6, 6]); p.flush();
+  assert.deepEqual(got, ['3,3', '4,4', '6,6']);
+  run();
+  assert.deepEqual(got, ['3,3', '4,4', '6,6']);
 });

@@ -61,7 +61,7 @@ export function drawPool(c: Character, items: Item[], old: HTMLElement | undefin
 }
 
 function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
-  const e = el(doc, 'div', 'obj glide pool');
+  const e = el(doc, 'div', 'obj pool');
   e.dataset.part = 'pool';
   const rid = ridOf(c.oid);
   const hd = el(doc, 'div', 'hd');

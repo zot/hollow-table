@@ -994,7 +994,9 @@ var Moves = class {
   #inHand = [];
   #timer = null;
   #held = /* @__PURE__ */ new Set();
+  /** The one command waiting for each held piece, and the pass that saw it (R218). */
   #waiting = /* @__PURE__ */ new Map();
+  #pass = 0;
   constructor(w) {
     this.#w = w;
   }
@@ -1037,6 +1039,7 @@ var Moves = class {
    * higher number. Anything lower than what was applied from its page is discarded.
    */
   pass() {
+    this.#pass++;
     const run2 = this.#filling;
     this.#filling = this.#draining;
     this.#draining = run2;
@@ -1073,7 +1076,7 @@ var Moves = class {
     const waited = this.#waiting.get(rid);
     if (!waited) return;
     this.#waiting.delete(rid);
-    this.#filling.push(...waited);
+    this.#filling.push(waited.c);
     this.#startActor();
   }
   /** Starts an actor if none is running. */
@@ -1088,10 +1091,13 @@ var Moves = class {
     const { schedule } = this.#w;
     schedule(() => this.pass());
   }
+  // R218: a held piece keeps only the most recent move for it, by the pass's own rule, never the
+  // moves in between: a later pass's arrival replaces it, unless it is the same page's with a lower
+  // number; within one pass (newest first) only the same page's higher number does.
   #hold(c) {
-    const w = this.#waiting.get(c.rid);
-    if (w) w.unshift(c);
-    else this.#waiting.set(c.rid, [c]);
+    const w = this.#waiting.get(c.rid), same2 = !!w && w.c.tab === c.tab;
+    const newer = !w || (w.pass === this.#pass ? same2 && c.s > w.c.s : !(same2 && w.c.s > c.s));
+    if (newer) this.#waiting.set(c.rid, { c, pass: this.#pass });
   }
 };
 
@@ -7151,11 +7157,28 @@ function tapOut(game, src, where2, mint2) {
   const t = tap(lookup(game), src, where2, mint2());
   return t ? apply(t) : null;
 }
-function feedFrom(game, cardRid, src, mint2) {
-  const c = item(game, cardRid);
-  if (c?.kind !== "influence") return null;
-  const t = feed(lookup(game), c, src, mint2());
-  return t ? apply(t, c) : null;
+function mergeTap(game, fromRid, intoRid, mint2) {
+  const from = item(game, fromRid), into = item(game, intoRid);
+  if (fromRid === intoRid || from?.kind !== "influence" || into?.kind !== "influence" || !from.tap || !into.tap || from.used) return null;
+  const chars = /* @__PURE__ */ new Map();
+  const now2 = (oid) => chars.get(oid) ?? lookup(game)(oid);
+  for (const c of kill(now2, from)) chars.set(c.oid, c);
+  let card2 = into, fed = false;
+  for (const [src, n] of Object.entries(from.tap.ledger)) {
+    for (let k = 0; k < n; k++) {
+      const t = feed(now2, card2, src, mint2());
+      if (!t || t.card.oid !== into.oid) return null;
+      card2 = t.card;
+      fed = true;
+      for (const c of t.changed) chars.set(c.oid, c);
+    }
+  }
+  if (!fed) return null;
+  return (w) => {
+    w.del(fromRid);
+    w.put(intoRid, card2);
+    for (const c of chars.values()) w.put(ridOf(c.oid), c);
+  };
 }
 
 // src/ui/gesture.ts
@@ -7231,6 +7254,25 @@ function gesture(el3, h, timers = real) {
     shifty.delete(el3);
     el3.removeEventListener("pointerdown", onDown);
     el3.removeEventListener("keydown", onKey);
+  };
+}
+function paced(schedule, apply3) {
+  let pending = null;
+  const pass = () => {
+    if (!pending) return;
+    const { target } = pending;
+    pending = null;
+    apply3(target);
+  };
+  return {
+    to(target) {
+      if (!pending) schedule(pass);
+      pending = { target };
+    },
+    flush: pass,
+    cancel() {
+      pending = null;
+    }
   };
 }
 
@@ -7477,7 +7519,7 @@ function draw(r, old, w) {
 }
 function make2(doc, r, w) {
   const rid = ridOf(r.oid);
-  const e = el(doc, "div", `obj glide ${CLASS[r.kind] ?? r.kind}`);
+  const e = el(doc, "div", `obj ${CLASS[r.kind] ?? r.kind}`);
   e.dataset.kind = r.kind;
   e.dataset.rid = rid;
   e.addEventListener("pointerdown", (ev) => {
@@ -7714,6 +7756,23 @@ function reference(doc, r) {
 
 // src/ui/drag.ts
 var NEAR_PX = 60;
+var TAP_GLYPH_X = 10;
+function asChip(el3, i) {
+  el3.className = `loose-item chip ${i.sign > 0 ? "pos" : "neg"}`;
+  el3.textContent = `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
+  if (i.kind === "influence") el3.title = i.name;
+}
+function light(was, now2) {
+  if (was !== now2) {
+    was?.classList.remove("over");
+    now2?.classList.add("over");
+  }
+  return now2;
+}
+function leaveWriting(doc) {
+  doc.activeElement?.blur?.();
+  doc.getSelection?.()?.removeAllRanges();
+}
 var pinnable = (r) => r.kind === "sticky" || r.kind === "text" || r.kind === "image";
 var Drag = class {
   #w;
@@ -7748,9 +7807,9 @@ var Drag = class {
       }
     }
     const p0 = table.toWorld(down.clientX, down.clientY);
+    leaveWriting(doc);
     for (const c of carried) {
       c.el.classList.add("lifted");
-      c.el.classList.remove("glide");
       moves?.hold(c.rid);
     }
     doc.body.classList.add("dragging");
@@ -7772,12 +7831,17 @@ var Drag = class {
         c.el.style.top = `${c.from.y + dy}px`;
       }
     };
+    let lit = null;
+    const pins = pinnable(rec);
+    const pace = paced(this.#w.schedule, ({ dx, dy, cx, cy }) => {
+      show(dx, dy);
+      moves?.drag(items(dx, dy));
+      if (pins) lit = light(lit, this.#cardAt(doc, cx, cy, el3)?.el ?? null);
+    });
     const onMove = (ev) => {
       const e = ev;
       if (e.pointerId !== down.pointerId) return;
-      const { dx, dy } = delta(e);
-      show(dx, dy);
-      moves?.drag(items(dx, dy));
+      pace.to({ ...delta(e), cx: e.clientX, cy: e.clientY });
     };
     const onUp = (ev) => {
       const e = ev;
@@ -7785,12 +7849,11 @@ var Drag = class {
       doc.removeEventListener("pointermove", onMove);
       doc.removeEventListener("pointerup", onUp);
       doc.removeEventListener("pointercancel", onUp);
+      pace.cancel();
+      light(lit, null);
       doc.body.classList.remove("dragging");
       const { dx, dy } = delta(e);
-      for (const c of carried) {
-        c.el.classList.remove("lifted");
-        c.el.classList.add("glide");
-      }
+      for (const c of carried) c.el.classList.remove("lifted");
       moves?.drop(items(dx, dy));
       this.#drop(rec, carried, dx, dy, z, e);
       for (const c of carried) moves?.release(c.rid);
@@ -7799,6 +7862,7 @@ var Drag = class {
     doc.addEventListener("pointerup", onUp);
     doc.addEventListener("pointercancel", onUp);
     onMove(move);
+    pace.flush();
   }
   // R32: dragging a pool by its name brings its gathered card (and what's pinned to it).
   /** Carries a character's pool. */
@@ -7812,8 +7876,8 @@ var Drag = class {
     const followers = c.gathered && card2 ? [card2, ...this.#pinned(c)] : [];
     const start = followers.map((e) => ({ e, x: parseFloat(e.style.left), y: parseFloat(e.style.top) }));
     const p0 = table.toWorld(down.clientX, down.clientY);
+    leaveWriting(doc);
     mat.classList.add("lifted");
-    mat.classList.remove("glide");
     moves?.hold(rid);
     doc.body.classList.add("dragging");
     const delta = (e) => {
@@ -7829,14 +7893,14 @@ var Drag = class {
         f.e.style.top = `${f.y + dy}px`;
       }
     };
-    this.#follow(doc, down, (e) => {
-      const { dx, dy } = delta(e);
+    const pace = paced(this.#w.schedule, ({ dx, dy }) => {
       show(dx, dy);
       moves?.drag(item2(dx, dy));
-    }, (e) => {
+    });
+    this.#follow(doc, down, (e) => pace.to(delta(e)), (e) => {
+      pace.cancel();
       doc.body.classList.remove("dragging");
       mat.classList.remove("lifted");
-      mat.classList.add("glide");
       const { dx, dy } = delta(e);
       moves?.drop(item2(dx, dy));
       this.#drop(c, carried, dx, dy, z, e);
@@ -7881,58 +7945,73 @@ var Drag = class {
       mat.classList.toggle("wide", near);
     }
   }
-  /** A ghost of what's carried, under the pointer, outside the table's transform. */
-  #ghost(doc, from, text) {
-    const g = from?.cloneNode(true) ?? doc.createElement("div");
-    if (!from) g.textContent = text;
-    g.classList.add("ghost");
-    g.style.cssText = "position:fixed;pointer-events:none;z-index:1000001;left:0;top:0;";
-    doc.body.append(g);
-    return g;
-  }
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60: in this order: a slot,
-  // a drawer, the kill box, the bar, else the table.
-  /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table). */
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R224: in this order:
+  // a tap's merge, a slot, the kill box, a drawer, the bar, else the table.
+  /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
   startItem(rid, down, move) {
-    const { game, mint: mint2 } = this.#w;
+    const { game, table } = this.#w;
     const i = game.get(rid);
-    if (!i) return;
-    const doc = down.target?.ownerDocument ?? document;
-    const src = down.target?.closest?.("[data-rid]");
-    const ghost = this.#ghost(doc, src, "");
-    if (src) src.style.visibility = "hidden";
-    this.#carry(doc, ghost, { x: 12, y: 12 }, down, move, (e) => {
-      if (src) src.style.visibility = "";
-      const change3 = this.#itemDrop(rid, e, mint2());
-      if (change3) game.change(change3);
-    });
+    const el3 = down.target?.closest?.("[data-rid]");
+    if (!i || !el3) return;
+    const r = el3.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
+    const card2 = el3.classList.contains("icard");
+    asChip(el3, i);
+    const grip = card2 ? { x: el3.offsetWidth / 2, y: el3.offsetHeight / 2 } : { x: p.x - corner.x, y: p.y - corner.y };
+    this.#carryItem(rid, el3, grip, down, move);
   }
-  /** Carries a ghost under the pointer, widening the pool it nears, until it is let go. */
-  #carry(doc, ghost, offset, down, move, onDrop) {
-    const at3 = (e) => {
-      ghost.style.transform = `translate(${e.clientX - offset.x}px, ${e.clientY - offset.y}px)`;
-      this.#widen(e.clientX, e.clientY);
+  // R55, R225: the tap is a card from the first pixel, its Level spent, carried by its glyph; dropped
+  // on a resource-made card it merges into it.
+  /** Taps a glyph (`<character oid>:<source>`) and carries the card it makes. */
+  startGlyph(source2, down, move) {
+    const { game, table, mint: mint2 } = this.#w;
+    const oid = mint2()(), rid = ridOf(oid), p = table.toWorld(down.clientX, down.clientY);
+    const change3 = tapOut(game, source2, { table: { x: Math.round(p.x), y: Math.round(p.y), z: this.#top(), tilt: 0 } }, () => oid);
+    if (!change3) return;
+    table.still(() => game.change(change3));
+    const el3 = table.loose(rid);
+    if (el3) this.#carryItem(rid, el3, { x: TAP_GLYPH_X, y: el3.offsetHeight / 2 }, down, move);
+  }
+  /** Carries a held chip or card in the world layer, lighting where it would land, until let go. */
+  #carryItem(rid, el3, grip, down, move) {
+    const { game, table, mint: mint2 } = this.#w;
+    const doc = el3.ownerDocument;
+    const at3 = (cx, cy) => {
+      const p = table.toWorld(cx, cy);
+      return { x: Math.round(p.x - grip.x), y: Math.round(p.y - grip.y) };
     };
-    doc.body.classList.add("dragging");
-    at3(move);
-    this.#follow(doc, down, at3, (e) => {
-      doc.body.classList.remove("dragging");
-      ghost.remove();
-      for (const mat of this.#w.table.pools()) mat.classList.remove("wide");
-      onDrop(e);
+    leaveWriting(doc);
+    table.lift(rid, el3, at3(move.clientX, move.clientY));
+    doc.body.classList.add("dragging", "tapping");
+    let lit = null;
+    const pace = paced(this.#w.schedule, ({ x, y }) => {
+      const a = at3(x, y);
+      el3.style.left = `${a.x}px`;
+      el3.style.top = `${a.y}px`;
+      this.#widen(x, y);
+      lit = light(lit, this.#itemTarget(rid, doc, x, y)?.el ?? null);
+    });
+    const to = (e) => pace.to({ x: e.clientX, y: e.clientY });
+    to(move);
+    pace.flush();
+    this.#follow(doc, down, to, (e) => {
+      pace.cancel();
+      light(lit, null);
+      doc.body.classList.remove("dragging", "tapping");
+      for (const mat of table.pools()) mat.classList.remove("wide");
+      const t = this.#itemTarget(rid, doc, e.clientX, e.clientY);
+      const place2 = { ...at3(e.clientX, e.clientY), z: this.#top(), tilt: 0 };
+      table.letGo(rid);
+      const change3 = this.#itemDrop(rid, t, place2, mint2());
+      table.still(() => {
+        if (change3) game.change(change3);
+      });
+      table.render([rid]);
     });
   }
-  /** Where a drop at the pointer lies on the table: on top of everything. */
-  #placeAt(e) {
-    const p = this.#w.table.toWorld(e.clientX, e.clientY);
-    return { x: Math.round(p.x), y: Math.round(p.y), z: this.#top(), tilt: 0 };
-  }
-  #hits(e) {
-    const doc = e.target?.ownerDocument ?? document;
-    return doc.elementsFromPoint?.(e.clientX, e.clientY) ?? [];
-  }
-  #itemDrop(rid, e, mint2) {
-    const { game } = this.#w, hits = this.#hits(e);
+  /** Where a carried chip or card would land at the pointer, and the element to light. */
+  #itemTarget(rid, doc, x, y) {
+    const { game } = this.#w, i = game.get(rid);
+    const hits = doc.elementsFromPoint?.(x, y) ?? [];
     const first = (sel) => {
       for (const h of hits) {
         const m = h.closest?.(sel);
@@ -7940,35 +8019,44 @@ var Drag = class {
       }
       return null;
     };
-    const slot2 = first(".slot");
-    if (slot2) return toSlot(game, rid, slot2.dataset.owner, slot2.dataset.slot, mint2);
-    if (first(".kill")) return killCard(game, rid);
-    const drawer2 = first(".drawer");
-    if (drawer2) return toDrawer(game, rid, drawer2.dataset.drawer);
-    if (first("#bar")) {
-      const i = game.get(rid);
-      return i.kind === "influence" ? toDrawer(game, rid, i.home) : vanish(game, rid);
+    if (i?.kind === "influence" && i.tap) {
+      const into = first(".tapped[data-rid]");
+      if (into && mergeTap(game, rid, into.dataset.rid, () => "")) return { kind: "merge", el: into };
     }
-    return toTable(game, rid, this.#placeAt(e));
+    const slot2 = first(".slot");
+    if (slot2) return { kind: "slot", el: slot2 };
+    const kill2 = first(".kill");
+    if (kill2) return { kind: "kill", el: kill2 };
+    const drawer2 = first(".drawer");
+    if (drawer2) return { kind: "drawer", el: drawer2 };
+    const bar = first("#bar");
+    return bar ? { kind: "bar", el: bar } : null;
   }
-  // R55, R57: a glyph dropped on a resource-made card feeds it; anywhere else it makes a card at Min.
-  /** Carries a tap glyph (`<character oid>:<source>`). */
-  startGlyph(source2, down, move) {
-    const { game, mint: mint2 } = this.#w;
-    const doc = down.target?.ownerDocument ?? document;
-    const ghost = this.#ghost(doc, null, "\u25AD");
-    this.#carry(doc, ghost, { x: 6, y: 10 }, down, move, (e) => {
-      const target = this.#hits(e).map((h) => h.closest?.(".tapped[data-rid]")).find(Boolean);
-      const change3 = target ? feedFrom(game, target.dataset.rid, source2, mint2()) : tapOut(game, source2, { table: this.#placeAt(e) }, mint2());
-      if (change3) game.change(change3);
-    });
+  #itemDrop(rid, t, place2, mint2) {
+    const { game } = this.#w;
+    switch (t?.kind) {
+      case "merge":
+        return mergeTap(game, rid, t.el.dataset.rid, mint2);
+      case "slot":
+        return toSlot(game, rid, t.el.dataset.owner, t.el.dataset.slot, mint2);
+      case "kill":
+        return killCard(game, rid);
+      case "drawer":
+        return toDrawer(game, rid, t.el.dataset.drawer);
+      case "bar": {
+        const i = game.get(rid);
+        return i.kind === "influence" ? toDrawer(game, rid, i.home) : vanish(game, rid);
+      }
+      default:
+        return toTable(game, rid, place2);
+    }
   }
-  /** The card under the pointer, other than the piece itself. */
-  #cardAt(e, not) {
-    const doc = not.ownerDocument;
-    for (const hit of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
-      const card2 = hit.closest?.(".obj.card");
-      if (card2 && card2 !== not) return this.#w.game.get(card2.dataset.rid);
+  /** The card under the pointer, other than the piece itself, and its element. */
+  #cardAt(doc, x, y, not) {
+    for (const hit of doc.elementsFromPoint?.(x, y) ?? []) {
+      const el3 = hit.closest?.(".obj.card");
+      const card2 = el3 && el3 !== not ? this.#w.game.get(el3.dataset.rid) : void 0;
+      if (el3 && card2) return { card: card2, el: el3 };
     }
     return void 0;
   }
@@ -7976,7 +8064,7 @@ var Drag = class {
   #drop(rec, carried, dx, dy, z, e) {
     const { game } = this.#w;
     const moved = (p) => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
-    game.change((w) => {
+    this.#w.table.still(() => game.change((w) => {
       for (const c of carried) {
         const r = game.get(c.rid);
         if (!r) continue;
@@ -7991,11 +8079,11 @@ var Drag = class {
           w.put(c.rid, { ...r, place: place2 });
           continue;
         }
-        const card2 = this.#cardAt(e, carried[0].el);
+        const card2 = this.#cardAt(carried[0].el.ownerDocument, e.clientX, e.clientY, carried[0].el)?.card;
         const { pin: _old, ...loose } = r;
         w.put(c.rid, card2 ? { ...loose, place: place2, pin: { card: card2.oid, dx: place2.x - card2.card.x, dy: place2.y - card2.card.y } } : { ...loose, place: place2 });
       }
-    });
+    }));
   }
 };
 
@@ -8040,7 +8128,7 @@ function drawPool(c, items, old, w) {
   return e;
 }
 function make3(doc, c, w) {
-  const e = el2(doc, "div", "obj glide pool");
+  const e = el2(doc, "div", "obj pool");
   e.dataset.part = "pool";
   const rid = ridOf(c.oid);
   const hd = el2(doc, "div", "hd");
@@ -8188,6 +8276,10 @@ var TableView = class {
   #els = /* @__PURE__ */ new Map();
   #pools = /* @__PURE__ */ new Map();
   #loose = /* @__PURE__ */ new Map();
+  /** Chips and cards in hand (R220): skipped by pools and the loose layer until let go. */
+  #held = /* @__PURE__ */ new Map();
+  /** Inside still(): a redraw that moves a piece doesn't glide (R226). */
+  #still = false;
   #sized = new ResizeObserver((entries2) => {
     for (const e of entries2) {
       const rid = e.target.dataset.rid;
@@ -8204,6 +8296,42 @@ var TableView = class {
     w.game.listen((rids) => this.render(rids));
     this.render(w.game.all().map(([rid]) => rid));
     this.#panZoom();
+    world.addEventListener("transitionend", (e) => {
+      const t = e.target;
+      if (t.parentElement === world && (e.propertyName === "left" || e.propertyName === "top")) t.classList.remove("glide");
+    });
+  }
+  // R220: the hand.
+  /** Holds a chip or card: into the world layer at `at`, squared up and raised, skipped by redraws. */
+  lift(rid, el3, at3) {
+    this.#held.set(rid, el3);
+    if (el3.parentElement !== this.#world) this.#world.append(el3);
+    el3.classList.add("obj", "lifted");
+    el3.classList.remove("glide");
+    el3.style.left = `${at3.x}px`;
+    el3.style.top = `${at3.y}px`;
+    el3.style.pointerEvents = "none";
+    this.render([rid]);
+  }
+  /** Lets go of a held chip or card: back in the loose layer if it was loose, otherwise gone. */
+  letGo(rid) {
+    const el3 = this.#held.get(rid);
+    this.#held.delete(rid);
+    if (!el3) return;
+    el3.style.pointerEvents = "";
+    el3.classList.remove("lifted");
+    if (this.#loose.get(rid) !== el3) el3.remove();
+  }
+  // R226, R217: what this page let go itself is drawn where it landed, without gliding.
+  /** Runs `fn` (a change of this page's own) with gliding off. */
+  still(fn) {
+    const was = this.#still;
+    this.#still = true;
+    try {
+      fn();
+    } finally {
+      this.#still = was;
+    }
   }
   /** The element drawing a piece (a character's card), if any. */
   element(rid) {
@@ -8231,7 +8359,7 @@ var TableView = class {
     card2.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
   }
   #drawPools(rids) {
-    const items = this.#items();
+    const items = this.#items().filter((i) => !this.#held.has(ridOf(i.oid)));
     for (const rid of rids) {
       const c = this.#w.game.get(rid), old = this.#pools.get(rid);
       if (!c || c.kind !== "character") {
@@ -8253,6 +8381,7 @@ var TableView = class {
   }
   // R60: a chip or a tap can lie loose on the table.
   #drawLoose(rid) {
+    if (this.#held.has(rid)) return;
     const i = this.#w.game.get(rid), old = this.#loose.get(rid);
     const where2 = i && typeof i.where === "object" && "table" in i.where ? i.where.table : null;
     if (!i || !where2) {
@@ -8269,7 +8398,7 @@ var TableView = class {
       this.#world.append(e);
       this.#loose.set(rid, e);
     }
-    e.className = `obj glide loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
+    e.className = `obj loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
     e.textContent = i.kind === "chip" ? `${i.sign < 0 ? "\u2212" : ""}${i.points}` : `${i.name} ${i.sign > 0 ? "+" : "\u2212"}${levelName2(i.points)}`;
     e.style.left = `${where2.x}px`;
     e.style.top = `${where2.y}px`;
@@ -8277,6 +8406,15 @@ var TableView = class {
   }
   // Seq: seq-save.md#1.4: only the changed rids are touched.
   render(rids) {
+    const was = /* @__PURE__ */ new Map();
+    for (const m of [this.#els, this.#pools, this.#loose]) for (const e of m.values()) was.set(e, `${e.style.left},${e.style.top}`);
+    this.#render(rids);
+    if (this.#still) return;
+    for (const [e, at3] of was) {
+      if (e.isConnected && !e.classList.contains("lifted") && at3 !== "," && at3 !== `${e.style.left},${e.style.top}`) e.classList.add("glide");
+    }
+  }
+  #render(rids) {
     const characters2 = /* @__PURE__ */ new Set();
     let items = false;
     for (const rid of rids) {
@@ -8326,6 +8464,14 @@ var TableView = class {
   #panZoom() {
     const root = this.#root, doc = root.ownerDocument;
     let from = null;
+    const pan = paced(this.#w.schedule, ({ x, y }) => {
+      this.view = { ...this.view, x, y };
+      this.#place();
+    });
+    const zoomed = paced(this.#w.schedule, (v) => {
+      this.#place();
+      this.#w.keepView(v);
+    });
     root.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
       doc.activeElement?.blur?.();
@@ -8334,12 +8480,12 @@ var TableView = class {
     });
     doc.addEventListener("pointermove", (e) => {
       if (!from || e.pointerId !== from.id) return;
-      this.view = { ...this.view, x: from.vx + e.clientX - from.x, y: from.vy + e.clientY - from.y };
-      this.#place();
+      pan.to({ x: from.vx + e.clientX - from.x, y: from.vy + e.clientY - from.y });
     });
     const end = (e) => {
       if (!from || e.pointerId !== from.id) return;
       from = null;
+      pan.flush();
       doc.body.classList.remove("panning");
       this.#w.keepView(this.view);
     };
@@ -8351,8 +8497,7 @@ var TableView = class {
       const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, this.view.zoom * Math.exp(-e.deltaY * 15e-4)));
       const k = zoom / this.view.zoom;
       this.view = { x: px - (px - this.view.x) * k, y: py - (py - this.view.y) * k, zoom };
-      this.#place();
-      this.#w.keepView(this.view);
+      zoomed.to(this.view);
     }, { passive: false });
   }
 };
@@ -8415,6 +8560,7 @@ function views(game, gameId, viewer, blobs, moves, missing) {
     viewer,
     view: seat.view,
     keepView: (v) => keep({ ...seat, view: v }),
+    schedule: frame,
     imageUrl: (hash) => blobs.url(hash),
     imageGone: (hash) => blobs.release(hash),
     missing,
@@ -8438,7 +8584,7 @@ function views(game, gameId, viewer, blobs, moves, missing) {
     dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
     dragPool: (rid, down, move) => drag?.startPool(rid, down, move)
   });
-  drag = new Drag({ game, table, moves, mint: mint2 });
+  drag = new Drag({ game, table, moves, mint: mint2, schedule: frame });
   return { table, drag };
 }
 async function main() {

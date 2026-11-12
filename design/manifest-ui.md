@@ -1,5 +1,5 @@
 # UI manifest
-**Requirements:** R1, R2, R3, R4, R6, R7, R11, R12, R13, R17
+**Requirements:** R1-4, R6, R7, R11-13, R17, R219, R221
 
 One page, no routes. The table fills the window under the bar. Everything is paper and table
 furniture; the chrome is the bar.

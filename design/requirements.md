@@ -8,6 +8,7 @@
 - **R3:** Caveat sets everything handwritten; PT Mono sets reference cards and chrome; Sancreek sets the wordmark only.
 - **R4:** Motion happens only in answer to a person's action (lift shadow while dragging, a flip, dice); there is no ambient animation.
 - **R5:** Paper is tilted slightly at random and squares up while it holds the text cursor.
+- **R219:** Paper being written on comes to the top while it holds the cursor, so nothing covers it or its pens.
 - **R6:** Pool slot labels use the print's mat lettering or PT Mono, in sentence case; no system sans serif and no all-caps labels.
 - **R7:** Every control is a thing at the table (key, tag, tab, glyph, book page); there are no web buttons, pills, dropdowns or floating panels.
 - **R8:** A panel opens as the object it belongs to.
@@ -20,6 +21,13 @@
 - **R15:** The table fills the window; dragging empty table pans and the wheel zooms.
 - **R16:** A click on a pool's empty space beside its name passes through to the table.
 - **R17:** Labels, slot rows, drawer tools, the roll row, the register and the bar don't select as text.
+- **R215:** Dragging, panning and zooming follow the pointer at most once a frame: a move sets where the thing in hand is headed, and the next frame (or 100 ms in a hidden tab) puts it there.
+- **R216:** A piece in hand stays glued to the pointer where it was taken hold of, at any zoom, with no lag or easing.
+- **R217:** A piece let go is exactly where it was shown; it doesn't slide there from where it started.
+- **R220:** What is carried is the piece itself, never a copy: lifted, it squares up, grows slightly and rides above everything, bringing what follows it.
+- **R221:** Things that aim (Resource glyphs, checked boxes, chips, Influence cards, slots) take the pointing hand, its fingertip the hotspot, for the whole drag of a chip, card or tap and while aiming; paper, pools and the table take the open hand, closed while panning.
+- **R222:** While something is carried, the place it would land lights up (a slot, the chip a +1 would ride, the card a sticky would pin to, a drawer); over the bar it says whether letting go puts it away or buries it.
+- **R223:** Picking something up leaves any writing and clears the text selection.
 - **R18:** The bar runs along the top and holds supplies: character, sticky, loose text, image, the "How to play the table" card, and chips 2, 4, 6 and +1 in each colour.
 - **R19:** Dragging a supply onto the table makes one; dropping it back on the bar makes nothing.
 - **R20:** The bar shows the people at the table, and the register, the Ledger and Boot Hill at its right end.
@@ -64,6 +72,7 @@
 - **R45:** A chip carrying a +1 counts at face value in a Roll Up, and its +1 is spent.
 - **R46:** Lowering a chip can complete a Roll Up.
 - **R47:** An Influence card lives in its pool's drawer and shrinks to a chip showing its value (name on hover) in a pool slot.
+- **R224:** An Influence card picked up from a drawer or the table becomes a chip in hand, centred on the pointer, its value in the middle and its name on hover (Bill, 11-12).
 - **R48:** An Influence card dropped anywhere but a pool slot goes home to its drawer; dropped on another pool's drawer, it moves to that character.
 - **R49:** A drawer's kill box is the only way to delete an Influence card.
 - **R50:** A drawer has buttons to write a new + or − card.
@@ -72,6 +81,7 @@
 - **R53:** Clicking a pile opens or closes it; an open pile lists its members by name; dragging a member out breaks the pile.
 - **R54:** A tap glyph sits before each `<res>` mark, each named Damage slot, and each checked Slot box; only `Name +Level` inside a `<res>` mark is read, and a Damage slot's Level is its row's.
 - **R55:** Dragging a glyph onto the table makes an Influence card named after the Resource, born at Min with the glyph under the pointer, marked resource-made, and drops the Resource's written Level by one.
+- **R225:** A tap's card is made the moment the drag starts, its Level already spent, and carried with its glyph under the pointer.
 - **R56:** On a resource-made card, click moves a Level from the current source; shift-click moves one back, never below what that source put in (a per-source ledger).
 - **R57:** Dropping another Resource's glyph on a resource-made card anywhere (table, pool, drawer) moves a Level from it and makes it the current source; this works across characters.
 - **R58:** A Resource can't feed a plain Influence card.
@@ -223,6 +233,8 @@
 - **R181:** Each piece keeps the highest number applied from each page and discards anything lower.
 - **R182:** Among moves arriving together, the newest arrival places a piece; an older one changes it only if it is from the same page with a higher number.
 - **R183:** A piece in your hand, or one you are writing in, takes no change until you let go.
+- **R218:** A piece moved from another page slides only to the most recent position this page has for it, never through the ones in between, including moves that arrived while it was held.
+- **R226:** Only what another page moved slides; a piece this page let go never does.
 - **R184:** The GM's page and each player's page share a sealing key; a sealed box names what it is and who it is from and to.
 - **R185:** Every batch carries each piece as someone who owns nothing sees it, and seals, for each player, the pieces that player sees differently.
 - **R186:** When a character changes hands, its sheet and cards go sealed to the new owner, and the old owner gets the redacted ones.

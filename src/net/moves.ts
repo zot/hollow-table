@@ -37,7 +37,9 @@ export class Moves {
   #inHand: MoveItem[] = [];
   #timer: unknown = null;
   #held = new Set<Rid>();
-  #waiting = new Map<Rid, Command[]>();
+  /** The one command waiting for each held piece, and the pass that saw it (R218). */
+  #waiting = new Map<Rid, { c: Command; pass: number }>();
+  #pass = 0;
 
   constructor(w: MovesWith) { this.#w = w; }
 
@@ -78,6 +80,7 @@ export class Moves {
    * higher number. Anything lower than what was applied from its page is discarded.
    */
   pass(): void {
+    this.#pass++;
     const run = this.#filling;
     this.#filling = this.#draining;
     this.#draining = run;
@@ -110,7 +113,7 @@ export class Moves {
     const waited = this.#waiting.get(rid);
     if (!waited) return;
     this.#waiting.delete(rid);
-    this.#filling.push(...waited);
+    this.#filling.push(waited.c);
     this.#startActor();
   }
 
@@ -125,8 +128,12 @@ export class Moves {
     schedule(() => this.pass());
   }
 
+  // R218: a held piece keeps only the most recent move for it, by the pass's own rule, never the
+  // moves in between: a later pass's arrival replaces it, unless it is the same page's with a lower
+  // number; within one pass (newest first) only the same page's higher number does.
   #hold(c: Command): void {
-    const w = this.#waiting.get(c.rid);
-    if (w) w.unshift(c); else this.#waiting.set(c.rid, [c]);
+    const w = this.#waiting.get(c.rid), same = !!w && w.c.tab === c.tab;
+    const newer = !w || (w.pass === this.#pass ? same && c.s > w.c.s : !(same && w.c.s > c.s));
+    if (newer) this.#waiting.set(c.rid, { c, pass: this.#pass });
   }
 }

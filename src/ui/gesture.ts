@@ -100,3 +100,29 @@ export function gesture(el: EventTarget, h: Handlers, timers: Timers = real): ()
     el.removeEventListener('keydown', onKey);
   };
 }
+
+// CRC: crc-Gesture.md | R215
+/** A target for whatever is in hand: a move only sets where it is headed; the next frame puts it there. */
+export type Paced<T> = { to(target: T): void; flush(): void; cancel(): void };
+
+/**
+ * Paces moves to frames. `schedule` runs a pass on the next animation frame or after 100 ms,
+ * whichever comes first; the pass applies the latest target once, however many moves came before it.
+ */
+export function paced<T>(schedule: (fn: () => void) => void, apply: (target: T) => void): Paced<T> {
+  let pending: { target: T } | null = null;
+  const pass = () => {
+    if (!pending) return;
+    const { target } = pending;
+    pending = null;
+    apply(target);
+  };
+  return {
+    to(target) {
+      if (!pending) schedule(pass);
+      pending = { target };
+    },
+    flush: pass,
+    cancel() { pending = null; },
+  };
+}

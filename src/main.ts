@@ -69,7 +69,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const mint = () => minter(game, gm);
   let drag: Drag | undefined;
   const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
-    game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }),
+    game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }), schedule: frame,
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
     opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); redraw(); },
     drag: (rid, down, move) => drag?.start(rid, down, move),
@@ -86,7 +86,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
     dragPool: (rid, down, move) => drag?.startPool(rid, down, move),
   });
-  drag = new Drag({ game, table, moves, mint });
+  drag = new Drag({ game, table, moves, mint, schedule: frame });
   return { table, drag };
 }
 

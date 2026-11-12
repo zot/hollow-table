@@ -1,5 +1,5 @@
 # Tap
-**Requirements:** R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212
+**Requirements:** R54-60, R66, R210-212, R225
 
 Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source so
 every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage

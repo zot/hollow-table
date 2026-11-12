@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49, R50, R51, R55, R56, R57, R59, R60, R64
+// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49, R50, R51, R55, R56, R57, R59, R60, R64
 // What a click or a drop on a pool, a drawer or a glyph does to the game, as one change. Pure: each
 // takes the game and gives a writer for Game.change (or null when nothing happens), so the views stay
 // thin and these are tested without a browser.
@@ -171,4 +171,30 @@ export function feedFrom(game: Game, cardRid: Rid, src: string, mint: () => Oid)
   if (c?.kind !== 'influence') return null;
   const t = feed(lookup(game), c, src, mint());
   return t ? apply(t, c) : null;
+}
+
+// R225, R57: a resource-made card carried onto another of its kind merges into it: each Level goes
+// back to the source it came from and is fed into that card instead, and the carried card is gone.
+export function mergeTap(game: Game, fromRid: Rid, intoRid: Rid, mint: () => Oid): Change | null {
+  const from = item(game, fromRid), into = item(game, intoRid);
+  if (fromRid === intoRid || from?.kind !== 'influence' || into?.kind !== 'influence' || !from.tap || !into.tap || from.used) return null;
+  const chars = new Map<Oid, Character>();
+  const now: Lookup = oid => chars.get(oid) ?? lookup(game)(oid);
+  for (const c of kill(now, from)) chars.set(c.oid, c);
+  let card = into, fed = false;
+  for (const [src, n] of Object.entries(from.tap.ledger)) {
+    for (let k = 0; k < n; k++) {
+      const t = feed(now, card, src, mint());
+      if (!t || t.card.oid !== into.oid) return null;   // a source of another kind, or a used card
+      card = t.card;
+      fed = true;
+      for (const c of t.changed) chars.set(c.oid, c);
+    }
+  }
+  if (!fed) return null;
+  return w => {
+    w.del(fromRid);
+    w.put(intoRid, card);
+    for (const c of chars.values()) w.put(ridOf(c.oid), c);
+  };
 }

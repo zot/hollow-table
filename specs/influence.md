@@ -22,8 +22,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 ## Influence cards
 
-- **One object, two forms.** An Influence card lives in its pool's **drawer**. Dragged into a pool
-  slot it shrinks to chip size with its value in the middle, its name on hover.
+- **One object, two forms.** An Influence card lives in its pool's **drawer**. Picked up from a
+  drawer or the table, it becomes a chip in your hand, centred on the pointer, with its value in
+  the middle and its name on hover; dropped in a pool slot it stays a chip (Bill, 11-12).
 - **Never lost:** dropped anywhere that isn't a pool slot, it goes home to its drawer. Dropped on
   another pool's drawer, it moves to that character. The drawer's **kill box** is the only way to
   delete one.
@@ -41,9 +42,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - **A checked Slot box is a Resource of its own**, named after its slot and worth the slot's Level
   (Bill, 11-12).
 - **Dragging a glyph onto the table** makes an Influence card named after the Resource, born at Min
-  (the drag spends the first Level), positioned with its glyph under the pointer. The card shows the
-  same glyph before its name (resource-made). The Resource's text drops a Level in place (*Money
-  +Maj* becomes *+Sig*).
+  (the drag spends the first Level), made the moment the drag starts and carried with its glyph
+  under the pointer. The card shows the same glyph before its name (resource-made). The
+  Resource's text drops a Level in place (*Money +Maj* becomes *+Sig*).
 - On a resource-made card, click moves a Level from the **current source** into the card;
   shift-click moves it back, only down to what that source put in (a per-card **ledger** per
   Resource).

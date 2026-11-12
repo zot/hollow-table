@@ -104,7 +104,7 @@ export function draw(r: PieceRecord, old: HTMLElement | undefined, w: PieceWith)
 
 function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
   const rid = ridOf(r.oid);
-  const e = el(doc, 'div', `obj glide ${CLASS[r.kind] ?? r.kind}`);
+  const e = el(doc, 'div', `obj ${CLASS[r.kind] ?? r.kind}`);
   e.dataset.kind = r.kind;
   e.dataset.rid = rid;
   // A press that isn't writing carries the piece.

@@ -1,22 +1,52 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R27, R30, R32, R48, R55, R57, R60, R179, R183
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R215, R216, R217, R220, R221, R222, R223, R224, R225, R226, R21, R27, R30, R32, R48, R55, R57, R60, R179, R183
 // Lifting, carrying and dropping, and deciding what a drop means. While carried, a piece goes to the
 // room every 100 ms (Moves); the drop is one Game.change. This part moves paper and pins it; pools,
 // the bar and Boot Hill add their drop targets as they land.
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Character, type Influence, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName } from '../model/records.ts';
-import { feedFrom, killCard, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
+import { ridOf, type Character, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName } from '../model/records.ts';
+import type { Item } from '../rules/pool.ts';
+import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
 import type { MoveItem, Moves } from '../net/moves.ts';
-import type { PointerLike } from './gesture.ts';
+import { paced, type PointerLike } from './gesture.ts';
 import { placeOf } from './piece.ts';
 import type { TableView } from './table.ts';
 
-export type DragWith = { game: Game; table: TableView; moves: Moves | null; mint: () => () => Oid };
+export type DragWith = {
+  game: Game; table: TableView; moves: Moves | null; mint: () => () => Oid;
+  /** The next frame, or 100 ms in a hidden tab (R215). */
+  schedule: (fn: () => void) => void;
+};
 
 /** How close a carried chip or card comes to a pool before the pool widens (R30). */
 export const NEAR_PX = 60;
 
 type Carried = { rid: Rid; el: HTMLElement; from: Place; part?: string };
+
+/** Where a carried chip or card would land, and the element lit for it (R222). */
+type Target = { kind: 'merge' | 'slot' | 'kill' | 'drawer' | 'bar'; el: HTMLElement };
+
+/** How far into a tapped card its glyph's centre sits, the name after it (R225). */
+const TAP_GLYPH_X = 10;
+
+// R224: a chip in hand: its points in the middle, a card's name on hover.
+function asChip(el: HTMLElement, i: Item): void {
+  el.className = `loose-item chip ${i.sign > 0 ? 'pos' : 'neg'}`;
+  el.textContent = `${i.sign < 0 ? '−' : ''}${i.points}`;
+  if (i.kind === 'influence') el.title = i.name;
+}
+
+// R222: one place lit at a time.
+function light(was: HTMLElement | null, now: HTMLElement | null): HTMLElement | null {
+  if (was !== now) { was?.classList.remove('over'); now?.classList.add('over'); }
+  return now;
+}
+
+// R223: picking something up leaves any writing and clears the text selection.
+function leaveWriting(doc: Document): void {
+  (doc.activeElement as HTMLElement | null)?.blur?.();
+  doc.getSelection?.()?.removeAllRanges();
+}
 
 const pinnable = (r: PieceRecord): r is Extract<PieceRecord, { pin?: Pin }> =>
   r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image';
@@ -53,7 +83,8 @@ export class Drag {
       }
     }
     const p0 = table.toWorld(down.clientX, down.clientY);
-    for (const c of carried) { c.el.classList.add('lifted'); c.el.classList.remove('glide'); moves?.hold(c.rid); }
+    leaveWriting(doc);
+    for (const c of carried) { c.el.classList.add('lifted'); moves?.hold(c.rid); }
     doc.body.classList.add('dragging');
     const z = this.#top();
     const items = (dx: number, dy: number): MoveItem[] => carried.slice(0, 8).map(c => ({
@@ -63,12 +94,19 @@ export class Drag {
     const show = (dx: number, dy: number) => {
       for (const c of carried) { c.el.style.left = `${c.from.x + dx}px`; c.el.style.top = `${c.from.y + dy}px`; }
     };
+    // R222: a sticky, text or image lights the card it would pin to.
+    let lit: HTMLElement | null = null;
+    const pins = pinnable(rec);
+    // R215: a move sets where the pieces are headed; the next frame puts them there.
+    const pace = paced<{ dx: number; dy: number; cx: number; cy: number }>(this.#w.schedule, ({ dx, dy, cx, cy }) => {
+      show(dx, dy);
+      moves?.drag(items(dx, dy));
+      if (pins) lit = light(lit, this.#cardAt(doc, cx, cy, el)?.el ?? null);
+    });
     const onMove = (ev: Event) => {
       const e = ev as PointerLike;
       if (e.pointerId !== down.pointerId) return;
-      const { dx, dy } = delta(e);
-      show(dx, dy);
-      moves?.drag(items(dx, dy));
+      pace.to({ ...delta(e), cx: e.clientX, cy: e.clientY });
     };
     const onUp = (ev: Event) => {
       const e = ev as PointerLike;
@@ -76,9 +114,11 @@ export class Drag {
       doc.removeEventListener('pointermove', onMove);
       doc.removeEventListener('pointerup', onUp);
       doc.removeEventListener('pointercancel', onUp);
+      pace.cancel();
+      light(lit, null);
       doc.body.classList.remove('dragging');
       const { dx, dy } = delta(e);
-      for (const c of carried) { c.el.classList.remove('lifted'); c.el.classList.add('glide'); }
+      for (const c of carried) c.el.classList.remove('lifted');
       moves?.drop(items(dx, dy));
       this.#drop(rec, carried, dx, dy, z, e);
       for (const c of carried) moves?.release(c.rid);
@@ -87,6 +127,7 @@ export class Drag {
     doc.addEventListener('pointerup', onUp);
     doc.addEventListener('pointercancel', onUp);
     onMove(move);
+    pace.flush();
   }
 
   // R32: dragging a pool by its name brings its gathered card (and what's pinned to it).
@@ -101,7 +142,8 @@ export class Drag {
     const followers = c.gathered && card ? [card, ...this.#pinned(c)] : [];
     const start = followers.map(e => ({ e, x: parseFloat(e.style.left), y: parseFloat(e.style.top) }));
     const p0 = table.toWorld(down.clientX, down.clientY);
-    mat.classList.add('lifted'); mat.classList.remove('glide');
+    leaveWriting(doc);
+    mat.classList.add('lifted');
     moves?.hold(rid);
     doc.body.classList.add('dragging');
     const delta = (e: PointerLike) => { const p = table.toWorld(e.clientX, e.clientY); return { dx: p.x - p0.x, dy: p.y - p0.y }; };
@@ -110,9 +152,11 @@ export class Drag {
       mat.style.left = `${c.pool.x + dx}px`; mat.style.top = `${c.pool.y + dy}px`;
       for (const f of start) { f.e.style.left = `${f.x + dx}px`; f.e.style.top = `${f.y + dy}px`; }
     };
-    this.#follow(doc, down, e => { const { dx, dy } = delta(e); show(dx, dy); moves?.drag(item(dx, dy)); }, e => {
+    const pace = paced<{ dx: number; dy: number }>(this.#w.schedule, ({ dx, dy }) => { show(dx, dy); moves?.drag(item(dx, dy)); });
+    this.#follow(doc, down, e => pace.to(delta(e)), e => {
+      pace.cancel();
       doc.body.classList.remove('dragging');
-      mat.classList.remove('lifted'); mat.classList.add('glide');
+      mat.classList.remove('lifted');
       const { dx, dy } = delta(e);
       moves?.drop(item(dx, dy));
       this.#drop(c, carried, dx, dy, z, e);
@@ -155,93 +199,117 @@ export class Drag {
     }
   }
 
-  /** A ghost of what's carried, under the pointer, outside the table's transform. */
-  #ghost(doc: Document, from: HTMLElement | null, text: string): HTMLElement {
-    const g = (from?.cloneNode(true) as HTMLElement | undefined) ?? doc.createElement('div');
-    if (!from) g.textContent = text;
-    g.classList.add('ghost');
-    g.style.cssText = 'position:fixed;pointer-events:none;z-index:1000001;left:0;top:0;';
-    doc.body.append(g);
-    return g;
-  }
-
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60: in this order: a slot,
-  // a drawer, the kill box, the bar, else the table.
-  /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table). */
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R224: in this order:
+  // a tap's merge, a slot, the kill box, a drawer, the bar, else the table.
+  /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
   startItem(rid: Rid, down: PointerLike, move: PointerLike): void {
-    const { game, mint } = this.#w;
-    const i = game.get(rid) as Influence | undefined;
-    if (!i) return;
-    const doc = (down.target as Node | null)?.ownerDocument ?? document;
-    const src = (down.target as HTMLElement | null)?.closest?.('[data-rid]') as HTMLElement | null;
-    const ghost = this.#ghost(doc, src, '');
-    if (src) src.style.visibility = 'hidden';
-    this.#carry(doc, ghost, { x: 12, y: 12 }, down, move, e => {
-      if (src) src.style.visibility = '';
-      const change = this.#itemDrop(rid, e, mint());
-      if (change) game.change(change);
-    });
+    const { game, table } = this.#w;
+    const i = game.get(rid) as Item | undefined;
+    const el = (down.target as HTMLElement | null)?.closest?.('[data-rid]') as HTMLElement | null;
+    if (!i || !el) return;
+    const r = el.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
+    // R224: a card in card form becomes a chip in hand, centred on the pointer; a chip keeps the
+    // spot it was pressed (R216).
+    const card = el.classList.contains('icard');
+    asChip(el, i);
+    const grip = card ? { x: el.offsetWidth / 2, y: el.offsetHeight / 2 } : { x: p.x - corner.x, y: p.y - corner.y };
+    this.#carryItem(rid, el, grip, down, move);
   }
 
-  /** Carries a ghost under the pointer, widening the pool it nears, until it is let go. */
-  #carry(doc: Document, ghost: HTMLElement, offset: { x: number; y: number }, down: PointerLike, move: PointerLike, onDrop: (e: PointerLike) => void): void {
-    const at = (e: PointerLike) => { ghost.style.transform = `translate(${e.clientX - offset.x}px, ${e.clientY - offset.y}px)`; this.#widen(e.clientX, e.clientY); };
-    doc.body.classList.add('dragging');
-    at(move);
-    this.#follow(doc, down, at, e => {
-      doc.body.classList.remove('dragging');
-      ghost.remove();
-      for (const mat of this.#w.table.pools()) mat.classList.remove('wide');
-      onDrop(e);
-    });
-  }
-
-  /** Where a drop at the pointer lies on the table: on top of everything. */
-  #placeAt(e: PointerLike): Place {
-    const p = this.#w.table.toWorld(e.clientX, e.clientY);
-    return { x: Math.round(p.x), y: Math.round(p.y), z: this.#top(), tilt: 0 };
-  }
-
-  #hits(e: PointerLike): HTMLElement[] {
-    const doc = (e.target as Node | null)?.ownerDocument ?? document;
-    return (doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) as HTMLElement[];
-  }
-
-  #itemDrop(rid: Rid, e: PointerLike, mint: () => Oid): Change | null {
-    const { game } = this.#w, hits = this.#hits(e);
-    const first = (sel: string) => { for (const h of hits) { const m = h.closest?.(sel) as HTMLElement | null; if (m) return m; } return null; };
-    const slot = first('.slot');
-    if (slot) return toSlot(game, rid, slot.dataset.owner!, slot.dataset.slot as SlotName, mint);
-    if (first('.kill')) return killCard(game, rid);
-    const drawer = first('.drawer');
-    if (drawer) return toDrawer(game, rid, drawer.dataset.drawer!);
-    if (first('#bar')) {
-      const i = game.get(rid) as Influence;
-      return i.kind === 'influence' ? toDrawer(game, rid, i.home) : vanish(game, rid);
-    }
-    return toTable(game, rid, this.#placeAt(e));
-  }
-
-  // R55, R57: a glyph dropped on a resource-made card feeds it; anywhere else it makes a card at Min.
-  /** Carries a tap glyph (`<character oid>:<source>`). */
+  // R55, R225: the tap is a card from the first pixel, its Level spent, carried by its glyph; dropped
+  // on a resource-made card it merges into it.
+  /** Taps a glyph (`<character oid>:<source>`) and carries the card it makes. */
   startGlyph(source: string, down: PointerLike, move: PointerLike): void {
-    const { game, mint } = this.#w;
-    const doc = (down.target as Node | null)?.ownerDocument ?? document;
-    const ghost = this.#ghost(doc, null, '▭');
-    this.#carry(doc, ghost, { x: 6, y: 10 }, down, move, e => {
-      const target = this.#hits(e).map(h => h.closest?.('.tapped[data-rid]') as HTMLElement | null).find(Boolean);
-      const change = target ? feedFrom(game, target.dataset.rid!, source, mint())
-        : tapOut(game, source, { table: this.#placeAt(e) }, mint());
-      if (change) game.change(change);
+    const { game, table, mint } = this.#w;
+    const oid = mint()(), rid = ridOf(oid), p = table.toWorld(down.clientX, down.clientY);
+    const change = tapOut(game, source, { table: { x: Math.round(p.x), y: Math.round(p.y), z: this.#top(), tilt: 0 } }, () => oid);
+    if (!change) return;
+    table.still(() => game.change(change));
+    const el = table.loose(rid);
+    if (el) this.#carryItem(rid, el, { x: TAP_GLYPH_X, y: el.offsetHeight / 2 }, down, move);
+  }
+
+  /** Carries a held chip or card in the world layer, lighting where it would land, until let go. */
+  #carryItem(rid: Rid, el: HTMLElement, grip: { x: number; y: number }, down: PointerLike, move: PointerLike): void {
+    const { game, table, mint } = this.#w;
+    const doc = el.ownerDocument;
+    // R216: the grip is kept in world coordinates, so the piece stays glued at any zoom.
+    const at = (cx: number, cy: number) => {
+      const p = table.toWorld(cx, cy);
+      return { x: Math.round(p.x - grip.x), y: Math.round(p.y - grip.y) };
+    };
+    leaveWriting(doc);
+    table.lift(rid, el, at(move.clientX, move.clientY));
+    // R221: the pointing hand for the whole carry.
+    doc.body.classList.add('dragging', 'tapping');
+    let lit: HTMLElement | null = null;
+    // R215, R222: a move sets where it's headed; the next frame puts it there, widens a pool and
+    // lights the place it would land.
+    const pace = paced<{ x: number; y: number }>(this.#w.schedule, ({ x, y }) => {
+      const a = at(x, y);
+      el.style.left = `${a.x}px`;
+      el.style.top = `${a.y}px`;
+      this.#widen(x, y);
+      lit = light(lit, this.#itemTarget(rid, doc, x, y)?.el ?? null);
+    });
+    const to = (e: PointerLike) => pace.to({ x: e.clientX, y: e.clientY });
+    to(move);
+    pace.flush();
+    this.#follow(doc, down, to, e => {
+      pace.cancel();
+      light(lit, null);
+      doc.body.classList.remove('dragging', 'tapping');
+      for (const mat of table.pools()) mat.classList.remove('wide');
+      const t = this.#itemTarget(rid, doc, e.clientX, e.clientY);
+      const place: Place = { ...at(e.clientX, e.clientY), z: this.#top(), tilt: 0 };
+      table.letGo(rid);
+      const change = this.#itemDrop(rid, t, place, mint());
+      // R217, R226: drawn where it was let go, without gliding there.
+      table.still(() => { if (change) game.change(change); });
+      table.render([rid]);   // refused: back where its record says
     });
   }
 
-  /** The card under the pointer, other than the piece itself. */
-  #cardAt(e: PointerLike, not: HTMLElement): Character | undefined {
-    const doc = not.ownerDocument;
-    for (const hit of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
-      const card = (hit as HTMLElement).closest?.('.obj.card') as HTMLElement | null;
-      if (card && card !== not) return this.#w.game.get(card.dataset.rid!) as Character | undefined;
+  /** Where a carried chip or card would land at the pointer, and the element to light. */
+  #itemTarget(rid: Rid, doc: Document, x: number, y: number): Target | null {
+    const { game } = this.#w, i = game.get(rid) as Item | undefined;
+    const hits = (doc.elementsFromPoint?.(x, y) ?? []) as HTMLElement[];
+    const first = (sel: string) => { for (const h of hits) { const m = h.closest?.(sel) as HTMLElement | null; if (m) return m; } return null; };
+    if (i?.kind === 'influence' && i.tap) {
+      const into = first('.tapped[data-rid]');
+      if (into && mergeTap(game, rid, into.dataset.rid!, () => '')) return { kind: 'merge', el: into };
+    }
+    const slot = first('.slot');
+    if (slot) return { kind: 'slot', el: slot };
+    const kill = first('.kill');
+    if (kill) return { kind: 'kill', el: kill };
+    const drawer = first('.drawer');
+    if (drawer) return { kind: 'drawer', el: drawer };
+    const bar = first('#bar');
+    return bar ? { kind: 'bar', el: bar } : null;
+  }
+
+  #itemDrop(rid: Rid, t: Target | null, place: Place, mint: () => Oid): Change | null {
+    const { game } = this.#w;
+    switch (t?.kind) {
+      case 'merge': return mergeTap(game, rid, t.el.dataset.rid!, mint);
+      case 'slot': return toSlot(game, rid, t.el.dataset.owner!, t.el.dataset.slot as SlotName, mint);
+      case 'kill': return killCard(game, rid);
+      case 'drawer': return toDrawer(game, rid, t.el.dataset.drawer!);
+      case 'bar': {
+        const i = game.get(rid) as Item;
+        return i.kind === 'influence' ? toDrawer(game, rid, i.home) : vanish(game, rid);
+      }
+      default: return toTable(game, rid, place);
+    }
+  }
+
+  /** The card under the pointer, other than the piece itself, and its element. */
+  #cardAt(doc: Document, x: number, y: number, not: HTMLElement): { card: Character; el: HTMLElement } | undefined {
+    for (const hit of doc.elementsFromPoint?.(x, y) ?? []) {
+      const el = (hit as HTMLElement).closest?.('.obj.card') as HTMLElement | null;
+      const card = el && el !== not ? this.#w.game.get(el.dataset.rid!) as Character | undefined : undefined;
+      if (el && card) return { card, el };
     }
     return undefined;
   }
@@ -250,7 +318,8 @@ export class Drag {
   #drop(rec: PieceRecord, carried: Carried[], dx: number, dy: number, z: number, e: PointerLike): void {
     const { game } = this.#w;
     const moved = (p: Place): Place => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
-    game.change(w => {
+    // R217, R226: one change of this page's own, drawn where it was let go.
+    this.#w.table.still(() => game.change(w => {
       for (const c of carried) {
         const r = game.get(c.rid) as PieceRecord | undefined;
         if (!r) continue;
@@ -262,10 +331,10 @@ export class Drag {
         if (!('place' in r)) continue;
         const place = moved(r.place);
         if (c.rid !== ridOf(rec.oid) || !pinnable(r)) { w.put(c.rid, { ...r, place }); continue; }
-        const card = this.#cardAt(e, carried[0]!.el);
+        const card = this.#cardAt(carried[0]!.el.ownerDocument, e.clientX, e.clientY, carried[0]!.el)?.card;
         const { pin: _old, ...loose } = r;
         w.put(c.rid, card ? { ...loose, place, pin: { card: card.oid, dx: place.x - card.card.x, dy: place.y - card.card.y } } : { ...loose, place });
       }
-    });
+    }));
   }
 }

@@ -19,7 +19,19 @@ number; lower numbers are discarded
 **Alarm:** 1
 **Fire alarm:** Run the drained buffer oldest arrival first: step 2 reads 600 (A placed it, though B arrived last)
 **Inject:** src/net/moves.ts:pass
-**Pulled:** 2026-11-12 — rang: step 2 read 600, not 700
+**Pulled:** 2026-11-12 — rang: step 2 read 600, not 700 (re-pulled after pass began counting passes)
+## Test: a held piece slides to the most recent move
+**Purpose:** R218: while a piece is held, only the most recent move for it waits, by the pass's rule,
+never the moves in between; let go, it slides there
+**Input:** held: A 123 to x 630 in one pass, B 2 to x 720 in a later one, then let go; held again:
+A 125 to x 650 then A 124 to x 640 arriving in one pass, then let go
+**Expected:** nothing placed while held; 720 (B arrived last); 650 (the same page's higher number)
+**Refs:** crc-Moves.md
+**Code:** `src/net/moves.test.ts`
+**Alarm:** 4
+**Fire alarm:** Keep the first move that waits for a held piece (`newer` only when nothing waits): the later B arrival is ignored and the piece goes to 630
+**Inject:** src/net/moves.ts:#hold
+**Pulled:** 2026-11-12 — rang: the later B arrival was ignored and the piece went to 630, not 720
 
 ## Test: a deletion after a drag is not stale
 **Purpose:** the 11-11 bug: the GM drags a piece to the bar (moves numbered s+1..s+n), which

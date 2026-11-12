@@ -1,5 +1,5 @@
 # Moves
-**Requirements:** R178, R179, R182, R183
+**Requirements:** R178, R179, R182, R183, R218
 
 Drags go straight to the room, without passing through the GM's page; the GM's saved records settle
 where things end up.
@@ -19,7 +19,9 @@ where things end up.
   Authority). Then, if `filling` has more, schedules the next pass on the next animation frame or
   a 100 ms timer, whichever comes first (a hidden tab gets no frames); the scheduler is passed in.
 - hold(rid) / release(rid): a piece in your hand or being written in takes nothing until you let
-  go; then what waited for it is checked again, as if just arrived.
+  go; then what waited for it is checked again, as if just arrived. Only the most recent move
+  waits, by the pass's rule (the newest arrival, or the same page's higher number), never the moves
+  in between (R218).
 
 ## Collaborators
 - Stamps: numbers and freshness.

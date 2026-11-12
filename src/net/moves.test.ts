@@ -67,3 +67,26 @@ test("the move actor's rules", () => {
   assert.deepEqual(p.sent.map(m => m.items[0]!.x), [2, 4]);
   assert.ok(p.sent[1]!.s > p.sent[0]!.s);
 });
+
+test('a held piece slides to the most recent move', () => {
+  const p = page();
+  p.stamps.peer('me');
+  // Only the most recent move waits: B's, arriving in a later pass than A's.
+  p.moves.hold(STICKY);
+  p.moves.receive('A', move(123, 630));
+  p.run();
+  p.moves.receive('B', move(2, 720));
+  p.run();
+  assert.equal(p.x(), 0);
+  p.moves.release(STICKY);
+  p.run();
+  assert.equal(p.x(), 720);
+  // Within one pass, the same page's higher number, though it arrived first.
+  p.moves.hold(STICKY);
+  p.moves.receive('A', move(125, 650));
+  p.moves.receive('A', move(124, 640));
+  p.run();
+  p.moves.release(STICKY);
+  p.run();
+  assert.equal(p.x(), 650);
+});

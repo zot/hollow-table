@@ -17,6 +17,7 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
   animation.
 - Paper is tilted slightly at random, and squares up while you are writing on it (editing tilted
   text in Chrome smears the lines).
+- Paper you are writing on comes to the top while you write, so nothing covers it or its pens.
 - Pool slot labels use the print's mat lettering (or PT Mono), in sentence case: "Stagger", then
   "opposition only". No system sans serif, no all-caps labels.
 
@@ -40,6 +41,21 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 ## The surface
 
 - The table fills the window. Drag empty table to pan; the wheel zooms.
+- Dragging, panning and zooming follow the pointer at most once a frame: each move only sets
+  where the thing in hand is headed, and the next frame puts it there.
+- A piece in your hand stays glued to the pointer at the spot where you took hold of it, at any
+  zoom, with no lag or easing.
+- Let go, it is exactly where it was shown: it doesn't slide there from where it started.
+- What you carry is the piece itself, never a copy: picked up, it squares up, grows slightly and
+  rides above everything, bringing what follows it.
+- Things you aim take the pointing hand, whose fingertip is where it points: Resource glyphs,
+  checked boxes, chips, Influence cards and slots. It stays the pointing hand for the whole drag of
+  a chip, a card or a tap, and while aiming from the roll row. Large things (paper, pools, the
+  table) take the open hand, closed while panning.
+- While you carry something, the place it would land lights up: the slot, the chip a +1 would
+  ride, the card a sticky would pin to, the drawer a card would go home to. Over the bar it says
+  whether letting go puts it away or buries it.
+- Picking something up leaves any writing and clears the text selection.
 - Mats pass clicks through their empty space (beside the name) to the table.
 - Labels, slot rows, drawer tools, the roll row, the register and the bar don't select as text.
 

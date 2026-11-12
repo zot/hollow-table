@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R29, R30, R31, R32, R33, R37, R41, R48, R49, R50, R53, R64, R78
+**Requirements:** R28-33, R37, R41, R48-50, R53, R64, R78, R220
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -26,6 +26,8 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
 - drawer: its cards, the + and − writers, the used pile count (click opens it), the kill box.
 - header: name, die (owner shown), gather, and the docked roll row's action and opponent.
 - drag the pool: brings its card if gathered; Gather snaps the card under the drawer.
+- held (R220): a chip or card in hand isn't among the items TableView gives it, so redrawing the
+  pool while it's carried doesn't draw it again (and its slot settles without it).
 
 ## Collaborators
 - Pool, Influence, Game, Drag, RollRow, Gesture

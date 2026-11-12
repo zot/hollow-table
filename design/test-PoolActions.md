@@ -46,6 +46,20 @@ shift-clicked; killed
 **Inject:** src/ui/actions.ts:killCard
 **Pulled:** 2026-11-12 — rang: Sam's Resources stayed spent after the kill
 
+## Test: a tap merges into a resource-made card
+**Purpose:** R225: a tap is a card from the start of its drag, so dropping it on a resource-made card
+merges it: its Level goes back to its source and is fed into that card, spent once
+**Input:** two taps from Sam's Money (+Maj); the second merged into the first; the first into itself;
+a third tap from Ammo (+Sig) fed a second Level from Ammo, then merged into the first
+**Expected:** Money +Min after the taps and still after the merge; the second card gone; the first
+at 4 points; merging into itself refused; after the two-Level merge the first at 8 and Ammo +0, each Level spent once
+**Refs:** crc-Drag.md, crc-Tap.md
+**Code:** `src/ui/actions.test.ts`
+**Alarm:** 5
+**Fire alarm:** Skip the refund (don't apply Tap.kill's characters): Money is spent a third time and reads +0 or is refused
+**Inject:** src/ui/actions.ts:mergeTap
+**Pulled:** 2026-11-12 — rang: Money read +0, spent a third time, not +Min
+
 ## Test: new oids
 **Purpose:** the GM counts up below the players' range; a player's are random above it
 **Input:** two GM oids; one player oid

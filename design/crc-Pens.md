@@ -1,5 +1,5 @@
 # Pens
-**Requirements:** R206, R207
+**Requirements:** R206, R207, R219
 
 The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 toolbar. Five pens, one per stored mark (`act`, `res`, `inf`, `def`, `head`); Damage entries are
@@ -11,7 +11,8 @@ slots, not marks, so they have none (R209).
 
 ## Does
 - tray(piece): the five pens beside the piece's right edge, shown while one of its writing areas
-  (a card's front or notes, a sticky, loose text) holds the cursor or a pen holds focus. Pressing a
+  (a card's front or notes, a sticky, loose text) holds the cursor or a pen holds focus; the piece
+  comes to the top meanwhile (R219), so the next piece doesn't cover its pens. Pressing a
   pen takes neither the cursor nor the selection from the text, and never carries the piece.
 - apply(lines, from, to, tag): what a pen does. Marked text under the selection (or the caret, or
   a bare caret at a mark's edge) is unmarked (MarkedText.unmark), whichever pen it is; a selection inside one plain run is marked

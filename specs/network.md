@@ -51,7 +51,9 @@ them. Nothing to install, no local-network grant, no daemon.
 ## Moves
 
 - **Every page publishes its drags straight to the room**, at most every 100 ms, and the receiving
-  page slides the piece there. A drop counts as a move; what the drop changed beyond places goes out
+  page slides the piece there: always to the most recent position it has for it, never through the
+  ones in between, including moves that arrived while you were holding it. Only what another page
+  moved slides; what you let go yourself never does. A drop counts as a move; what the drop changed beyond places goes out
   right after it.
 - Each page numbers what it sends, moves and changes on one counter that continues across a reload.
   **Each piece keeps the highest number it has applied from each page and discards anything

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
 import { PLAYER_OIDS, ridOf, type Chip, type Influence, type Oid, type Rec, type SlotName } from '../model/records.ts';
 import {
-  addLoose, cardClick, chipClick, feedFrom, killCard, minter, restoreUsed, riderClick, slotItems, tapOut, toDrawer, toSlot,
+  addLoose, cardClick, chipClick, feedFrom, killCard, mergeTap, minter, restoreUsed, riderClick, slotItems, tapOut, toDrawer, toSlot,
   toTable, vanish, writeCard, type Change,
 } from './actions.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
@@ -94,6 +94,32 @@ test('taps from glyphs', () => {
   t.run(killCard(t.game, ridOf(made.oid)));
   assert.notEqual(resources(), before, 'killing it refunds its sources');
   assert.match(resources(), /Money \+Maj.*Ammo \+Sig/);
+});
+
+test('a tap merges into a resource-made card', () => {
+  const t = table();
+  const money = () => (t.get(SAM) as { front: string }).front.match(/<res>Money[^<]*<\/res>/)![0];
+  const taps = () => t.game.all().map(([, r]) => r).filter((r): r is Influence => 'kind' in r && r.kind === 'influence' && !!r.tap);
+  const at = { table: { x: 1, y: 1, z: 1, tilt: 0 } };
+  t.run(tapOut(t.game, `${SAM}:Money`, at, t.mint));
+  const [a] = taps();
+  t.run(tapOut(t.game, `${SAM}:Money`, at, t.mint));
+  const b = taps().find(x => x.oid !== a!.oid)!;
+  assert.equal(money(), '<res>Money +Min</res>', 'two taps spent two Levels');
+  t.run(mergeTap(t.game, ridOf(b.oid), ridOf(a!.oid), t.mint));
+  assert.equal(t.get(b.oid), undefined, 'the carried card is gone');
+  assert.equal((t.get(a!.oid) as Influence).points, 4, 'its Level is in the card it merged into');
+  assert.equal(money(), '<res>Money +Min</res>', 'and spent once, not twice');
+  assert.equal(mergeTap(t.game, ridOf(a!.oid), ridOf(a!.oid), t.mint), null, 'not into itself');
+  // A card carrying two Levels from one source gives both.
+  const ammo = () => (t.get(SAM) as { front: string }).front.match(/<res>Ammo[^<]*<\/res>/)![0];
+  t.run(tapOut(t.game, `${SAM}:Ammo`, at, t.mint));
+  const c = taps().find(x => x.oid !== a!.oid)!;
+  t.run(feedFrom(t.game, ridOf(c.oid), `${SAM}:Ammo`, t.mint));
+  assert.equal(ammo(), '<res>Ammo +0</res>');
+  t.run(mergeTap(t.game, ridOf(c.oid), ridOf(a!.oid), t.mint));
+  assert.equal((t.get(a!.oid) as Influence).points, 8, 'both Levels arrive');
+  assert.equal(ammo(), '<res>Ammo +0</res>', 'each spent once');
 });
 
 test('new oids', () => {
