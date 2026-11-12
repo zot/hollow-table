@@ -1,5 +1,5 @@
 # UI: a character card
-**Requirements:** R5, R22, R23, R24, R75, R202, R203, R209, R213, R214, R245, R246, R249
+**Requirements:** R5, R22, R23, R24, R75, R202, R209, R253, R254, R256, R213, R245, R264, R265, R246, R249
 
 Front:
 ```
@@ -33,7 +33,11 @@ Back (Injuries empty, so collapsed to its name):
 - A slot's boxes sit in front of its Level word (R213). An entry is drawn as its column's mark
   (`bias`, `aff`, `inj`) with a tap glyph ▭ before it; a checked box adds a glyph after the entry,
   one per checked box.
-- A heading shows `(absorb N)` only when N isn't 0 (R214); clicking the heading edits it.
+- A heading shows `(absorb N)` only when N isn't 0, worked out from Wis or Con (R264); it isn't
+  edited. Clicking the name brings the column to the front (R253). The boxes per slot follow the
+  same attribute (R265). An open column's name sits over its
+  blanks, 72 px in, on one line (R254). A collapsed column is 64 px whichever name it is, and open
+  columns share the rest evenly, so the blanks are one length per arrangement (R256).
 
 - At rest the card reads as printed (R245): no highlights, the name at 21 px bold, headings
   18 px bold, and each action or Defend label bold up to its colon (R246). The highlights show while

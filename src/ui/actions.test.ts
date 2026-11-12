@@ -51,7 +51,10 @@ test('chips in slots', () => {
 
 test('cards, drawers and the kill box', () => {
   const t = table();
-  const card = t.get('00000004') as Influence;   // Devreux's Keep the Peace +Sig
+  // A plain card: Devreux's Keep the Peace without the Motivation it was tapped from.
+  const { tap: _t, mot: _m, ...plain } = t.get('00000004') as Influence;
+  const card: Influence = { ...plain, oid: t.mint() };
+  t.game.change(w => w.put(ridOf(card.oid), card));
   const biased: Influence = { ...card, oid: t.mint(), damage: 'bias' };
   t.game.change(w => w.put(ridOf(biased.oid), biased));
   assert.equal(toSlot(t.game, ridOf(biased.oid), DEVREUX, 'main', t.mint), null, 'a Bias card goes only into Bias');
@@ -63,11 +66,14 @@ test('cards, drawers and the kill box', () => {
   t.run(toDrawer(t.game, ridOf(card.oid), SAM));
   assert.equal((t.get(card.oid) as Influence).home, SAM, "another character's drawer makes it theirs");
   t.run(cardClick(t.game, ridOf(card.oid), true, t.mint));
-  t.run(cardClick(t.game, ridOf(card.oid), true, t.mint) ?? (() => undefined));
-  assert.equal((t.get(card.oid) as Influence).points, 2, 'cards stop at Min');
+  assert.equal((t.get(card.oid) as Influence).points, 2, 'lowered to Min');
+  t.run(cardClick(t.game, ridOf(card.oid), true, t.mint));
+  assert.equal(t.get(card.oid), undefined, 'R268: shift-click at Min deletes it');
   t.run(writeCard(t.game, SAM, -1, 'Grudge', t.mint));
   const grudge = t.game.all().map(([, r]) => r).find((r): r is Influence => 'kind' in r && r.kind === 'influence' && r.name === 'Grudge')!;
   assert.deepEqual([grudge.sign, grudge.points, grudge.where], [-1, 2, 'drawer']);
+  t.run(cardClick(t.game, ridOf(grudge.oid), false, t.mint));
+  assert.equal((t.get(grudge.oid) as Influence).points, 4, 'a click at Min raises it');
   t.run(killCard(t.game, ridOf(grudge.oid)));
   assert.equal(t.get(grudge.oid), undefined);
   const used: Influence = { ...grudge, oid: t.mint(), where: 'used', used: true };
@@ -83,7 +89,7 @@ test('taps from glyphs', () => {
   const t = table();
   const resources = () => (t.get(SAM) as { front: string }).front.match(/<res>[^<]*<\/res>/g)!.join(' ');
   t.run(tapOut(t.game, `${SAM}:Money`, { table: { x: 1, y: 1, z: 1, tilt: 0 } }, t.mint));
-  const made = t.game.all().map(([, r]) => r).find((r): r is Influence => 'kind' in r && r.kind === 'influence' && !!r.tap)!;
+  const made = t.game.all().map(([, r]) => r).find((r): r is Influence => 'kind' in r && r.kind === 'influence' && !!r.tap && r.home === SAM)!;
   assert.equal(made.points, 2);
   t.run(feedFrom(t.game, ridOf(made.oid), `${SAM}:Ammo`, t.mint));
   assert.equal((t.get(made.oid) as Influence).points, 4, 'another glyph dropped on it feeds it');
@@ -99,7 +105,7 @@ test('taps from glyphs', () => {
 test('a tap merges into a resource-made card', () => {
   const t = table();
   const money = () => (t.get(SAM) as { front: string }).front.match(/<res>Money[^<]*<\/res>/)![0];
-  const taps = () => t.game.all().map(([, r]) => r).filter((r): r is Influence => 'kind' in r && r.kind === 'influence' && !!r.tap);
+  const taps = () => t.game.all().map(([, r]) => r).filter((r): r is Influence => 'kind' in r && r.kind === 'influence' && !!r.tap && r.home === SAM);
   const at = { table: { x: 1, y: 1, z: 1, tilt: 0 } };
   t.run(tapOut(t.game, `${SAM}:Money`, at, t.mint));
   const [a] = taps();
@@ -146,4 +152,24 @@ test('new oids', () => {
   assert.ok(parseInt(a, 16) < PLAYER_OIDS);
   const player = minter(t.game, false, () => 0.5)();
   assert.ok(parseInt(player, 16) >= PLAYER_OIDS, "a player's are in the players' range");
+});
+
+test("a Motivation's card joins the drawer of the Main slot it lands in", () => {
+  // R260: a card from Devreux's Motivation dropped in Sam's Main slot becomes Sam's; nowhere but Main.
+  const t = table(), card = t.get('00000004') as Influence;
+  assert.equal(toSlot(t.game, ridOf(card.oid), SAM, 'bias', t.mint), null);
+  t.run(toSlot(t.game, ridOf(card.oid), SAM, 'main', t.mint));
+  const now = t.get(card.oid) as Influence;
+  assert.deepEqual([now.home, now.where], [SAM, { slot: SAM, name: 'main' }]);
+});
+
+test('shift-click at Min deletes a tap and refunds it', () => {
+  // R268: as the kill box would: an unused tap gives its source its Level back.
+  const t = table(), money = () => (t.get(SAM) as { front: string }).front.match(/<res>Money [^<]*<\/res>/)![0];
+  t.run(tapOut(t.game, `${SAM}:Money`, { table: { x: 1, y: 1, z: 1, tilt: 0 } }, t.mint));
+  assert.equal(money(), '<res>Money +Sig</res>');
+  const made = t.game.all().map(([, r]) => r).find((r): r is Influence => 'kind' in r && r.kind === 'influence' && !!r.tap && r.home === SAM)!;
+  t.run(cardClick(t.game, ridOf(made.oid), true, t.mint));
+  assert.equal(t.get(made.oid), undefined);
+  assert.equal(money(), '<res>Money +Maj</res>');
 });

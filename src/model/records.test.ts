@@ -16,6 +16,7 @@ test('check takes the scene and refuses the malformed', () => {
   assert.ok(check(ridOf(roll.oid), roll));
   const inf = records.find((r): r is Influence => r.kind === 'influence')!;
   assert.ok(check(ridOf(inf.oid), { ...inf, damage: 'injury' }));
+  assert.ok(inf.mot && check(ridOf(inf.oid), inf), 'R260: a Motivation card');
   const sticky = records.find(r => r.kind === 'sticky')!;
   assert.ok(check(ridOf(sticky.oid), { ...sticky, big: false }));   // R248
   const { flipped: _gone, ...missing } = sam;
@@ -32,6 +33,7 @@ test('check takes the scene and refuses the malformed', () => {
     [ridOf(roll.oid), { ...roll, receipts: [{ ...roll.receipts[0]!, dice: [{ c: 'W', v: 7, added: false, dropped: false }] }] }],
     [rid, { ...sam, kind: 'trap' }],
     [ridOf(sticky.oid), { ...sticky, big: 'yes' }],
+    [ridOf(inf.oid), { ...inf, mot: false }],
     ['tape2', { receipts: [] }],
     [rid, [sam]],
     [rid, Object.assign(new (class Character {})(), sam)],

@@ -93,7 +93,7 @@ var PIECES = {
       used: bool,
       crit: bool
     },
-    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE) }
+    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true) }
   ),
   chip: fields({ kind: oneOf("chip"), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
   sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin, big: bool }),
@@ -1108,19 +1108,19 @@ function newRoom(label = "table") {
   const hex = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
   return `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "table"}-${hex}`;
 }
-function invite(base, room, gm) {
+function invite(base, room2, gm) {
   const u = new URL(base);
   u.search = "";
   u.hash = "";
-  u.searchParams.set("room", room);
+  u.searchParams.set("room", room2);
   u.searchParams.set("gm", gm);
   return u.toString();
 }
 var ROOM = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/;
 var BROWSER = /^[\w-]{20}$/;
 function fromUrl(search) {
-  const q = new URLSearchParams(search), room = q.get("room"), gm = q.get("gm");
-  return room && gm && ROOM.test(room) && BROWSER.test(gm) ? { room, gm } : null;
+  const q = new URLSearchParams(search), room2 = q.get("room"), gm = q.get("gm");
+  return room2 && gm && ROOM.test(room2) && BROWSER.test(gm) ? { room: room2, gm } : null;
 }
 var Presence = class {
   /** tab → who is there. */
@@ -1280,172 +1280,8 @@ function bonus(action2, bonusPool, hand = { yellows: 0, bonus: 0 }) {
   return { yellows: Math.max(0, yellows + hand.yellows), bonus: b + hand.bonus };
 }
 
-// src/rules/influence.ts
-var LEVELS = [
-  { word: "Min", name: "Minor", points: 2 },
-  { word: "Sig", name: "Significant", points: 4 },
-  { word: "Maj", name: "Major", points: 6 },
-  { word: "Ext", name: "Extreme", points: 8 },
-  { word: "Exq", name: "Exquisite", points: 10 }
-];
-var MIN = 2;
-var STEP = 2;
-function raiseChip(chip2) {
-  return { ...chip2, points: chip2.points === 1 ? 2 : chip2.points + STEP };
-}
-function lowerChip(chip2) {
-  if (chip2.points <= 1) return null;
-  if (chip2.points === 2) return { ...chip2, points: 1, rider: false };
-  return { ...chip2, points: chip2.points - STEP };
-}
-function raiseCard(card2) {
-  return { ...card2, points: card2.points + STEP };
-}
-function lowerCard(card2) {
-  return { ...card2, points: Math.max(MIN, card2.points - STEP) };
-}
-function levelName2(points2) {
-  if (points2 < MIN) return String(points2);
-  return LEVELS[Math.floor(points2 / STEP) - 1]?.word ?? String(points2);
-}
-var ROW_LEVELS = { mild: 1, min: 1, sig: 2, maj: 3 };
-function rowLevels(row2) {
-  return ROW_LEVELS[row2];
-}
-
-// src/rules/pool.ts
-function worth(i) {
-  return i.points + (i.kind === "chip" && i.rider ? 1 : 0);
-}
-var isPile = (u) => "members" in u;
-var unitWorth = (u) => isPile(u) ? u.points : worth(u);
-function rollUp(items, mint2) {
-  const remove = [], add = [];
-  const units2 = [];
-  for (const sign2 of [1, -1]) {
-    let side = items.filter((i) => i.sign === sign2 && i.points >= STEP);
-    for (; ; ) {
-      const counts = /* @__PURE__ */ new Map();
-      for (const u of side) counts.set(u.points, [...counts.get(u.points) ?? [], u]);
-      const v = [...counts.keys()].sort((a, b) => a - b).find((k) => counts.get(k).length >= 3);
-      if (v === void 0) break;
-      const group = counts.get(v);
-      const plain2 = group.filter((u) => !isPile(u) && u.kind === "chip").sort((a, b) => Number(a.rider) - Number(b.rider));
-      let three, made;
-      if (plain2.length >= 3) {
-        const chips = plain2.slice(0, 3), first = chips[0];
-        const chip2 = { kind: "chip", oid: mint2(), where: first.where, n: first.n, sign: sign2, points: v + STEP, rider: false };
-        for (const c of chips) {
-          const k = add.indexOf(c);
-          if (k >= 0) add.splice(k, 1);
-          else remove.push(c.oid);
-        }
-        add.push(chip2);
-        three = chips;
-        made = chip2;
-      } else {
-        three = [...plain2, ...group.filter((u) => !plain2.includes(u))].slice(0, 3);
-        made = { sign: sign2, points: v + STEP, members: three };
-      }
-      side = [...side.filter((u) => !three.includes(u)), made];
-    }
-    units2.push(...side, ...items.filter((i) => i.sign === sign2 && i.points < STEP));
-  }
-  return { remove, add, units: units2 };
-}
-function value(items) {
-  const { units: units2 } = rollUp(items, () => "");
-  const best = (s) => Math.max(0, ...units2.filter((u) => u.sign === s).map(unitWorth));
-  return best(1) - best(-1);
-}
-function pools(character2, items) {
-  const inSlot3 = (name2) => items.filter((i) => typeof i.where === "object" && "slot" in i.where && i.where.slot === character2 && i.where.name === name2);
-  return Object.fromEntries(SLOTS.map((s) => [s, value(inSlot3(s))]));
-}
-function accepts(slot2, item2) {
-  return item2.kind !== "influence" || !item2.damage || item2.damage === slot2;
-}
-
-// src/rules/readmarks.ts
-var MINUS = "-\u2212\u2013";
-var signed = (s) => Number(s.replace(/\s/g, "").replace(/[−–]/, "-"));
-function splitComma(s) {
-  let depth = 0;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (c === "(") depth++;
-    else if (c === ")") depth = Math.max(0, depth - 1);
-    else if (c === "," && depth === 0) return [s.slice(0, i), s.slice(i + 1)];
-  }
-  return null;
-}
-var BASE = new RegExp(`^\\s*([${MINUS}]?\\d+)(?:\\s|\\(|$)`);
-var DICE2 = new RegExp(`^\\s*(?:(\\d+)d)?\\s*([+${MINUS}]\\s*\\d+)?(?:\\s|\\(|$)`);
-function action(text) {
-  const colon = text.indexOf(":");
-  if (colon <= 0) return null;
-  const label = text.slice(0, colon).trim();
-  const parts = splitComma(text.slice(colon + 1));
-  if (!label || !parts) return null;
-  const b = BASE.exec(parts[0]), d = DICE2.exec(parts[1]);
-  if (!b || !d || d[1] === void 0 && d[2] === void 0) return null;
-  return { label, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0 };
-}
-var LEVEL_WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
-var LEVEL = `(${LEVEL_WORDS.join("|")}|\\d+)`;
-var INFLUENCE = new RegExp(`^(.*?)\\s*([+${MINUS}])\\s*${LEVEL}\\b(.*)$`, "is");
-function influence(text) {
-  const t = text.trim(), m = INFLUENCE.exec(t);
-  const name2 = m?.[1].trim();
-  if (m && name2) {
-    const w = m[3], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
-    return { name: name2, sign: m[2] === "+" ? 1 : -1, level: word ?? w };
-  }
-  return t ? { name: t, sign: null, level: null } : null;
-}
-var N = "(\\d+)";
-var DEF_ONE = new RegExp(`^${N}$`);
-var DEF_TWO = new RegExp(`^${N}\\s*/\\s*${N}$`);
-var DEF_NAMED = new RegExp(`^(mental|psych)\\s*${N}\\s*/\\s*(mental|psych)\\s*${N}$`, "i");
-function defend(text) {
-  const t = text.trim().replace(/^defend\s*:\s*/i, "");
-  let m = DEF_ONE.exec(t);
-  if (m) return { mental: Number(m[1]), psych: Number(m[1]) };
-  m = DEF_TWO.exec(t);
-  if (m) return { mental: Number(m[1]), psych: Number(m[2]) };
-  m = DEF_NAMED.exec(t);
-  if (m && m[1].toLowerCase() !== m[3].toLowerCase()) {
-    const v = { [m[1].toLowerCase()]: Number(m[2]), [m[3].toLowerCase()]: Number(m[4]) };
-    return { mental: v.mental, psych: v.psych };
-  }
-  return null;
-}
-function offer(line, heading2 = null) {
-  if (action(line)) return "act";
-  const r = influence(line);
-  if (r?.level && r.sign === 1 && heading2 && /^\s*resources\b/i.test(heading2)) return "res";
-  return null;
-}
-var LEVELS2 = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
-var WORD_OF = ["0", "Min", "Sig", "Maj", "Ext", "Exq"];
-function levelsOf(r) {
-  if (!r.level) return 0;
-  if (/^\d+$/.test(r.level)) return Math.floor(Number(r.level) / 2);
-  return LEVELS2[r.level] ?? 0;
-}
-function levelWord(levels) {
-  return WORD_OF[levels] ?? String(levels * 2);
-}
-var LEVEL_AT = new RegExp(`^(.*?[+${MINUS}]\\s*)${LEVEL}\\b(.*)$`, "is");
-function spend(text, by) {
-  const r = influence(text), m = LEVEL_AT.exec(text);
-  if (!r?.level || !m) return null;
-  const left2 = levelsOf(r) - by;
-  return left2 < 0 ? null : m[1] + levelWord(left2) + m[3];
-}
-
 // src/text/marks.ts
-var MARKS = ["act", "res", "inf", "def", "head"];
+var MARKS = ["act", "res", "mot", "att", "inf", "def", "head"];
 var TAG = new RegExp(`<(${MARKS.join("|")})>`, "g");
 function parseLine(src) {
   const runs = [];
@@ -1592,6 +1428,222 @@ function offsetIn(el3, node, offset) {
   };
   walk(el3);
   return n;
+}
+
+// src/rules/readmarks.ts
+var MINUS = "-\u2212\u2013";
+var signed = (s) => Number(s.replace(/\s/g, "").replace(/[−–]/, "-"));
+function splitComma(s) {
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if (c === "," && depth === 0) return [s.slice(0, i), s.slice(i + 1)];
+  }
+  return null;
+}
+var BASE = new RegExp(`^\\s*([${MINUS}]?\\d+)(?:\\s|\\(|$)`);
+var DICE2 = new RegExp(`^\\s*(?:(\\d+)d)?\\s*([+${MINUS}]\\s*\\d+)?(?:\\s|\\(|$)`);
+function action(text) {
+  const colon = text.indexOf(":");
+  if (colon <= 0) return null;
+  const label = text.slice(0, colon).trim();
+  const parts = splitComma(text.slice(colon + 1));
+  if (!label || !parts) return null;
+  const b = BASE.exec(parts[0]), d = DICE2.exec(parts[1]);
+  if (!b || !d || d[1] === void 0 && d[2] === void 0) return null;
+  return { label, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0 };
+}
+var LEVEL_WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
+var LEVEL = `(${LEVEL_WORDS.join("|")}|\\d+)`;
+var INFLUENCE = new RegExp(`^(.*?)\\s*([+${MINUS}])\\s*${LEVEL}\\b(.*)$`, "is");
+function influence(text) {
+  const t = text.trim(), m = INFLUENCE.exec(t);
+  const name2 = m?.[1].trim();
+  if (m && name2) {
+    const w = m[3], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
+    return { name: name2, sign: m[2] === "+" ? 1 : -1, level: word ?? w };
+  }
+  return t ? { name: t, sign: null, level: null } : null;
+}
+var N = "(\\d+)";
+var DEF_ONE = new RegExp(`^${N}$`);
+var DEF_TWO = new RegExp(`^${N}\\s*/\\s*${N}$`);
+var DEF_NAMED = new RegExp(`^(mental|psych)\\s*${N}\\s*/\\s*(mental|psych)\\s*${N}$`, "i");
+function defend(text) {
+  const t = text.trim().replace(/^defend\s*:\s*/i, "");
+  let m = DEF_ONE.exec(t);
+  if (m) return { mental: Number(m[1]), psych: Number(m[1]) };
+  m = DEF_TWO.exec(t);
+  if (m) return { mental: Number(m[1]), psych: Number(m[2]) };
+  m = DEF_NAMED.exec(t);
+  if (m && m[1].toLowerCase() !== m[3].toLowerCase()) {
+    const v = { [m[1].toLowerCase()]: Number(m[2]), [m[3].toLowerCase()]: Number(m[4]) };
+    return { mental: v.mental, psych: v.psych };
+  }
+  return null;
+}
+function offer(line, heading2 = null) {
+  if (action(line)) return "act";
+  if (ATT_LINE.test(line)) return "att";
+  const r = influence(line);
+  if (r?.level && r.sign === 1 && heading2 && /^\s*resources\b/i.test(heading2)) return "res";
+  if (r?.level && heading2 && /^\s*motivations?\b/i.test(heading2)) return "mot";
+  return null;
+}
+var LEVELS = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
+var WORD_OF = ["0", "Min", "Sig", "Maj", "Ext", "Exq"];
+function levelsOf(r) {
+  if (!r.level) return 0;
+  if (/^\d+$/.test(r.level)) return Math.floor(Number(r.level) / 2);
+  return LEVELS[r.level] ?? 0;
+}
+function levelWord(levels) {
+  return WORD_OF[levels] ?? String(levels * 2);
+}
+var LEVEL_AT = new RegExp(`^(.*?[+${MINUS}]\\s*)${LEVEL}\\b(.*)$`, "is");
+function spend(text, by) {
+  const r = influence(text), m = LEVEL_AT.exec(text);
+  if (!r?.level || !m) return null;
+  const left2 = levelsOf(r) - by;
+  return left2 < 0 ? null : m[1] + levelWord(left2) + m[3];
+}
+var ADJUSTED = new RegExp(`\\s*\\((?:[+${MINUS}]\\s*)?${LEVEL}\\)\\s*$`, "i");
+function unadjusted(text) {
+  return text.replace(ADJUSTED, "");
+}
+function motiveLeft(text) {
+  const a = ADJUSTED.exec(text);
+  if (!a) return levelsOf(influence(text) ?? { name: "", sign: null, level: null });
+  const w = a[1], word = LEVEL_WORDS.find((x) => x.toLowerCase() === w.toLowerCase());
+  return levelsOf({ name: "", sign: null, level: word ?? w });
+}
+function adjust(text, by) {
+  const base = unadjusted(text), r = influence(base);
+  if (!r?.level) return null;
+  const left2 = motiveLeft(text) - by;
+  if (left2 < 0) return null;
+  if (left2 >= levelsOf(r)) return base;
+  if (!left2) return `${base} (0)`;
+  const sign2 = r.sign === -1 ? "-" : "+";
+  return `${base} (${sign2}${levelWord(left2)})`;
+}
+var ATT = new RegExp(`\\b([A-Z][a-z]{2})\\s*([+${MINUS}]?\\d+)\\b`, "g");
+var ATT_LINE = new RegExp(`^\\s*(?:[A-Z][a-z]{2}\\s*[+${MINUS}]?\\d+\\s*){2,}$`);
+function attributes(text) {
+  return Object.fromEntries([...text.matchAll(ATT)].map((m) => [m[1], signed(m[2])]));
+}
+
+// src/rules/influence.ts
+var LEVELS2 = [
+  { word: "Min", name: "Minor", points: 2 },
+  { word: "Sig", name: "Significant", points: 4 },
+  { word: "Maj", name: "Major", points: 6 },
+  { word: "Ext", name: "Extreme", points: 8 },
+  { word: "Exq", name: "Exquisite", points: 10 }
+];
+var MIN = 2;
+var STEP = 2;
+function raiseChip(chip2) {
+  return { ...chip2, points: chip2.points === 1 ? 2 : chip2.points + STEP };
+}
+function lowerChip(chip2) {
+  if (chip2.points <= 1) return null;
+  if (chip2.points === 2) return { ...chip2, points: 1, rider: false };
+  return { ...chip2, points: chip2.points - STEP };
+}
+function raiseCard(card2) {
+  return { ...card2, points: card2.points + STEP };
+}
+function lowerCard(card2) {
+  return { ...card2, points: Math.max(MIN, card2.points - STEP) };
+}
+function levelName2(points2) {
+  if (points2 < MIN) return String(points2);
+  return LEVELS2[Math.floor(points2 / STEP) - 1]?.word ?? String(points2);
+}
+var ROW_LEVELS = { mild: 1, min: 1, sig: 2, maj: 3 };
+function rowLevels(row2) {
+  return ROW_LEVELS[row2];
+}
+var ROOM2 = [
+  // level, mild, min, sig, absorb
+  [15, 2, 2, 2, 3],
+  [11, 2, 2, 1, 2],
+  [10, 1, 2, 1, 2],
+  [9, 1, 2, 1, 1],
+  [7, 0, 2, 1, 1],
+  [5, 0, 2, 0, 1],
+  [3, 0, 2, 0, 0],
+  [1, 0, 1, 0, 0]
+];
+function room(level) {
+  const [, mild, min2, sig, absorb2] = ROOM2.find((r) => level >= r[0]) ?? [0, 0, 0, 0, 0];
+  return { boxes: { mild, min: min2, sig, maj: 0 }, absorb: absorb2 };
+}
+function columnRoom(char, d) {
+  const name2 = d === "injury" ? "Con" : "Wis";
+  for (const m of marks(parse(char.front), "att")) {
+    const level = attributes(m.text)[name2];
+    if (level !== void 0) return room(level);
+  }
+  return null;
+}
+
+// src/rules/pool.ts
+function worth(i) {
+  return i.points + (i.kind === "chip" && i.rider ? 1 : 0);
+}
+var isPile = (u) => "members" in u;
+var unitWorth = (u) => isPile(u) ? u.points : worth(u);
+function rollUp(items, mint2) {
+  const remove = [], add = [];
+  const units2 = [];
+  for (const sign2 of [1, -1]) {
+    let side = items.filter((i) => i.sign === sign2 && i.points >= STEP);
+    for (; ; ) {
+      const counts = /* @__PURE__ */ new Map();
+      for (const u of side) counts.set(u.points, [...counts.get(u.points) ?? [], u]);
+      const v = [...counts.keys()].sort((a, b) => a - b).find((k) => counts.get(k).length >= 3);
+      if (v === void 0) break;
+      const group = counts.get(v);
+      const plain2 = group.filter((u) => !isPile(u) && u.kind === "chip").sort((a, b) => Number(a.rider) - Number(b.rider));
+      let three, made;
+      if (plain2.length >= 3) {
+        const chips = plain2.slice(0, 3), first = chips[0];
+        const chip2 = { kind: "chip", oid: mint2(), where: first.where, n: first.n, sign: sign2, points: v + STEP, rider: false };
+        for (const c of chips) {
+          const k = add.indexOf(c);
+          if (k >= 0) add.splice(k, 1);
+          else remove.push(c.oid);
+        }
+        add.push(chip2);
+        three = chips;
+        made = chip2;
+      } else {
+        three = [...plain2, ...group.filter((u) => !plain2.includes(u))].slice(0, 3);
+        made = { sign: sign2, points: v + STEP, members: three };
+      }
+      side = [...side.filter((u) => !three.includes(u)), made];
+    }
+    units2.push(...side, ...items.filter((i) => i.sign === sign2 && i.points < STEP));
+  }
+  return { remove, add, units: units2 };
+}
+function value(items) {
+  const { units: units2 } = rollUp(items, () => "");
+  const best = (s) => Math.max(0, ...units2.filter((u) => u.sign === s).map(unitWorth));
+  return best(1) - best(-1);
+}
+function pools(character2, items) {
+  const inSlot3 = (name2) => items.filter((i) => typeof i.where === "object" && "slot" in i.where && i.where.slot === character2 && i.where.name === name2);
+  return Object.fromEntries(SLOTS.map((s) => [s, value(inSlot3(s))]));
+}
+function accepts(slot2, item2) {
+  if (item2.kind !== "influence") return true;
+  if (item2.damage) return item2.damage === slot2;
+  return !item2.mot || slot2 === "main";
 }
 
 // src/net/rolls.ts
@@ -4803,7 +4855,7 @@ var SharedPeerManager = class {
         const shared = existing ?? this.register(appId, peerId, peer, idleMs);
         this.attachRoom(appId, roomId, registration, shared);
         if (!existing) {
-          for (const room of rooms.values()) if (room.active && room.token) this.sendRoomPresence(shared, room.token, true);
+          for (const room2 of rooms.values()) if (room2.active && room2.token) this.sendRoomPresence(shared, room2.token, true);
         }
       },
       reuse: (peerId) => {
@@ -5004,7 +5056,7 @@ var SharedPeerManager = class {
             stream: oldEntry.stream,
             rooms: /* @__PURE__ */ new Set()
           };
-          oldEntry.rooms.forEach((room) => nextEntry.rooms.add(room));
+          oldEntry.rooms.forEach((room2) => nextEntry.rooms.add(room2));
           shared.trackOwners.set(newTrack, nextEntry);
         }
       },
@@ -5132,7 +5184,7 @@ var SharedPeerManager = class {
     }, pendingDataTimeoutMs));
   }
   canBindRoomToken(shared, token) {
-    return values(shared.bindings).some((binding) => !binding.roomToken) || [...this.rooms.get(shared.appId)?.values() ?? []].some((room) => !room.token || room.token === token);
+    return values(shared.bindings).some((binding) => !binding.roomToken) || [...this.rooms.get(shared.appId)?.values() ?? []].some((room2) => !room2.token || room2.token === token);
   }
   discardUnboundData(shared) {
     for (const token of shared.pendingDataByToken.keys()) if (!this.canBindRoomToken(shared, token)) shared.pendingDataByToken.delete(token);
@@ -6470,6 +6522,103 @@ var Wire = class {
   }
 };
 
+// src/rules/tap.ts
+function inFront(char, name2) {
+  const lines = parse(char.front);
+  for (const m of [...marks(lines, "res"), ...marks(lines, "mot")]) {
+    const r = influence(m.text), mot = m.mark === "mot";
+    if (r?.name !== name2 || !r.level) continue;
+    const write = (n) => (mot ? adjust(m.text, n) : spend(m.text, n)) ?? m.text;
+    return {
+      char,
+      name: name2,
+      sign: r.sign ?? 1,
+      left: mot ? motiveLeft(m.text) : levelsOf(r),
+      ...mot && { mot: true },
+      spend: (n) => ({ ...char, front: serialize(setMark(lines, m, write(n))) })
+    };
+  }
+  return null;
+}
+var DAMAGE_SOURCE = new RegExp(`^(${DAMAGE.join("|")})/(${ROWS.join("|")})(?:#(\\d+))?$`);
+function inBack(char, rest) {
+  const m = DAMAGE_SOURCE.exec(rest);
+  if (!m) return null;
+  const damage3 = m[1], row2 = m[2], k = m[3] ? Number(m[3]) : 0;
+  const slot2 = char.back.damage[damage3][row2];
+  if (!slot2.name || k > 0 && !slot2.boxes[k - 1]) return null;
+  const spend2 = (n) => {
+    const spent = [...slot2.spent];
+    spent[k] = (spent[k] ?? 0) + n;
+    const column2 = { ...char.back.damage[damage3], [row2]: { ...slot2, spent: Array.from(spent, (x) => x ?? 0) } };
+    return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage3]: column2 } } };
+  };
+  return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
+}
+function mayTap(viewer, char, rest) {
+  const s = inBack(char, rest) ?? inFront(char, rest);
+  if (!s) return false;
+  return !!s.damage || !!s.mot || !!viewer?.gm || char.owner === viewer?.name;
+}
+function left(char, rest) {
+  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
+}
+function source(chars, id) {
+  const colon = id.indexOf(":");
+  if (colon < 0) return null;
+  const char = chars(id.slice(0, colon));
+  if (!char) return null;
+  const rest = id.slice(colon + 1);
+  return inBack(char, rest) ?? inFront(char, rest);
+}
+function tap(chars, src, where2, oid) {
+  const s = source(chars, src);
+  if (!s || s.left < 1) return null;
+  const card2 = {
+    kind: "influence",
+    oid,
+    home: s.char.oid,
+    where: where2,
+    n: 0,
+    name: s.name,
+    sign: s.sign,
+    points: MIN,
+    used: false,
+    crit: false,
+    tap: { ledger: { [src]: 1 }, current: src },
+    ...s.damage && { damage: s.damage },
+    ...s.mot && { mot: true }
+  };
+  return { card: card2, changed: [s.spend(1)] };
+}
+function feed(chars, card2, src, oid) {
+  if (!card2.tap) return null;
+  const id = src ?? card2.tap.current;
+  if (card2.used) return tap(chars, id, card2.where, oid);
+  const s = source(chars, id);
+  if (!s || s.left < 1 || s.damage !== card2.damage || !!s.mot !== !!card2.mot) return null;
+  const ledger = { ...card2.tap.ledger, [id]: (card2.tap.ledger[id] ?? 0) + 1 };
+  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
+}
+function unfeed(chars, card2) {
+  const id = card2.tap?.current;
+  if (!card2.tap || !id || !(card2.tap.ledger[id] > 0) || card2.points - STEP < MIN) return null;
+  const s = source(chars, id);
+  if (!s) return null;
+  const ledger = { ...card2.tap.ledger, [id]: card2.tap.ledger[id] - 1 };
+  return { card: { ...card2, points: card2.points - STEP, tap: { ledger, current: id } }, changed: [s.spend(-1)] };
+}
+function kill(chars, card2) {
+  if (!card2.tap || card2.used) return [];
+  const out = /* @__PURE__ */ new Map();
+  const now2 = (oid) => out.get(oid) ?? chars(oid);
+  for (const [id, n] of Object.entries(card2.tap.ledger)) {
+    const s = n > 0 ? source(now2, id) : null;
+    if (s) out.set(s.char.oid, s.spend(-n));
+  }
+  return [...out.values()];
+}
+
 // src/store/blobs.ts
 async function sha256(bytes) {
   const buf = bytes instanceof Blob ? await bytes.arrayBuffer() : bytes;
@@ -6609,7 +6758,7 @@ function character(oid, owner, name2, x, front, b) {
   return { kind: "character", oid, owner, name: name2, pool: at(x, 20), card: at(x, 300), flipped: false, gathered: true, front, back: b };
 }
 var SAM_FRONT = `<head>Samuel Diamond, Rank 3</head>
-Cha 2   Int 2   Wis 4
+<att>Cha 2   Int 2   Wis 4</att>
 Private Investigator 2 (5XP)
 Investigation (x2)
 Advocacy (x2)
@@ -6632,7 +6781,7 @@ Wicked deeds and hanging
 <res>Money +Maj</res>
 <res>Ammo +Sig</res>`;
 var BEAUFORD_FRONT = `<head>Beauford T. Winkums, Rnk 3</head>
-Cha 2   Int 3   Wis 1
+<att>Cha 2   Int 3   Wis 1</att>
 Snakeoil Salesman 3 (5XP)
 Rhetoric (Salesman) (x2)
 Finesse (x2, Rhetoric)
@@ -6657,14 +6806,14 @@ Horse & wagon
 Dice token: Farkas, uses 20`;
 var DEVREUX_FRONT = `<head>Mistress Devreux</head>
 Saloon Proprietor, Rank 3
-Cha 3   Int 1   Wis 3
+<att>Cha 3   Int 1   Wis 3</att>
 Skills 3: Savvy, Profession (Saloon Keeper), Streetwise
 Skills 2: Musician, Composure, Gambling, Etiquette, Bargaining, Tact
 Skills 1: Suasion (Charm)
 <head>Motivations</head>
-<inf>Keep the Peace +Sig</inf>
-<inf>Self-Preservation +Sig</inf>
-<inf>Old Sympathy for Sparkers +Min</inf>
+<mot>Keep the Peace +Sig (0)</mot>
+<mot>Self-Preservation +Sig (0)</mot>
+<mot>Old Sympathy for Sparkers +Min (0)</mot>
 <act>Attack: 4 (Suasion, Charm), +1</act>
 <def>Defend: 6 / 5</def>
 Slots: Mild, Min \xD73, Sig, Maj
@@ -6688,7 +6837,23 @@ Q1: What is the doll?
 A1: *super* important to Trudy.
 
 Next session: first day in town, late at night at the hotel`;
-var infl = (oid, name2, points2, n) => ({ kind: "influence", oid, home: DEVREUX, where: "drawer", n, name: name2, sign: 1, points: points2, used: false, crit: false });
+var infl = (oid, name2, points2, n) => {
+  const src = `${DEVREUX}:${name2}`;
+  return {
+    kind: "influence",
+    oid,
+    home: DEVREUX,
+    where: "drawer",
+    n,
+    name: name2,
+    sign: 1,
+    points: points2,
+    used: false,
+    crit: false,
+    tap: { ledger: { [src]: points2 / 2 }, current: src },
+    mot: true
+  };
+};
 function scene(sam = "Player 1", beauford = "Player 2") {
   const chip2 = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false };
   const sticky = { kind: "sticky", oid: "00000008", place: at(1430, 20), text: STICKY, big: true };
@@ -6805,10 +6970,10 @@ var GameStore = class {
   }
   // R140, R141: a player's copy, per room; never listed, never the last game.
   /** Opens this page's copy of a room's table, making an empty one the first time. */
-  async copyFor(room) {
-    const id = `m-${room}`;
+  async copyFor(room2) {
+    const id = `m-${room2}`;
     const have = await this.#db.tx(["games"], "readonly", (t) => t.get("games", id));
-    if (!have) await this.add(room, singletons(), [], room, id);
+    if (!have) await this.add(room2, singletons(), [], room2, id);
     return this.open(id);
   }
   // Seq: seq-save.md#1.5, seq-save.md#1.5.1
@@ -6947,95 +7112,6 @@ function save(storage, game, viewer, seat) {
   }
 }
 
-// src/rules/tap.ts
-function inFront(char, name2) {
-  const lines = parse(char.front);
-  for (const m of marks(lines, "res")) {
-    const r = influence(m.text);
-    if (r?.name !== name2 || !r.level) continue;
-    return {
-      char,
-      name: name2,
-      sign: r.sign ?? 1,
-      left: levelsOf(r),
-      spend: (n) => ({ ...char, front: serialize(setMark(lines, m, spend(m.text, n) ?? m.text)) })
-    };
-  }
-  return null;
-}
-var DAMAGE_SOURCE = new RegExp(`^(${DAMAGE.join("|")})/(${ROWS.join("|")})(?:#(\\d+))?$`);
-function inBack(char, rest) {
-  const m = DAMAGE_SOURCE.exec(rest);
-  if (!m) return null;
-  const damage3 = m[1], row2 = m[2], k = m[3] ? Number(m[3]) : 0;
-  const slot2 = char.back.damage[damage3][row2];
-  if (!slot2.name || k > 0 && !slot2.boxes[k - 1]) return null;
-  const spend2 = (n) => {
-    const spent = [...slot2.spent];
-    spent[k] = (spent[k] ?? 0) + n;
-    const column2 = { ...char.back.damage[damage3], [row2]: { ...slot2, spent: Array.from(spent, (x) => x ?? 0) } };
-    return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage3]: column2 } } };
-  };
-  return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
-}
-function left(char, rest) {
-  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
-}
-function source(chars, id) {
-  const colon = id.indexOf(":");
-  if (colon < 0) return null;
-  const char = chars(id.slice(0, colon));
-  if (!char) return null;
-  const rest = id.slice(colon + 1);
-  return inBack(char, rest) ?? inFront(char, rest);
-}
-function tap(chars, src, where2, oid) {
-  const s = source(chars, src);
-  if (!s || s.left < 1) return null;
-  const card2 = {
-    kind: "influence",
-    oid,
-    home: s.char.oid,
-    where: where2,
-    n: 0,
-    name: s.name,
-    sign: s.sign,
-    points: MIN,
-    used: false,
-    crit: false,
-    tap: { ledger: { [src]: 1 }, current: src },
-    ...s.damage && { damage: s.damage }
-  };
-  return { card: card2, changed: [s.spend(1)] };
-}
-function feed(chars, card2, src, oid) {
-  if (!card2.tap) return null;
-  const id = src ?? card2.tap.current;
-  if (card2.used) return tap(chars, id, card2.where, oid);
-  const s = source(chars, id);
-  if (!s || s.left < 1 || s.damage !== card2.damage) return null;
-  const ledger = { ...card2.tap.ledger, [id]: (card2.tap.ledger[id] ?? 0) + 1 };
-  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
-}
-function unfeed(chars, card2) {
-  const id = card2.tap?.current;
-  if (!card2.tap || !id || !(card2.tap.ledger[id] > 0) || card2.points - STEP < MIN) return null;
-  const s = source(chars, id);
-  if (!s) return null;
-  const ledger = { ...card2.tap.ledger, [id]: card2.tap.ledger[id] - 1 };
-  return { card: { ...card2, points: card2.points - STEP, tap: { ledger, current: id } }, changed: [s.spend(-1)] };
-}
-function kill(chars, card2) {
-  if (!card2.tap || card2.used) return [];
-  const out = /* @__PURE__ */ new Map();
-  const now2 = (oid) => out.get(oid) ?? chars(oid);
-  for (const [id, n] of Object.entries(card2.tap.ledger)) {
-    const s = n > 0 ? source(now2, id) : null;
-    if (s) out.set(s.char.oid, s.spend(-n));
-  }
-  return [...out.values()];
-}
-
 // src/ui/actions.ts
 function minter(game, gm, rng = Math.random) {
   const used = new Set(game.all().map(([rid]) => rid).filter(isPiece).map(oidOf));
@@ -7076,7 +7152,8 @@ function withItem(game, owner, slot2, changed, gone) {
 function toSlot(game, rid, owner, slot2, mint2) {
   const i = item(game, rid);
   if (!i || !accepts(slot2, i)) return null;
-  const moved = { ...i, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
+  const home = i.kind === "influence" && i.mot ? { home: owner } : {};
+  const moved = { ...i, ...home, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
   return (w) => {
     settle(w, withItem(game, owner, slot2, moved), mint2);
   };
@@ -7149,6 +7226,7 @@ function addLoose(game, owner, slot2, shift, mint2) {
 function cardClick(game, rid, shift, mint2) {
   const c = item(game, rid);
   if (c?.kind !== "influence") return null;
+  if (shift && c.points <= MIN) return killCard(game, rid);
   if (c.tap) {
     const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
     return t ? apply(t, c) : null;
@@ -7617,6 +7695,8 @@ function showGap(drawer2, at3, animate = true) {
 var PENS = [
   { mark: "act", word: "Action" },
   { mark: "res", word: "Resource" },
+  { mark: "mot", word: "Motivation" },
+  { mark: "att", word: "Attributes" },
   { mark: "inf", word: "Influence" },
   { mark: "def", word: "Defend" },
   { mark: "head", word: "Heading" }
@@ -7642,18 +7722,18 @@ function apply2(lines, a, b, tag2) {
   const r = line[from.run];
   if (typeof r !== "string") return lines;
   if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag2);
-  if (tag2 === "res") {
-    const each = entries2(r);
+  if (tag2 === "res" || tag2 === "mot") {
+    const each = entries2(r, tag2);
     if (each) return replaceRun(lines, from.line, from.run, each);
   }
   const start = r.length - r.trimStart().length, end = r.trimEnd().length;
   return mark(lines, { line: from.line, run: from.run, start, end }, tag2);
 }
-function entries2(run2) {
+function entries2(run2, tag2 = "res") {
   const parts = run2.split(",");
   if (!parts.every((p) => {
     const r = influence(p);
-    return !!r?.level && r.sign === 1;
+    return !!r?.level && (tag2 === "mot" || r.sign === 1);
   })) return null;
   const out = [];
   const plainRun = (s) => {
@@ -7666,7 +7746,7 @@ function entries2(run2) {
     if (k > 0) plainRun(",");
     const t = p.trim(), at3 = p.indexOf(t);
     plainRun(p.slice(0, at3));
-    out.push({ mark: "res", text: t });
+    out.push({ mark: tag2, text: t });
     plainRun(p.slice(at3 + t.length));
   });
   return out;
@@ -7856,6 +7936,23 @@ function writable(doc, cls, source2, save2) {
   });
   return t;
 }
+var RULE_PX = 26;
+var RULES = 12;
+function ruled(doc, text) {
+  const NS = "http://www.w3.org/2000/svg", svg = doc.createElementNS(NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  for (let k = 0; k < RULES; k++) {
+    const line = doc.createElementNS(NS, "line"), y = String(RULE_PX * (k + 1) - 0.5);
+    for (const [a, v] of [["x1", "0"], ["x2", "100%"], ["y1", y], ["y2", y]]) line.setAttribute(a, v);
+    svg.append(line);
+  }
+  text.addEventListener("scroll", () => {
+    svg.style.transform = `translateY(${-(text.scrollTop % RULE_PX)}px)`;
+  });
+  const wrap = el2(doc, "div", "ruled");
+  wrap.append(svg, text);
+  return wrap;
+}
 function rewrite(t, source2) {
   if (t.dataset.source === source2) return;
   if (t.ownerDocument.activeElement && t.contains(t.ownerDocument.activeElement)) return;
@@ -7904,7 +8001,7 @@ function make3(doc, r, w) {
       back3.append(
         el2(doc, "div", "damage"),
         el2(doc, "div", "notes-hd", "Notes"),
-        writable(doc, "notes", r.back.notes, (s) => change2(w, rid, (c) => ({ ...c, back: { ...c.back, notes: s } })))
+        ruled(doc, writable(doc, "notes", r.back.notes, (s) => change2(w, rid, (c) => ({ ...c, back: { ...c.back, notes: s } }))))
       );
       flipper.append(front, back3);
       const flip = el2(doc, "button", "flip");
@@ -7934,12 +8031,12 @@ function make3(doc, r, w) {
 function update(e, r, w) {
   switch (r.kind) {
     case "character": {
-      e.classList.toggle("flipped", r.flipped);
+      if (e.classList.contains("flipped") !== r.flipped) turn(e, r.flipped);
       e.classList.toggle("secret", !canSee(w.viewer, r));
       const front = e.querySelector(".front > .text");
       rewrite(front, r.front);
       frontGlyphs(front, r, w);
-      rewrite(e.querySelector(".back > .notes"), r.back.notes);
+      rewrite(e.querySelector(".back .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
       dry(e, r);
       break;
@@ -7958,6 +8055,21 @@ function update(e, r, w) {
     case "reference":
       break;
   }
+}
+var TURN_MS = 125;
+function turn(e, flipped) {
+  const flipper = e.querySelector(".flipper");
+  const reduce = e.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (!e.isConnected || reduce || !flipper.animate) {
+    e.classList.toggle("flipped", flipped);
+    return;
+  }
+  flipper.getAnimations().forEach((a) => a.cancel());
+  const half = (from, to) => flipper.animate([{ transform: from }, { transform: to }], { duration: TURN_MS, easing: "ease-in-out" });
+  half("scaleX(1)", "scaleX(0)").onfinish = () => {
+    e.classList.toggle("flipped", flipped);
+    half("scaleX(0)", "scaleX(1)");
+  };
 }
 function image(e, r, w) {
   const img = e.querySelector("img");
@@ -7994,6 +8106,10 @@ function tornroll(e, r) {
   e.replaceChildren(...r.receipts.map((x) => receiptEl(e.ownerDocument, x)));
 }
 var filled = (s) => !!s.name || s.boxes.some((b) => b);
+function frontOrder(front) {
+  const k = front ? DAMAGE.indexOf(front) : 0;
+  return [...DAMAGE.slice(k), ...DAMAGE.slice(0, k)];
+}
 function damage2(box2, c, w) {
   const doc = box2.ownerDocument, opened = w.opened();
   const put2 = (fn) => change2(w, ridOf(c.oid), fn);
@@ -8003,18 +8119,11 @@ function damage2(box2, c, w) {
       const col = el2(doc, "div", `column col-${d}`);
       col.dataset.damage = d;
       const hd = el2(doc, "div", "hd");
-      const absorb2 = el2(doc, "span", "absorb");
-      absorb2.contentEditable = "true";
-      absorb2.addEventListener("input", () => {
-        const n = Number(absorb2.textContent?.replace(/\D/g, "") || 0);
-        put2((ch) => ({ ...ch, back: { ...ch.back, absorb: { ...ch.back.absorb, [d]: Math.min(100, n) } } }));
-      });
-      hd.append(`${COLUMN[d].name} `, absorb2);
+      hd.append(`${COLUMN[d].name} `, el2(doc, "span", "absorb"));
       col.append(hd);
       gesture(hd, { click: () => {
-        const o = new Set(w.opened());
-        o.add(`${c.oid}:${d}`);
-        w.setOpened(o);
+        const mine = `${c.oid}:`;
+        w.setOpened(new Set([...w.opened()].filter((k) => !k.startsWith(mine)).concat(mine + d)));
       } });
       for (const row2 of ROWS) {
         const line = el2(doc, "div", "slotline");
@@ -8029,13 +8138,14 @@ function damage2(box2, c, w) {
       box2.append(col);
     }
   }
+  const order = frontOrder(DAMAGE.find((d) => opened.has(`${c.oid}:${d}`)) ?? null);
   for (const col of box2.children) {
-    const d = col.dataset.damage, slots = c.back.damage[d];
-    const empty2 = !ROWS.some((r) => filled(slots[r])) && !c.back.absorb[d];
+    const d = col.dataset.damage, slots = c.back.damage[d], room2 = columnRoom(c, d), absorb2 = room2?.absorb ?? 0;
+    const empty2 = !ROWS.some((r) => filled(slots[r])) && !absorb2;
     col.classList.toggle("empty", empty2);
     col.classList.toggle("open", opened.has(`${c.oid}:${d}`));
-    const absorb2 = col.querySelector(".absorb");
-    if (doc.activeElement !== absorb2) absorb2.textContent = c.back.absorb[d] ? `(absorb ${c.back.absorb[d]})` : "";
+    col.style.order = String(order.indexOf(d));
+    col.querySelector(".absorb").textContent = absorb2 ? `(absorb ${absorb2})` : "";
     for (const line of col.querySelectorAll(".slotline")) {
       const row2 = line.dataset.row, s = slots[row2];
       const name2 = line.querySelector(".name");
@@ -8044,8 +8154,9 @@ function damage2(box2, c, w) {
       line.querySelector(".spent").textContent = spent ? `\u2212${spent}` : "";
       slotGlyphs(line, s, `${c.oid}:${d}/${row2}`, w);
       const boxes = line.querySelector(".boxes");
-      if (boxes.children.length !== s.boxes.length) {
-        boxes.replaceChildren(...s.boxes.map((_, k) => {
+      const count = room2 ? Math.max(room2.boxes[row2], s.boxes.lastIndexOf(true) + 1) : s.boxes.length;
+      if (boxes.children.length !== count) {
+        boxes.replaceChildren(...Array.from({ length: count }, (_, k) => {
           const b = el2(doc, "button", "box");
           b.setAttribute("aria-label", `Slot ${k + 2}`);
           gesture(b, { click: () => put2((ch) => {
@@ -8054,12 +8165,14 @@ function damage2(box2, c, w) {
               b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
               return ch;
             }
-            return slotAt(ch, d, row2, { boxes: cur.boxes.map((on, i) => i === k ? !on : on) });
+            const next = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_2, i) => !!cur.boxes[i]);
+            next[k] = !next[k];
+            return slotAt(ch, d, row2, { boxes: next });
           }) });
           return b;
         }));
       }
-      s.boxes.forEach((on, k) => boxes.children[k].classList.toggle("on", on));
+      [...boxes.children].forEach((b, k) => b.classList.toggle("on", !!s.boxes[k]));
     }
   }
 }
@@ -8071,7 +8184,9 @@ function glyph(doc, source2, w) {
   g.draggable = false;
   g.addEventListener("pointerdown", (ev) => ev.preventDefault());
   g.addEventListener("dragstart", (ev) => ev.preventDefault());
-  gesture(g, { drag: (d, m) => w.dragGlyph(source2, d, m) });
+  gesture(g, { drag: (d, m) => {
+    if (!w.dragGlyph(source2, d, m)) g.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+  } });
   return g;
 }
 function dry(e, c) {
@@ -8084,7 +8199,7 @@ function frontGlyphs(text, c, w) {
   const doc = text.ownerDocument;
   if (doc.activeElement && text.contains(doc.activeElement)) return;
   for (const g of text.querySelectorAll(".glyph")) g.remove();
-  for (const span of text.querySelectorAll("span.res")) {
+  for (const span of text.querySelectorAll("span.res, span.mot")) {
     const name2 = influence(span.textContent ?? "")?.name;
     if (name2) span.before(glyph(doc, `${c.oid}:${name2}`, w));
   }
@@ -8329,7 +8444,7 @@ var Drag = class {
       reach(pool, under.dataset.slot, fromHere);
     }
   }
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R243: in this order:
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R268, R60, R220, R243: in this order:
   // a tap's merge, a slot, the kill box, a drawer, the bar, else the table.
   /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
   startItem(rid, down, move) {
@@ -8445,8 +8560,10 @@ var Drag = class {
     switch (t?.kind) {
       case "merge":
         return mergeTap(game, rid, t.el.dataset.rid, mint2);
-      case "slot":
-        return toSlot(game, rid, t.el.dataset.owner, t.el.dataset.slot, mint2);
+      case "slot": {
+        const i = game.get(rid);
+        return toSlot(game, rid, t.el.dataset.owner, t.el.dataset.slot, mint2) ?? (i?.kind === "influence" ? toDrawer(game, rid, i.home) : null);
+      }
       case "kill":
         return killCard(game, rid);
       case "drawer":
@@ -8680,7 +8797,18 @@ var TableView = class {
       this.#loose.set(rid, e);
     }
     e.className = `obj loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
-    e.textContent = i.kind === "chip" ? `${i.sign < 0 ? "\u2212" : ""}${i.points}` : `${i.name} ${i.sign > 0 ? "+" : "\u2212"}${levelName2(i.points)}`;
+    if (i.kind === "chip") e.textContent = `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
+    else {
+      const level = doc.createElement("button");
+      level.className = "level";
+      level.textContent = `${i.sign > 0 ? "+" : "\u2212"}${levelName2(i.points)}`;
+      const click = (shift) => {
+        const ch = cardClick(this.#w.game, rid, shift, this.#w.mint());
+        if (ch) this.#w.game.change(ch);
+      };
+      gesture(level, { click: () => click(false), shift: () => click(true) });
+      e.replaceChildren(`${i.name} `, level);
+    }
     e.style.left = `${where2.x}px`;
     e.style.top = `${where2.y}px`;
     e.style.zIndex = String(where2.z);
@@ -8851,7 +8979,13 @@ function views(game, gameId, viewer, blobs, moves, missing) {
       redraw();
     },
     drag: (rid, down, move) => drag?.start(rid, down, move),
-    dragGlyph: (src, down, move) => drag?.startGlyph(src, down, move),
+    // R259: your own Resources only; anyone's Motivations and Damage.
+    dragGlyph: (src, down, move) => {
+      const colon = src.indexOf(":"), c = game.get(ridOf(src.slice(0, colon)));
+      if (c?.kind !== "character" || !mayTap(viewer, c, src.slice(colon + 1))) return false;
+      drag?.startGlyph(src, down, move);
+      return true;
+    },
     mint: mint2,
     poolOpen: () => ({ piles: new Set(seat.open.piles), slots: new Set(seat.open.slots), used: new Set(seat.open.used) }),
     // Seat-tier openings: looking never changes the game (R128).
@@ -8927,8 +9061,8 @@ async function main() {
   const open = () => {
     if (table) return table;
     const key = `hollow.room.${store.current.id}`;
-    const room = local(key) ?? local(key, newRoom(store.current.name));
-    const wire = new Wire(room, { identity, sealer, tab: tab2, loopback });
+    const room2 = local(key) ?? local(key, newRoom(store.current.name));
+    const wire = new Wire(room2, { identity, sealer, tab: tab2, loopback });
     const presence = new Presence({
       net: wire,
       clock,
@@ -8948,7 +9082,7 @@ async function main() {
     images.start();
     presence.start();
     wire.on("move", (b, from) => moves.receive(from.tab, b));
-    table = { room, wire, presence, authority, rolls, images };
+    table = { room: room2, wire, presence, authority, rolls, images };
     return table;
   };
   const link = () => invite(location.href, open().room, identity.id);

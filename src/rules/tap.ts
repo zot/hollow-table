@@ -1,7 +1,8 @@
-// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250
+// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262
 // Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source
 // so every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
-// Resources*). Pure: returns the records to write. Anyone may tap any source (R212).
+// Resources*), and NPCs' Motivations (Bunkum, *Mental Resources*). Pure: returns the records to
+// write; who may tap is mayTap's question, asked before a tap starts (R212, R259).
 //
 // A source is `<character oid>:<rest>`: a `<res>` mark's name on the front (its Level is written in
 // the text), `<damage>/<row>` for a named Damage slot, or `<damage>/<row>#<k>` for its k-th checked
@@ -10,7 +11,8 @@
 
 import { DAMAGE, ROWS, damageSlots, type Character, type Damage, type Influence, type Oid, type RowName, type Sign, type Where } from '../model/records.ts';
 import { marks, parse, serialize, setMark } from '../text/marks.ts';
-import { influence, levelsOf, spend } from './readmarks.ts';
+import { adjust, influence, levelsOf, motiveLeft, spend, unadjusted } from './readmarks.ts';
+import type { Viewer } from './visibility.ts';
 import { MIN, STEP, rowLevels } from './influence.ts';
 
 export type Lookup = (oid: Oid) => Character | undefined;
@@ -18,18 +20,20 @@ export type Lookup = (oid: Oid) => Character | undefined;
 export type Tapped = { card: Influence; changed: Character[] };
 
 type Source = {
-  char: Character; name: string; sign: Sign; left: number; damage?: Damage; spend: (n: number) => Character;
+  char: Character; name: string; sign: Sign; left: number; damage?: Damage; mot?: true; spend: (n: number) => Character;
 };
 
-// R54: on the front, only a `<res>` mark is a source.
+// R54, R258: on the front, a `<res>` or a `<mot>` mark is a source. R261: a Motivation spends into
+// its parentheses, its written Level kept.
 function inFront(char: Character, name: string): Source | null {
   const lines = parse(char.front);
-  for (const m of marks(lines, 'res')) {
-    const r = influence(m.text);
+  for (const m of [...marks(lines, 'res'), ...marks(lines, 'mot')]) {
+    const r = influence(m.text), mot = m.mark === 'mot';
     if (r?.name !== name || !r.level) continue;
+    const write = (n: number) => (mot ? adjust(m.text, n) : spend(m.text, n)) ?? m.text;
     return {
-      char, name, sign: r.sign ?? 1, left: levelsOf(r),
-      spend: n => ({ ...char, front: serialize(setMark(lines, m, spend(m.text, n) ?? m.text)) }),
+      char, name, sign: r.sign ?? 1, left: mot ? motiveLeft(m.text) : levelsOf(r), ...(mot && { mot: true as const }),
+      spend: n => ({ ...char, front: serialize(setMark(lines, m, write(n))) }),
     };
   }
   return null;
@@ -51,6 +55,15 @@ function inBack(char: Character, rest: string): Source | null {
     return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage]: column } } };
   };
   return { char, name: slot.name, sign: -1, left: rowLevels(row) - (slot.spent[k] ?? 0), damage, spend };
+}
+
+// R259: your own Resources only (the GM may, running NPCs and working players' rolls); anyone's
+// Motivations and Damage.
+/** Whether `viewer` may tap this character's source (`rest` as after the colon). */
+export function mayTap(viewer: Viewer, char: Character, rest: string): boolean {
+  const s = inBack(char, rest) ?? inFront(char, rest);
+  if (!s) return false;
+  return !!s.damage || !!s.mot || !!viewer?.gm || char.owner === viewer?.name;
 }
 
 // R250: a dry source's glyph fades.
@@ -77,6 +90,7 @@ export function tap(chars: Lookup, src: string, where: Where, oid: Oid): Tapped 
   const card: Influence = {
     kind: 'influence', oid, home: s.char.oid, where, n: 0, name: s.name, sign: s.sign, points: MIN,
     used: false, crit: false, tap: { ledger: { [src]: 1 }, current: src }, ...(s.damage && { damage: s.damage }),
+    ...(s.mot && { mot: true as const }),
   };
   return { card, changed: [s.spend(1)] };
 }
@@ -91,7 +105,7 @@ export function feed(chars: Lookup, card: Influence, src: string | undefined, oi
   const id = src ?? card.tap.current;
   if (card.used) return tap(chars, id, card.where, oid);
   const s = source(chars, id);
-  if (!s || s.left < 1 || s.damage !== card.damage) return null;
+  if (!s || s.left < 1 || s.damage !== card.damage || !!s.mot !== !!card.mot) return null;
   const ledger = { ...card.tap.ledger, [id]: (card.tap.ledger[id] ?? 0) + 1 };
   return { card: { ...card, points: card.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
 }
@@ -123,4 +137,12 @@ export function kill(chars: Lookup, card: Influence): Character[] {
 /** End: every Damage slot's and box's spent Levels come back. */
 export function recharge(char: Character): Character {
   return { ...char, back: { ...char.back, damage: damageSlots((d, r) => ({ ...char.back.damage[d][r], spent: [] })) } };
+}
+
+// R262: Motivations recharge at the end of every scene.
+/** The end of a scene: every Motivation's parentheses go. */
+export function rechargeMotives(char: Character): Character {
+  let lines = parse(char.front);
+  for (const m of marks(lines, 'mot')) lines = setMark(lines, m, unadjusted(m.text));
+  return { ...char, front: serialize(lines) };
 }

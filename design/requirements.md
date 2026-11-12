@@ -33,6 +33,7 @@
 - **R20:** The bar shows the people at the table, and the register, the Ledger and Boot Hill at its right end.
 - **R21:** Dropping a piece on the bar puts it away: characters, stickies, loose text, images and torn rolls are buried on Boot Hill, plain chips vanish, and Influence cards go home to their drawer.
 - **R22:** A character card has two faces, is edited in place, and flips at the corner.
+- **R252:** A card lies flat, showing one face at a time, so its text stays sharp at rest and while written on; it turns over by narrowing to its edge and widening on its other face, instantly under reduced motion.
 - **R23:** A character card's front holds name and Rank, `Cha Int Wis`, Fields and Skills, and a right column of actions, Defend, Sparked/Grains and Resources; its back holds three Damage columns, Biases, Afflictions and Injuries, each with a Mild, Min, Sig and Maj slot and a box per extra Slot of that Level, and ruled Notes lines.
 - **R24:** Slot boxes on a card toggle.
 - **R25:** Stickies and loose text are handwritten and edited in place.
@@ -54,11 +55,20 @@
 - **R34:** Dropping the character supply makes a card with its pool popped out above it, linked and gathered, owned by its maker (GM-owned when the GM makes it).
 - **R35:** A new pool never pops out under the bar; with no room above, the card slides down under it.
 - **R202:** Something waiting to be filled in shrinks to its name and opens when reached for.
-- **R203:** An empty column on a card's back (nothing written, no box checked) collapses to its name; clicking anywhere in it opens it, and left empty it closes at the next click elsewhere.
-- **R204:** Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
+- **~~R203:~~** (Retired T5 — see R253) An empty column on a card's back (nothing written, no box checked) collapses to its name; clicking anywhere in it opens it, and left empty it closes at the next click elsewhere.
+- **R253:** An empty column on a card's back (nothing written, no box checked) collapses to its name. Clicking a column's name brings it to the front: it opens, the columns rotate so it is leftmost with the others following in turn, and the other empty columns collapse; it stays open until another is brought forward, and a column with something in it is always open. The order is each viewer's own (kept in their Seat), never sent to other pages.
+- **R254:** An open column's name sits over its blanks, past its boxes and Level words, on one line.
+- **R255:** Ruled lines (the back's notes) are one screen pixel wide at any zoom and stay smooth on tilted paper. Writing that scrolls past the bottom keeps its lines under it.
+- **R256:** A Damage column's blanks are the same length whichever column is open: each collapsed column takes the room of the longest name, and open columns share the rest evenly.
+- **~~R204:~~** (Retired T6 — see R257) Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
+- **~~R257:~~** (Retired T8 — see R266) Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<mot>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
+- **R266:** Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<mot>`, `<att>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
+- **R267:** An `<att>` mark holds a character's attributes as `Name N` pairs (`Cha 2  Int 2  Wis 4`); its pen is offered for a plain line of two or more such pairs.
 - **R209:** A Damage slot's entry is stored as a plain name; its column makes it a Bias, Affliction or Injury, and the table draws it as a `<bias>`, `<aff>` or `<inj>` mark. Those tags written in text are plain text.
 - **R213:** A slot's boxes sit in front of its Level word.
-- **R214:** Each Damage column's heading carries its absorb, the Result absorbed from each Attack before any Slot fills; it is edited on the back and shown only when it isn't 0.
+- **~~R214:~~** (Retired T7 — see R264) Each Damage column's heading carries its absorb, the Result absorbed from each Attack before any Slot fills; it is edited on the back and shown only when it isn't 0.
+- **R264:** Each Damage column's heading carries its absorb, worked out from the card's attributes (Wis for Biases and Afflictions, Con for Injuries; 1 from 5, 2 from 10, 3 from 15) and shown only when it isn't 0; it is never typed.
+- **R265:** A Damage column's extra Slot boxes follow the same attribute (Min +1 from 1, +2 from 3; Sig +1 from 7, +2 from 15; Mild +1 from 9, +2 from 11); a box checked beyond the count stays until unchecked; a card with no attribute marked for the column keeps the boxes it has.
 - **R205:** Game meaning is read only from marks, never inferred from plain text.
 - **R206:** Text is marked with highlighter pens, one per mark; a pen on marked text unmarks it.
 - **R207:** A plain line matching a mark's grammar is offered that mark's pen.
@@ -66,6 +76,7 @@
 - **R245:** A mark's highlight shows only while its paper is being written on (pens out); at rest a marked card reads as printed, its glyphs and dice the cues.
 - **R246:** An `act` or `def` mark's label, up to its first colon, is drawn bold; a heading is 18 px bold, and a heading on a card's first line, its name, 21 px.
 - **R247:** The Resource pen at a bare caret on a plain line whose comma-separated entries each read `Name +Level` marks each entry as its own Resource, the commas left plain.
+- **R258:** A `<mot>` mark is a Motivation, `Name ±Level`, with a tap glyph; its pen is offered for a plain `Name ±Level` line under a Motivations heading, and at a bare caret marks each comma-separated `Name ±Level` entry as its own Motivation.
 - **R248:** A sticky is the supply's note or a big sticky, 330 by 300, for the GM's long notes; the record keeps which.
 
 ## Feature: Influence
@@ -89,13 +100,15 @@
 - **~~R224:~~** (Retired T2 — see R243) An Influence card picked up from a drawer or the table becomes a chip in hand, centred on the pointer, its value in the middle and its name on hover (Bill, 11-12).
 - **R243:** An Influence card picked up stays a card in hand, held where it was taken; over a pool's slots it becomes a chip centred on the pointer, and a card again when it leaves them.
 - **R48:** An Influence card dropped anywhere but a pool slot goes home to its drawer; dropped on another pool's drawer, it moves to that character.
-- **R49:** A drawer's kill box is the only way to delete an Influence card.
+- **~~R49:~~** (Retired T9 — see R268) A drawer's kill box is the only way to delete an Influence card.
+- **R268:** An Influence card is deleted only in a drawer's kill box or by shift-clicking it at Min; either way an unused tap gives its sources their Levels back.
 - **R50:** A drawer has buttons to write a new + or − card.
 - **R231:** The drawer's tools are tiles: a dashed + and − in their sign's colour, the used pile as a tile with its count, the kill box as a hatched tile.
 - **R232:** A new card is written as "Influence" with its name selected, so typing names it.
 - **R239:** A new card goes last in its drawer; a card that comes home without a place chosen goes last too.
 - **R240:** Carrying a card over a drawer opens a gap where it would go, the other cards sliding aside and the drawer growing to fit; the gap follows the card, and letting go puts it there.
-- **R51:** Clicking a drawer card's Level raises it; cards stop at Min when lowered.
+- **~~R51:~~** (Retired T10 — see R269) Clicking a drawer card's Level raises it; cards stop at Min when lowered.
+- **R269:** A card's Level answers clicks wherever the card is (its drawer, a pool slot as a chip, loose on the table): click raises it, shift-click lowers it, and at Min shift-click deletes it.
 - **R52:** Three equal Influence cards in a slot form a pile showing the value they act as, without merging.
 - **R53:** Clicking a pile opens or closes it; an open pile lists its members by name; dragging a member out breaks the pile.
 - **R236:** A pile is drawn as a stack of discs in its colour; open, it lists its members beside it, each chip with its name.
@@ -115,6 +128,11 @@
 - **R210:** A checked Slot box is a Resource of its own, named after its slot and worth the slot's Level.
 - **R211:** A card tapped from a Damage Resource is an Influence of its kind: it goes only into its kind's pool slot (dropped in another slot, it goes home to its drawer) and only Resources of its kind feed it; a `<res>` Resource can't feed a Damage card, nor a Damage Resource a card made from a `<res>`.
 - **R212:** Anyone may tap any character's Damage Resources; Biases, Afflictions and Injuries may all apply to one action.
+- **R259:** Only a character's owner or the GM may tap its `<res>` Resources; the table refuses anyone else's drag from the glyph. Anyone may tap any character's Motivations.
+- **R260:** A card tapped from a Motivation is a Main Pool Influence of the Motivation's sign: it goes only into a Main slot (dropped in another slot, it goes home), only Motivations feed it, and dropped into a Main slot it joins that character's drawer.
+- **R261:** Spending a Motivation is temporary: its written Level stays and the Levels left follow it in parentheses (`Keep the Peace +Sig (+Min)`, `(0)` when spent out); a refund back to full removes them.
+- **R262:** Motivations recharge at the end of every scene, their parentheses removed.
+- **R263:** While a card is written on, a Damage entry shows its colour only once it has a name; an empty slot stays a blank line.
 - **R63:** A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); Resources can't feed used cards, and click and shift-click still change them.
 - **R64:** At a character's next roll, still-used cards are swept into the drawer's used pile first; clicking one there puts it back.
 - **R233:** The used pile opens as a paper list under its tile; a used card in a pool is greyed, with a small "used" tag under it.

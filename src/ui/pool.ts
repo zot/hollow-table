@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64, R251
+// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64, R251, R268, R269
 // A character's pool mat: the seven slots, the drawer of Influence cards with its writers, used pile
 // and kill box, and the header. What a click or a drop does is in actions.ts; this only draws and
 // listens.
@@ -274,7 +274,7 @@ function pile(doc: Document, p: Exclude<Unit, Item>, open: Set<string>, w: PoolW
   return d;
 }
 
-// R47, R49, R50, R51, R64, R229-R233: the drawer's cards, and its tools as tiles: the writers, the
+// R47, R268, R50, R269, R64, R229-R233: the drawer's cards, and its tools as tiles: the writers, the
 // used pile (opening as a paper list) and the kill box.
 function drawer(box: HTMLElement, c: Character, cards: Influence[], w: PoolWith, shown: Shown, drawn: Map<string, HTMLElement>): void {
   const doc = box.ownerDocument, opened = w.poolOpen();

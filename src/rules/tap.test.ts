@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, Damage, Influence, RowName } from '../model/records.ts';
 import { marks, parse } from '../text/marks.ts';
-import { feed, kill, left, recharge, tap, unfeed, type Tapped } from './tap.ts';
+import { feed, kill, left, mayTap, recharge, rechargeMotives, tap, unfeed, type Tapped } from './tap.ts';
 import { levelName } from './influence.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
@@ -148,4 +148,38 @@ test('what a source has left', () => {
   assert.equal(left(sam(), 'bias/sig'), 2);
   assert.equal(left(sam(), 'bias/sig#1'), 2);
   assert.equal(left(sam(), 'bias/sig#2'), 0);                 // an unchecked box
+});
+
+test('tapping a Motivation', () => {
+  // R260, R261, R262: a Main Pool Influence of its sign; the Motivation spends into its parentheses
+  // and recharges at a scene's end; only Motivations feed the card.
+  const t = table(), dev = () => t.chars.get(DEVREUX)!, mots = () => marks(parse(dev().front), 'mot').map(m => m.text).join(', ');
+  assert.equal(mots(), 'Keep the Peace +Sig (0), Self-Preservation +Sig (0), Old Sympathy for Sparkers +Min (0)');
+  assert.equal(tap(t.look, `${DEVREUX}:Keep the Peace`, where, 'c1'), null, 'spent out until the scene ends');
+  t.chars.set(DEVREUX, rechargeMotives(dev()));
+  assert.equal(mots(), 'Keep the Peace +Sig, Self-Preservation +Sig, Old Sympathy for Sparkers +Min');
+  const card = t.take(tap(t.look, `${DEVREUX}:Keep the Peace`, where, 'c1'))!;
+  assert.deepEqual([card.mot, card.sign, card.points, card.damage], [true, 1, 2, undefined]);
+  assert.match(mots(), /^Keep the Peace \+Sig \(\+Min\),/);
+  assert.equal(feed(t.look, card, `${DEVREUX}:Money`, 'x'), null, 'a Resource does not feed a Motivation card');
+  const fed = t.take(feed(t.look, card, `${DEVREUX}:Self-Preservation`, 'x'))!;
+  assert.equal(fed.points, 4);
+  assert.match(mots(), /Self-Preservation \+Sig \(\+Min\)/);
+  for (const c of kill(t.look, fed)) t.chars.set(c.oid, c);
+  assert.equal(mots(), 'Keep the Peace +Sig, Self-Preservation +Sig, Old Sympathy for Sparkers +Min', 'a refund back to full');
+  const money = t.take(tap(t.look, `${SAM}:Money`, where, 'c2'))!;
+  assert.equal(feed(t.look, money, `${DEVREUX}:Keep the Peace`, 'x'), null, 'a Motivation does not feed a Resource card');
+});
+
+test('who may tap', () => {
+  // R259: your own Resources only (or the GM); anyone's Motivations and Damage.
+  const t = table();
+  damaged(t, { 'bias/sig': ['Uncertain', 0] });
+  const sam = t.chars.get(SAM)!, dev = rechargeMotives(t.chars.get(DEVREUX)!);
+  const dana = { name: sam.owner, gm: false }, other = { name: 'Someone', gm: false }, gm = { name: 'GM', gm: true };
+  assert.deepEqual([dana, other, gm, null].map(v => mayTap(v, sam, 'Money')), [true, false, true, false]);
+  assert.deepEqual([dana, other, null].map(v => mayTap(v, dev, 'Keep the Peace')), [true, true, true]);
+  assert.deepEqual([dana, other].map(v => mayTap(v, dev, 'Money')), [false, false]);
+  assert.equal(mayTap(other, sam, 'bias/sig'), true, 'Damage: anyone (R212)');
+  assert.equal(mayTap(gm, sam, 'Nothing'), false, 'no such source');
 });

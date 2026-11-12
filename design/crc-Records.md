@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R204, R209, R211, R214, R248
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -20,14 +20,16 @@ record crosses the wire, the database and an export file unchanged.
   Affliction Pools*), named as their pool slots. Level rows:
   `mild | min | sig | maj`.
 - CardBack: `{damage: {bias, affliction, injury: {mild, min, sig, maj: DamageSlot}}, absorb: {bias,
-  affliction, injury: number}, notes: Marked}`. `absorb` is each column's Result absorption (R214).
+  affliction, injury: number}, notes: Marked}`. `absorb` is no longer read: a column's absorb is worked out from the card's attributes (R264); the
+  field stays so old games load.
 - DamageSlot: `{name: string, boxes: boolean[], spent: number[]}`. `name` is the entry, plain (its
   column makes it a Bias, Affliction or Injury, R209); the boxes are the extra Slots of Hollow Folks,
   *Absorbing Damage*, drawn as on Samuel Diamond's card, *A Ghoulish Problem*; `spent[0]` is the Levels tapped from the slot
   and `spent[k]` from its k-th box, until End recharges them.
 - Influence: `{kind: 'influence', oid, home: oid, where: Where, n, name, sign, points, used, crit,
-  tap?: {ledger: {[source]: number}, current: source}, damage?: Damage}`. `damage` marks a card
-  tapped from a Damage Resource: an Influence of that kind (R211). `home` is the character whose drawer it
+  tap?: {ledger: {[source]: number}, current: source}, damage?: Damage, mot?: true}`. `damage` marks a card
+  tapped from a Damage Resource: an Influence of that kind (R211); `mot` one tapped from a
+  Motivation, a Main Pool Influence (R260). `home` is the character whose drawer it
   belongs to and who may read it. A source is `<character oid>:<Resource name>`.
 - Chip: `{kind: 'chip', oid, where: Where, n, sign, points, rider}`. A loose odd point is
   `points: 1`; `rider` is a +1 riding the chip.

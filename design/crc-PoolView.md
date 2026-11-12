@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -8,12 +8,15 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   its used pile.
 
 ## Does
+- toSlot (actions): a `mot` card dropped into a Main slot joins that character's drawer, its
+  `home` set to the slot's character (R260), so a card tapped from an NPC's Motivation is the
+  tapper's.
 - carry (R251): a drag from the name, the frame of slots or the drawer starts Drag.startPool; chips and
   cards there take the press first (their own drag), and the header's empty space is left to the table.
 - drawPool(character, items, old): makes or updates the mat; what a click or a drop does is in
   `src/ui/actions.ts` (pure: each gives one Game change, so they're tested without a browser): into
   a slot with Roll Up settled, into a drawer, onto the table, the kill box, a chip's click, a rider's
-  shift-click, a loose ±1, a card's Level (or feed/unfeed for a resource-made card), a new card, the
+  shift-click, a loose ±1, a card's Level wherever it is (or feed/unfeed for a resource-made card), shift-click at Min deleting it as the kill box does (R268, R269), a new card, the
   used pile, a tap from a glyph, a feed. New oids come from a minter: the GM counts up below the
   players' range; a player's page takes random oids in the players' range, so two players can't
   collide.

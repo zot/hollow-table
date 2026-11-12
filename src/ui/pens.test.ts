@@ -92,3 +92,9 @@ test('several Resources on one line', () => {
   assert.equal(res('Money +Min, Debt -Sig'), '<res>Money +Min, Debt -Sig</res>');
   assert.equal(serialize(apply(parse('Money +Min, Ammo +Sig'), at(0, 0, 3), at(0, 0, 3), 'inf')), '<inf>Money +Min, Ammo +Sig</inf>');
 });
+
+test('several Motivations on one line', () => {
+  // R258: the Motivation pen marks each `Name ±Level` entry, either sign.
+  const lines = parse('Be Left Alone +Sig, Dread of the New Moon -Min');
+  assert.equal(serialize(apply(lines, at(0, 0, 3), at(0, 0, 3), 'mot')), '<mot>Be Left Alone +Sig</mot>, <mot>Dread of the New Moon -Min</mot>');
+});

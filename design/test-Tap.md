@@ -99,3 +99,30 @@ unchecked second box
 **Fire alarm:** In left, read only the front: the named Bias slot has 0 left, its glyph faded
 **Inject:** src/rules/tap.ts:left
 **Pulled:** 2026-11-12 — rang: the named Sig Bias slot read 0 left instead of 2
+
+## Test: tapping a Motivation
+**Purpose:** R260–R262: a Motivation makes a Main Pool card of its sign, spends into its
+parentheses, recharges at a scene's end, refunds back to full, and feeds only Motivation cards
+**Input:** Devreux's playtest Motivations, spent out; a tap before and after rechargeMotives; a feed
+from Money and one from Self-Preservation; the card killed; Sam's Money card fed from Keep the Peace
+**Expected:** all three read `(0)` and refuse a tap; after the recharge no parentheses and a card with
+`mot`, sign +1, 2 points, no Damage kind; Keep the Peace `(+Min)`; Money refused; Self-Preservation
+feeds it to 4 and reads `(+Min)`; the kill restores both to full; Money's card refuses the Motivation
+**Refs:** crc-Tap.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 8
+**Fire alarm:** In feed, drop the Motivation check: Money feeds the Motivation card
+**Inject:** src/rules/tap.ts:feed
+**Pulled:** 2026-11-12 — rang: Money fed the Motivation card instead of being refused
+
+## Test: who may tap
+**Purpose:** R259: a `<res>` only by its character's owner or the GM; anyone's Motivations and Damage
+**Input:** Sam's Money for his owner, another player, the GM and nobody; Devreux's Keep the Peace for
+three; Devreux's Money for two players; Sam's named Sig Bias for another player; an unknown source
+**Expected:** true, false, true, false; true for all; false, false; true; false
+**Refs:** crc-Tap.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 9
+**Fire alarm:** In mayTap, let anyone tap a Resource (drop the owner check): another player taps Sam's Money
+**Inject:** src/rules/tap.ts:mayTap
+**Pulled:** 2026-11-12 — rang: another player could tap Sam's Money

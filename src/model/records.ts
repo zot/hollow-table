@@ -39,7 +39,8 @@ export type Damage = (typeof DAMAGE)[number];
  * `spent[k]` from its k-th box.
  */
 export type DamageSlot = { name: string; boxes: boolean[]; spent: number[] };
-// R214: `absorb` is each column's Result absorption (Hollow Folks, *Absorbing Damage*).
+// R264: `absorb` is no longer read (a column's absorb is worked out from Wis or Con); it stays so
+// old games load.
 export type CardBack = { damage: Record<Damage, Record<RowName, DamageSlot>>; absorb: Record<Damage, number>; notes: Marked };
 
 /** Every Damage slot of a back, each made by `f` from its column and row. */
@@ -61,6 +62,8 @@ export type TapLedger = { ledger: Record<string, number>; current: string };
 export type Influence = {
   kind: 'influence'; oid: Oid; home: Oid; where: Where; n: number; name: string; sign: Sign;
   points: number; used: boolean; crit: boolean; tap?: TapLedger; damage?: Damage;
+  /** R260: tapped from a Motivation, a Main Pool Influence. */
+  mot?: true;
 };
 
 // R36, R38: a chip; a loose odd point is `points: 1`, and `rider` is a +1 riding the chip.
@@ -162,7 +165,7 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
     card: place, flipped: bool, gathered: bool, front: marked, back }),
   influence: fields({ kind: oneOf('influence'), oid: isOid, home: isOid, where, n: int(0, CAPS.list), name: str(CAPS.name),
     sign, points, used: bool, crit: bool },
-    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE) }),
+    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true) }),
   chip: fields({ kind: oneOf('chip'), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
   sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin, big: bool }),
   text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin }),

@@ -1,7 +1,7 @@
 // CRC: crc-MarkReader.md | Test: test-MarkReader.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { action, defend, influence, offer, spend } from './readmarks.ts';
+import { action, adjust, attributes, defend, influence, motiveLeft, offer, spend, unadjusted } from './readmarks.ts';
 
 test('action lines', () => {
   const rows: [string, string, number, number, number][] = [
@@ -36,4 +36,37 @@ test('offers and spending', () => {
   assert.equal(offer('Money +Maj', 'Resources'), 'res');
   assert.equal(offer('Money +Maj', 'Items'), null);
   assert.equal(spend('Money +Maj (bank)', 1), 'Money +Sig (bank)');
+});
+
+test('a Motivation spends into its parentheses', () => {
+  // R261: the written Level stays; the Levels left follow it, gone again when back to full.
+  assert.equal(adjust('Keep the Peace +Sig', 1), 'Keep the Peace +Sig (+Min)');
+  assert.equal(adjust('Keep the Peace +Sig (+Min)', 1), 'Keep the Peace +Sig (0)');
+  assert.equal(adjust('Keep the Peace +Sig (0)', 1), null);
+  assert.equal(adjust('Keep the Peace +Sig (0)', -1), 'Keep the Peace +Sig (+Min)');
+  assert.equal(adjust('Keep the Peace +Sig (+Min)', -1), 'Keep the Peace +Sig');
+  assert.equal(adjust('Keep the Peace +Sig', -1), 'Keep the Peace +Sig', 'never past full');
+  assert.equal(adjust('Paranoia -Maj', 1), 'Paranoia -Maj (-Sig)');
+  assert.equal(adjust('Keep the Peace (good for business) +Sig', 1), 'Keep the Peace (good for business) +Sig (+Min)');
+  assert.deepEqual(['Faith +Min', 'Faith +Maj (+Min)', 'Faith +Maj (0)', 'Faith +Maj (−Sig)'].map(motiveLeft), [1, 1, 0, 2]);
+  assert.equal(unadjusted('Faith +Maj (0)'), 'Faith +Maj');
+  assert.equal(influence('Keep the Peace +Sig (0)')?.name, 'Keep the Peace');
+});
+
+test('a Motivation line is offered the Motivation pen', () => {
+  // R258: `Name ±Level` under a Motivations heading, either sign.
+  assert.equal(offer('Be Left Alone +Sig', 'Motivations'), 'mot');
+  assert.equal(offer('Sparkers Are Trouble -Min', 'Motivation'), 'mot');
+  assert.equal(offer('Money +Maj', 'Resources'), 'res');
+  assert.equal(offer('Be Left Alone', 'Motivations'), null);
+});
+
+test('attributes', () => {
+  // R267: `Name N` pairs, read from an `<att>` mark; a plain line of two or more is offered the pen.
+  assert.deepEqual(attributes('Cha 2   Int 2   Wis 4'), { Cha: 2, Int: 2, Wis: 4 });
+  assert.deepEqual(attributes('Con −1  Wis 10'), { Con: -1, Wis: 10 });
+  assert.equal(offer('Cha 3   Int 1   Wis 3'), 'att');
+  assert.equal(offer('Saloon Proprietor, Rank 3'), null);
+  assert.equal(offer('Sparked: 46  Grains: 14'), null);
+  assert.equal(offer('Wis 4'), null, 'one pair is not an attribute line');
 });

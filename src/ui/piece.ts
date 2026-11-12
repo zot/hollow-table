@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R203, R209, R213, R214, R245, R248, R249, R250
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -11,6 +11,7 @@ import {
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { influence } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
+import { columnRoom } from '../rules/influence.ts';
 import { parse, read, render, serialize } from '../text/marks.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 import { tray } from './pens.ts';
@@ -30,7 +31,7 @@ export type PieceWith = {
   /** Starts carrying this piece (Drag). */
   drag: (rid: string, down: PointerLike, move: PointerLike) => void;
   /** Starts carrying a tap glyph, `<character oid>:<source>` (Drag). */
-  dragGlyph: (source: string, down: PointerLike, move: PointerLike) => void;
+  dragGlyph: (source: string, down: PointerLike, move: PointerLike) => boolean;
 };
 
 /** The class a kind is drawn with, where it isn't the kind's own name. */
@@ -67,6 +68,25 @@ function writable(doc: Document, cls: string, source: string, save: (s: string) 
     save(s);
   });
   return t;
+}
+
+// R255: ruled lines one screen pixel wide at any zoom, smooth on tilted paper: SVG lines with a
+// non-scaling stroke behind the writing (CSS has no such line), kept under it as it scrolls. Enough
+// for the tallest notes, with one to spare for the scroll.
+const RULE_PX = 26, RULES = 12;
+function ruled(doc: Document, text: HTMLElement): HTMLElement {
+  const NS = 'http://www.w3.org/2000/svg', svg = doc.createElementNS(NS, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  for (let k = 0; k < RULES; k++) {
+    const line = doc.createElementNS(NS, 'line'), y = String(RULE_PX * (k + 1) - 0.5);
+    for (const [a, v] of [['x1', '0'], ['x2', '100%'], ['y1', y], ['y2', y]]) line.setAttribute(a!, v!);
+    svg.append(line);
+  }
+  // The writing scrolls to keep the caret in view; the lines follow it, a line's spacing at most.
+  text.addEventListener('scroll', () => { svg.style.transform = `translateY(${-(text.scrollTop % RULE_PX)}px)`; });
+  const wrap = el(doc, 'div', 'ruled');
+  wrap.append(svg, text);
+  return wrap;
 }
 
 function rewrite(t: HTMLElement, source: string): void {
@@ -121,7 +141,7 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       const front = el(doc, 'div', 'face front'), back = el(doc, 'div', 'face back');
       front.append(writable(doc, 'text', r.front, s => change<Character>(w, rid, c => ({ ...c, front: s }))));
       back.append(el(doc, 'div', 'damage'), el(doc, 'div', 'notes-hd', 'Notes'),
-        writable(doc, 'notes', r.back.notes, s => change<Character>(w, rid, c => ({ ...c, back: { ...c.back, notes: s } }))));
+        ruled(doc, writable(doc, 'notes', r.back.notes, s => change<Character>(w, rid, c => ({ ...c, back: { ...c.back, notes: s } })))));
       flipper.append(front, back);
       // R22: it flips at the corner.
       const flip = el(doc, 'button', 'flip');
@@ -148,12 +168,12 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
 function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
   switch (r.kind) {
     case 'character': {
-      e.classList.toggle('flipped', r.flipped);
+      if (e.classList.contains('flipped') !== r.flipped) turn(e, r.flipped);
       e.classList.toggle('secret', !canSee(w.viewer, r));
       const front = e.querySelector<HTMLElement>('.front > .text')!;
       rewrite(front, r.front);
       frontGlyphs(front, r, w);
-      rewrite(e.querySelector('.back > .notes')!, r.back.notes);
+      rewrite(e.querySelector('.back .notes')!, r.back.notes);
       damage(e.querySelector('.damage')!, r, w);
       dry(e, r);
       break;
@@ -166,6 +186,21 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
     case 'tornroll': tornroll(e, r); break;
     case 'reference': break;
   }
+}
+
+// R22, R252: a card turns over flat: squeezed to its edge on one face, opened on the other. A card
+// not yet on the page, or under reduced motion, just shows the other face.
+const TURN_MS = 125;
+function turn(e: HTMLElement, flipped: boolean): void {
+  const flipper = e.querySelector<HTMLElement>('.flipper')!;
+  const reduce = e.ownerDocument.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  if (!e.isConnected || reduce || !flipper.animate) { e.classList.toggle('flipped', flipped); return; }
+  flipper.getAnimations().forEach(a => a.cancel());
+  const half = (from: string, to: string) => flipper.animate([{ transform: from }, { transform: to }], { duration: TURN_MS, easing: 'ease-in-out' });
+  half('scaleX(1)', 'scaleX(0)').onfinish = () => {
+    e.classList.toggle('flipped', flipped);
+    half('scaleX(0)', 'scaleX(1)');
+  };
 }
 
 // R26, R195: an image by its hash; striped and marked missing, with why, until it arrives.
@@ -202,9 +237,16 @@ function tornroll(e: HTMLElement, r: TornRoll): void {
   e.replaceChildren(...r.receipts.map(x => receiptEl(e.ownerDocument, x)));
 }
 
-// ---- the back: R23, R203, R209, R213, R214 ----
+// ---- the back: R23, R209, R213, R253, R264, R265 ----
 
 const filled = (s: DamageSlot) => !!s.name || s.boxes.some(b => b);
+
+// R253: the column brought to the front leads, the others following in turn.
+/** The Damage columns in drawing order, rotated so `front` (or, with none, the first) leads. */
+export function frontOrder(front: Damage | null): Damage[] {
+  const k = front ? DAMAGE.indexOf(front) : 0;
+  return [...DAMAGE.slice(k), ...DAMAGE.slice(0, k)];
+}
 
 function damage(box: HTMLElement, c: Character, w: PieceWith): void {
   const doc = box.ownerDocument, opened = w.opened();
@@ -217,16 +259,14 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       const col = el(doc, 'div', `column col-${d}`);
       col.dataset.damage = d;
       const hd = el(doc, 'div', 'hd');
-      const absorb = el(doc, 'span', 'absorb');
-      absorb.contentEditable = 'true';
-      absorb.addEventListener('input', () => {
-        const n = Number(absorb.textContent?.replace(/\D/g, '') || 0);
-        put(ch => ({ ...ch, back: { ...ch.back, absorb: { ...ch.back.absorb, [d]: Math.min(100, n) } } }));
-      });
-      hd.append(`${COLUMN[d].name} `, absorb);
+      // R264: the absorb is worked out from Wis or Con, never typed.
+      hd.append(`${COLUMN[d].name} `, el(doc, 'span', 'absorb'));
       col.append(hd);
-      // R203: an empty column opens when reached for.
-      gesture(hd, { click: () => { const o = new Set(w.opened()); o.add(`${c.oid}:${d}`); w.setOpened(o); } });
+      // R253: clicking a column's name brings it to the front, the only one opened on this card.
+      gesture(hd, { click: () => {
+        const mine = `${c.oid}:`;
+        w.setOpened(new Set([...w.opened()].filter(k => !k.startsWith(mine)).concat(mine + d)));
+      } });
       for (const row of ROWS) {
         const line = el(doc, 'div', 'slotline');
         line.dataset.row = row;
@@ -240,13 +280,14 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       box.append(col);
     }
   }
+  const order = frontOrder(DAMAGE.find(d => opened.has(`${c.oid}:${d}`)) ?? null);
   for (const col of box.children as unknown as HTMLElement[]) {
-    const d = col.dataset.damage as Damage, slots = c.back.damage[d];
-    const empty = !ROWS.some(r => filled(slots[r])) && !c.back.absorb[d];
+    const d = col.dataset.damage as Damage, slots = c.back.damage[d], room = columnRoom(c, d), absorb = room?.absorb ?? 0;
+    const empty = !ROWS.some(r => filled(slots[r])) && !absorb;
     col.classList.toggle('empty', empty);
     col.classList.toggle('open', opened.has(`${c.oid}:${d}`));
-    const absorb = col.querySelector<HTMLElement>('.absorb')!;
-    if (doc.activeElement !== absorb) absorb.textContent = c.back.absorb[d] ? `(absorb ${c.back.absorb[d]})` : '';
+    col.style.order = String(order.indexOf(d));
+    col.querySelector('.absorb')!.textContent = absorb ? `(absorb ${absorb})` : '';
     for (const line of col.querySelectorAll<HTMLElement>('.slotline')) {
       const row = line.dataset.row as RowName, s = slots[row];
       const name = line.querySelector<HTMLElement>('.name')!;
@@ -255,20 +296,24 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       line.querySelector('.spent')!.textContent = spent ? `−${spent}` : '';
       slotGlyphs(line, s, `${c.oid}:${d}/${row}`, w);
       // R213: the boxes in front of the Level word; R24, R62: they toggle, once the slot has a name.
+      // R265: as many as Wis (or Con) gives, and any checked beyond that; unmarked, what the card has.
       const boxes = line.querySelector<HTMLElement>('.boxes')!;
-      if (boxes.children.length !== s.boxes.length) {
-        boxes.replaceChildren(...s.boxes.map((_, k) => {
+      const count = room ? Math.max(room.boxes[row], s.boxes.lastIndexOf(true) + 1) : s.boxes.length;
+      if (boxes.children.length !== count) {
+        boxes.replaceChildren(...Array.from({ length: count }, (_, k) => {
           const b = el(doc, 'button', 'box');
           b.setAttribute('aria-label', `Slot ${k + 2}`);
           gesture(b, { click: () => put(ch => {
             const cur = ch.back.damage[d][row];
             if (!cur.name) { b.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }], 200); return ch; }
-            return slotAt(ch, d, row, { boxes: cur.boxes.map((on, i) => i === k ? !on : on) });
+            const next = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_, i) => !!cur.boxes[i]);
+            next[k] = !next[k];
+            return slotAt(ch, d, row, { boxes: next });
           }) });
           return b;
         }));
       }
-      s.boxes.forEach((on, k) => boxes.children[k]!.classList.toggle('on', on));
+      [...boxes.children].forEach((b, k) => b.classList.toggle('on', !!s.boxes[k]));
     }
   }
 }
@@ -285,7 +330,8 @@ function glyph(doc: Document, source: string, w: PieceWith): HTMLElement {
   g.draggable = false;
   g.addEventListener('pointerdown', ev => ev.preventDefault());
   g.addEventListener('dragstart', ev => ev.preventDefault());
-  gesture(g, { drag: (d, m) => w.dragGlyph(source, d, m) });
+  // R259: a tap the page refuses (someone else's Resource) shakes the glyph and carries nothing.
+  gesture(g, { drag: (d, m) => { if (!w.dragGlyph(source, d, m)) g.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); } });
   return g;
 }
 
@@ -297,12 +343,12 @@ function dry(e: HTMLElement, c: Character): void {
   }
 }
 
-/** Glyphs before the front's `<res>` marks; left alone while the front is being written in. */
+/** Glyphs before the front's `<res>` and `<mot>` marks (R258); left alone while the front is being written in. */
 function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
   const doc = text.ownerDocument;
   if (doc.activeElement && text.contains(doc.activeElement)) return;
   for (const g of text.querySelectorAll('.glyph')) g.remove();
-  for (const span of text.querySelectorAll<HTMLElement>('span.res')) {
+  for (const span of text.querySelectorAll<HTMLElement>('span.res, span.mot')) {
     const name = influence(span.textContent ?? '')?.name;
     if (name) span.before(glyph(doc, `${c.oid}:${name}`, w));
   }

@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -28,7 +28,8 @@ DOM a view of the records.
   class, never by changing z.
 - toWorld(clientX, clientY): screen to table coordinates, for drops.
 - element(rid): the element drawing a piece, for Drag; pool(rid), loose(rid) and pools() for a
-  character's mat and for chips or taps lying loose on the table.
+  character's mat and for chips or taps lying loose on the table. A loose card's Level is a button
+  that answers clicks as in a drawer (R269: actions.cardClick; shift-click at Min deletes it).
 - gathered: a gathered card is drawn GATHER_GAP (14 px) under its pool's drawer, following the
   drawer as it grows (a ResizeObserver); the same on every page, since it's derived, not stored.
 - A chip or card changing redraws the pools (it may have moved between two).

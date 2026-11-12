@@ -1,8 +1,10 @@
-// CRC: crc-Influence.md | R36
+// CRC: crc-Influence.md | R36, R264, R265
 // Levels and points, and what a click or shift-click does to one chip or card. Pure: each returns
 // the new record, or null when a click removes it.
 
-import type { Chip, Influence, RowName } from '../model/records.ts';
+import type { Character, Chip, Damage, Influence, RowName } from '../model/records.ts';
+import { marks, parse } from '../text/marks.ts';
+import { attributes } from './readmarks.ts';
 
 /** Influence Levels and their points (Hollow Folks V), with no ceiling beyond Exquisite. */
 export const LEVELS = [
@@ -32,7 +34,7 @@ export function rider(chip: Chip, shift: boolean): Chip {
   return shift ? { ...chip, rider: false } : chip;
 }
 
-// R51: ±2 points; a card never drops below Min.
+// R269: ±2 points; lowering stops at Min (below Min, cardClick deletes the card, R268).
 export function raiseCard(card: Influence): Influence {
   return { ...card, points: card.points + STEP };
 }
@@ -50,4 +52,29 @@ export function levelName(points: number): string {
 export const ROW_LEVELS: Record<RowName, number> = { mild: 1, min: 1, sig: 2, maj: 3 };
 export function rowLevels(row: RowName): number {
   return ROW_LEVELS[row];
+}
+
+// R264, R265: Hollow Folks, *Absorbing Damage*: extra Slot boxes and Result absorption by Con or
+// Wis, each row from its Level up. The book's negative rows ("worth only 1") are open.
+export type Room = { boxes: Record<RowName, number>; absorb: number };
+const ROOM: [number, number, number, number, number][] = [
+  // level, mild, min, sig, absorb
+  [15, 2, 2, 2, 3], [11, 2, 2, 1, 2], [10, 1, 2, 1, 2], [9, 1, 2, 1, 1],
+  [7, 0, 2, 1, 1], [5, 0, 2, 0, 1], [3, 0, 2, 0, 0], [1, 0, 1, 0, 0],
+];
+
+/** The extra boxes per row and the absorb a Con or Wis of `level` gives. */
+export function room(level: number): Room {
+  const [, mild, min, sig, absorb] = ROOM.find(r => level >= r[0]) ?? [0, 0, 0, 0, 0];
+  return { boxes: { mild, min, sig, maj: 0 }, absorb };
+}
+
+/** A Damage column's room from the card's `<att>` marks (Wis, or Con for Injuries); null if unmarked. */
+export function columnRoom(char: Character, d: Damage): Room | null {
+  const name = d === 'injury' ? 'Con' : 'Wis';
+  for (const m of marks(parse(char.front), 'att')) {
+    const level = attributes(m.text)[name];
+    if (level !== undefined) return room(level);
+  }
+  return null;
 }

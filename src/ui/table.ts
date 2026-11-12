@@ -1,10 +1,11 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R269
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
 import type { Game } from '../model/game.ts';
 import { isPiece, ridOf, type Character, type PieceRecord, type Rid } from '../model/records.ts';
 import { levelName } from '../rules/influence.ts';
+import { cardClick } from './actions.ts';
 import type { Item } from '../rules/pool.ts';
 import { gesture, paced } from './gesture.ts';
 import { draw, type PieceWith } from './piece.ts';
@@ -189,7 +190,16 @@ export class TableView {
       this.#loose.set(rid, e);
     }
     e.className = `obj loose-item ${i.kind === 'chip' ? `chip ${i.sign > 0 ? 'pos' : 'neg'}` : `icard ${i.sign > 0 ? 'pos' : 'neg'} tapped`}`;
-    e.textContent = i.kind === 'chip' ? `${i.sign < 0 ? '−' : ''}${i.points}` : `${i.name} ${i.sign > 0 ? '+' : '−'}${levelName(i.points)}`;
+    if (i.kind === 'chip') e.textContent = `${i.sign < 0 ? '−' : ''}${i.points}`;
+    else {
+      // R269: a loose card's Level answers clicks as in a drawer.
+      const level = doc.createElement('button');
+      level.className = 'level';
+      level.textContent = `${i.sign > 0 ? '+' : '−'}${levelName(i.points)}`;
+      const click = (shift: boolean) => { const ch = cardClick(this.#w.game, rid, shift, this.#w.mint()); if (ch) this.#w.game.change(ch); };
+      gesture(level, { click: () => click(false), shift: () => click(true) });
+      e.replaceChildren(`${i.name} `, level);
+    }
     e.style.left = `${where.x}px`;
     e.style.top = `${where.y}px`;
     e.style.zIndex = String(where.z);

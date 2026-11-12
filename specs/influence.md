@@ -31,8 +31,8 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   centred on the pointer, with its value in the middle and its name on hover, and a card again
   when it leaves them; dropped in a pool slot it stays a chip (Bill, 11-12).
 - **Never lost:** dropped anywhere that isn't a pool slot, it goes home to its drawer. Dropped on
-  another pool's drawer, it moves to that character. The drawer's **kill box** is the only way to
-  delete one.
+  another pool's drawer, it moves to that character. A card is deleted only on purpose: in the
+  drawer's **kill box**, or by shift-clicking it at Min (Bill, 11-12).
 - **A card in a drawer is a small white card** (Bill, 11-12) with a band down its left edge in its
   sign's colour, its name and Level in handwriting, and a resource-made card's glyph before its
   name. Cards wrap in the tray, so long names stack one to a row.
@@ -43,7 +43,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - **Carrying a card over a drawer opens a gap where it would go** (Bill, 11-12): the other cards
   slide aside and the drawer grows to fit, the gap follows the card as it moves, and letting go
   puts the card there. A card that comes home any other way goes last.
-- A card in a drawer is raised by clicking its Level; cards stop at Min.
+- **A card's Level answers clicks wherever the card is** (Bill, 11-12): in its drawer, as a chip in a
+  pool, or loose on the table. Click raises it; shift-click lowers it, and **shift-click at Min makes
+  it disappear**, as the kill box would (an unused tap gives its Levels back).
 - The used pile opens as a paper list under its tile; a used card in a pool is greyed, with a
   small "used" tag under it.
 - A drawer its viewer may not read shows its cards face-down, as striped red backs that keep their
@@ -57,7 +59,7 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 ## Tapping Resources
 
-- A small card **glyph** sits before each `<res>` Resource, each named Damage slot, and each checked
+- A small card **glyph** sits before each `<res>` Resource, each `<mot>` Motivation, each named Damage slot, and each checked
   Slot box (see *Character card* and *Card text* in `table.md`). The text stays handwriting; the
   table reads only the `Name +Level` inside a `<res>` mark. A Damage slot's Level is its row's.
 - **The glyph is a tiny card** (Bill, 11-12): white, an ink border and a hard offset shadow, yellow
@@ -71,7 +73,7 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   Resource's text drops a Level in place (*Money +Maj* becomes *+Sig*).
 - On a resource-made card, click moves a Level from the **current source** into the card;
   shift-click moves it back, only down to what that source put in (a per-card **ledger** per
-  Resource).
+  Resource); at Min, shift-click makes it disappear and every source gets its Levels back.
 - Dropping another Resource's glyph onto a resource-made card (on the table, in a pool, or in a
   drawer) moves a Level from it and makes it the current source. Merging across characters is
   allowed. **A Resource can't feed a plain Influence card.**
@@ -81,6 +83,20 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   Resource can't feed a Damage card, nor a Damage Resource a card made from a `<res>`.
 - **Anyone may tap any character's Damage Resources** into Influences for the current action; the
   GM decides what applies. Biases, Afflictions and Injuries may all apply to one action (Bill, 11-12).
+- **Only your own Resources** (Bill, 11-12: "you definitely cannot use other people's Resources"):
+  the table refuses a drag from a `<res>` glyph on a character its viewer doesn't own. The GM may,
+  running the NPCs and working players' rolls. Resources pass between characters only by a
+  successful Request (not yet).
+- **A Motivation is a special Resource held only by NPCs** (Bunkum, *Mental Resources*), written as
+  a `<mot>` mark: `Name +Level` or `Name −Level`. **Anyone may tap anyone's Motivations** (Bill,
+  11-12), as the story allows. Tapping one makes a **Main Pool Influence** of its sign: the card
+  goes only into a Main slot (dropped in any other slot, it goes home), and only Motivations feed
+  it. Dropped into a Main slot, it joins that character's drawer, so a card made from an NPC's
+  Motivation becomes the tapper's.
+- **What a Motivation spends is temporary.** Its written Level stays, and the Levels left follow it
+  in parentheses, as Bunkum writes an adjusted value: *Keep the Peace +Sig (+Min)*, or *(0)* when
+  spent out. Motivations **recharge at the end of every scene** (Bill, 11-12), and the parentheses
+  go.
 - Killing an unused tap refunds it. A tap may wait loose on the table, the one exception to "never
   lost".
 - **Biases, Afflictions and Injuries** recharge each Conflict. Mild and Min are 1 Level, Sig 2, Maj

@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R49, R50, R51, R55, R56, R57, R59, R60, R64
+// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R260, R268, R269
 // What a click or a drop on a pool, a drawer or a glyph does to the game, as one change. Pure: each
 // takes the game and gives a writer for Game.change (or null when nothing happens), so the views stay
 // thin and these are tested without a browser.
@@ -62,7 +62,9 @@ function withItem(game: Game, owner: Oid, slot: SlotName, changed: Item | null, 
 export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, mint: () => Oid): Change | null {
   const i = item(game, rid);
   if (!i || !accepts(slot, i)) return null;
-  const moved: Item = { ...i, where: { slot: owner, name: slot }, n: slotItems(game, owner, slot).length };
+  // R260: a Motivation's card dropped in a Main slot joins that character's drawer.
+  const home = i.kind === 'influence' && i.mot ? { home: owner } : {};
+  const moved: Item = { ...i, ...home, where: { slot: owner, name: slot }, n: slotItems(game, owner, slot).length };
   return w => {
     // Leaving another slot can't break a Roll Up already made, so only the new one settles.
     settle(w, withItem(game, owner, slot, moved), mint);
@@ -95,7 +97,7 @@ export function toTable(game: Game, rid: Rid, at: Place): Change | null {
   return w => w.put(rid, { ...i, where: { table: at } });
 }
 
-// R49, R59: the kill box deletes a card; an unused tap gives its Levels back.
+// R268, R59: the kill box deletes a card; an unused tap gives its Levels back.
 export function killCard(game: Game, rid: Rid): Change | null {
   const i = item(game, rid);
   if (!i || i.kind !== 'influence') return null;
@@ -138,10 +140,12 @@ export function addLoose(game: Game, owner: Oid, slot: SlotName, shift: boolean,
   return w => w.put(ridOf(chip.oid), chip);
 }
 
-// R51, R56: a card's Level: click raises, shift lowers (to Min); a resource-made card feeds and unfeeds.
+// R269, R56: a card's Level: click raises, shift lowers; a resource-made card feeds and unfeeds.
+// R268: shift-click at Min deletes it, as the kill box does.
 export function cardClick(game: Game, rid: Rid, shift: boolean, mint: () => Oid): Change | null {
   const c = item(game, rid);
   if (c?.kind !== 'influence') return null;
+  if (shift && c.points <= MIN) return killCard(game, rid);
   if (c.tap) {
     const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, undefined, mint());
     return t ? apply(t, c) : null;

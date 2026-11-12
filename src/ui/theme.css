@@ -31,6 +31,8 @@
   /* pens (marks) */
   --pen-act: #ffd27a;
   --pen-res: #bde5a8;
+  --pen-mot: #9fdcd0;
+  --pen-att: #e7ddb0;
   --pen-inf: #a9d4f0;
   --pen-bias: #f4afc0;
   --pen-aff: #cdb6ee;
@@ -75,16 +77,18 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .obj.lifted { transform: rotate(0deg) scale(1.03); z-index: 1000000 !important; box-shadow: 0 18px 30px rgba(0,0,0,.45); }
 .obj.glide { transition: box-shadow .15s, transform .15s, left .12s linear, top .12s linear; }
 
-/* ---- R1, R22: the character card, a two-sided index card ---- */
-.card { width: 430px; height: 316px; perspective: 1400px; }
-.card .flipper { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .5s; }
-.card.flipped .flipper { transform: rotateY(180deg); }
+/* ---- R1, R22: the character card, a two-sided index card. R252: flat, one face at a time (Chrome
+   draws text held in 3D soft); PieceView turns it with a 2D squeeze. ---- */
+.card { width: 430px; height: 316px; }
+.card .flipper { position: absolute; inset: 0; }
+.card.flipped .face.front, .card:not(.flipped) .face.back { display: none; }
 .face {
-  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden;
+  position: absolute; inset: 0; overflow: hidden;
   background: var(--card); border: 1.5px solid var(--card-edge); border-radius: 22px;
   box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 14px 18px; font: 16px/1.15 var(--hand);
 }
-.face.back { transform: rotateY(180deg); display: flex; flex-direction: column; }
+.face.back { flex-direction: column; }
+.card.flipped .face.back { display: flex; }
 .face .text { outline: none; height: 100%; overflow: hidden; white-space: pre-wrap; }
 /* The front reads in two columns, as the printed card does. */
 .face.front .text { column-count: 2; column-gap: 12px; column-fill: auto; }
@@ -100,9 +104,13 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 /* The back: three Damage columns, then the ruled notes (ui-card.md). */
 .damage { display: flex; gap: 14px; }
 .column { flex: 1; min-width: 0; }
-.column.empty:not(.open) { flex: 0 0 auto; cursor: pointer; }
+/* R256: a collapsed name takes the same room whichever it is ("Afflictions" is 62 px), so an open
+   column's blanks are the same length beside any of them. */
+.column.empty:not(.open) { flex: 0 0 64px; cursor: pointer; }
 .column.empty:not(.open) .slotline { display: none; }
-.column .hd { font: 700 18px/1.2 var(--hand); }
+.column .hd { font: 700 18px/1.2 var(--hand); cursor: pointer; white-space: nowrap; }
+/* R254: an open column's name sits over its blanks, past the boxes and the Level word. */
+.column:is(.open, :not(.empty)) .hd { padding-left: 72px; }
 .column .hd .absorb { font-weight: 400; font-size: 15px; }
 .slotline { display: flex; align-items: flex-end; gap: 4px; min-height: 22px; }
 .slotline .boxes { flex: 0 0 34px; }
@@ -116,19 +124,28 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .box { width: 13px; height: 13px; border: 2px solid var(--ink); background: #fff; padding: 0; cursor: pointer; position: relative; }
 .box.on::after { content: "✕"; position: absolute; inset: -5px 0 0 0; font: 700 14px/1 var(--hand); text-align: center; }
 .notes-hd { font: 700 18px/1.2 var(--hand); margin-top: 8px; }
-.notes { flex: 1; outline: none; line-height: 26px; font-size: 18px; white-space: pre-wrap; overflow: hidden;
-  background-image: repeating-linear-gradient(transparent 0 25px, var(--rule) 25px 26px); }
+.notes { position: relative; height: 100%; outline: none; line-height: 26px; font-size: 18px; white-space: pre-wrap; overflow: hidden; }
+/* R255: the ruling is SVG lines with a non-scaling stroke, one screen pixel at any zoom and smooth
+   on tilted paper; a gradient stripe fades when zoomed out and breaks into steps when tilted. */
+.ruled { flex: 1; position: relative; overflow: hidden; }
+.ruled > svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ruled line { stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
 [contenteditable]:focus { background-color: rgba(61,133,198,.06); border-radius: 4px; }
 
 /* ---- marks: each pen's highlight and its non-colour cue (manifest-ui.md, R11), shown only while
    the paper is being written on, pens out (R245); at rest the card reads as printed ---- */
-.obj:has([contenteditable]:focus, .pens:focus-within) :is(.act, .res, .inf, .bias, .aff, .inj, .def) { border-radius: 3px; }
+.obj:has([contenteditable]:focus, .pens:focus-within) :is(.act, .res, .mot, .att, .inf, .bias, .aff, .inj, .def) { border-radius: 3px; }
 .obj:has([contenteditable]:focus, .pens:focus-within) .act { background: var(--pen-act); }
 .obj:has([contenteditable]:focus, .pens:focus-within) .res { background: var(--pen-res); }
+/* R267: attributes, a wavy underline their non-colour cue. */
+.obj:has([contenteditable]:focus, .pens:focus-within) .att { background: var(--pen-att); text-decoration: underline wavy; }
+/* R258: a Motivation, its glyph and a dashed underline its non-colour cue. */
+.obj:has([contenteditable]:focus, .pens:focus-within) .mot { background: var(--pen-mot); text-decoration: underline dashed; }
 .obj:has([contenteditable]:focus, .pens:focus-within) .inf { background: var(--pen-inf); text-decoration: underline dotted; }
-.obj:has([contenteditable]:focus, .pens:focus-within) .bias { background: var(--pen-bias); }
-.obj:has([contenteditable]:focus, .pens:focus-within) .aff { background: var(--pen-aff); }
-.obj:has([contenteditable]:focus, .pens:focus-within) .inj { background: var(--pen-inj); }
+/* R263: a Damage entry shows its colour only once it has a name; an empty slot stays a blank line. */
+.obj:has([contenteditable]:focus, .pens:focus-within) .bias:not(:empty) { background: var(--pen-bias); }
+.obj:has([contenteditable]:focus, .pens:focus-within) .aff:not(:empty) { background: var(--pen-aff); }
+.obj:has([contenteditable]:focus, .pens:focus-within) .inj:not(:empty) { background: var(--pen-inj); }
 .obj:has([contenteditable]:focus, .pens:focus-within) .def { background: var(--pen-def); text-decoration: underline double; }
 /* R246: the print's weights, from the marks: a label up to its colon, headings, the card's name. */
 :is(.act, .def) > b { font-weight: 700; }
@@ -137,7 +154,7 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 
 /* ---- R206, R207: the pens, chisel-tip highlighters beside the paper you write on (manifest-ui.md) ---- */
 .pens { position: absolute; left: 100%; top: 10px; margin-left: 4px; display: none; flex-direction: column; gap: 5px;
-  z-index: 3; filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.5)); user-select: none; -webkit-user-select: none; }
+  z-index: 3; user-select: none; -webkit-user-select: none; }
 .obj:has(.writes:focus, .pens:focus-within) > .pens { display: flex; }
 /* R219: paper being written on comes to the top, so its pens aren't under the next piece. */
 .obj:has(.writes:focus, .pens:focus-within) { z-index: 100000 !important; }
@@ -151,12 +168,16 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
     linear-gradient(90deg, var(--cap) 0 12px, var(--barrel) 12px 80%, var(--cap) 80%);
   clip-path: polygon(0 38%, 12px 0, 100% 0, 100% 100%, 12px 100%, 3px 82%);
   transform: translate(var(--lift), var(--dy, 0px)); transition: transform .18s ease-out;
+  /* R252: the shadow on each pen; a filter over the whole tray blurs the paper's text. */
+  filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.5));
 }
 .pen:hover { --lift: -4px; }
 .pen:focus-visible { --lift: -4px; outline: none; text-decoration: underline 2px; text-underline-offset: 2px; }
 /* The pen the caret's line fits slides out to sit beside it. */
 .pen.offered { --lift: -18px; z-index: 1; }
 .pen-res { --barrel: var(--pen-res); }
+.pen-mot { --barrel: var(--pen-mot); }
+.pen-att { --barrel: var(--pen-att); }
 .pen-inf { --barrel: var(--pen-inf); }
 .pen-def { --barrel: var(--pen-def); }
 /* A heading is drawn bold, not highlighted: its pen is a black felt marker. */
@@ -177,7 +198,6 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
   background: linear-gradient(315deg, transparent 15.56px, var(--sticky) 15.56px);
   filter: drop-shadow(2px 4px 3.5px rgba(0,0,0,.35));
 }
-.sticky > .pens { filter: none; }
 .sticky::after { content: ""; position: absolute; right: 0; bottom: 0; width: 22px; height: 22px;
   background: linear-gradient(315deg, transparent 50%, var(--sticky-fold) 50%); }
 .sticky .text { outline: none; min-height: 100px; white-space: pre-wrap; }

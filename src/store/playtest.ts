@@ -28,7 +28,7 @@ function character(oid: Oid, owner: string, name: string, x: number, front: stri
 }
 
 export const SAM_FRONT = `<head>Samuel Diamond, Rank 3</head>
-Cha 2   Int 2   Wis 4
+<att>Cha 2   Int 2   Wis 4</att>
 Private Investigator 2 (5XP)
 Investigation (x2)
 Advocacy (x2)
@@ -52,7 +52,7 @@ Wicked deeds and hanging
 <res>Ammo +Sig</res>`;
 
 export const BEAUFORD_FRONT = `<head>Beauford T. Winkums, Rnk 3</head>
-Cha 2   Int 3   Wis 1
+<att>Cha 2   Int 3   Wis 1</att>
 Snakeoil Salesman 3 (5XP)
 Rhetoric (Salesman) (x2)
 Finesse (x2, Rhetoric)
@@ -78,14 +78,14 @@ Dice token: Farkas, uses 20`;
 
 export const DEVREUX_FRONT = `<head>Mistress Devreux</head>
 Saloon Proprietor, Rank 3
-Cha 3   Int 1   Wis 3
+<att>Cha 3   Int 1   Wis 3</att>
 Skills 3: Savvy, Profession (Saloon Keeper), Streetwise
 Skills 2: Musician, Composure, Gambling, Etiquette, Bargaining, Tact
 Skills 1: Suasion (Charm)
 <head>Motivations</head>
-<inf>Keep the Peace +Sig</inf>
-<inf>Self-Preservation +Sig</inf>
-<inf>Old Sympathy for Sparkers +Min</inf>
+<mot>Keep the Peace +Sig (0)</mot>
+<mot>Self-Preservation +Sig (0)</mot>
+<mot>Old Sympathy for Sparkers +Min (0)</mot>
 <act>Attack: 4 (Suasion, Charm), +1</act>
 <def>Defend: 6 / 5</def>
 Slots: Mild, Min ×3, Sig, Maj
@@ -111,8 +111,12 @@ A1: *super* important to Trudy.
 
 Next session: first day in town, late at night at the hotel`;
 
-const infl = (oid: Oid, name: string, points: number, n: number): Influence =>
-  ({ kind: 'influence', oid, home: DEVREUX, where: 'drawer', n, name, sign: 1, points, used: false, crit: false });
+// R260, R261: Devreux's Influences, each tapped in full from her Motivation of that name.
+const infl = (oid: Oid, name: string, points: number, n: number): Influence => {
+  const src = `${DEVREUX}:${name}`;
+  return { kind: 'influence', oid, home: DEVREUX, where: 'drawer', n, name, sign: 1, points, used: false, crit: false,
+    tap: { ledger: { [src]: points / 2 }, current: src }, mot: true };
+};
 
 export function scene(sam = 'Player 1', beauford = 'Player 2'): PieceRecord[] {
   const chip: Chip = { kind: 'chip', oid: '00000007', where: { slot: BEAUFORD, name: 'stagger' }, n: 0, sign: -1, points: 2, rider: false };

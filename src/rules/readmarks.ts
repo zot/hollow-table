@@ -1,4 +1,4 @@
-// CRC: crc-MarkReader.md | R205
+// CRC: crc-MarkReader.md | R205, R258, R261, R267
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
@@ -81,8 +81,10 @@ export function defend(text: string): Defend | null {
 /** The mark a plain line fits, given the heading it sits under, or null. */
 export function offer(line: string, heading: string | null = null): MarkName | null {
   if (action(line)) return 'act';
+  if (ATT_LINE.test(line)) return 'att';
   const r = influence(line);
   if (r?.level && r.sign === 1 && heading && /^\s*resources\b/i.test(heading)) return 'res';
+  if (r?.level && heading && /^\s*motivations?\b/i.test(heading)) return 'mot';
   return null;
 }
 
@@ -114,4 +116,45 @@ export function spend(text: string, by: number): string | null {
   if (!r?.level || !m) return null;
   const left = levelsOf(r) - by;
   return left < 0 ? null : m[1] + levelWord(left) + m[3];
+}
+
+// R261: a Motivation's spending is temporary: its written Level stays, and the Levels left follow
+// it in parentheses, as Bunkum writes an adjusted value (`Keep the Peace +Sig (+Min)`, `(0)`).
+const ADJUSTED = new RegExp(`\\s*\\((?:[+${MINUS}]\\s*)?${LEVEL}\\)\\s*$`, 'i');
+
+/** A Motivation's text without its parentheses: as written, unspent. */
+export function unadjusted(text: string): string {
+  return text.replace(ADJUSTED, '');
+}
+
+/** The Levels a Motivation has left: its parentheses when it has them, else its written Level. */
+export function motiveLeft(text: string): number {
+  const a = ADJUSTED.exec(text);
+  if (!a) return levelsOf(influence(text) ?? { name: '', sign: null, level: null });
+  const w = a[1]!, word = LEVEL_WORDS.find(x => x.toLowerCase() === w.toLowerCase());
+  return levelsOf({ name: '', sign: null, level: word ?? w });
+}
+
+/**
+ * A Motivation's text with `by` more Levels spent (back when negative): its written Level kept and
+ * the Levels left in parentheses, which go when it is back to full. Null when it would drop below 0.
+ */
+export function adjust(text: string, by: number): string | null {
+  const base = unadjusted(text), r = influence(base);
+  if (!r?.level) return null;
+  const left = motiveLeft(text) - by;
+  if (left < 0) return null;
+  if (left >= levelsOf(r)) return base;
+  if (!left) return `${base} (0)`;
+  const sign = r.sign === -1 ? '-' : '+';
+  return `${base} (${sign}${levelWord(left)})`;
+}
+
+// R267: a character's attributes, `Name N` pairs (`Cha 2  Int 2  Wis 4`).
+const ATT = new RegExp(`\\b([A-Z][a-z]{2})\\s*([+${MINUS}]?\\d+)\\b`, 'g');
+const ATT_LINE = new RegExp(`^\\s*(?:[A-Z][a-z]{2}\\s*[+${MINUS}]?\\d+\\s*){2,}$`);
+
+/** The attributes an `<att>` mark's text names, by name. */
+export function attributes(text: string): Record<string, number> {
+  return Object.fromEntries([...text.matchAll(ATT)].map(m => [m[1]!, signed(m[2]!)]));
 }

@@ -110,3 +110,14 @@ marks each entry, the commas and spaces left plain
 **Fire alarm:** In entries, drop the sign check: `Money +Min, Debt -Sig` is split into two Resources, the debt among them
 **Inject:** src/ui/pens.ts:entries
 **Pulled:** 2026-11-12 — rang: `Money +Min, Debt -Sig` was split into two Resources, the debt among them
+
+## Test: several Motivations on one line
+**Purpose:** R258: the Motivation pen at a bare caret marks each comma-separated `Name ±Level`, either sign
+**Input:** `Be Left Alone +Sig, Dread of the New Moon -Min` with the Motivation pen
+**Expected:** `<mot>Be Left Alone +Sig</mot>, <mot>Dread of the New Moon -Min</mot>`
+**Refs:** crc-Pens.md
+**Code:** `src/ui/pens.test.ts`
+**Alarm:** 9
+**Fire alarm:** In entries, keep the Resource sign rule for Motivations: the negative entry stops the split
+**Inject:** src/ui/pens.ts:entries
+**Pulled:** 2026-11-12 — rang: the negative entry stopped the split; the whole line became one Motivation

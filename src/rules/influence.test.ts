@@ -1,8 +1,9 @@
 // CRC: crc-Influence.md | Test: test-Influence.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Chip, Influence, Sign } from '../model/records.ts';
-import { levelName, lowerCard, lowerChip, raiseChip, rider } from './influence.ts';
+import type { Character, Chip, Influence, Sign } from '../model/records.ts';
+import { columnRoom, levelName, lowerCard, lowerChip, raiseChip, rider, room } from './influence.ts';
+import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const where = { slot: '00000001', name: 'edge' } as const;
 const chip = (oid: string, sign: Sign, points: number, r = false): Chip => ({ kind: 'chip', oid, where, n: 0, sign, points, rider: r });
@@ -38,4 +39,23 @@ test('cards stop at Min', () => {
   const seen: string[] = [];
   for (let i = 0; i < 3; i++) { card = lowerCard(card); seen.push(levelName(card.points)); }
   assert.deepEqual(seen, ['Min', 'Min', 'Min']);
+});
+
+test('Wis and Con size the Damage columns', () => {
+  // R264, R265: Hollow Folks, *Absorbing Damage*, each row from its Level up.
+  const row = (n: number) => { const r = room(n); return [r.boxes.mild, r.boxes.min, r.boxes.sig, r.boxes.maj, r.absorb].join(' '); };
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 30].map(row), [
+    '0 0 0 0 0', '0 1 0 0 0', '0 1 0 0 0', '0 2 0 0 0', '0 2 0 0 0', '0 2 0 0 1', '0 2 0 0 1', '0 2 1 0 1',
+    '0 2 1 0 1', '1 2 1 0 1', '1 2 1 0 2', '2 2 1 0 2', '2 2 1 0 2', '2 2 2 0 3', '2 2 2 0 3']);
+  const chars = new Map(scene().filter((r): r is Character => r.kind === 'character').map(c => [c.oid, c]));
+  // The playtest's boxes are what its Wis gives: Sam 4, Beauford 1, Devreux 3.
+  for (const [oid, min] of [[SAM, 2], [BEAUFORD, 1], [DEVREUX, 2]] as const) {
+    const c = chars.get(oid)!;
+    assert.equal(columnRoom(c, 'bias')!.boxes.min, min, oid);
+    assert.equal(c.back.damage.bias.min.boxes.length, min, oid);
+    assert.equal(columnRoom(c, 'injury'), null, 'no Con on a Bunkum card');
+  }
+  const sam = chars.get(SAM)!, tough = { ...sam, front: sam.front.replace('<att>Cha 2   Int 2   Wis 4</att>', '<att>Con 7  Wis 10</att>') };
+  assert.deepEqual([columnRoom(tough, 'bias')!.absorb, columnRoom(tough, 'injury')!.boxes.sig], [2, 1]);
+  assert.equal(columnRoom({ ...sam, front: 'Cha 2   Int 2   Wis 4' }, 'bias'), null, 'unmarked: the card keeps its boxes');
 });

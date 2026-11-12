@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -16,7 +16,9 @@ Lifting, carrying and dropping, and deciding what a drop means.
   the bar; marks a would-be opponent while aiming.
 - drop(pointer): resolves the target, in this order, then one Game.change:
   - a tap glyph or resource-made card on a resource-made card: Tap.feed (merge);
-  - a chip or Influence card on a slot: into the slot (Pool.rollUp applied);
+  - a chip or Influence card on a slot: into the slot (Pool.rollUp applied); a card the slot
+    refuses (Pool.accepts: a Damage card outside its kind, a Motivation's outside Main) goes home
+    to its drawer instead (R211, R260);
   - an Influence card on a drawer: home there (another character's drawer moves it);
   - anything on the bar: put away (bury, vanish, or go home, by kind);
   - a sticky, text or image on a card: pinned, its offset from the card kept; dropped off one,

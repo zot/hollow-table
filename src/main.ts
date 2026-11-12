@@ -5,7 +5,7 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import type { Book } from './model/records.ts';
+import { ridOf, type Book, type Character } from './model/records.ts';
 import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
 import { Identity } from './net/identity.ts';
@@ -16,6 +16,7 @@ import { Rolls } from './net/rolls.ts';
 import { Sealer } from './net/seal.ts';
 import { Stamps } from './net/stamps.ts';
 import { Wire } from './net/wire.ts';
+import { mayTap } from './rules/tap.ts';
 import type { Viewer } from './rules/visibility.ts';
 import { BlobStore, type Size } from './store/blobs.ts';
 import { IdbDb } from './store/db.ts';
@@ -73,7 +74,13 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
     opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); redraw(); },
     drag: (rid, down, move) => drag?.start(rid, down, move),
-    dragGlyph: (src, down, move) => drag?.startGlyph(src, down, move),
+    // R259: your own Resources only; anyone's Motivations and Damage.
+    dragGlyph: (src, down, move) => {
+      const colon = src.indexOf(':'), c = game.get(ridOf(src.slice(0, colon))) as Character | undefined;
+      if (c?.kind !== 'character' || !mayTap(viewer, c, src.slice(colon + 1))) return false;
+      drag?.startGlyph(src, down, move);
+      return true;
+    },
     mint,
     poolOpen: () => ({ piles: new Set(seat.open.piles), slots: new Set(seat.open.slots), used: new Set(seat.open.used) }),
     // Seat-tier openings: looking never changes the game (R128).

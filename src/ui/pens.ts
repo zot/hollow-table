@@ -1,4 +1,4 @@
-// CRC: crc-Pens.md | R206, R207, R247
+// CRC: crc-Pens.md | R206, R207, R247, R258, R267
 // The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 // toolbar. What a pen does is decided on lines (apply, offered); the tray only finds the selection,
 // draws, and hands the result back to the writing area's own input.
@@ -9,7 +9,8 @@ import {
 } from '../text/marks.ts';
 
 export const PENS: readonly { mark: MarkName; word: string }[] = [
-  { mark: 'act', word: 'Action' }, { mark: 'res', word: 'Resource' }, { mark: 'inf', word: 'Influence' },
+  { mark: 'act', word: 'Action' }, { mark: 'res', word: 'Resource' }, { mark: 'mot', word: 'Motivation' },
+  { mark: 'att', word: 'Attributes' }, { mark: 'inf', word: 'Influence' },
   { mark: 'def', word: 'Defend' }, { mark: 'head', word: 'Heading' },
 ];
 
@@ -39,8 +40,8 @@ export function apply(lines: Line[], a: Pos, b: Pos, tag: MarkName): Line[] {
   const r = line[from.run];
   if (typeof r !== 'string') return lines;
   if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag);
-  if (tag === 'res') {
-    const each = entries(r);
+  if (tag === 'res' || tag === 'mot') {
+    const each = entries(r, tag);
     if (each) return replaceRun(lines, from.line, from.run, each);
   }
   // A bare caret marks its run, trimmed of the spaces around it.
@@ -48,11 +49,11 @@ export function apply(lines: Line[], a: Pos, b: Pos, tag: MarkName): Line[] {
   return mark(lines, { line: from.line, run: from.run, start, end }, tag);
 }
 
-// R247: several Resources on one line, separated by commas.
-/** A run of comma-separated `Name +Level` entries as runs, each entry marked; else null. */
-export function entries(run: string): Run[] | null {
+// R247, R258: several Resources (or Motivations) on one line, separated by commas.
+/** A run of comma-separated `Name +Level` entries (`Name ±Level` for Motivations), each marked; else null. */
+export function entries(run: string, tag: 'res' | 'mot' = 'res'): Run[] | null {
   const parts = run.split(',');
-  if (!parts.every(p => { const r = influence(p); return !!r?.level && r.sign === 1; })) return null;
+  if (!parts.every(p => { const r = influence(p); return !!r?.level && (tag === 'mot' || r.sign === 1); })) return null;
   const out: Run[] = [];
   const plainRun = (s: string) => {
     if (!s) return;
@@ -64,7 +65,7 @@ export function entries(run: string): Run[] | null {
     if (k > 0) plainRun(',');
     const t = p.trim(), at = p.indexOf(t);
     plainRun(p.slice(0, at));
-    out.push({ mark: 'res', text: t });
+    out.push({ mark: tag, text: t });
     plainRun(p.slice(at + t.length));
   });
   return out;
@@ -132,7 +133,7 @@ function caretAt(t: HTMLElement, line: number): void {
 }
 
 /**
- * The five pens beside a piece, for its writing areas (elements with class `writes`). Shown by CSS
+ * The seven pens beside a piece, for its writing areas (elements with class `writes`). Shown by CSS
  * while one of them holds the cursor or a pen holds focus.
  */
 export function tray(piece: HTMLElement): HTMLElement {

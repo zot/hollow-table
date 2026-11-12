@@ -1,12 +1,12 @@
-// CRC: crc-MarkedText.md | R204, R208
+// CRC: crc-MarkedText.md | R266, R208
 // Handwriting with marks: a closed, attribute-free markup naming what a run of text is in the game.
-// Only the five bare tags are marks; every other byte is text and stays exactly where it was, so
+// Only the seven bare tags are marks; every other byte is text and stays exactly where it was, so
 // serialize(parse(s)) === s for every s.
 
 import type { Marked } from '../model/records.ts';
 
 // R209: `<bias>`, `<aff>` and `<inj>` are not marks; they are how a Damage slot's entry is drawn.
-export const MARKS = ['act', 'res', 'inf', 'def', 'head'] as const;
+export const MARKS = ['act', 'res', 'mot', 'att', 'inf', 'def', 'head'] as const;
 export type MarkName = (typeof MARKS)[number];
 
 export type MarkRun = { mark: MarkName; text: string };

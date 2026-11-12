@@ -1,12 +1,12 @@
 # MarkedText
-**Requirements:** R204, R205, R206, R208, R209, R246
+**Requirements:** R266, R205, R206, R208, R209, R246
 
 Handwriting with marks: a closed, attribute-free markup naming what a run of text is in the game.
-A simple DOM over the text: it models only the five marks, and every other byte stays exactly where
+A simple DOM over the text: it models only the seven marks, and every other byte stays exactly where
 it was, so parse-then-serialize reproduces the source.
 
 ## Knows
-- MARKS: `act, res, inf, def, head`. Nothing else is a mark; `<bias>`, `<aff>` and `<inj>` in text
+- MARKS: `act, res, mot, att, inf, def, head`. Nothing else is a mark; `<bias>`, `<aff>` and `<inj>` in text
   are text (they are how PieceView draws a Damage slot's entry, never stored, R209).
 - Line: a sequence of runs, `text` or `{mark, text}`; marks don't nest. Lines split at `\n`.
 - source: the original string, kept so serialization is byte-exact.

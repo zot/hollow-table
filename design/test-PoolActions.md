@@ -21,10 +21,10 @@ removes it
 ## Test: cards, drawers and the kill box
 **Purpose:** cards go into slots by kind, home to drawers, between characters, and die in the kill box
 **Input:** a Bias card offered to Main; Keep the Peace into Bias, then Main, then dropped on the
-table, then on Sam's drawer, lowered twice; a − card written; it killed; a used card restored; a
+table, then on Sam's drawer, lowered once and again at Min; a − card written; it killed; a used card restored; a
 loose chip vanishing
 **Expected:** the Bias card refused, the plain one taken anywhere; dropped on the table it goes home;
-Sam's drawer makes it his; it stops at Min; the new card is −Min in the drawer; killed it's gone;
+Sam's drawer makes it his; it lowers to Min, and shift-clicked at Min it is gone (R268); the new card is −Min in the drawer, and a plain click at Min raises it; killed it's gone;
 the used card is back in the drawer, not used; the chip is gone
 **Refs:** crc-PoolView.md, crc-Drag.md, crc-Tap.md
 **Code:** `src/ui/actions.test.ts`
@@ -82,3 +82,27 @@ without a place goes last; the drawer is renumbered in order
 **Fire alarm:** Mint players' oids by counting up like the GM's: the player's oid is under PLAYER_OIDS
 **Inject:** src/ui/actions.ts:minter
 **Pulled:** 2026-11-12 — rang: the player's oid was under PLAYER_OIDS
+
+## Test: a Motivation's card joins the drawer of the Main slot it lands in
+**Purpose:** R260: a card tapped from an NPC's Motivation becomes the tapper's when dropped in their
+Main slot, and goes into no other slot
+**Input:** Devreux's Keep the Peace card offered to Sam's Bias slot, then his Main slot
+**Expected:** Bias refused; in Main, its home is Sam
+**Refs:** crc-PoolView.md
+**Code:** `src/ui/actions.test.ts`
+**Alarm:** 7
+**Fire alarm:** In toSlot, keep the card's home: it sits in Sam's Main still Devreux's
+**Inject:** src/ui/actions.ts:toSlot
+**Pulled:** 2026-11-12 — rang: the card sat in Sam's Main still Devreux's
+
+## Test: shift-click at Min deletes a tap and refunds it
+**Purpose:** R268: a resource-made card shift-clicked at Min is deleted as the kill box would, its
+source getting its Level back
+**Input:** a card tapped from Sam's Money (+Maj), then shift-clicked
+**Expected:** Money reads +Sig after the tap; after the shift-click the card is gone and Money reads +Maj
+**Refs:** crc-PoolView.md, crc-Tap.md
+**Code:** `src/ui/actions.test.ts`
+**Alarm:** 8
+**Fire alarm:** In cardClick, delete without refunding at Min (`w.del` only): the card goes but Money stays +Sig
+**Inject:** src/ui/actions.ts:cardClick
+**Pulled:** 2026-11-12 — rang: the card was deleted but Money stayed +Sig

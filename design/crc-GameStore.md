@@ -10,7 +10,8 @@ them current. Talks to the database only through Db.
 - last: the id of the game last open (localStorage), never a player's copy.
 - SAVE_PAUSE: 400 ms.
 - The playtest scene (`src/store/playtest.ts`): the 11-08 playtest of *A Ghoulish Problem* as
-  records, Sam, Beauford and Devreux with Devreux's Influences, a chip, the sticky and the reference
+  records, Sam, Beauford and Devreux with Devreux's Influences (each tapped in full from her
+  Motivation of that name, which reads `(0)`, R260, R261), a chip, the sticky and the reference
   card, plus the singletons. The first visit makes "The 11-08 playtest" from it (R131).
 - The clock, timers and localStorage are passed in, so a test runs on a fake clock and memory.
 

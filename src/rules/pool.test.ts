@@ -73,4 +73,5 @@ test('a Damage card goes only into its own slot', () => {
   assert.equal(into({ ...card('Broken Leg', 2), sign: -1, damage: 'injury' }), 'injury');
   assert.equal(into(card('Money', 2)), SLOTS.join(' '));
   assert.equal(into(chip(-1, 2)), SLOTS.join(' '));
+  assert.equal(into({ ...card('Keep the Peace', 4), mot: true }), 'main', 'R260: a Motivation card only into Main');
 });

@@ -1,5 +1,5 @@
 # Pool
-**Requirements:** R39, R44, R45, R46, R52, R65, R79, R84, R211
+**Requirements:** R39, R44, R45, R46, R52, R65, R79, R84, R211, R260
 
 What a slot's contents amount to. Pure: given the chips and Influence cards in one slot, it orders
 them, finds Roll Ups, and says what the slot is worth.
@@ -16,7 +16,7 @@ them, finds Roll Ups, and says what the slot is worth.
 - value(items): best positive minus worst negative, after Roll Up. Plain chips and cards alike.
 - pools(character): the value of each of its slots, for Odds.
 - accepts(slot, item): whether an item may go into a slot (Hollow Folks, *Damage Resources*). A card of a Damage kind goes only into
-  its kind's slot; everything else goes anywhere.
+  its kind's slot, a `mot` card only into Main (R260); everything else goes anywhere.
 
 ## Collaborators
 - Influence: points and Levels.

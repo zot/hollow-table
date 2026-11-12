@@ -30,3 +30,19 @@
 **Fire alarm:** Lower cards without the Min floor: the second lowering shows `0`
 **Inject:** src/rules/influence.ts:lowerCard
 **Pulled:** 2026-11-12 — rang: the lowerings read `0`, `-2` instead of `Min`, `Min`
+
+## Test: Wis and Con size the Damage columns
+**Purpose:** R264, R265: the extra boxes and absorb by Con or Wis, each row of Hollow Folks' table
+from its Level up; read from the card's `<att>` marks (Wis for Biases, Con for Injuries); null when
+unmarked
+**Input:** room at 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15 and 30; the playtest's three cards;
+Sam with `Con 7  Wis 10`; Sam with his attributes unmarked
+**Expected:** the table's rows (Mild, Min, Sig, Maj, absorb) from `0 0 0 0 0` to `2 2 2 0 3`; Sam,
+Beauford and Devreux get 2, 1 and 2 Min boxes, as their cards have, and no Injury room; absorb 2
+and one extra Sig Injury box; null
+**Refs:** crc-Influence.md
+**Code:** `src/rules/influence.test.ts`
+**Alarm:** 3
+**Fire alarm:** In room, take the first row whose Level is at most the attribute from the bottom (rows ascending): Wis 15 reads as Wis 1
+**Inject:** src/rules/influence.ts:room
+**Pulled:** 2026-11-12 — rang: with the rows read from the bottom, every Level from 1 up came out as `0 1 0 0 0`

@@ -1,5 +1,5 @@
 # UI manifest
-**Requirements:** R1-4, R6, R7, R11-13, R17, R219, R221, R240
+**Requirements:** R1-4, R6, R7, R11-13, R17, R219, R221, R240, R252, R255, R258, R263, R267
 
 One page, no routes. The table fills the window under the bar. Everything is paper and table
 furniture; the chrome is the bar.
@@ -24,7 +24,7 @@ furniture; the chrome is the bar.
 
 ## Marks and pens
 
-Five pens, one per stored mark, each a chisel-tip highlighter whose barrel is its mark's highlight
+Seven pens, one per stored mark, each a chisel-tip highlighter whose barrel is its mark's highlight
 with a darker cap and its word printed in PT Mono, sentence case. The Heading pen is a black felt
 marker with cream lettering, since a heading is drawn bold rather than highlighted. `bias`, `aff`
 and `inj` are how Damage slots are drawn; they have no pen.
@@ -33,6 +33,8 @@ and `inj` are how Damage slots are drawn; they have no pen.
 |---|---|---|
 | `act` | `#FFD27A` | its die |
 | `res` | `#BDE5A8` | its tap glyph |
+| `mot` | `#9FDCD0` | its tap glyph, dashed underline |
+| `att` | `#E7DDB0` | wavy underline |
 | `inf` | `#A9D4F0` | dotted underline |
 | `bias` | `#F4AFC0` | its tap glyph, its column |
 | `aff` | `#CDB6EE` | its tap glyph, its column |
@@ -40,7 +42,7 @@ and `inj` are how Damage slots are drawn; they have no pen.
 | `def` | `#D6D6D6` | double underline |
 | `head` | none (pen: `--ink`) | Caveat bold, like the printed headings |
 
-**At rest a card looks printed (R245).** The highlights and their underlines show only while the
+**At rest a card looks printed (R245)**, and while written on, a Damage entry fills only once named (R263). The highlights and their underlines show only while the
 paper holds the caret or its pens hold focus, the same moment the pens are out; otherwise only the
 weights below, the dice and the glyphs say what is marked. **Weights (R246):** an `act` or `def`
 mark's label, up to its first colon, is bold; a heading is 18 px bold, and a heading on a card's
@@ -78,6 +80,14 @@ What a carried thing would land on lights up while it's over it.
   pills, dropdowns or floating panels.
 - Visible focus on every control: a 2px `--amber` outline offset from the paper.
 - `prefers-reduced-motion`: lifts, flips, slides and dice tumble become instant.
+- No piece is held in 3D (R252): `perspective`, `preserve-3d` and `backface-visibility` make Chrome
+  draw a card's text soft, worse while it is raised to write on. A flip is a 2D squeeze, `scaleX` 1 to
+  0 on one face and 0 to 1 on the other, .25 s in all. Nor does a `filter` sit over a whole tray of
+  pens: the pens' shadow is on each pen.
+- Ruled lines (the back's notes, R255) are SVG lines with `vector-effect: non-scaling-stroke`, one
+  screen pixel at any zoom and antialiased on tilted paper. CSS has no non-scaling line: a hard
+  gradient stripe breaks into steps when tilted, a soft one fades unevenly zoomed out, and one sized
+  from the zoom still steps (all three compared at 0.58 and 1.6, 11-12).
 - Chrome (labels, slot rows, drawer tools, roll row, register, bar) is `user-select: none`.
 - The slimmest DOM that draws it: one element per piece and per slot, more only where a control
   needs its own target.

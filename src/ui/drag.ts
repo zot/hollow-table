@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R179, R183
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R179, R183
 // Lifting, carrying and dropping, and deciding what a drop means. While carried, a piece goes to the
 // room every 100 ms (Moves); the drop is one Game.change. This part moves paper and pins it; pools,
 // the bar and Boot Hill add their drop targets as they land.
@@ -209,7 +209,7 @@ export class Drag {
     }
   }
 
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R49, R60, R220, R243: in this order:
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R268, R60, R220, R243: in this order:
   // a tap's merge, a slot, the kill box, a drawer, the bar, else the table.
   /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
   startItem(rid: Rid, down: PointerLike, move: PointerLike): void {
@@ -323,7 +323,12 @@ export class Drag {
     const { game } = this.#w;
     switch (t?.kind) {
       case 'merge': return mergeTap(game, rid, t.el.dataset.rid!, mint);
-      case 'slot': return toSlot(game, rid, t.el.dataset.owner!, t.el.dataset.slot as SlotName, mint);
+      case 'slot': {
+        // R211, R260: a card a slot refuses (a Damage card, a Motivation's) goes home to its drawer.
+        const i = game.get(rid) as Item | undefined;
+        return toSlot(game, rid, t.el.dataset.owner!, t.el.dataset.slot as SlotName, mint)
+          ?? (i?.kind === 'influence' ? toDrawer(game, rid, i.home) : null);
+      }
       case 'kill': return killCard(game, rid);
       case 'drawer': return toDrawer(game, rid, t.el.dataset.drawer!, t.at);
       case 'bar': {

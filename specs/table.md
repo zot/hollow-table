@@ -17,6 +17,10 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
   animation.
 - Paper is tilted slightly at random, and squares up while you are writing on it (editing tilted
   text in Chrome smears the lines).
+- **A card lies flat** (Bill, 11-12: clicking a card to write on it blurred its text). Chrome draws a
+  card held in 3D (for its flip) softly, and more so while it is raised to write on, so a card is
+  never held in 3D: it shows one face at a time and turns over by narrowing to its edge and opening
+  on its other face.
 - Paper you are writing on comes to the top while you write, so nothing covers it or its pens.
 - Pool slot labels use the print's mat lettering (or PT Mono), in sentence case: "Stagger", then
   "opposition only". No system sans serif, no all-caps labels.
@@ -83,15 +87,32 @@ chip, a torn-off roll of receipts.
   Afflictions and Injuries, and ruled Notes lines (Bill, 11-12). Each column has a Mild, Min, Sig
   and Maj **slot**: a line for one name, with a checkbox per extra Slot of that Level. Slot boxes
   toggle. As on the printed cards, a slot's boxes sit in front of its Level word (Bill, 11-12).
-- **A column's heading carries its absorb**, *Biases (absorb 2)*: how much of each Attack's Result
-  the character absorbs before any Slot fills (Hollow Folks, *Absorbing Damage*). It is edited on
-  the back and shown only when it isn't 0 (Bill, 11-12).
+- **Wis and Con size the Damage columns** (Bill, 11-12: "It should be based on Wis"), by Hollow
+  Folks' table (*Absorbing Damage*): Biases and Afflictions follow Wis, Injuries follow Con when the
+  card has it (the Bunkum cards don't print Con; without it, the baseline). The extra boxes: Min +1
+  from 1, +2 from 3; Sig +1 from 7, +2 from 15; Mild +1 from 9, +2 from 11. A box checked beyond
+  the count stays until it is unchecked. A card whose attributes aren't marked keeps the boxes it has.
+- **A column's heading carries its absorb**, *Biases (absorb 1)*: how much of each Attack's Result
+  the character absorbs before any Slot fills, 1 from 5, 2 from 10, 3 from 15, by the same table.
+  It is worked out, never typed, and shown only when it isn't 0. (What the book's negative rows,
+  "worth only 1", do is open.)
 - **A slot's column says what its entry is.** The entry is stored as a plain name (*The mayor can
   pardon criminals*); the table draws it as a `<bias>`, `<aff>` or `<inj>` mark, for its look and
   its tap glyph, so a Damage mark can't appear anywhere but its own column (Bill, 11-12).
 - **An empty column on a card's back collapses** to its name at the top (Bill, 11-11). Empty means
-  nothing written and no box checked. Clicking anywhere in the column opens it so a slot can be
-  filled in; left empty, it closes again at the next click elsewhere.
+  nothing written and no box checked.
+- **Clicking a column's name brings it to the front** (Bill, 11-12): it opens, the columns rotate so
+  it is the far left one (the others following in turn), and the other empty columns collapse. So
+  clicking the second name again and again cycles through all three. A column stays open until
+  another is brought forward; one with something written in it is always open. The order is each
+  person's own view of the card, like which slots they have opened; nobody else's card turns.
+- **Ruled lines are one screen pixel at any zoom** (Bill, 11-12), as an SVG line draws, and stay
+  smooth on tilted paper: the back's notes lines, for one. Writing that runs past the bottom
+  scrolls, and its lines scroll with it.
+- **An open column's name sits over its blanks** (Bill, 11-12), past its boxes and Level words, on
+  one line.
+- **Damage blanks are the same length** whichever column is open (Bill, 11-12): a collapsed name
+  takes the same room whichever it is, and open columns share what is left evenly.
 - **Sticky note**: yellow, handwritten, edited in place. It comes in two sizes: the note from the
   supply, and a **big sticky** (330 by 300) for the GM's long notes (Bill, 11-12).
 - **Loose text**: handwriting straight on the table.
@@ -109,6 +130,8 @@ italic or underline.
 |---|---|---|
 | `<act>` | an action line | Base, Yellows and bonus; gets a die |
 | `<res>` | a Resource | `Name +Level`; gets a tap glyph; its Level is rewritten when spent |
+| `<att>` | a character's attributes | each `Name N` (`Cha 2  Int 2  Wis 4`); Wis and Con size the back's Damage columns |
+| `<mot>` | an NPC's Motivation | `Name ±Level`; gets a tap glyph; what is spent shows in parentheses until the scene ends |
 | `<inf>` | a named Influence | `Name ±Level` |
 | `<def>` | the Defend line | mental and psych Defend |
 | `<head>` | a section heading | nothing; drawn like the printed headings |
@@ -120,16 +143,20 @@ italic or underline.
 - **Marking is done with highlighter pens**, one per mark, in place of a formatting toolbar: select
   text, pick a pen. A pen on marked text unmarks it.
 - **The table offers.** When a line typed in plain text matches a mark's grammar (an action line,
-  `Name +Level` after "Resources"), the table offers that pen for it; nobody needs to know the tags.
+  `Name +Level` after "Resources", `Name ±Level` after "Motivations", an attribute line like
+  `Cha 2  Int 2  Wis 4`), the table offers that pen for it; nobody needs to know the tags.
 - **A marked card looks printed** (Bill, 11-12). A mark's highlight shows only while its paper is
   being written on, pens out, so you can see what is marked; at rest a card reads as the printed one
   does, with its glyphs and dice as the cues, and the one highlighter swish on it is the action in
-  use.
+  use. A Damage entry shows its colour then only once it has a name; an empty slot stays a blank line
+  (Bill, 11-12).
 - **Labels take the print's weight from the marks**, with no markup of their own (Bill, 11-12): an
   action or Defend line's label, up to its colon, is bold; a heading is 18 px bold, and a heading on
   the card's first line, its name, 21 px.
 - **Several Resources may share a line**, separated by commas (`Money +Min, Liquid Courage +Maj`):
-  the Resource pen at a bare caret marks each entry as its own Resource (Bill, 11-12).
+  the Resource pen at a bare caret marks each entry as its own Resource (Bill, 11-12). The Motivation
+  pen does the same for Motivations, which NPC write-ups list that way (*Be Left Alone +Sig, Starved
+  for Company +Sig*).
 - **Marks are a closed set.** Tags carry no attributes. Anything else in the text is shown as plain
   text and kept exactly as written. Text from another page is read the same way, so it can carry
   nothing runnable.
