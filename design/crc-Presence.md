@@ -1,5 +1,5 @@
 # Presence
-**Requirements:** R155, R157, R158, R159, R161, R162, R163
+**Requirements:** R155, R157, R158, R159, R161, R162, R163, R293, R294
 
 Who's at the table, and the room itself.
 

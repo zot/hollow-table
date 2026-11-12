@@ -33,6 +33,9 @@
 - **R18:** The bar runs along the top and holds supplies: character, sticky, loose text, image, the "How to play the table" card, and chips 2, 4, 6 and +1 in each colour.
 - **R19:** Dragging a supply onto the table makes one; dropping it back on the bar makes nothing.
 - **R20:** The bar shows the people at the table, and the register, the Ledger and Boot Hill at its right end.
+- **R286:** The bar is a walnut-dark strip 92 px high; left to right: the wordmark with its build stamp (the bar's one selectable text), the paper supplies (a stacked white card, a yellow note, "Aa", an image), the chips 2, 4, 6 and +1 of each colour in two rows (+1 smaller), the people, "You are", then the register, the Ledger and Boot Hill.
+- **R287:** A supply is made and in hand the moment it's pressed, its middle under the pointer; loose text starts "Write here"; the image supply opens a file picker and the image lands in the middle of the view, several a step apart.
+- **R288:** Anything carried over the bar turns it red; if letting go would bury it, "→" and the current graveyard's name show by the gravestone; plain chips, +1s and the reference card vanish there, and an Influence card goes home.
 - **R21:** Dropping a piece on the bar puts it away: characters, stickies, loose text, images and torn rolls are buried on Boot Hill, plain chips vanish, and Influence cards go home to their drawer.
 - **R22:** A character card has two faces, is edited in place, and flips at the corner.
 - **R252:** A card lies flat, showing one face at a time, so its text stays sharp at rest and while written on; it turns over by narrowing to its edge and widening on its other face, instantly under reduced motion.
@@ -215,6 +218,8 @@
 **Source:** specs/boothill.md
 
 - **R118:** Boot Hill is a gravestone at the bar's right end whose badge counts the buried; clicking it opens the list.
+- **R289:** The gravestone is grey with "Boot Hill" in Sancreek; its badge counts the buried in every graveyard and it fades when nothing is; the list is oldest first, "Nothing is buried here." when empty, and closes on a press anywhere else.
+- **R290:** A burial is named after its pool (or "Nameless"); a sticky "Note: " and a loose writing "Writing: " followed by its first line, 28 characters at most; a receipt by its title; a torn roll "Tape: N rolls, last" and its newest receipt's title. It comes up the moment it's pressed, under the pointer, and the list closes.
 - **R119:** Putting away a pool or its card buries both, with everything on them.
 - **R120:** Dragging a name out of the list brings it back under the pointer, a character by its pool with its card following; dropping it on the bar buries it again.
 - **R121:** Boot Hill holds named graveyards; the header (‹, editable name, ›) stays fixed while the list scrolls.
@@ -233,6 +238,8 @@
 - **R130:** Saved state, images included by content hash, lives in the browser's database.
 - **R131:** The browser holds a list of games, each with its own table and name; the last open opens on load, and the first visit makes one from the playtest scene.
 - **R132:** The Ledger holds the game's name, the save status, Checkpoint, Export, Import, New game, the checkpoint list and the game list, and opens as a ruled ledger page with its actions written on it.
+- **R291:** The Ledger is a green cloth-bound book with "Ledger" up its spine, between the register and Boot Hill, closed by a press anywhere else; its status reads "Saved hh:mm:ss", "Not saved: …" or "Not a game file: …"; Checkpoint asks a name offering "Round N, hh:mm:ss" (blank is "Checkpoint"); automatic checkpoints are in grey; New game asks nothing and is "New game <date and time>"; the current game is greyed; a player's Ledger says the GM's page holds the game.
+- **R292:** Restoring asks nothing; its checkpoint is "Before restoring “X”", or "Before undoing “X”" when X was one. Export names its file after the game, punctuation as dashes, `.glimmer.json`.
 - **R133:** New game starts an empty table beside the others.
 - **R134:** A checkpoint is a named copy of the whole game; clicking one restores it.
 - **R135:** Restoring first checkpoints the current table, so a restore can be undone.
@@ -270,6 +277,8 @@
 - **R159:** The GM's URL is never rewritten, and the GM's room is remembered per game.
 - **R160:** Every page uses the same pinned list of relays.
 - **R161:** Name tags in the bar show who is at the table; the GM's tag is clickable to rename.
+- **R293:** Name tags read in the hand font beside a dot, green and glowing when live; the GM's reddish, your own outlined; the GM first, then you, then the rest alphabetically; a tag dims after 25 s unheard and goes after 60 s; the GM renames by a prompt (32 characters, blank is "GM"); red tags with no dot mark someone holding another browser's name (the GM can hand it over), "not yours", and "offline" with why.
+- **R294:** Copy invite says "Copied" for about a second, or shows the link if the clipboard refuses; arriving by an invite asks for a name until one that isn't "GM" is given (cancel gives "Player").
 - **R162:** A page that connects is greeted and answers; a connection that closes counts as leaving.
 - **R163:** A page is live while a relay or a peer is reachable, offline (with why) after 15 s with neither, and keeps trying.
 - **R164:** Each browser makes a non-extractable signing key pair once and keeps it; its id derives from the public key and survives reloads.

@@ -75,6 +75,18 @@ The bar runs along the top. It holds:
   dropped back on the bar, nothing is made.
 - The people at the table (see `network.md`).
 - The cash register, the Ledger and Boot Hill, at the right end.
+
+**How it looks** (Bill, 11-12, as the mockup): a walnut-dark strip 92 px high. Left to right: the
+wordmark, with the build stamp under it (the one thing in the bar you can select, to copy into a bug
+report); the paper supplies, a character as a little stack of white card, a note as a yellow square,
+"Aa" for loose text, and an image; the chips, 2, 4, 6 and +1 in each colour, in a grid of two rows
+(the +1 smaller); the people; "You are" (the GM's); then the register, the Ledger and Boot Hill.
+- **Taking a supply**: the piece is made and in your hand the moment you press, its middle under the
+  pointer. Loose text starts as "Write here". The image supply opens a file picker; the image lands
+  in the middle of the view, several a step apart.
+- **Over the bar**, anything you carry turns the bar red; if letting go would bury it, "→" and the
+  current graveyard's name show by the gravestone. Plain chips, +1s and the reference card vanish
+  there; an Influence card goes home to its drawer.
 - **Putting away:** dropping something on the bar puts it away. Characters, stickies, loose writing,
   images and roll receipts are buried on Boot Hill (see `boothill.md`); plain chips just vanish;
   Influence cards go home to their drawer.

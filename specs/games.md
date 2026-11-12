@@ -32,11 +32,21 @@ Every piece of state says which tier it's in.
   open). It opens as a **ledger page**, ruled with columns: games and checkpoints are entries written
   in the book, and its actions are written on the page, not set out as web buttons.
 - **New game** starts an empty table beside the others.
+- **How the Ledger looks and reads** (Bill, 11-12, as the mockup): a green cloth-bound book with
+  "Ledger" up its spine, between the register and Boot Hill; a press anywhere else closes it. The
+  save status reads "Saved 14:03:22", "Not saved: " and why, or "Not a game file: " and the file's
+  name. Checkpoint asks for a name, offering "Round 3, 14:03:22" (blank is "Checkpoint"). Automatic
+  checkpoints are written in grey. New game asks nothing and is named "New game Nov 12, 14:03:22".
+  Export names the file after the game, punctuation turned to dashes
+  (`The-11-08-playtest.glimmer.json`). The current game is greyed in the list. A player's Ledger
+  says the GM's page holds the game and this browser keeps a copy.
 
 ## Checkpoints
 
 - A checkpoint is a named copy of the whole game. Click one to restore it.
-- **Restoring checkpoints the current table first**, so a restore can be undone. A restore keeps
+- **Restoring checkpoints the current table first**, so a restore can be undone: it asks nothing.
+  That checkpoint is "Before restoring “X”", or "Before undoing “X”" when X was itself one, so
+  the names never nest. A restore keeps
   your seat; whatever has vanished is skipped.
 - **End makes one automatically** ("End of conflict, round 2"). Automatic checkpoints keep the newest
   20; named ones are kept.

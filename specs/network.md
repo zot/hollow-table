@@ -7,8 +7,10 @@ them. Nothing to install, no local-network grant, no daemon.
 
 - **Open the table** makes a room. The room name is random (about 128 bits) and is the capability:
   whoever has the invite can join, and nobody else hears anything.
-- **Copy invite** copies a link carrying the room and the GM's browser id. Shift-clicking it closes
-  the table. The GM's own URL is never rewritten (reloading an invite would demote the GM); the
+- **Copy invite** copies a link carrying the room and the GM's browser id, and says "Copied" for about a
+  second (if the clipboard refuses, the link is shown to copy by hand). Shift-clicking it closes
+  the table. Arriving by an invite asks for your name until you give one that isn't "GM" (cancel
+  gives "Player"). The GM's own URL is never rewritten (reloading an invite would demote the GM); the
   GM's room is remembered per game.
 - The page pins a list of relays that answered, the same on every page, so any two pages share them.
   Relays come and go; the list needs tending.
@@ -16,6 +18,12 @@ them. Nothing to install, no local-network grant, no daemon.
 ## Presence
 
 - Name tags in the bar show who's at the table. The GM's tag is clickable to rename.
+- **The tags** (Bill, 11-12, as the mockup): each name in the hand font beside a dot, green and
+  glowing when that page is live; the GM's tag reddish, your own outlined. The GM first, then you,
+  then everyone else alphabetically. A tag dims after 25 s unheard and goes after 60 s. The GM
+  renames by a prompt (up to 32 characters; blank is "GM"). Red tags, with no dot: on the GM's
+  page, someone who came as a name another browser holds (clicking hands them the name, after
+  asking); on a player's page, "not yours" and "offline" with why.
 - A page that connects is greeted and answers. A connection that closes is a goodbye.
 - You're **live** while a relay or a peer is reachable. After 15 s with neither you're **offline**,
   with why, and the page keeps trying.

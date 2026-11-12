@@ -4,10 +4,17 @@ Where put-away work goes, so nothing that holds work is lost by accident.
 
 - **Boot Hill** is a gravestone at the bar's right end. Its badge counts the buried; clicking it
   opens the list.
+- **How it looks and reads** (Bill, 11-12, as the mockup): a grey stone with "Boot Hill" carved in
+  Sancreek; the red badge counts everything buried in every graveyard, and the stone fades when
+  nothing is. The list is oldest first, and an empty graveyard says "Nothing is buried here." A
+  burial is named after its pool (or "Nameless"); a sticky "Note: " and its first line, loose
+  writing "Writing: " and its first line (28 characters at most); a receipt by its title; a torn
+  roll "Tape: N rolls, last" and the newest receipt's title.
+- **The list closes on a press anywhere else**, as the Ledger does (Bill, 11-12).
 - **Putting away** a pool or its character card buries both, with everything on them. Stickies,
   loose writing, images and torn rolls are buried too.
 - **Drag a name out** of the list to bring it back under the pointer (a character by its pool, the
-  card following). Dropped back on the bar, it's buried again.
+  card following). It comes up the moment it's pressed, and the list closes. Dropped back on the bar, it's buried again.
 
 ## Graveyards
 
