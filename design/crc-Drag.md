@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -29,7 +29,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - tear: dragging the tape tears off the whole roll as a torn-roll piece.
 - exhume: dragging a name out of Boot Hill brings its records back under the pointer.
 
-- startPool(rid): by its name, a pool carries its gathered card along.
+- startPool(rid): from its name, frame or drawer (R251), a pool carries its card (and what is pinned
+  to it) by the same offset, gathered or not; the drop saves both places.
 - startItem(rid) (R220, R243): the chip or card itself is lifted (TableView.lift): taken out of its
   slot, drawer, pile or the table into the table's world layer, where the zoom applies to it as to
   everything else, and held there until let go. It keeps the spot it was pressed; a card stays a

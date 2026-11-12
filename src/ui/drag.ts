@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R48, R55, R57, R60, R179, R183
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R179, R183
 // Lifting, carrying and dropping, and deciding what a drop means. While carried, a piece goes to the
 // room every 100 ms (Moves); the drop is one Game.change. This part moves paper and pins it; pools,
 // the bar and Boot Hill add their drop targets as they land.
@@ -132,7 +132,7 @@ export class Drag {
     pace.flush();
   }
 
-  // R32: dragging a pool by its name brings its gathered card (and what's pinned to it).
+  // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it, as a group.
   /** Carries a character's pool. */
   startPool(rid: Rid, down: PointerLike, _move: PointerLike): void {
     const { game, table, moves } = this.#w;
@@ -141,7 +141,7 @@ export class Drag {
     const doc = mat.ownerDocument, z = this.#top();
     const carried: Carried[] = [{ rid, el: mat, from: c.pool, part: 'pool' }];
     const card = table.element(rid);
-    const followers = c.gathered && card ? [card, ...this.#pinned(c)] : [];
+    const followers = card ? [card, ...this.#pinned(c)] : [];
     const start = followers.map(e => ({ e, x: parseFloat(e.style.left), y: parseFloat(e.style.top) }));
     const p0 = table.toWorld(down.clientX, down.clientY);
     leaveWriting(doc);
@@ -354,7 +354,7 @@ export class Drag {
         const r = game.get(c.rid) as PieceRecord | undefined;
         if (!r) continue;
         if (r.kind === 'character') {
-          if (c.part === 'pool') w.put(c.rid, { ...r, pool: moved(r.pool) });
+          if (c.part === 'pool') w.put(c.rid, { ...r, pool: moved(r.pool), card: r.gathered ? r.card : moved(r.card) });
           else w.put(c.rid, { ...r, card: moved(c.from), gathered: false });
           continue;
         }

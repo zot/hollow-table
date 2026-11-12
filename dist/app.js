@@ -7418,7 +7418,6 @@ function make2(doc, c, w) {
   } });
   const name2 = el(doc, "span", "name");
   hd.append(name2, el(doc, "span", "owner"), gather);
-  gesture(name2, { drag: (d, m) => w.dragPool(rid, d, m) });
   const slots = el(doc, "div", "slots");
   for (const s of SLOTS) {
     const slot2 = el(doc, "div", `slot slot-${s}`);
@@ -7449,6 +7448,7 @@ function make2(doc, c, w) {
   drawer2.dataset.drawer = c.oid;
   drawer2.append(el(doc, "div", "cards"), el(doc, "div", "tools"));
   e.append(hd, slots, drawer2);
+  for (const part of [name2, slots, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid, d, m) });
   return e;
 }
 function units(slotEl, items, w, shown, drawn) {
@@ -8237,7 +8237,7 @@ var Drag = class {
     onMove(move);
     pace.flush();
   }
-  // R32: dragging a pool by its name brings its gathered card (and what's pinned to it).
+  // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it, as a group.
   /** Carries a character's pool. */
   startPool(rid, down, _move) {
     const { game, table, moves } = this.#w;
@@ -8246,7 +8246,7 @@ var Drag = class {
     const doc = mat.ownerDocument, z = this.#top();
     const carried = [{ rid, el: mat, from: c.pool, part: "pool" }];
     const card2 = table.element(rid);
-    const followers = c.gathered && card2 ? [card2, ...this.#pinned(c)] : [];
+    const followers = card2 ? [card2, ...this.#pinned(c)] : [];
     const start = followers.map((e) => ({ e, x: parseFloat(e.style.left), y: parseFloat(e.style.top) }));
     const p0 = table.toWorld(down.clientX, down.clientY);
     leaveWriting(doc);
@@ -8477,7 +8477,7 @@ var Drag = class {
         const r = game.get(c.rid);
         if (!r) continue;
         if (r.kind === "character") {
-          if (c.part === "pool") w.put(c.rid, { ...r, pool: moved(r.pool) });
+          if (c.part === "pool") w.put(c.rid, { ...r, pool: moved(r.pool), card: r.gathered ? r.card : moved(r.card) });
           else w.put(c.rid, { ...r, card: moved(c.from), gathered: false });
           continue;
         }

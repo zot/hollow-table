@@ -49,6 +49,7 @@
 - **R244:** A chip or card carried over a pool's slots opens the strip under it, and a slot closes to pay for it so the mat keeps its width: the slot it came from if that is now empty, otherwise the first empty open slot left of where it came from (or of the strip, from elsewhere); slots holding anything never close, and with none to close the mat grows by that one slot, its drawer keeping its width. The strip stays open until another strip is reached or the carry leaves the slots; nothing changes before it reaches them.
 - **R31:** Clicking or tapping a narrowed slot widens it until the next click elsewhere.
 - **R32:** Dragging a pool brings its character card; dragging the card moves it alone and ungathers it.
+- **R251:** A pool is carried by a drag from its name, its frame and slots, or its drawer; a chip or card there carries itself instead, and only the empty space beside the name passes through to the table. The pool and its card (with what is pinned to it) move by the same offset, gathered or not.
 - **R33:** A gathered card stays snapped under its drawer as the drawer grows or shrinks; Gather snaps it back; the starting scene is gathered.
 - **R34:** Dropping the character supply makes a card with its pool popped out above it, linked and gathered, owned by its maker (GM-owned when the GM makes it).
 - **R35:** A new pool never pops out under the bar; with no room above, the card slides down under it.

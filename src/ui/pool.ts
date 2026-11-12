@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64
+// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64, R251
 // A character's pool mat: the seven slots, the drawer of Influence cards with its writers, used pile
 // and kill box, and the header. What a click or a drop does is in actions.ts; this only draws and
 // listens.
@@ -176,8 +176,6 @@ function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
   gesture(gather, { click: () => { const cur = w.game.get(rid) as Character; w.game.change(x => x.put(rid, { ...cur, gathered: true })); } });
   const name = el(doc, 'span', 'name');
   hd.append(name, el(doc, 'span', 'owner'), gather);
-  // R32: the name carries the pool (and a gathered card with it).
-  gesture(name, { drag: (d, m) => w.dragPool(rid, d, m) });
   const slots = el(doc, 'div', 'slots');
   for (const s of SLOTS) {
     const slot = el(doc, 'div', `slot slot-${s}`);
@@ -208,6 +206,9 @@ function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
   drawer.dataset.drawer = c.oid;
   drawer.append(el(doc, 'div', 'cards'), el(doc, 'div', 'tools'));
   e.append(hd, slots, drawer);
+  // R32, R251: the name, the frame of slots and the drawer carry the pool (and a gathered card with
+  // it); a chip or card there takes the press itself, and the header's empty space is the table's.
+  for (const part of [name, slots, drawer]) gesture(part, { drag: (d, m) => w.dragPool(rid, d, m) });
   return e;
 }
 

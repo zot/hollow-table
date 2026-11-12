@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -8,6 +8,8 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   its used pile.
 
 ## Does
+- carry (R251): a drag from the name, the frame of slots or the drawer starts Drag.startPool; chips and
+  cards there take the press first (their own drag), and the header's empty space is left to the table.
 - drawPool(character, items, old): makes or updates the mat; what a click or a drop does is in
   `src/ui/actions.ts` (pure: each gives one Game change, so they're tested without a browser): into
   a slot with Roll Up settled, into a drawer, onto the table, the kill box, a chip's click, a rider's

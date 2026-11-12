@@ -163,6 +163,10 @@ italic or underline.
 - **A character is a card tied to its pool.** Dragging a pool brings its card; a card dragged on its
   own moves alone and is no longer gathered. A **gathered** card stays snapped under its drawer as
   the drawer grows or shrinks. **Gather** snaps it back. The scene starts gathered.
+- **A pool is carried from anywhere on it** (Bill, 11-12): its name, its frame and slots, or its
+  drawer; what has a drag of its own (a chip, a card) is carried instead, and only the empty space
+  beside the name passes through to the table. **The pool and its card move as a group**, by the
+  same offset, whether the card is gathered or not.
 - Dropping the bar's **character** supply pops its pool out above the new card, linked and
   gathered, owned by whoever made it (the GM's are GM-owned). A pool never pops out under the bar:
   with no room above, the card slides down under it.
