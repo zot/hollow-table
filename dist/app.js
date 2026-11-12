@@ -202,11 +202,11 @@ var Game = class {
 };
 
 // src/rules/ownership.ts
-function mayChange(viewer, before, after) {
+function mayChange(viewer, before2, after) {
   if (viewer?.gm) return true;
   if (!viewer) return false;
   const mine = (c) => c.owner === viewer.name || c.owner === OPEN;
-  if (before && !mine(before)) return false;
+  if (before2 && !mine(before2)) return false;
   return !after || mine(after);
 }
 
@@ -1232,9 +1232,9 @@ function roll2(row2, yellows, bonus2, rng) {
     }
   }
   const sum2 = result.reduce((a, d) => a + d.v, 0);
-  const plain = Math.max(0, sum2 + (outcome === "failure" ? 0 : bonus2));
-  if (!isCrit) return { dice, resolved, outcome, result: plain, level: levelName(plain) };
-  const max = Math.max(0, result.length * 6 + bonus2), dbl = plain * 2;
+  const plain2 = Math.max(0, sum2 + (outcome === "failure" ? 0 : bonus2));
+  if (!isCrit) return { dice, resolved, outcome, result: plain2, level: levelName(plain2) };
+  const max = Math.max(0, result.length * 6 + bonus2), dbl = plain2 * 2;
   const chosen = max >= dbl ? "max" : "dbl";
   const value2 = Math.max(max, dbl);
   return { dice, resolved, outcome, result: value2, level: levelName(value2), crit: { max, dbl, chosen, locked: false } };
@@ -1324,10 +1324,10 @@ function rollUp(items, mint2) {
       const v = [...counts.keys()].sort((a, b) => a - b).find((k) => counts.get(k).length >= 3);
       if (v === void 0) break;
       const group = counts.get(v);
-      const plain = group.filter((u) => !isPile(u) && u.kind === "chip").sort((a, b) => Number(a.rider) - Number(b.rider));
+      const plain2 = group.filter((u) => !isPile(u) && u.kind === "chip").sort((a, b) => Number(a.rider) - Number(b.rider));
       let three, made;
-      if (plain.length >= 3) {
-        const chips = plain.slice(0, 3), first = chips[0];
+      if (plain2.length >= 3) {
+        const chips = plain2.slice(0, 3), first = chips[0];
         const chip2 = { kind: "chip", oid: mint2(), where: first.where, n: first.n, sign: sign2, points: v + STEP, rider: false };
         for (const c of chips) {
           const k = add.indexOf(c);
@@ -1338,7 +1338,7 @@ function rollUp(items, mint2) {
         three = chips;
         made = chip2;
       } else {
-        three = [...plain, ...group.filter((u) => !plain.includes(u))].slice(0, 3);
+        three = [...plain2, ...group.filter((u) => !plain2.includes(u))].slice(0, 3);
         made = { sign: sign2, points: v + STEP, members: three };
       }
       side = [...side.filter((u) => !three.includes(u)), made];
@@ -1414,6 +1414,12 @@ function defend(text) {
   }
   return null;
 }
+function offer(line, heading2 = null) {
+  if (action(line)) return "act";
+  const r = influence(line);
+  if (r?.level && r.sign === 1 && heading2 && /^\s*resources\b/i.test(heading2)) return "res";
+  return null;
+}
 var LEVELS2 = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
 var WORD_OF = ["0", "Min", "Sig", "Maj", "Ext", "Exq"];
 function levelsOf(r) {
@@ -1440,11 +1446,11 @@ function parseLine(src) {
   let from = 0;
   TAG.lastIndex = 0;
   for (let m = TAG.exec(src); m; m = TAG.exec(src)) {
-    const mark = m[1], close = `</${mark}>`;
+    const mark2 = m[1], close = `</${mark2}>`;
     const start = m.index + m[0].length, end = src.indexOf(close, start);
     if (end < 0) continue;
     if (m.index > from) runs.push(src.slice(from, m.index));
-    runs.push({ mark, text: src.slice(start, end) });
+    runs.push({ mark: mark2, text: src.slice(start, end) });
     from = end + close.length;
     TAG.lastIndex = from;
   }
@@ -1458,6 +1464,9 @@ var runSource = (r) => typeof r === "string" ? r : `<${r.mark}>${r.text}</${r.ma
 function serialize(lines) {
   return lines.map((l) => l.map(runSource).join("")).join("\n");
 }
+function plain(line) {
+  return line.map((r) => typeof r === "string" ? r : r.text).join("");
+}
 function marks(lines, tag2) {
   const out = [];
   lines.forEach((l, line) => l.forEach((r, run2) => {
@@ -1465,7 +1474,7 @@ function marks(lines, tag2) {
   }));
   return out;
 }
-var fits = (mark, text) => !text.includes("\n") && !text.includes(`</${mark}>`);
+var fits = (mark2, text) => !text.includes("\n") && !text.includes(`</${mark2}>`);
 function replaceLine(lines, i, line) {
   return lines.map((l, j) => j === i ? line : l);
 }
@@ -1473,6 +1482,26 @@ function setMark(lines, at3, text) {
   const r = lines[at3.line]?.[at3.run];
   if (!r || typeof r === "string" || !fits(r.mark, text)) return lines;
   return replaceLine(lines, at3.line, lines[at3.line].map((x, k) => k === at3.run ? { mark: r.mark, text } : x));
+}
+function mark(lines, range, tag2) {
+  const r = lines[range.line]?.[range.run];
+  if (typeof r !== "string" || range.start < 0 || range.end > r.length || range.start >= range.end) return lines;
+  const text = r.slice(range.start, range.end);
+  if (!fits(tag2, text)) return lines;
+  const parts = [r.slice(0, range.start), { mark: tag2, text }, r.slice(range.end)].filter((x) => x !== "");
+  const line = lines[range.line];
+  return replaceLine(lines, range.line, [...line.slice(0, range.run), ...parts, ...line.slice(range.run + 1)]);
+}
+function unmark(lines, at3) {
+  const line = lines[at3.line], r = line?.[at3.run];
+  if (!line || !r || typeof r === "string") return lines;
+  const out = [];
+  line.forEach((x, k) => {
+    const run2 = k === at3.run ? r.text : x, last = out[out.length - 1];
+    if (typeof run2 === "string" && typeof last === "string") out[out.length - 1] = last + run2;
+    else out.push(run2);
+  });
+  return replaceLine(lines, at3.line, out);
 }
 function render(lines, el3) {
   const doc = el3.ownerDocument;
@@ -1493,25 +1522,63 @@ function render(lines, el3) {
 }
 var isMark = (s) => MARKS.includes(s);
 function read(el3) {
+  return scan(el3).lines;
+}
+function locate(el3, node, offset) {
+  return scan(el3, { node, offset }).pos;
+}
+function scan(el3, at3) {
   const lines = [[]];
+  let pos = null;
+  const cur = () => lines[lines.length - 1];
+  const here = (extra = 0) => {
+    const line = cur(), last = line[line.length - 1];
+    return typeof last === "string" ? { line: lines.length - 1, run: line.length - 1, offset: last.length + extra } : { line: lines.length - 1, run: line.length, offset: extra };
+  };
   const push = (r) => {
-    const line = lines[lines.length - 1], last = line[line.length - 1];
+    const line = cur(), last = line[line.length - 1];
     if (typeof r === "string" && typeof last === "string") line[line.length - 1] = last + r;
     else if (r !== "") line.push(r);
   };
   const walk = (n, top) => {
-    Array.from(n.childNodes).forEach((c, k) => {
-      if (c.nodeType === 3) return push(c.textContent ?? "");
+    const kids = Array.from(n.childNodes);
+    kids.forEach((c, k) => {
+      if (c.nodeType === 1 && c.tagName === "DIV" && top && k > 0) lines.push([]);
+      if (at3?.node === n && at3.offset === k) pos ??= here();
+      if (c.nodeType === 3) {
+        if (at3?.node === c) pos = here(at3.offset);
+        return push(c.textContent ?? "");
+      }
       if (c.nodeType !== 1) return;
       const e = c, cls = e.className;
-      if (e.tagName === "BR") return void lines.push([]);
-      if (e.tagName === "SPAN" && isMark(cls) && fits(cls, e.textContent ?? "")) return push({ mark: cls, text: e.textContent ?? "" });
-      if (top && k > 0 && e.tagName === "DIV") lines.push([]);
+      if (e.tagName === "BR") return void (k < kids.length - 1 && lines.push([]));
+      if (e.tagName === "SPAN" && isMark(cls) && fits(cls, e.textContent ?? "")) {
+        if (at3 && e.contains(at3.node)) pos = { line: lines.length - 1, run: cur().length, offset: offsetIn(e, at3.node, at3.offset) };
+        return push({ mark: cls, text: e.textContent ?? "" });
+      }
       walk(e, false);
     });
+    if (at3?.node === n && at3.offset >= kids.length) pos ??= here();
   };
   walk(el3, true);
-  return lines.map((l) => l.length ? l : [""]);
+  return { lines: lines.map((l) => l.length ? l : [""]), pos };
+}
+function offsetIn(el3, node, offset) {
+  let n = 0;
+  const walk = (p) => {
+    for (const [k, c] of Array.from(p.childNodes).entries()) {
+      if (p === node && k === offset) return true;
+      if (c.nodeType !== 3) {
+        if (walk(c)) return true;
+      } else if (c === node) {
+        n += offset;
+        return true;
+      } else n += c.textContent?.length ?? 0;
+    }
+    return false;
+  };
+  walk(el3);
+  return n;
 }
 
 // src/net/rolls.ts
@@ -1578,7 +1645,7 @@ function resolve2(game, intent, rng, at3) {
     ...opp && { vs: seesOpp ? vsFull : opp.name }
   };
   const table = { ...base, ...opp && { vs: opp.name } };
-  const apply2 = (w) => {
+  const apply3 = (w) => {
     w.put("meta", { ...meta, rolls: n });
     for (const i of items) {
       if (i.kind === "influence" && typeof i.where === "object" && "slot" in i.where && i.where.slot === character2.oid && !i.used) {
@@ -1604,7 +1671,7 @@ function resolve2(game, intent, rng, at3) {
       });
     }
   };
-  return { full, roller, table, apply: apply2, character: character2 };
+  return { full, roller, table, apply: apply3, character: character2 };
 }
 function choose(r, choice, lock) {
   if (!r.crit) return r;
@@ -1835,12 +1902,12 @@ var Sealer = class _Sealer {
     const b = box2;
     if (!b || typeof b.iv !== "string" || typeof b.data !== "string" || b.iv.length > 24) return void 0;
     try {
-      const plain = await crypto.subtle.decrypt(
+      const plain2 = await crypto.subtle.decrypt(
         { name: "AES-GCM", iv: unb64(b.iv), additionalData: ad(what, from, to) },
         await this.#with(theirs),
         unb64(b.data)
       );
-      return JSON.parse(dec.decode(plain));
+      return JSON.parse(dec.decode(plain2));
     } catch {
       return void 0;
     }
@@ -2622,7 +2689,7 @@ var OfferManager = class {
       if (this.destroyed) throw mkErr("room left while preparing offer");
       const peer = this.makeOffer();
       try {
-        const offer2 = await encryptOffer(peer);
+        const offer3 = await encryptOffer(peer);
         if (this.destroyed) throw mkErr("room left while preparing offer");
         if (leaseOffers) {
           this.leased.set(peer, setTimeout(() => {
@@ -2631,14 +2698,14 @@ var OfferManager = class {
           }, offerLeaseTtlMs));
           return {
             peer,
-            offer: offer2,
+            offer: offer3,
             claim: () => this.claimLeased(peer),
             reclaim: () => this.reclaimLeased(peer)
           };
         }
         return {
           peer,
-          offer: offer2
+          offer: offer3
         };
       } catch (error) {
         peer.destroy();
@@ -3566,7 +3633,7 @@ var createActionReceiver = ({ fail, accept, refuse, maxReceiveBytes, chunkSize: 
 // node_modules/@trystero-p2p/core/dist/action-wire.mjs
 var version = 2;
 var inline = 0;
-var offer = 1;
+var offer2 = 1;
 var chunk = 2;
 var accepted = 3;
 var rejected = 4;
@@ -3701,7 +3768,7 @@ var createActionWireManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeer
           const headerSize = small ? inlineHeaderSize : offerHeaderSize;
           const start = new Uint8Array(headerSize + meta.length + (small ? size : 0));
           start[0] = version;
-          start[1] = (small ? inline : offer) | format << 4;
+          start[1] = (small ? inline : offer2) | format << 4;
           start.set(typeBytes, 2);
           const view = new DataView(start.buffer);
           view.setUint16(34, meta.length);
@@ -3834,7 +3901,7 @@ var createActionWireManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeer
     const kind = bytes[1] & 15;
     const format = bytes[1] >>> 4;
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    if (kind > cancelled || format > 2 || kind > offer && format !== 0) {
+    if (kind > cancelled || format > 2 || kind > offer2 && format !== 0) {
       failPeer(peerId, "invalid action frame");
       return;
     }
@@ -3868,8 +3935,8 @@ var createActionWireManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeer
     const metaLength = view.getUint16(34);
     const payloadIndex = headerSize + metaLength;
     const size = kind === inline ? bytes.length - payloadIndex : view.getFloat64(40);
-    const id = kind === offer ? view.getUint32(36) : 0;
-    if (!type || payloadIndex > bytes.length || !Number.isSafeInteger(size) || size < 0 || kind === offer && (size === 0 || payloadIndex !== bytes.length)) {
+    const id = kind === offer2 ? view.getUint32(36) : 0;
+    if (!type || payloadIndex > bytes.length || !Number.isSafeInteger(size) || size < 0 || kind === offer2 && (size === 0 || payloadIndex !== bytes.length)) {
       failPeer(peerId, "invalid action proposal");
       return;
     }
@@ -5308,14 +5375,14 @@ var ensureOffer = (ctx, state, peerId) => {
       throw error;
     }
     if (!firstOffer) throw mkErr("failed to allocate offer peer");
-    const { peer, offer: offer2 } = firstOffer;
+    const { peer, offer: offer3 } = firstOffer;
     if (ctx.isLeaving() || state.offerInitPromise !== pending) {
       peer.destroy();
       return null;
     }
     state.offerPeer = peer;
     state.offerId = genId(offerIdSize);
-    state.offerSdp = offer2;
+    state.offerSdp = offer3;
     state.offerAnswered = false;
     state.connectionErrorReported = false;
     state.offerSignalBacklog = [];
@@ -5327,7 +5394,7 @@ var ensureOffer = (ctx, state, peerId) => {
     scheduleOfferExpiry(ctx, state, peerId);
     return {
       peer,
-      offer: offer2,
+      offer: offer3,
       offerId: state.offerId
     };
   };
@@ -5386,12 +5453,12 @@ var handleAnnouncement = async (ctx, relayId, peerId, signalPeer, retryAttempt =
   didSendOffer = true;
   state.offerSignalBacklog.forEach((signal) => state.offerSignalRelays[relayId]?.(signal));
 };
-var handleOffer = async (ctx, relayId, peerId, offer2, offerId, signalPeer) => {
+var handleOffer = async (ctx, relayId, peerId, offer3, offerId, signalPeer) => {
   const state = getState(ctx.peerStates, peerId);
   if (state.answeringPeer || state.offerAnswered) {
     const replay2 = state.answerReplay;
     const lastSentAt = replay2?.lastSentAt[relayId];
-    if (state.answeringPeer && !state.answeringPeer.isDead && replay2 && replay2.offer === offer2 && replay2.offerId === offerId && (lastSentAt === void 0 || Date.now() - lastSentAt >= 1e3)) {
+    if (state.answeringPeer && !state.answeringPeer.isDead && replay2 && replay2.offer === offer3 && replay2.offerId === offerId && (lastSentAt === void 0 || Date.now() - lastSentAt >= 1e3)) {
       replay2.lastSentAt[relayId] = Date.now();
       const peerTopic2 = await sha1(topicPath(ctx.rootTopicPlaintext, peerId));
       if (!ctx.isLeaving() && state.answerReplay === replay2 && !state.connectedPeer) {
@@ -5407,7 +5474,7 @@ var handleOffer = async (ctx, relayId, peerId, offer2, offerId, signalPeer) => {
   if (hasTrackedOutgoingOffer) resetOfferState(state);
   const answerPeer = ctx.initPeer(false, ctx.config);
   const replay = {
-    offer: offer2,
+    offer: offer3,
     offerId,
     messages: [],
     lastSentAt: [],
@@ -5434,7 +5501,7 @@ var handleOffer = async (ctx, relayId, peerId, offer2, offerId, signalPeer) => {
   try {
     plainOffer = await ctx.toPlain({
       type: "offer",
-      sdp: offer2
+      sdp: offer3
     });
   } catch {
     clearAnswering(state, answerPeer);
@@ -5567,7 +5634,7 @@ var createSignalHandler = (ctx) => (relayId) => async (topic, msg, signalPeer) =
   const payload = toPayload(msg);
   if (!payload || hasInvalidSignalField(payload, typeof msg === "string")) return;
   const peerId = getString(payload, "peerId") ?? "";
-  const offer2 = getString(payload, "offer");
+  const offer3 = getString(payload, "offer");
   const answer = getString(payload, "answer");
   const candidate = getString(payload, "candidate");
   const offerId = getString(payload, "offerId");
@@ -5601,7 +5668,7 @@ var createSignalHandler = (ctx) => (relayId) => async (topic, msg, signalPeer) =
     }
   }
   if (ctx.reusePeer(peerId)) return;
-  if (Boolean(peerId && !offer2 && !answer && !candidate)) {
+  if (Boolean(peerId && !offer3 && !answer && !candidate)) {
     const announcePeerState = getState(ctx.peerStates, peerId);
     const shouldLeadOffer = selfId < peerId;
     if (announcePeerState.answeringPeer || announcePeerState.connectedPeer || announcePeerState.offerAnswered) return;
@@ -5622,7 +5689,7 @@ var createSignalHandler = (ctx) => (relayId) => async (topic, msg, signalPeer) =
     announcePeerState.offerRelays[relayId] = offerRelayPlaceholder;
     return handleAnnouncement(ctx, relayId, peerId, signalPeer);
   }
-  if (offer2) return handleOffer(ctx, relayId, peerId, offer2, offerId, signalPeer);
+  if (offer3) return handleOffer(ctx, relayId, peerId, offer3, offerId, signalPeer);
   if (candidate) return handleCandidate(ctx, peerId, candidate, offerId, peer);
   if (answer) return handleAnswer(ctx, peerId, answer, offerId, peer);
 };
@@ -7167,6 +7234,141 @@ function gesture(el3, h, timers = real) {
   };
 }
 
+// src/ui/pens.ts
+var PENS = [
+  { mark: "act", word: "Action" },
+  { mark: "res", word: "Resource" },
+  { mark: "inf", word: "Influence" },
+  { mark: "def", word: "Defend" },
+  { mark: "head", word: "Heading" }
+];
+function before(a, b) {
+  if (a.line !== b.line) return a.line < b.line;
+  if (a.run !== b.run) return a.run < b.run;
+  return a.offset <= b.offset;
+}
+function apply2(lines, a, b, tag2) {
+  const [from, to] = before(a, b) ? [a, b] : [b, a];
+  for (const p of [from, to]) {
+    const r2 = lines[p.line]?.[p.run];
+    if (r2 && typeof r2 !== "string") return unmark(lines, p);
+  }
+  const line = lines[from.line] ?? [];
+  if (from.line === to.line && from.run === to.run && from.offset === to.offset) {
+    const r2 = line[from.run], prev = line[from.run - 1], next = line[from.run + 1];
+    if (from.offset === 0 && prev && typeof prev !== "string") return unmark(lines, { line: from.line, run: from.run - 1 });
+    if (typeof r2 === "string" && from.offset === r2.length && next && typeof next !== "string") return unmark(lines, { line: from.line, run: from.run + 1 });
+  }
+  if (from.line !== to.line || from.run !== to.run) return lines;
+  const r = line[from.run];
+  if (typeof r !== "string") return lines;
+  if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag2);
+  const start = r.length - r.trimStart().length, end = r.trimEnd().length;
+  return mark(lines, { line: from.line, run: from.run, start, end }, tag2);
+}
+function heading(lines, line) {
+  for (let i = line - 1; i >= 0; i--) {
+    const h = lines[i].find((r) => typeof r !== "string" && r.mark === "head");
+    if (h && typeof h !== "string") return h.text;
+  }
+  return null;
+}
+function offered(lines, line) {
+  const l = lines[line];
+  if (!l || l.some((r) => typeof r !== "string")) return null;
+  const text = plain(l).trim();
+  return text ? offer(text, heading(lines, line)) : null;
+}
+function places(count, k, at3, step) {
+  let y = 0;
+  return Array.from({ length: count }, (_, i) => {
+    if (i === k) return at3;
+    if (y + step > at3 && y < at3 + step) y = at3 + step;
+    const here = y;
+    y += step;
+    return here;
+  });
+}
+function selection(t) {
+  const sel = t.ownerDocument.getSelection();
+  if (!sel?.anchorNode || !sel.focusNode) return null;
+  const a = locate(t, sel.anchorNode, sel.anchorOffset), b = locate(t, sel.focusNode, sel.focusOffset);
+  return a && b ? [a, b] : null;
+}
+function caretAt(t, line) {
+  const doc = t.ownerDocument, div = t.children[line] ?? t.lastElementChild;
+  t.focus();
+  if (!div) return;
+  const range = doc.createRange();
+  range.selectNodeContents(div);
+  range.collapse(false);
+  const sel = doc.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
+function tray(piece2) {
+  const doc = piece2.ownerDocument;
+  const box2 = doc.createElement("div");
+  box2.className = "pens";
+  let last = null;
+  const area = (n) => (n?.nodeType === 1 ? n : n?.parentElement)?.closest(".writes") ?? null;
+  const pens = PENS.map((p) => {
+    const b = doc.createElement("button");
+    b.className = `pen pen-${p.mark}`;
+    b.textContent = p.word;
+    b.setAttribute("aria-label", `${p.word} pen`);
+    b.dataset.mark = p.mark;
+    b.addEventListener("mousedown", (ev) => ev.preventDefault());
+    b.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+    b.addEventListener("click", () => use(b, p.mark));
+    box2.append(b);
+    return b;
+  });
+  function use(b, tag2) {
+    const t = last;
+    const ends = t && selection(t);
+    if (!t || !ends) return shake(b);
+    const lines = read(t), out = apply2(lines, ends[0], ends[1], tag2);
+    if (out === lines) return shake(b);
+    render(out, t);
+    t.dispatchEvent(new Event("input", { bubbles: true }));
+    caretAt(t, Math.min(ends[0].line, ends[1].line));
+    raise();
+  }
+  function shake(b) {
+    b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
+  }
+  function raise() {
+    const t = last, ends = t && t.contains(doc.getSelection()?.anchorNode ?? null) ? selection(t) : null;
+    let k = -1, div;
+    if (t && ends) {
+      const line = ends[1].line, tag2 = offered(read(t), line);
+      k = pens.findIndex((p) => p.dataset.mark === tag2);
+      if (k >= 0) div = t.children[line];
+    }
+    pens.forEach((p, i) => p.classList.toggle("offered", i === k && !!div));
+    if (!div) {
+      for (const p of pens) p.style.removeProperty("--dy");
+      return;
+    }
+    const scale = piece2.getBoundingClientRect().height / piece2.offsetHeight || 1;
+    const at3 = (div.getBoundingClientRect().top - box2.getBoundingClientRect().top) / scale;
+    const step = pens[1].offsetTop - pens[0].offsetTop;
+    places(pens.length, k, at3, step).forEach((y, i) => pens[i].style.setProperty("--dy", `${y - pens[i].offsetTop}px`));
+  }
+  piece2.addEventListener("focusin", (ev) => {
+    const t = area(ev.target);
+    if (t) {
+      last = t;
+      raise();
+    }
+  });
+  piece2.addEventListener("input", raise);
+  piece2.addEventListener("keyup", raise);
+  piece2.addEventListener("mouseup", raise);
+  return box2;
+}
+
 // src/ui/receipt.ts
 var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var two = (n) => String(n).padStart(2, "0");
@@ -7234,7 +7436,7 @@ var el = (doc, tag2, cls, text) => {
   return e;
 };
 function writable(doc, cls, source2, save2) {
-  const t = el(doc, "div", cls);
+  const t = el(doc, "div", `${cls} writes`);
   t.contentEditable = "true";
   t.spellcheck = false;
   render(parse(source2), t);
@@ -7300,12 +7502,12 @@ function make2(doc, r, w) {
       const flip = el(doc, "button", "flip");
       flip.setAttribute("aria-label", "Flip the card");
       gesture(flip, { click: () => change2(w, rid, (c) => ({ ...c, flipped: !c.flipped })) });
-      e.append(flipper, flip);
+      e.append(flipper, flip, tray(e));
       break;
     }
     case "sticky":
     case "text":
-      e.append(writable(doc, "text", r.text, (s) => change2(w, rid, (c) => ({ ...c, text: s }))));
+      e.append(writable(doc, "text", r.text, (s) => change2(w, rid, (c) => ({ ...c, text: s }))), tray(e));
       break;
     case "image": {
       const img = doc.createElement("img");

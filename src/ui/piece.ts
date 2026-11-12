@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R22, R23, R24, R25, R26, R27, R62, R202, R203, R209, R213, R214
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R203, R209, R213, R214
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -12,6 +12,7 @@ import { canSee, type Viewer } from '../rules/visibility.ts';
 import { influence } from '../rules/readmarks.ts';
 import { parse, read, render, serialize } from '../text/marks.ts';
 import { gesture, type PointerLike } from './gesture.ts';
+import { tray } from './pens.ts';
 import { receiptEl } from './receipt.ts';
 
 /** What a piece's view needs from the page. */
@@ -54,7 +55,7 @@ const el = (doc: Document, tag: string, cls?: string, text?: string): HTMLElemen
 
 /** Text written in place: drawn from marks, read back on input. Left alone while it has the caret. */
 function writable(doc: Document, cls: string, source: string, save: (s: string) => void): HTMLElement {
-  const t = el(doc, 'div', cls);
+  const t = el(doc, 'div', `${cls} writes`);
   t.contentEditable = 'true';
   t.spellcheck = false;
   render(parse(source), t);
@@ -125,11 +126,11 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       const flip = el(doc, 'button', 'flip');
       flip.setAttribute('aria-label', 'Flip the card');
       gesture(flip, { click: () => change<Character>(w, rid, c => ({ ...c, flipped: !c.flipped })) });
-      e.append(flipper, flip);
+      e.append(flipper, flip, tray(e));
       break;
     }
     case 'sticky': case 'text':
-      e.append(writable(doc, 'text', r.text, s => change<Sticky | Text>(w, rid, c => ({ ...c, text: s }))));
+      e.append(writable(doc, 'text', r.text, s => change<Sticky | Text>(w, rid, c => ({ ...c, text: s }))), tray(e));
       break;
     case 'image': {
       const img = doc.createElement('img');

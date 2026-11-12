@@ -130,6 +130,34 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .def { background: var(--pen-def); border-radius: 3px; text-decoration: underline double; }
 .head { font-weight: 700; font-size: 1.15em; }
 
+/* ---- R206, R207: the pens, chisel-tip highlighters beside the paper you write on (manifest-ui.md) ---- */
+.pens { position: absolute; left: 100%; top: 10px; margin-left: 4px; display: none; flex-direction: column; gap: 5px;
+  z-index: 3; filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.5)); user-select: none; -webkit-user-select: none; }
+.obj:has(.writes:focus, .pens:focus-within) > .pens { display: flex; }
+/* Paper being written on comes to the top, so its pens aren't under the next piece. */
+.obj:has(.writes:focus, .pens:focus-within) { z-index: 100000 !important; }
+.pen {
+  --barrel: var(--pen-act); --cap: color-mix(in srgb, var(--barrel), #000 30%); --lift: 0px;
+  width: 104px; height: 20px; padding: 0 22px 0 18px; border: none; cursor: pointer; color: var(--ink);
+  font: 10.5px/20px var(--mono); text-align: left; white-space: nowrap;
+  /* tip, barrel, cap; then the round of the barrel catching the lamp */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.4) 0 28%, transparent 28% 72%, rgba(0,0,0,.14) 72%),
+    linear-gradient(90deg, var(--cap) 0 12px, var(--barrel) 12px 80%, var(--cap) 80%);
+  clip-path: polygon(0 38%, 12px 0, 100% 0, 100% 100%, 12px 100%, 3px 82%);
+  transform: translate(var(--lift), var(--dy, 0px)); transition: transform .18s ease-out;
+}
+.pen:hover { --lift: -4px; }
+.pen:focus-visible { --lift: -4px; outline: none; text-decoration: underline 2px; text-underline-offset: 2px; }
+/* The pen the caret's line fits slides out to sit beside it. */
+.pen.offered { --lift: -18px; z-index: 1; }
+.pen-res { --barrel: var(--pen-res); }
+.pen-inf { --barrel: var(--pen-inf); }
+.pen-def { --barrel: var(--pen-def); }
+/* A heading is drawn bold, not highlighted: its pen is a black felt marker. */
+.pen-head { --barrel: var(--ink); --cap: #4a4a4a; color: #f3e9d2; }
+@media (prefers-reduced-motion: reduce) { .pen { transition: none; } }
+
 /* ---- the reference card, as printed (PT Mono) ---- */
 .reference { width: 430px; height: 316px; background: var(--card); border: 1.5px solid var(--card-edge); border-radius: 22px;
   box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 16px 20px; font: 13.5px/1.35 var(--mono); }
@@ -139,10 +167,12 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 
 /* ---- the sticky note, with its folded corner ---- */
 .sticky {
-  width: 230px; min-height: 150px; background: var(--sticky); font: 600 19px/1.15 var(--hand);
-  padding: 12px 14px 26px; box-shadow: 2px 4px 7px rgba(0,0,0,.35);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%);
+  width: 230px; min-height: 150px; font: 600 19px/1.15 var(--hand); padding: 12px 14px 26px;
+  /* The corner is cut by the paper, not a clip, which would clip the pens beside it (and the shadow). */
+  background: linear-gradient(315deg, transparent 15.56px, var(--sticky) 15.56px);
+  filter: drop-shadow(2px 4px 3.5px rgba(0,0,0,.35));
 }
+.sticky > .pens { filter: none; }
 .sticky::after { content: ""; position: absolute; right: 0; bottom: 0; width: 22px; height: 22px;
   background: linear-gradient(315deg, transparent 50%, var(--sticky-fold) 50%); }
 .sticky .text { outline: none; min-height: 100px; white-space: pre-wrap; }

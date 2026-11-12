@@ -37,5 +37,15 @@ Back (Injuries empty, so collapsed to its name):
 
 - ⚀ is the action die: die-shaped, so it can't be taken for a Slot box □ or a tap glyph ▭.
 - Paper is tilted; it squares up while it holds the cursor.
-- The pens appear beside a card while you write on it: one highlighter per mark.
+- The pens appear beside a card while you write on it: one highlighter per mark, in a row down
+  its right edge, tips toward the paper. The pen the caret's line fits slides out to that line.
+
+```
+┌──────────────────────────────┐ ◁▬▬ Action ▬▬▌
+│ Infer: 4, +2|                │◁▬▬ Action ▬▬▌   ← offered: beside the caret's line
+│ Resources                    │ ◁▬ Resource ▬▌
+│ Money +Maj                   │ ◁▬ Influence ▌
+│                              │ ◁▬▬ Defend ▬▬▌
+└──────────────────────────────┘ ◀■■ Heading ■■▌
+```
 - Refs: crc-PieceView.md, crc-Pens.md

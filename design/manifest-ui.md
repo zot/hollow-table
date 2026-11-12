@@ -22,7 +22,12 @@ furniture; the chrome is the bar.
 | `--cloth` | `#2F5D3A` | the Ledger's binding |
 | `--amber` | `#F0A040` | the current opponent's ring |
 
-## Pens (marks)
+## Marks and pens
+
+Five pens, one per stored mark, each a chisel-tip highlighter whose barrel is its mark's highlight
+with a darker cap and its word printed in PT Mono, sentence case. The Heading pen is a black felt
+marker with cream lettering, since a heading is drawn bold rather than highlighted. `bias`, `aff`
+and `inj` are how Damage slots are drawn; they have no pen.
 
 | Mark | Highlight | Non-colour cue |
 |---|---|---|
@@ -33,7 +38,7 @@ furniture; the chrome is the bar.
 | `aff` | `#CDB6EE` | its tap glyph, its column |
 | `inj` | `#E9D3A6` | its tap glyph |
 | `def` | `#D6D6D6` | double underline |
-| `head` | none | Caveat bold, like the printed headings |
+| `head` | none (pen: `--ink`) | Caveat bold, like the printed headings |
 
 ## Type
 

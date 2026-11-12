@@ -76,7 +76,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
 - [x] crc-Gesture.md → `src/ui/gesture.ts`
 - [ ] crc-Drag.md → `src/ui/drag.ts`
-- [ ] crc-Pens.md → `src/ui/pens.ts`
+- [x] crc-Pens.md → `src/ui/pens.ts`
 - [ ] crc-RollRow.md → `src/ui/rollrow.ts`
 - [ ] crc-Tape.md → `src/ui/tape.ts`, `src/ui/receipt.ts`
 - [ ] crc-Register.md → `src/ui/register.ts`
@@ -109,6 +109,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Records.md → `src/model/records.test.ts`
 - [x] test-MarkedText.md → `src/text/marks.test.ts`
 - [x] test-MarkReader.md → `src/rules/readmarks.test.ts`
+- [x] test-Pens.md → `src/ui/pens.test.ts`
 - [x] test-Influence.md → `src/rules/influence.test.ts`
 - [x] test-Pool.md → `src/rules/pool.test.ts`
 - [x] test-Tap.md → `src/rules/tap.test.ts`

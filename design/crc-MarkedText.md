@@ -21,10 +21,16 @@ it was, so parse-then-serialize reproduces the source.
 - render(lines, el): builds a slim DOM (a div per line, a span per mark) with `textContent` only;
   nothing is parsed as HTML.
 - read(el): the reverse, from edited DOM back to lines: spans with a mark class become marks;
-  every other node contributes only its text (pasted markup is reduced to its words).
+  every other node contributes only its text (pasted markup is reduced to its words). A div starts
+  a line, and so does a `br`, except one ending its line: that is the browser's placeholder for an
+  empty line (`<div><br></div>`), and counting it would double every blank line.
+- locate(el, node, offset): a DOM position (a selection's end) as `{line, run, offset}` in the
+  lines read(el) gives, walked the same way; null when it isn't inside el. A position in plain text
+  past a line's last run names the run that would be there.
 
 ## Collaborators
 - MarkReader: reads game data inside marks.
+- Pens: mark, unmark and locate are what a pen uses.
 
 ## Sequences
 - none

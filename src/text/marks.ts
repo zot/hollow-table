@@ -122,28 +122,82 @@ export function render(lines: Line[], el: HTMLElement): void {
 
 const isMark = (s: string): s is MarkName => (MARKS as readonly string[]).includes(s);
 
+/** A position in lines: a run of a line, and an offset into its text. */
+export type Pos = { line: number; run: number; offset: number };
+
 /**
  * Edited DOM back to lines: a span whose class is a mark becomes that mark; every other node gives
- * only its text, so pasted markup is reduced to its words. Each child div (or `br`) starts a line.
+ * only its text, so pasted markup is reduced to its words. Each child div (or `br`, unless it ends
+ * its line) starts a line.
  */
 export function read(el: HTMLElement): Line[] {
+  return scan(el).lines;
+}
+
+// CRC: crc-MarkedText.md | R206
+/** A DOM position (a selection's end) in the lines read(el) gives; null when it isn't inside el. */
+export function locate(el: HTMLElement, node: Node, offset: number): Pos | null {
+  return scan(el, { node, offset }).pos;
+}
+
+/** read's walk, noting where a DOM position falls as it goes. */
+function scan(el: HTMLElement, at?: { node: Node; offset: number }): { lines: Line[]; pos: Pos | null } {
   const lines: Line[] = [[]];
+  let pos: Pos | null = null;
+  const cur = () => lines[lines.length - 1]!;
+  // Where plain text written next would go: the end of a trailing plain run, or a new run.
+  const here = (extra = 0): Pos => {
+    const line = cur(), last = line[line.length - 1];
+    return typeof last === 'string'
+      ? { line: lines.length - 1, run: line.length - 1, offset: last.length + extra }
+      : { line: lines.length - 1, run: line.length, offset: extra };
+  };
   const push = (r: Run) => {
-    const line = lines[lines.length - 1]!, last = line[line.length - 1];
+    const line = cur(), last = line[line.length - 1];
     if (typeof r === 'string' && typeof last === 'string') line[line.length - 1] = last + r;
     else if (r !== '') line.push(r);
   };
   const walk = (n: Node, top: boolean) => {
-    Array.from(n.childNodes).forEach((c, k) => {
-      if (c.nodeType === 3) return push(c.textContent ?? '');
+    const kids = Array.from(n.childNodes);
+    kids.forEach((c, k) => {
+      if (c.nodeType === 1 && (c as HTMLElement).tagName === 'DIV' && top && k > 0) lines.push([]);
+      if (at?.node === n && at.offset === k) pos ??= here();
+      if (c.nodeType === 3) {
+        if (at?.node === c) pos = here(at.offset);
+        return push(c.textContent ?? '');
+      }
       if (c.nodeType !== 1) return;
       const e = c as HTMLElement, cls = e.className;
-      if (e.tagName === 'BR') return void lines.push([]);
-      if (e.tagName === 'SPAN' && isMark(cls) && fits(cls, e.textContent ?? '')) return push({ mark: cls, text: e.textContent ?? '' });
-      if (top && k > 0 && e.tagName === 'DIV') lines.push([]);
+      // A `br` ending its line is the browser's placeholder for an empty line, not a second line.
+      if (e.tagName === 'BR') return void (k < kids.length - 1 && lines.push([]));
+      if (e.tagName === 'SPAN' && isMark(cls) && fits(cls, e.textContent ?? '')) {
+        if (at && e.contains(at.node)) pos = { line: lines.length - 1, run: cur().length, offset: offsetIn(e, at.node, at.offset) };
+        return push({ mark: cls, text: e.textContent ?? '' });
+      }
       walk(e, false);
     });
+    if (at?.node === n && at.offset >= kids.length) pos ??= here();
   };
   walk(el, true);
-  return lines.map(l => l.length ? l : ['']);
+  return { lines: lines.map(l => l.length ? l : ['']), pos };
+}
+
+/** How far into el's text a DOM position is. */
+function offsetIn(el: Node, node: Node, offset: number): number {
+  let n = 0;
+  // True once the position is reached; n is then its offset.
+  const walk = (p: Node): boolean => {
+    for (const [k, c] of Array.from(p.childNodes).entries()) {
+      if (p === node && k === offset) return true;
+      if (c.nodeType !== 3) {
+        if (walk(c)) return true;
+      } else if (c === node) {
+        n += offset;
+        return true;
+      } else n += c.textContent?.length ?? 0;
+    }
+    return false;
+  };
+  walk(el);
+  return n;
 }
