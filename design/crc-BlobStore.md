@@ -8,10 +8,11 @@ what the table asks for. Images are never stored in records.
 - Db store `blobs`: sha256 → Blob.
 
 ## Does
-- add(file): hash it, store it, return `{blob, w, h}` for an Image record.
+- add(file): hash it, store it, return `{blob, w, h}` for an Image record. Its size comes from a
+  `measure` passed in (the page decodes the image; a test fakes it).
 - get(hash): the Blob, or nothing.
 - accept(hash, bytes): keep bytes from another page only if they hash to `hash`.
-- url(hash): an object URL for display, revoked when no image shows it.
+- url(hash) / release(hash): an object URL for display, counted, and revoked when no image shows it.
 
 ## Collaborators
 - Db

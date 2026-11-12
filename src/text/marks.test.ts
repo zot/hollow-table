@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mark, marks, parse, serialize, setMark, unmark } from './marks.ts';
-import { scene } from '../fixtures/scene.ts';
+import { scene } from '../store/playtest.ts';
 
 test('round trip over real text', () => {
   const faces = scene().flatMap(r => r.kind === 'character'

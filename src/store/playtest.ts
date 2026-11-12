@@ -1,8 +1,10 @@
-// Test fixture: the 11-08 playtest scene as records (Sam, Beauford, Devreux, Devreux's three
-// Influences, Beauford's Stagger chip, the sticky and the reference card). Owners are parameters so
-// each test can name its players.
+// CRC: crc-GameStore.md | R131
+// The 11-08 playtest of *A Ghoulish Problem* as records: Sam, Beauford and Devreux, Devreux's three
+// Influences, Beauford's Stagger chip, the sticky and the reference card. The first visit makes a
+// game of it, and the tests use it. Owners are parameters so each test can name its players.
 
-import { damageSlots, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Place, type RowName, type Sticky, type Reference } from '../model/records.ts';
+import { damageSlots, ridOf, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Place, type RowName, type Sticky, type Reference, type Rec, type Rid } from '../model/records.ts';
+import { empty } from '../rules/yards.ts';
 
 export const SAM = '00000001', BEAUFORD = '00000002', DEVREUX = '00000003';
 
@@ -125,4 +127,16 @@ export function scene(sam = 'Player 1', beauford = 'Player 2'): PieceRecord[] {
     infl('00000006', 'Old Sympathy for Sparkers', 2, 2),
     chip, sticky, ref,
   ];
+}
+
+export const PLAYTEST = 'The 11-08 playtest';
+
+/** The records a new game starts with besides its pieces: no burials, round 0, an empty book and tape. */
+export function singletons(): [Rid, Rec][] {
+  return [['yards', empty()], ['meta', { round: 0, rolls: 0 }], ['book', { claims: {}, gv: 0, tomb: {} }], ['tape', { receipts: [] }]];
+}
+
+/** The whole playtest game, rid → record. */
+export function playtest(sam?: string, beauford?: string): [Rid, Rec][] {
+  return [...scene(sam, beauford).map((r): [Rid, Rec] => [ridOf(r.oid), r]), ...singletons()];
 }

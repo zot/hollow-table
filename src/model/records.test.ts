@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CAPS, check, ridOf, type Character, type Influence, type TornRoll } from './records.ts';
-import { scene } from '../fixtures/scene.ts';
+import { scene } from '../store/playtest.ts';
 
 test('check takes the scene and refuses the malformed', () => {
   const records = scene();

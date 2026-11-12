@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import type { Character } from '../model/records.ts';
 import { click, mayChange, shiftClick, type Result } from './ownership.ts';
 import { canSee, type Viewer } from './visibility.ts';
-import { BEAUFORD, DEVREUX, SAM, scene } from '../fixtures/scene.ts';
+import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const P1: Viewer = { name: 'Player 1', gm: false }, P2: Viewer = { name: 'Player 2', gm: false };
 const GM: Viewer = { name: 'GM', gm: true };

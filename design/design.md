@@ -52,12 +52,12 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Dice.md → `src/rules/dice.ts`
 - [x] crc-Visibility.md → `src/rules/visibility.ts`
 - [x] crc-Ownership.md → `src/rules/ownership.ts`
-- [ ] crc-Game.md → `src/model/game.ts`
-- [ ] crc-GameStore.md → `src/store/gamestore.ts`
-- [ ] crc-Db.md → `src/store/db.ts`
-- [ ] crc-BlobStore.md → `src/store/blobs.ts`
-- [ ] crc-Exchange.md → `src/store/exchange.ts`
-- [ ] crc-Seat.md → `src/store/seat.ts`
+- [x] crc-Game.md → `src/model/game.ts`
+- [x] crc-GameStore.md → `src/store/gamestore.ts`, `src/store/playtest.ts`
+- [x] crc-Db.md → `src/store/db.ts`
+- [x] crc-BlobStore.md → `src/store/blobs.ts`
+- [x] crc-Exchange.md → `src/store/exchange.ts`
+- [x] crc-Seat.md → `src/store/seat.ts`
 - [ ] crc-Wire.md → `src/net/wire.ts`
 - [ ] crc-Identity.md → `src/net/identity.ts`
 - [ ] crc-Seal.md → `src/net/seal.ts`
@@ -116,9 +116,12 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Dice.md → `src/rules/dice.test.ts`
 - [x] test-Visibility.md → `src/rules/visibility.test.ts`
 - [x] test-Ownership.md → `src/rules/ownership.test.ts`
-- [ ] test-GameStore.md → `src/store/gamestore.test.ts`
-- [ ] test-Exchange.md → `src/store/exchange.test.ts`
-- [ ] test-Seat.md → `tests/seat.spec.ts`
+- [x] test-Game.md → `src/model/game.test.ts`
+- [x] test-Db.md → `src/store/db.test.ts`
+- [x] test-GameStore.md → `src/store/gamestore.test.ts`
+- [x] test-BlobStore.md → `src/store/blobs.test.ts`
+- [x] test-Exchange.md → `src/store/exchange.test.ts`
+- [ ] test-Seat.md → `tests/seat.spec.ts`, `src/store/seat.test.ts`
 - [ ] test-Stamps.md → `src/net/stamps.test.ts`, `src/net/moves.test.ts`
 - [ ] test-Authority.md → `src/net/authority.test.ts`
 - [ ] test-Copy.md → `src/net/copy.test.ts`

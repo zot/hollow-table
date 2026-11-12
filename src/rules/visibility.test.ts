@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import type { Character, Influence, PieceRecord, Rec } from '../model/records.ts';
 import { canSee, redact, differs, type Viewer } from './visibility.ts';
 import { bury, burialOf, empty } from './yards.ts';
-import { DEVREUX, SAM, scene } from '../fixtures/scene.ts';
+import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 // Devreux's Saloon Gossip, tapped into a card loose on the table: its ledger names the Resource.
 const gossip: Influence = { kind: 'influence', oid: '0000000d', home: DEVREUX, where: { table: { x: 0, y: 0, z: 0, tilt: 0 } },

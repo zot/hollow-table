@@ -9,7 +9,7 @@ Opened by Bill, 2026-11-12, after the back gained its Damage columns.
 
 ## Status
 
-- [ ] **Item 1 — Damage columns, kinds and absorb in the records and rules.** **BUILT (2026-11-12, not committed.)**
+- [x] ~~**Item 1 — Damage columns, kinds and absorb in the records and rules.**~~ **LANDED (2026-11-12.)**
 - [ ] **Item 2 — draw and edit the back.** **OPEN (not queued.)** PieceView, with the rest of the views.
 - [ ] **Item 3 — Slots and absorb from Con and Wis.** **OPEN (not queued.)**
 - [ ] **Item 4 — taking an Attack.** **OPEN (not queued.)**
@@ -42,7 +42,8 @@ DECIDED (Bill, 2026-11-12):
 Landed in the specs (`table.md`, `influence.md`, `rolls.md`), R23, R54, R61, R62, R117, R204 and
 R209–R214, the design (crc-Records, crc-Tap, crc-Pool, crc-Visibility and the rest), and the rules:
 `CardBack.damage` and `absorb`, Tap's `<damage>/<row>[#k]` sources, `Influence.damage`,
-`Pool.accepts`. Every alarm on it was pulled 2026-11-12. It flips to LANDED with Bill's commit.
+`Pool.accepts`. Every alarm on it was pulled 2026-11-12, and it landed in the commit *Build scaffold,
+pure rules, and Damage columns*.
 
 ## Item 2
 

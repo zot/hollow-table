@@ -9,6 +9,10 @@ image once; import makes a new game "The 11-08 playtest (imported)" with an equa
 games listed
 **Refs:** crc-Exchange.md
 **Code:** `src/store/exchange.test.ts`
+**Alarm:** 1
+**Fire alarm:** Keep the file's name when it is taken: the import is named `The 11-08 playtest`, a second game of that name
+**Inject:** src/store/exchange.ts:importGame
+**Pulled:** 2026-11-12 — rang: the import was named `The 11-08 playtest`, not `The 11-08 playtest (imported)`
 
 ## Test: a bad file is refused whole
 **Purpose:** nothing half-imports
@@ -16,3 +20,7 @@ games listed
 **Expected:** both refused; no game created
 **Refs:** crc-Exchange.md
 **Code:** `src/store/exchange.test.ts`
+**Alarm:** 2
+**Fire alarm:** Skip the hash check on an image: the file with the wrong bytes imports and a game is created
+**Inject:** src/store/exchange.ts:importGame
+**Pulled:** 2026-11-12 — rang: the file with the wrong image bytes imported (`Missing expected rejection (BadFile)`)

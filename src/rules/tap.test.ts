@@ -5,7 +5,7 @@ import type { Character, Damage, Influence, RowName } from '../model/records.ts'
 import { marks, parse } from '../text/marks.ts';
 import { feed, kill, recharge, tap, unfeed, type Tapped } from './tap.ts';
 import { levelName } from './influence.ts';
-import { BEAUFORD, DEVREUX, SAM, scene } from '../fixtures/scene.ts';
+import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 /** A table of characters that takes each tap's changes. */
 function table() {

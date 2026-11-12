@@ -14,3 +14,18 @@
 6. restore a checkpoint: the seat kept
 **Refs:** crc-Seat.md, crc-Game.md
 **Code:** `tests/seat.spec.ts`
+
+## Test: the seat on its own
+**Purpose:** the seat is per game and viewer, survives broken storage, and prunes what vanished
+**Input:** a memory Storage; a seat for (game a, GM) with a view, a docked roller on Devreux aiming
+at Sam, an open used pile and an opened column; another for (a, Player 2); a Storage that throws;
+prune after Sam and Devreux vanish
+**Expected:** each seat reads back as saved under `hollow.seat.<game>.<viewer>`, the two apart; the
+throwing Storage gives a default seat and saving does not throw; after the prune the roller is gone
+and so are Sam's and Devreux's opened things, the view kept
+**Refs:** crc-Seat.md
+**Code:** `src/store/seat.test.ts`
+**Alarm:** 1
+**Fire alarm:** Keep a docked roller whose pool vanished (drop the pool test in prune): the roller survives the restore
+**Inject:** src/store/seat.ts:prune
+**Pulled:** 2026-11-12 — rang: the roller survived a prune after its pool vanished

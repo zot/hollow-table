@@ -5,7 +5,8 @@ Export and import: a game as one readable file.
 
 ## Knows
 - The file: `{format: 'hollow-table-game', version, name, records, checkpoints, blobs: {sha256:
-  data URI}}`, saved as `<name>.glimmer.json`. Each image appears once.
+  data URI}}`, saved as `<name>.glimmer.json` with spaces as hyphens. Each image appears once.
+  `records` is rid → record; a checkpoint is `{name, at, auto, records}`.
 
 ## Does
 - export(game id): the file, with every image the records and checkpoints use.

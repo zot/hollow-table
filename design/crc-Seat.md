@@ -15,9 +15,11 @@ checkpointed, exported or sent.
 - open: open used piles, open piles, opened narrow slots and card columns.
 
 ## Does
-- load(game, viewer) / save(): every read and write wrapped so a blocked or empty storage still
-  gives a working seat.
-- prune(game): after a restore, drop what refers to records that no longer exist.
+- load(storage, game, viewer) / save(storage, game, viewer, seat): every read and write wrapped so
+  a blocked or empty storage still gives a working seat.
+- prune(seat, exists, yards): after a restore, drop what refers to records that no longer exist (`exists(rid)`):
+  a docked roller whose pool vanished, a vanished opponent, open piles, slots and columns of
+  vanished pieces; the graveyard browsed is kept within the yards.
 
 ## Collaborators
 - Game: to prune against.

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, PieceRecord, Yards } from '../model/records.ts';
 import { bury, burialOf, empty, exhume, forget, forgetAll, next, prev, rename, type Browse } from './yards.ts';
-import { BEAUFORD, DEVREUX, SAM, scene } from '../fixtures/scene.ts';
+import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
 const piece = (oid: string) => records.find(r => r.oid === oid)! as Character;
