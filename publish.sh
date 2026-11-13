@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CRC: crc-Build.md | R200
+# CRC: crc-Build.md | R200, R305
 # Publishes the page over IPNS for the test rig. Players get GitHub Pages (R199); IPNS is for testing.
 #
 # The link is the key's subdomain, http://<key>.ipns.localhost:<port>/, never a CID: the origin is what
@@ -22,13 +22,14 @@ find_ipfs() {
 }
 IPFS="${IPFS:-$(find_ipfs)}"
 
-# Build, stamped and minified, into a folder of its own: dist/ keeps saying "dev".
+# Build, minified, into a folder of its own (dist/ keeps saying just "dev"): version "dev", and the
+# time of this publish as its date, so the page shows which publish it is.
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
-STAMP="$(date '+%b %-d %H:%M:%S')"
+STAMP="$(date '+%b %-d, %Y %H:%M:%S')"
 QUOTED="$(printf '%s%s%s' '"' "$STAMP" '"')"   # as it stands in app.js
-HOLLOW_STAMP="$STAMP" HOLLOW_OUT="$STAGE/hollow-table" node build.mjs
-grep -qF "$QUOTED" "$STAGE/hollow-table/app.js" || { echo "publish.sh: the build stamp isn't in app.js" >&2; exit 1; }
+HOLLOW_VERSION=dev HOLLOW_DATE="$STAMP" HOLLOW_OUT="$STAGE/hollow-table" node build.mjs
+grep -qF "$QUOTED" "$STAGE/hollow-table/app.js" || { echo "publish.sh: the publish time isn't in app.js" >&2; exit 1; }
 
 CID="$("$IPFS" add -r -Q --cid-version 1 "$STAGE/hollow-table")"   # add pins it too
 

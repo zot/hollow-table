@@ -77,8 +77,10 @@ The bar runs along the top. It holds:
 - The cash register, the Ledger and Boot Hill, at the right end.
 
 **How it looks** (Bill, 11-12, as the mockup): a walnut-dark strip 92 px high. Left to right: the
-wordmark, with the build stamp under it (the one thing in the bar you can select, to copy into a bug
-report); the paper supplies, a character as a little stack of white card, a note as a yellow square,
+wordmark, with the version under it and the date under that (Bill, 11-13: a release shows its tag,
+`v0.1.0`, and its day, `Nov 13, 2026`; the test rig shows "dev" and when it was published; a page
+built locally just "dev"). They are the one thing in the bar you can select, to copy into a bug
+report; the paper supplies, a character as a little stack of white card, a note as a yellow square,
 "Aa" for loose text, and an image; the chips, 2, 4, 6 and +1 in each colour, in a grid of two rows
 (the +1 smaller); the people; "You are" (the GM's); then the register, the Ledger and Boot Hill.
 - **Taking a supply**: the piece is made and in your hand the moment you press, its middle under the

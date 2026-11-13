@@ -88,7 +88,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] crc-Register.md → `src/ui/register.ts`
 - [ ] crc-BootHillView.md → `src/ui/boothill.ts`
 - [ ] crc-Ledger.md → `src/ui/ledger.ts`
-- [ ] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
+- [x] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
 - [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`
 - [ ] crc-Theme.md → `src/ui/theme.css`
@@ -173,3 +173,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T10: R51 retired by R269 (Bill 11-12: a card's Level answers clicks anywhere, and shift-click at Min deletes it)
 - T11: R178 retired by R298 (moves show the piece in hand, whatever is carried (Bill 11-13: one carry for every piece))
 - T12: R179 retired by R300 (a move changes no record; the drop's change places the piece)
+- T13: R302 retired by R303 (only releases are published, on their tag, showing version and date (Bill 11-13))
+- T14: R286 retired by R304 (the wordmark shows the version and the date, not a build stamp (Bill 11-13))

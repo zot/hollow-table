@@ -1,7 +1,8 @@
-// CRC: crc-Build.md | R196, R197, R200, R302
-// Bundles src/main.ts into dist/app.js and copies the page beside it. The stamp is "dev" unless
-// publishing sets HOLLOW_STAMP (publish.sh stamps the build time; the Pages workflow, the commit's)
-// and HOLLOW_OUT (a folder of its own, so dist/ keeps saying "dev").
+// CRC: crc-Build.md | R196, R197, R200, R303, R305
+// Bundles src/main.ts into dist/app.js and copies the page beside it. The page's version is "dev"
+// with no date unless publishing sets HOLLOW_VERSION and HOLLOW_DATE (a release: its tag and day;
+// publish.sh: "dev" and the publish time) and HOLLOW_OUT (a folder of its own, so dist/ keeps
+// saying just "dev").
 import { build } from 'esbuild';
 import { copyFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -14,9 +15,12 @@ await build({
   bundle: true,
   format: 'esm',
   target: 'es2022',
-  minify: process.env.HOLLOW_STAMP !== undefined,
+  minify: process.env.HOLLOW_OUT !== undefined,
   sourcemap: true,
-  define: { HOLLOW_STAMP: JSON.stringify(process.env.HOLLOW_STAMP ?? 'dev') },
+  define: {
+    HOLLOW_VERSION: JSON.stringify(process.env.HOLLOW_VERSION ?? 'dev'),
+    HOLLOW_DATE: JSON.stringify(process.env.HOLLOW_DATE ?? ''),
+  },
 });
 for (const f of ['src/index.html', 'src/ui/theme.css']) {
   if (existsSync(f)) await copyFile(f, `${out}/${f.split('/').pop()}`);

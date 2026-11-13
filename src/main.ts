@@ -40,7 +40,7 @@ import { Drag } from './ui/drag.ts';
 import { Hands } from './ui/hands.ts';
 import { TableView } from './ui/table.ts';
 
-declare const HOLLOW_STAMP: string;
+declare const HOLLOW_VERSION: string, HOLLOW_DATE: string;
 
 const clock: Clock = { now: () => Date.now(), setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: h => clearTimeout(h as number) };
 
@@ -128,7 +128,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     if (dy > 0) game.change(w => w.put(rid, { ...c, pool: { ...c.pool, y: top }, card: { ...c.card, y: c.card.y + dy } }));
   };
   const bar = new BarView(document.getElementById('bar')!, {
-    stamp: HOLLOW_STAMP,
+    version: HOLLOW_VERSION, date: HOLLOW_DATE,
     take: (what, e) => {
       const oid = mint()(), rid = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
       game.change(w => w.put(rid, rec));
@@ -307,7 +307,7 @@ async function main() {
     const { table, drag, bar } = v;
     hands = v.hands;
     new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }) }), people: () => here(presence), held: () => undefined });
-    return { stamp: HOLLOW_STAMP, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
+    return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
 
   // The GM's page: the game is here; a table opens on demand, in the room remembered for this game.
@@ -375,11 +375,11 @@ async function main() {
       choose: name => { saveSeat(localStorage, store.current!.id, GM, { ...gmSeat, viewAs: name === GM ? null : name }); location.reload(); },
     },
   });
-  return { stamp: HOLLOW_STAMP, role: 'gm' as const, tab, identity, store, blobs, open, invite: link, moves, view, drag,
+  return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'gm' as const, tab, identity, store, blobs, open, invite: link, moves, view, drag,
     get table() { return table; }, get rolls() { return rolls; } };
 }
 
 const ready = main();
 if (new URLSearchParams(location.search).has('test')) {
-  (window as unknown as { hollow: unknown }).hollow = { stamp: HOLLOW_STAMP, ready };
+  (window as unknown as { hollow: unknown }).hollow = { version: HOLLOW_VERSION, date: HOLLOW_DATE, ready };
 }
