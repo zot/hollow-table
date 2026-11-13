@@ -10,8 +10,8 @@ Opened by Bill, 2026-11-12, after the back gained its Damage columns.
 ## Status
 
 - [x] ~~**Item 1 — Damage columns, kinds and absorb in the records and rules.**~~ **LANDED (2026-11-12.)**
-- [ ] **Item 2 — draw and edit the back.** **OPEN (#5.)** PieceView, with the rest of the views.
-- [ ] **Item 3 — Slots and absorb from Con and Wis.** **OPEN (#6.)**
+- [x] ~~**Item 2 — draw and edit the back.**~~ **LANDED (2026-11-13 — `#5`.)** PieceView, with the rest of the views.
+- [x] ~~**Item 3 — Slots and absorb from Con and Wis.**~~ **LANDED (2026-11-13 — `#6`.)**
 - [ ] **Item 4 — taking an Attack.** **OPEN (#7.)**
 - [ ] **Item 5 — Damage that ends.** **OPEN (#8.)**
 - [ ] **Item 6 — Convictions and Burdens.** **OPEN (#9.)**
@@ -59,9 +59,10 @@ absorption for each Con and Wis Level: Wis for Biases and Afflictions, Con for I
 could fill a back's boxes and absorb from the card's front, or offer to, so nobody counts boxes by
 hand. The Docs export mangles the table, so it is read from the PDF.
 
-@undecided: fill automatically from the front, offer it, or leave it to hand.
-@undecided: Bunkum characters have no Con, so their Injury column has no extra Slots; whether the
-table needs a per-game rule for that, or the empty column is enough.
+DECIDED (Bill, 2026-11-12, T7): filled automatically from the front, never typed (R264, R265).
+DECIDED (Bill, 2026-11-13): Bunkum characters have no Con, so their Injury column gets no extra
+boxes, and no per-game rule is needed: R265 already keeps the boxes a card has when no attribute
+is marked for the column.
 
 ## Item 4
 
