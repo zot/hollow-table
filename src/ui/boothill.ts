@@ -1,11 +1,11 @@
-// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289
+// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289, R295
 // Boot Hill at the bar's right end: the gravestone with its badge, and the graveyard list under it.
 // The rules are Yards' (pure); this draws them, digs up at the press, and arms deleting forever.
 
 import type { Game } from '../model/game.ts';
 import { ridOf, type PieceRecord, type Yards } from '../model/records.ts';
 import { empty, exhume, forget, forgetAll, next, prev, raised, rename } from '../rules/yards.ts';
-import { gesture } from './gesture.ts';
+import { gesture, type PointerLike } from './gesture.ts';
 
 /** How long a first shift-click stays armed (R125). */
 export const DOOM_MS = 3000;
@@ -19,7 +19,7 @@ export type BootHillWith = {
   /** The height a dug-up piece lands at: on top of everything. */
   top: () => number;
   /** Carries a dug-up piece from the press (a character by its pool). */
-  carry: (lead: PieceRecord, down: PointerEvent) => void;
+  carry: (lead: PieceRecord, down: PointerLike, move: PointerLike) => void;
 };
 
 export class BootHillView {
@@ -122,28 +122,23 @@ export class BootHillView {
     this.#items.replaceChildren(...g.items.map((burial, item) => {
       const b = doc.createElement('button');
       b.textContent = burial.name;
-      b.title = 'Drag this back onto the table. Shift-click twice to delete it forever.';
-      // R120: it comes up the moment it's pressed, under the pointer, and the list closes.
-      b.addEventListener('pointerdown', e => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.shiftKey) {
-          this.#doom(b, 'Delete forever? Shift-click again', () => {
-            const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item });
-            this.#w.game.change(x => x.put('yards', f.yards));
-            this.#w.setCur(f.cur);
-            this.render();
-          });
-          return;
-        }
-        this.#digUp(item, e);
+      b.title = 'Drag this back onto the table. Shift-click or long-press twice to delete it forever.';
+      // R120, R295: dragged a few pixels it comes up under the pointer and the list closes; a
+      // shift-click or a long press arms deleting it forever (R125).
+      gesture(b, {
+        drag: (_down, move) => this.#digUp(item, move),
+        shift: () => this.#doom(b, 'Delete forever? Shift-click again', () => {
+          const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item });
+          this.#w.game.change(x => x.put('yards', f.yards));
+          this.#w.setCur(f.cur);
+          this.render();
+        }),
       });
       return b;
     }));
   }
 
-  #digUp(item: number, e: PointerEvent): void {
+  #digUp(item: number, e: PointerLike): void {
     const cur = this.#cur(), dug = exhume(this.#yards(), cur, { yard: cur, item });
     const recs = raised(dug.records, this.#w.toWorld(e.clientX, e.clientY), this.#w.top());
     if (!recs.length) return;
@@ -154,7 +149,8 @@ export class BootHillView {
     this.#w.setCur(dug.cur);
     this.#w.setOpen(false);
     this.render();
-    this.#w.carry(recs[0]!, e);
+    // It came up under the pointer, so it is carried from here, not from the press in the list.
+    this.#w.carry(recs[0]!, e, e);
   }
 
   // R125: the first shift-click arms it red and says so; a second within 3 s deletes; else it reverts.

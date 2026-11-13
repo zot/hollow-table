@@ -220,6 +220,7 @@
 - **R118:** Boot Hill is a gravestone at the bar's right end whose badge counts the buried; clicking it opens the list.
 - **R289:** The gravestone is grey with "Boot Hill" in Sancreek; its badge counts the buried in every graveyard and it fades when nothing is; the list is oldest first, "Nothing is buried here." when empty, and closes on a press anywhere else.
 - **R290:** A burial is named after its pool (or "Nameless"); a sticky "Note: " and a loose writing "Writing: " followed by its first line, 28 characters at most; a receipt by its title; a torn roll "Tape: N rolls, last" and its newest receipt's title. It comes up the moment it's pressed, under the pointer, and the list closes.
+- **R295:** A burial comes up out of Boot Hill's list once dragged a few pixels; a long press on it arms deleting forever, like a shift-click.
 - **R119:** Putting away a pool or its card buries both, with everything on them.
 - **R120:** Dragging a name out of the list brings it back under the pointer, a character by its pool with its card following; dropping it on the bar buries it again.
 - **R121:** Boot Hill holds named graveyards; the header (‹, editable name, ›) stays fixed while the list scrolls.
@@ -287,6 +288,7 @@
 - **R167:** A page claiming a held name from another browser sees only what anyone sees, has its changes, moves and roll requests refused, and is shown a "not yours" chip that says why.
 - **R168:** The GM's strip marks such a page, and clicking it hands the name over.
 - **R169:** "GM" can't be claimed.
+- **R296:** When the GM hands a name over, every page of that name is told whether it now holds it: the new holder's "not yours" tag goes and it gets its secrets; a page on the browser that held it gets the tag.
 - **R170:** The GM's page holds the game; each save sends the pieces that changed to the table.
 - **R171:** Players take the round from the GM's page and keep their own tape.
 - **R172:** A joining player's page asks for the whole table until it arrives, sending none of its own changes before then.

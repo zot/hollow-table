@@ -45,10 +45,11 @@ async function table() {
   const link = room.link({ tab: 'gm', browser: 'b-gm', sealKey: gmSeal.pub });
   const authority = new Authority({ game, stamps: new Stamps(memoryStorage()), sealer: gmSeal, link, schedule: queueMicrotask });
   room.watch(() => authority.idle());
-  const got = new Map<string, { public: Batch[]; mine: Sealed[]; holds: Map<string, unknown> }>();
-  for (const [tab, seal] of [['dana', danaSeal], ['ann', annSeal]] as const) {
-    const l = room.link({ tab, browser: `b-${tab}`, sealKey: seal.pub });
-    const mine = { public: [] as Batch[], mine: [] as Sealed[], holds: new Map<string, unknown>() };
+  type Got = { public: Batch[]; mine: Sealed[]; holds: Map<string, unknown>; link: ReturnType<FakeRoom['link']> };
+  const got = new Map<string, Got>();
+  const listen = (tab: string, browser: string, seal: Sealer): Got => {
+    const l = room.link({ tab, browser, sealKey: seal.pub });
+    const mine: Got = { public: [], mine: [], holds: new Map<string, unknown>(), link: l };
     got.set(tab, mine);
     l.on('recs', async (b: Batch, from) => {
       mine.public.push(b);
@@ -57,10 +58,19 @@ async function table() {
       // What the page holds: the public part, with its own sealed part over it.
       for (const p of [...b.puts, ...(opened?.puts ?? [])]) mine.holds.set(p.rid, p.rec);
     });
-  }
+    return mine;
+  };
+  listen('dana', 'b-dana', danaSeal);
+  listen('ann', 'b-ann', annSeal);
   authority.join('dana', 'Dana', 'b-dana', danaSeal.pub);
   authority.join('ann', 'Ann', 'b-ann', annSeal.pub);
-  return { room, game, got };
+  /** Another tab joining as `name` from `browser`. */
+  const join = async (tab: string, browser: string, name: string) => {
+    const seal = await Sealer.make(), mine = listen(tab, browser, seal);
+    authority.join(tab, name, browser, seal.pub);
+    return mine;
+  };
+  return { room, game, got, authority, join };
 }
 
 test('out seals what differs and nothing else', async () => {
@@ -95,4 +105,27 @@ test('claims', () => {
   assert.equal(whoIs(game, 'GM', 'b-dana'), null, '"GM" cannot be claimed');
   handOver(game, 'Dana', 'b-other');
   assert.deepEqual([whoIs(game, 'Dana', 'b-other'), whoIs(game, 'Dana', 'b-dana')], ['Dana', null]);
+});
+
+test('a name handed over: the new holder is told and gets its secrets, the old one is told', async () => {
+  // R168, R296.
+  const { room, game, got, authority, join } = await table();
+  const claims = new Map<string, (string | null)[]>();
+  const imp = await join('imp', 'b-imp', 'Ann');
+  for (const [tab, l] of [['ann', got.get('ann')!.link], ['imp', imp.link]] as const) {
+    claims.set(tab, []);
+    l.on('claim', (b: { why: string | null }) => { claims.get(tab)!.push(b.why); });
+  }
+  await room.settle();
+  imp.mine.length = 0;
+  handOver(game, 'Ann', 'b-imp');
+  authority.handedOver('Ann');
+  await room.settle();
+  const imps = claims.get('imp')!;
+  assert.equal(imps.length, 2);
+  assert.match(imps[0]!, /^Ann is played from another browser/, 'nobody when it came');
+  assert.equal(imps[1], null, 'the new holder: no longer "not yours"');
+  assert.equal(claims.get('ann')!.length, 1);
+  assert.match(claims.get('ann')![0]!, /^Ann is played from another browser/);
+  assert.ok(imp.mine.length > 0, 'its secrets follow');
 });

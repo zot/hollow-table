@@ -1,4 +1,4 @@
-// CRC: crc-Envelope.md | R109, R177
+// CRC: crc-Envelope.md | R109, R177, R296
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
@@ -19,6 +19,8 @@ export type Envelope<B = unknown> = { v: typeof VERSION; kind: Kind; tab: string
 const tab = str(CAPS.id), name = str(CAPS.name), why = str(LIMITS.why);
 const seq = int(0, Number.MAX_SAFE_INTEGER), coord = num(-CAPS.coord, CAPS.coord);
 const oidOrNull: Shape = v => v === null || isOid(v);
+// R296: a claim's why is null when the page now holds its name.
+const whyOrNull: Shape = v => v === null || why(v);
 const box = fields({ iv: str(24), data: str(LIMITS.box) });
 // A record travels with its rid and the stamp it was sent under; it must pass Records.check.
 const put: Shape = v => fields({ rid: str(CAPS.id), s: seq, rec: () => true }, { by: tab })(v)
@@ -44,7 +46,7 @@ const BODIES: Record<Kind, Shape> = {
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf('max', 'dbl'), lock: bool }),
   refuse: fields({ why }, { n: seq }),
-  claim: fields({ name, why }),
+  claim: fields({ name, why: whyOrNull }),
 };
 
 // What a sealed box holds is checked the same way once it is opened.

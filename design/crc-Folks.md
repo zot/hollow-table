@@ -1,5 +1,5 @@
 # Folks
-**Requirements:** R14, R153, R154, R158, R161, R163, R168, R293, R294
+**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296
 
 The people in the bar: a name tag each, the GM's invite, and the real GM's "You are".
 
@@ -10,7 +10,9 @@ The people in the bar: a name tag each, the GM's invite, and the real GM's "You 
 ## Does
 - tags(me, people, held): the GM first, then you, then the rest alphabetically; a stale tag is
   dimmed and unlit; on the GM's page someone holding a name another browser holds is red
-  (impostor); this page offline is a red "offline" tag whose title says why.
+  (impostor); this page offline is a red "offline" tag whose title says why; a player's page that
+  is nobody (the GM's last `claim` gave a why) is a red "not yours" tag saying why, until a `claim`
+  with none comes (R167, R296). Offline wins over not yours.
 - gmName(answer, was): the GM's rename: 32 characters at most, blank is "GM", cancel keeps it.
 - arrivalName(answer): an invited page's name: asked again for "GM" or blank; cancel is "Player".
 - viewAsChoices(present, owners): the GM, the players present, every character's owner and the
@@ -20,8 +22,6 @@ The people in the bar: a name tag each, the GM's invite, and the real GM's "You 
   the table", then "Copy invite"; a copy says "Copied" for about a second, or shows the link if the
   clipboard refuses; shift-click or a long press closes the table (R14). "You are", on the real GM's page only, is a tag
   that cycles to the next choice, kept in the GM's seat, and reloads the page as that person.
-
-A player's own "not yours" tag waits on gap O6.
 
 ## Collaborators
 - Presence: people, stale, status, rename, close.

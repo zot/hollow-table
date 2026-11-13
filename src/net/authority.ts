@@ -138,6 +138,14 @@ export class Authority {
   /** Re-sends to each tab whatever it now sees differently (after a hand-over, say). */
   recheck(): void { this.#queue(new Set(this.#w.game.all().map(([rid]) => rid))); }
 
+  // R168, R296: after the GM hands a name over, the new holder gets its secrets, and every page of
+  // that name hears whether it holds it: `why` for the one that doesn't, null for the holder.
+  /** Tells the pages playing as `name` where the name now is. */
+  handedOver(name: string): void {
+    this.recheck();
+    for (const [tab, t] of this.#tabs) if (t.name === name) this.#w.link.send('claim', { name, why: this.#viewer(t) ? null : why(name) }, tab);
+  }
+
   #queue(rids: Iterable<Rid>): void {
     for (const rid of rids) this.#pending.add(rid);
     if (this.#flushing) return;

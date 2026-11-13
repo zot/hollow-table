@@ -14,7 +14,9 @@ Where put-away work goes, so nothing that holds work is lost by accident.
 - **Putting away** a pool or its character card buries both, with everything on them. Stickies,
   loose writing, images and torn rolls are buried too.
 - **Drag a name out** of the list to bring it back under the pointer (a character by its pool, the
-  card following). It comes up the moment it's pressed, and the list closes. Dropped back on the bar, it's buried again.
+  card following). It comes up once it's dragged a few pixels, so a long press on it can delete it
+  forever like a shift-click (Bill, 11-13), and the list closes. Dropped back on the bar, it's
+  buried again.
 
 ## Graveyards
 

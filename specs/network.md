@@ -39,6 +39,8 @@ them. Nothing to install, no local-network grant, no daemon.
   is nobody: it gets only what anyone sees, its changes, moves and roll requests are refused, and it
   sees a red "not yours" chip that says why. The GM's strip marks it in red, and clicking it hands
   the name over. "GM" can't be claimed.
+- **Handing a name over** (Bill, 11-13): the page now holding it loses its "not yours" tag and gets
+  its secrets; a page of that name on the browser that held it gets the tag.
 - A browser profile is a person. Clearing site data makes you someone new; the GM hands your name
   over.
 

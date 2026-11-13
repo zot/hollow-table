@@ -193,7 +193,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     game, cur: () => seat.boothill.cur, setCur: cur => keep({ ...seat, boothill: { ...seat.boothill, cur } }),
     open: () => seat.boothill.open, setOpen: open => keep({ ...seat, boothill: { ...seat.boothill, open } }),
     toWorld: (x, y) => table.toWorld(x, y), top: topZ,
-    carry: (lead, e) => lead.kind === 'character' ? drag?.startPool(ridOf(lead.oid), e, e) : drag?.start(ridOf(lead.oid), e, e),
+    carry: (lead, down, move) => lead.kind === 'character' ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridOf(lead.oid), down, move),
   });
   hang();
   addEventListener('resize', hang);
@@ -265,6 +265,9 @@ async function main() {
     const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, place: cs => copy.place(cs), timers: clock, schedule: frame });
     wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: 'player', name });
+    // R167, R296: the GM's page says when this page is nobody, and when it is handed the name.
+    let notYours: string | null = null;
+    wire.on('claim', (b: { why: string | null }) => { notYours = b.why; });
     const rolls = new Rolls({ game, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game);
@@ -272,7 +275,7 @@ async function main() {
     presence.start();
     copy.start();
     const { table, drag, bar } = views(game, store.current!.id, { name, gm: false }, blobs, moves, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls);
-    new FolksView(bar.folks, bar.youAre, { me: () => meOf(presence, name, false), people: () => here(presence), held: () => undefined });
+    new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }) }), people: () => here(presence), held: () => undefined });
     return { stamp: HOLLOW_STAMP, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
 
@@ -328,7 +331,7 @@ async function main() {
       local('hollow.gmname', gmShown);
       table?.presence.rename(gmShown);
     },
-    handOver: (name, browser) => handOver(game, name, browser),
+    handOver: (name, browser) => { handOver(game, name, browser); table?.authority.handedOver(name); },
     table: { opened: () => !!table, open: () => void open(), invite: link, close },
     viewAs: {
       current: () => gmSeat.viewAs ?? GM,

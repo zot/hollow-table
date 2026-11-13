@@ -1466,6 +1466,7 @@ var why2 = str(LIMITS.why);
 var seq = int(0, Number.MAX_SAFE_INTEGER);
 var coord2 = num(-CAPS.coord, CAPS.coord);
 var oidOrNull = (v) => v === null || isOid(v);
+var whyOrNull = (v) => v === null || why2(v);
 var box = fields({ iv: str(24), data: str(LIMITS.box) });
 var put = (v) => fields({ rid: str(CAPS.id), s: seq, rec: () => true }, { by: tab })(v) && check(v.rid, v.rec);
 var del = fields({ rid: str(CAPS.id), s: seq }, { by: tab });
@@ -1492,7 +1493,7 @@ var BODIES = {
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf("max", "dbl"), lock: bool }),
   refuse: fields({ why: why2 }, { n: seq }),
-  claim: fields({ name, why: why2 })
+  claim: fields({ name, why: whyOrNull })
 };
 var sealedRoll = (v) => fields({ re: seq, receipt })(v) && fewDice(v.receipt);
 var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) });
@@ -1609,6 +1610,13 @@ var Authority = class {
   /** Re-sends to each tab whatever it now sees differently (after a hand-over, say). */
   recheck() {
     this.#queue(new Set(this.#w.game.all().map(([rid]) => rid)));
+  }
+  // R168, R296: after the GM hands a name over, the new holder gets its secrets, and every page of
+  // that name hears whether it holds it: `why` for the one that doesn't, null for the holder.
+  /** Tells the pages playing as `name` where the name now is. */
+  handedOver(name2) {
+    this.recheck();
+    for (const [tab2, t] of this.#tabs) if (t.name === name2) this.#w.link.send("claim", { name: name2, why: this.#viewer(t) ? null : why(name2) }, tab2);
   }
   #queue(rids) {
     for (const rid of rids) this.#pending.add(rid);
@@ -8634,21 +8642,15 @@ var BootHillView = class {
     this.#items.replaceChildren(...g.items.map((burial, item2) => {
       const b = doc.createElement("button");
       b.textContent = burial.name;
-      b.title = "Drag this back onto the table. Shift-click twice to delete it forever.";
-      b.addEventListener("pointerdown", (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.shiftKey) {
-          this.#doom(b, "Delete forever? Shift-click again", () => {
-            const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item: item2 });
-            this.#w.game.change((x) => x.put("yards", f.yards));
-            this.#w.setCur(f.cur);
-            this.render();
-          });
-          return;
-        }
-        this.#digUp(item2, e);
+      b.title = "Drag this back onto the table. Shift-click or long-press twice to delete it forever.";
+      gesture(b, {
+        drag: (_down, move) => this.#digUp(item2, move),
+        shift: () => this.#doom(b, "Delete forever? Shift-click again", () => {
+          const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item: item2 });
+          this.#w.game.change((x) => x.put("yards", f.yards));
+          this.#w.setCur(f.cur);
+          this.render();
+        })
       });
       return b;
     }));
@@ -8664,7 +8666,7 @@ var BootHillView = class {
     this.#w.setCur(dug.cur);
     this.#w.setOpen(false);
     this.render();
-    this.#w.carry(recs[0], e);
+    this.#w.carry(recs[0], e, e);
   }
   // R125: the first shift-click arms it red and says so; a second within 3 s deletes; else it reverts.
   #doom(el3, says, destroy) {
@@ -8701,7 +8703,8 @@ var BootHillView = class {
 
 // src/ui/folks.ts
 function tags(me, people, held = () => void 0) {
-  const mine = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...me.why !== void 0 && { warn: "offline" } };
+  const warn = me.why !== void 0 ? "offline" : me.notYours !== void 0 ? "notyours" : void 0;
+  const mine = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...warn && { warn } };
   const others = people.map((p) => {
     const holder = held(p.name), impostor = me.gm && p.role === "player" && holder !== void 0 && holder !== p.browser;
     return {
@@ -8751,8 +8754,9 @@ var FolksView = class {
     this.#folks.replaceChildren(...list2.map((t) => {
       const e = doc.createElement("span");
       e.className = `tag${t.live ? " live" : ""}${t.stale ? " stale" : ""}${t.gm ? " gm" : ""}${t.you ? " you" : ""}${t.warn ? " warn" : ""}`;
-      e.textContent = t.warn === "offline" ? "offline" : t.name;
+      e.textContent = t.warn === "offline" ? "offline" : t.warn === "notyours" ? "not yours" : t.name;
       if (t.warn === "offline") e.title = me.why ?? "Offline";
+      else if (t.warn === "notyours") e.title = me.notYours;
       else if (t.warn === "impostor") {
         e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees. Click to hand ${t.name} to them.`;
         e.addEventListener("click", () => {
@@ -10593,7 +10597,7 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
     setOpen: (open) => keep({ ...seat, boothill: { ...seat.boothill, open } }),
     toWorld: (x, y) => table.toWorld(x, y),
     top: topZ,
-    carry: (lead, e) => lead.kind === "character" ? drag?.startPool(ridOf(lead.oid), e, e) : drag?.start(ridOf(lead.oid), e, e)
+    carry: (lead, down, move) => lead.kind === "character" ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridOf(lead.oid), down, move)
   });
   hang();
   addEventListener("resize", hang);
@@ -10690,6 +10694,10 @@ async function main() {
     }, place: (cs) => copy.place(cs), timers: clock, schedule: frame });
     wire.on("move", (b, from) => moves2.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: "player", name: name2 });
+    let notYours = null;
+    wire.on("claim", (b) => {
+      notYours = b.why;
+    });
     const rolls2 = new Rolls({ game: game2, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game2);
@@ -10697,7 +10705,7 @@ async function main() {
     presence.start();
     copy.start();
     const { table: table2, drag: drag2, bar: bar2 } = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, (hash) => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls2);
-    new FolksView(bar2.folks, bar2.youAre, { me: () => meOf(presence, name2, false), people: () => here(presence), held: () => void 0 });
+    new FolksView(bar2.folks, bar2.youAre, { me: () => ({ ...meOf(presence, name2, false), ...notYours !== null && { notYours } }), people: () => here(presence), held: () => void 0 });
     return { stamp: "dev", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
   await store.start();
@@ -10770,7 +10778,10 @@ async function main() {
       local("hollow.gmname", gmShown);
       table?.presence.rename(gmShown);
     },
-    handOver: (name2, browser) => handOver(game, name2, browser),
+    handOver: (name2, browser) => {
+      handOver(game, name2, browser);
+      table?.authority.handedOver(name2);
+    },
     table: { opened: () => !!table, open: () => void open(), invite: link, close },
     viewAs: {
       current: () => gmSeat.viewAs ?? GM,

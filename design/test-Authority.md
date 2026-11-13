@@ -40,3 +40,17 @@ is nobody
 **Fire alarm:** Let a second browser claim a held name: browser B plays Dana before any hand-over
 **Inject:** src/net/claims.ts:whoIs
 **Pulled:** 2026-11-12 — rang: browser B played Dana before any hand-over
+
+## Test: a name handed over
+**Purpose:** R168, R296: the new holder is told it holds the name and gets its secrets; the page
+on the browser that held it is told why it is nobody
+**Input:** the GM's page with Dana and Ann; a tab from `b-imp` joining as Ann; the GM handing Ann to
+`b-imp`
+**Expected:** the `b-imp` tab told why when it came, then null, and sent sealed records; Ann's old
+tab told why
+**Refs:** crc-Authority.md, crc-Claims.md, crc-Envelope.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 4
+**Fire alarm:** Tell every page of the name why, holder or not: the new holder's second claim is a why
+**Inject:** src/net/authority.ts:Authority.handedOver
+**Pulled:** 2026-11-13 — rang: the new holder's second claim was a why, not null

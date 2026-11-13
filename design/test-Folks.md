@@ -51,3 +51,14 @@ arrival is asked again for "GM" or blank, cancel is "Player"
 **Expected:** GM, Sam, Ann, Player 1, Player 2
 **Refs:** crc-Folks.md
 **Code:** `src/ui/folks.test.ts`
+
+## Test: a page that is nobody
+**Purpose:** R167, R296: a player's page the GM said is nobody shows "not yours"; offline says more
+**Input:** Ann's page told why; Ann's page told why and offline; Ann's page told nothing
+**Expected:** `notyours`; `offline`; no warning
+**Refs:** crc-Folks.md
+**Code:** `src/ui/folks.test.ts`
+**Alarm:** 4
+**Fire alarm:** Ignore the GM's why: Ann's page told why warns nothing
+**Inject:** src/ui/folks.ts:tags
+**Pulled:** 2026-11-13 — rang: Ann's page told why warned nothing

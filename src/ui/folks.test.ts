@@ -46,3 +46,10 @@ test('"You are" offers the GM, the players present and the defaults, never open'
   // R153.
   assert.deepEqual(viewAsChoices(['Sam'], ['GM', 'open', 'Ann', 'Sam']), ['GM', 'Sam', 'Ann', 'Player 1', 'Player 2']);
 });
+
+test('a page that is nobody says "not yours"; offline says more', () => {
+  // R167, R296.
+  assert.equal(tags({ name: 'Ann', gm: false, live: true, notYours: 'Ann is played from another browser' }, [])[0]!.warn, 'notyours');
+  assert.equal(tags({ name: 'Ann', gm: false, live: false, why: 'No relay', notYours: 'Ann is played…' }, [])[0]!.warn, 'offline');
+  assert.equal(tags({ name: 'Ann', gm: false, live: true }, [])[0]!.warn, undefined);
+});

@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R170, R174, R175, R176, R185, R186, R188, R191, R192, R193
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -20,6 +20,9 @@ judges every player's change.
 ## Does
 - join(tab, name, browser, sealKey): a tab said who it is (Presence's `here`); Claims decides its
   name, and a tab that is nobody is told why.
+- handedOver(name) (R296): after the GM hands a name over (Claims.handOver), re-checks every record
+  so the new holder gets its secrets, and sends each tab playing as that name a `claim`: why for a
+  tab that is nobody, null for the holder.
 - out(changed): Game's changes, gathered until the change in hand is done (`schedule`); for each
   changed rid, the redacted-for-nobody view to everyone; for each player tab
   whose view differs from what it holds, its view sealed to it, in the same batch. Deletions go out
