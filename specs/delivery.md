@@ -15,8 +15,8 @@ and is at the table.
 ## Hosting
 
 - **Players get GitHub Pages**, at `https://zot.github.io/hollow-table/`, so a player needs only a
-  browser. Only releases are published (Bill, 11-13): work happens on a branch, `main` holds only
-  releases, and each release is tagged with its version (`v0.1.0`). Pushing a release's tag
+  browser. Only releases are published (Bill, 11-13): each release is a tag with its version
+  (`v0.1.0`) on `main`, and pushing `main` alone publishes nothing. Pushing a release's tag
   publishes it: GitHub builds the page from that tag's sources, checks it (the type check and the
   unit tests), and serves it showing the tag as its version and the release's day as its date. A
   release that fails the checks publishes nothing. The origin, `zot.github.io`, is shared with the account's

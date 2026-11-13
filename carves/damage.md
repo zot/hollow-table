@@ -10,12 +10,12 @@ Opened by Bill, 2026-11-12, after the back gained its Damage columns.
 ## Status
 
 - [x] ~~**Item 1 — Damage columns, kinds and absorb in the records and rules.**~~ **LANDED (2026-11-12.)**
-- [ ] **Item 2 — draw and edit the back.** **OPEN (not queued.)** PieceView, with the rest of the views.
-- [ ] **Item 3 — Slots and absorb from Con and Wis.** **OPEN (not queued.)**
-- [ ] **Item 4 — taking an Attack.** **OPEN (not queued.)**
-- [ ] **Item 5 — Damage that ends.** **OPEN (not queued.)**
-- [ ] **Item 6 — Convictions and Burdens.** **OPEN (not queued.)**
-- [ ] **Item 7 — what a card tapped from a Mild slot is worth.** **OPEN (not queued.)**
+- [ ] **Item 2 — draw and edit the back.** **OPEN (#5.)** PieceView, with the rest of the views.
+- [ ] **Item 3 — Slots and absorb from Con and Wis.** **OPEN (#6.)**
+- [ ] **Item 4 — taking an Attack.** **OPEN (#7.)**
+- [ ] **Item 5 — Damage that ends.** **OPEN (#8.)**
+- [ ] **Item 6 — Convictions and Burdens.** **OPEN (#9.)**
+- [ ] **Item 7 — what a card tapped from a Mild slot is worth.** **OPEN (#10.)**
 
 ## Decisions
 
