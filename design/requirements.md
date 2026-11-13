@@ -297,13 +297,17 @@
 - **R175:** A refused change is answered with the GM's version.
 - **R176:** When the GM's page deletes a piece, every page at the table removes it, however recently the piece was moved.
 - **R177:** A piece from another page is cleaned on arrival and can carry nothing runnable.
-- **R178:** Every page sends its drags straight to the table at most every 100 ms; receivers slide the piece there.
-- **R179:** A drop counts as a move; what the drop changed beyond places goes out right after it.
+- **~~R178:~~** (Retired T11 — see R298) Every page sends its drags straight to the table at most every 100 ms; receivers slide the piece there.
+- **~~R179:~~** (Retired T12 — see R300) A drop counts as a move; what the drop changed beyond places goes out right after it.
 - **R180:** Each page numbers its moves and changes on one counter that continues across a reload.
 - **R181:** Each piece keeps the highest number applied from each page and discards anything lower.
 - **R182:** Among moves arriving together, the newest arrival places a piece; an older one changes it only if it is from the same page with a higher number.
 - **R183:** A piece in your hand, or one you are writing in, takes no change until you let go.
 - **R218:** A piece moved from another page slides only to the most recent position this page has for it, never through the ones in between, including moves that arrived while it was held.
+- **R298:** Every page sends its drags straight to the table at most every 100 ms, whatever is carried (paper, a character's card or pool, a chip, an Influence card); every other page shows the piece lifted in that hand, sliding to its latest position.
+- **R299:** A move carries its aim, decided by the carrying page: what the piece would land on (a slot, a drawer and the gap's place among its cards, the kill box, a tap to merge with, a card to pin to), the strip it opened and the slot paying for it, and whether a card shows as a chip; every page, the carrier's included, draws the aim's reactions from it in its own layout, and they are never otherwise sent or saved; where two hands aim at one pool or drawer, the latest aim shows.
+- **R300:** A move changes no record: the drop counts as a move, and the drop's change, sent right after it, places the piece on every page; a piece another page let go stays where it was dropped until that change arrives, and goes back where its record says if none comes within a second; a piece in another page's hand whose record changes is let go there and then, and its next move takes it up again.
+- **R301:** A piece in the hand of a page that leaves is let go.
 - **R226:** Only what another page moved slides; a piece this page let go never does.
 - **R184:** The GM's page and each player's page share a sealing key; a sealed box names what it is and who it is from and to.
 - **R185:** Every batch carries each piece as someone who owns nothing sees it, and seals, for each player, the pieces that player sees differently.

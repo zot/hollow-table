@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
@@ -11,7 +11,6 @@ import { redact, type Characters, type Viewer } from '../rules/visibility.ts';
 import { why, whoIs } from './claims.ts';
 import { editBody } from './envelope.ts';
 import type { Link, Peer } from './link.ts';
-import type { Command } from './moves.ts';
 import type { Box, Sealer } from './seal.ts';
 import type { Stamps } from './stamps.ts';
 
@@ -262,24 +261,14 @@ export class Authority {
     return this.#work;
   }
 
-  // R179, R182: a player's drags, as the move actor places them, are judged like a change: a piece
-  // they may not move is answered with the GM's version, which puts it back on their page.
-  /** Moves from other pages, after the move actor's pass (Moves.place on the GM's page). */
-  moved(commands: Command[]): void {
-    const { game } = this.#w, gv = (game.get('book') as Book).gv;
-    const groups = new Map<string, Edit & { tab: string }>();
-    for (const c of commands) {
-      const r = game.get(c.rid) as PieceRecord | undefined;
-      if (!r || !this.#tabs.has(c.tab)) continue;
-      const at = { x: c.x, y: c.y, z: c.z };
-      let rec: PieceRecord = r;
-      if (r.kind === 'character') rec = c.part === 'pool' ? { ...r, pool: { ...r.pool, ...at } } : { ...r, card: { ...r.card, ...at } };
-      else if ('place' in r) rec = { ...r, place: { ...r.place, ...at } };
-      const key = `${c.tab}:${c.s}`, g = groups.get(key) ?? { tab: c.tab, s: c.s, base: gv, puts: [], dels: [] };
-      g.puts.push({ rid: c.rid, rec });
-      groups.set(key, g);
-    }
-    for (const { tab, ...edit } of groups.values()) this.#take(edit, tab);
+  // R300: a move saves nothing; this page shows a player's carry only of what it would take from
+  // them, unchanged (a nobody's, or another's piece, isn't shown). The drop's change is judged.
+  /** Whether this page shows `tab`'s move of `rid`. */
+  mayMove(tab: string, rid: Rid): boolean {
+    const t = this.#tabs.get(tab), r = this.#w.game.get(rid) as PieceRecord | undefined;
+    if (!t || !r) return false;
+    const gv = (this.#w.game.get('book') as Book).gv;
+    return judge(this.#w.game, { s: 0, base: gv, puts: [{ rid, rec: r }], dels: [] }, this.#viewer(t)?.name ?? null).refused.length === 0;
   }
 
   // Seq: seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7: judge, take what's allowed, answer the rest.

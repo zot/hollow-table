@@ -11,11 +11,11 @@ function damageSlots(f) {
 var DICE = ["W", "G", "R", "B", "Y"];
 var TOMBS = 3e3;
 var PLAYER_OIDS = 1048576;
-function isPiece(rid) {
-  return rid.startsWith("o:");
+function isPiece(rid2) {
+  return rid2.startsWith("o:");
 }
-function oidOf(rid) {
-  return rid.slice(2);
+function oidOf(rid2) {
+  return rid2.slice(2);
 }
 function ridOf(oid) {
   return "o:" + oid;
@@ -124,17 +124,17 @@ var SINGLETONS = {
   ),
   tape: fields({ receipts: list(receipt, 1e4) })
 };
-function check(rid, value2) {
-  if (isPiece(rid)) return piece(value2) && value2.oid === oidOf(rid);
-  return Object.hasOwn(SINGLETONS, rid) && SINGLETONS[rid](value2);
+function check(rid2, value2) {
+  if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2);
+  return Object.hasOwn(SINGLETONS, rid2) && SINGLETONS[rid2](value2);
 }
 
 // src/model/game.ts
 var Refused = class extends Error {
   rid;
-  constructor(rid) {
-    super(`refused: ${rid} is not a well-formed record`);
-    this.rid = rid;
+  constructor(rid2) {
+    super(`refused: ${rid2} is not a well-formed record`);
+    this.rid = rid2;
   }
 };
 function same(a, b) {
@@ -149,8 +149,8 @@ function same(a, b) {
 var Game = class {
   #records = /* @__PURE__ */ new Map();
   #listeners = /* @__PURE__ */ new Set();
-  get(rid) {
-    return this.#records.get(rid);
+  get(rid2) {
+    return this.#records.get(rid2);
   }
   /** Every record, rid first. */
   all() {
@@ -165,20 +165,20 @@ var Game = class {
   change(fn) {
     const staged = /* @__PURE__ */ new Map();
     fn({
-      put: (rid, value2) => {
-        if (!check(rid, value2)) throw new Refused(rid);
-        staged.set(rid, value2);
+      put: (rid2, value2) => {
+        if (!check(rid2, value2)) throw new Refused(rid2);
+        staged.set(rid2, value2);
       },
-      del: (rid) => {
-        staged.set(rid, void 0);
+      del: (rid2) => {
+        staged.set(rid2, void 0);
       }
     });
     const changed = /* @__PURE__ */ new Set();
-    for (const [rid, value2] of staged) {
-      if (same(this.#records.get(rid), value2)) continue;
-      if (value2 === void 0) this.#records.delete(rid);
-      else this.#records.set(rid, value2);
-      changed.add(rid);
+    for (const [rid2, value2] of staged) {
+      if (same(this.#records.get(rid2), value2)) continue;
+      if (value2 === void 0) this.#records.delete(rid2);
+      else this.#records.set(rid2, value2);
+      changed.add(rid2);
     }
     this.#tell(changed);
     return changed;
@@ -187,7 +187,7 @@ var Game = class {
   load(records2) {
     const changed = new Set(this.#records.keys());
     this.#records = new Map(records2);
-    for (const rid of this.#records.keys()) changed.add(rid);
+    for (const rid2 of this.#records.keys()) changed.add(rid2);
     this.#tell(changed);
   }
   /** Hear each change's rids; the function returned stops it. */
@@ -1116,9 +1116,9 @@ function rewrite(t, source2) {
   render(parse(source2), t);
   t.dataset.source = source2;
 }
-function change(w, rid, fn) {
-  const cur = w.game.get(rid);
-  if (cur) w.game.change((wr) => wr.put(rid, fn(cur)));
+function change(w, rid2, fn) {
+  const cur = w.game.get(rid2);
+  if (cur) w.game.change((wr) => wr.put(rid2, fn(cur)));
 }
 function placeOf(r) {
   if (r.kind === "character") return r.card;
@@ -1138,38 +1138,38 @@ function draw(r, old, w) {
   return e;
 }
 function make(doc, r, w) {
-  const rid = ridOf(r.oid);
+  const rid2 = ridOf(r.oid);
   const e = el(doc, "div", `obj ${CLASS[r.kind] ?? r.kind}`);
   e.dataset.kind = r.kind;
-  e.dataset.rid = rid;
+  e.dataset.rid = rid2;
   e.addEventListener("pointerdown", (ev) => {
     const t = ev.target;
     if (t.isContentEditable && t.ownerDocument.activeElement === t.closest("[contenteditable]")) ev.stopPropagation();
   }, true);
   gesture(e, { drag: (down, move) => {
     doc.activeElement?.blur?.();
-    w.drag(rid, down, move);
+    w.drag(rid2, down, move);
   } });
   switch (r.kind) {
     case "character": {
       const flipper = el(doc, "div", "flipper");
       const front = el(doc, "div", "face front"), back3 = el(doc, "div", "face back");
-      front.append(writable(doc, "text", r.front, (s) => change(w, rid, (c) => ({ ...c, front: s }))));
+      front.append(writable(doc, "text", r.front, (s) => change(w, rid2, (c) => ({ ...c, front: s }))));
       back3.append(
         el(doc, "div", "damage"),
         el(doc, "div", "notes-hd", "Notes"),
-        ruled(doc, writable(doc, "notes", r.back.notes, (s) => change(w, rid, (c) => ({ ...c, back: { ...c.back, notes: s } }))))
+        ruled(doc, writable(doc, "notes", r.back.notes, (s) => change(w, rid2, (c) => ({ ...c, back: { ...c.back, notes: s } }))))
       );
       flipper.append(front, back3);
       const flip = el(doc, "button", "flip");
       flip.setAttribute("aria-label", "Flip the card");
-      gesture(flip, { click: () => change(w, rid, (c) => ({ ...c, flipped: !c.flipped })) });
+      gesture(flip, { click: () => change(w, rid2, (c) => ({ ...c, flipped: !c.flipped })) });
       e.append(flipper, flip, tray(e));
       break;
     }
     case "sticky":
     case "text":
-      e.append(writable(doc, "text", r.text, (s) => change(w, rid, (c) => ({ ...c, text: s }))), tray(e));
+      e.append(writable(doc, "text", r.text, (s) => change(w, rid2, (c) => ({ ...c, text: s }))), tray(e));
       break;
     case "image": {
       const img = doc.createElement("img");
@@ -1469,6 +1469,17 @@ var coord2 = num(-CAPS.coord, CAPS.coord);
 var oidOrNull = (v) => v === null || isOid(v);
 var whyOrNull = (v) => v === null || why2(v);
 var box = fields({ iv: str(24), data: str(LIMITS.box) });
+var slotName = oneOf(...SLOTS);
+var rid = str(CAPS.id);
+var aim = fields({}, {
+  slot: fields({ owner: isOid, name: slotName }),
+  drawer: fields({ owner: isOid }, { at: int(0, 1e3) }),
+  kill: isOid,
+  merge: rid,
+  card: rid,
+  reach: fields({ owner: isOid, at: slotName, from: (v) => v === null || slotName(v) }),
+  chip: bool
+});
 var put = (v) => fields({ rid: str(CAPS.id), s: seq, rec: () => true }, { by: tab })(v) && check(v.rid, v.rec);
 var del = fields({ rid: str(CAPS.id), s: seq }, { by: tab });
 var fewDice = (r) => r.dice.length <= LIMITS.dice;
@@ -1482,7 +1493,7 @@ var BODIES = {
   sync: fields({}),
   // A player's change, sealed to the GM's page.
   edit: fields({ box }),
-  move: fields({ s: seq, items: list(fields({ rid: str(CAPS.id), x: coord2, y: coord2, z: int(0, CAPS.coord) }, { part: str(CAPS.id) }), LIMITS.moveItems) }),
+  move: fields({ s: seq, items: list(fields({ rid: str(CAPS.id), x: coord2, y: coord2, z: int(0, CAPS.coord) }, { part: str(CAPS.id), aim }), LIMITS.moveItems) }, { drop: bool }),
   intent: fields({
     n: seq,
     pool: isOid,
@@ -1539,7 +1550,7 @@ function mergeYards(real2, mine, viewer, chars) {
   return [...secret].every((o) => kept.has(o)) ? { yards } : null;
 }
 function judge(game, edit, who) {
-  const all2 = [...edit.puts.map((p) => p.rid), ...edit.dels].filter((rid) => rid !== "meta" && !LOCAL.has(rid));
+  const all2 = [...edit.puts.map((p) => p.rid), ...edit.dels].filter((rid2) => rid2 !== "meta" && !LOCAL.has(rid2));
   const book2 = game.get("book"), chars = characters(game);
   if (!who) return { puts: [], dels: [], refused: all2 };
   if (edit.puts.some((p) => p.rid === "yards") && edit.base < (book2.hillGv ?? 0)) return { puts: [], dels: [], refused: all2 };
@@ -1551,20 +1562,20 @@ function judge(game, edit, who) {
     return !c(old) && !c(rec) ? true : mayChange(viewer, c(old), c(rec));
   };
   const puts = [], dels = [], refused = [];
-  for (const rid of edit.dels) {
-    if (!all2.includes(rid)) continue;
-    if (isPiece(rid) && mine(game.get(rid), void 0)) dels.push(rid);
-    else refused.push(rid);
+  for (const rid2 of edit.dels) {
+    if (!all2.includes(rid2)) continue;
+    if (isPiece(rid2) && mine(game.get(rid2), void 0)) dels.push(rid2);
+    else refused.push(rid2);
   }
-  for (const { rid, rec } of edit.puts) {
-    if (!all2.includes(rid)) continue;
-    if (rid === "yards") {
+  for (const { rid: rid2, rec } of edit.puts) {
+    if (!all2.includes(rid2)) continue;
+    if (rid2 === "yards") {
       const merged = mergeYards(game.get("yards"), rec, viewer, chars);
-      if (merged) puts.push({ rid, rec: merged });
-      else refused.push(rid);
-    } else if (!isPiece(rid) || (book2.tomb[rid] ?? 0) > edit.base) refused.push(rid);
-    else if (mine(game.get(rid), rec)) puts.push({ rid, rec });
-    else refused.push(rid);
+      if (merged) puts.push({ rid: rid2, rec: merged });
+      else refused.push(rid2);
+    } else if (!isPiece(rid2) || (book2.tomb[rid2] ?? 0) > edit.base) refused.push(rid2);
+    else if (mine(game.get(rid2), rec)) puts.push({ rid: rid2, rec });
+    else refused.push(rid2);
   }
   return { puts, dels, refused };
 }
@@ -1610,7 +1621,7 @@ var Authority = class {
   // R193: secrets follow ownership; a character changing hands re-checks everything.
   /** Re-sends to each tab whatever it now sees differently (after a hand-over, say). */
   recheck() {
-    this.#queue(new Set(this.#w.game.all().map(([rid]) => rid)));
+    this.#queue(new Set(this.#w.game.all().map(([rid2]) => rid2)));
   }
   // R168, R296: after the GM hands a name over, the new holder gets its secrets, and every page of
   // that name hears whether it holds it: `why` for the one that doesn't, null for the holder.
@@ -1620,7 +1631,7 @@ var Authority = class {
     for (const [tab2, t] of this.#tabs) if (t.name === name2) this.#w.link.send("claim", { name: name2, why: this.#viewer(t) ? null : why(name2) }, tab2);
   }
   #queue(rids) {
-    for (const rid of rids) this.#pending.add(rid);
+    for (const rid2 of rids) this.#pending.add(rid2);
     if (this.#flushing) return;
     this.#flushing = true;
     const { schedule } = this.#w;
@@ -1629,54 +1640,54 @@ var Authority = class {
       this.#out();
     });
   }
-  #stamp(rid) {
-    const o = this.#origin.get(rid);
+  #stamp(rid2) {
+    const o = this.#origin.get(rid2);
     if (o?.fresh) {
       o.fresh = false;
       return stampOf(o);
     }
     const mine = { s: this.#w.stamps.next() };
-    this.#origin.set(rid, { ...mine, fresh: false });
+    this.#origin.set(rid2, { ...mine, fresh: false });
     return mine;
   }
   /** The stamp a piece already went out under, for a catch-up. */
-  #current(rid) {
-    const o = this.#origin.get(rid);
-    return o ? stampOf(o) : this.#stamp(rid);
+  #current(rid2) {
+    const o = this.#origin.get(rid2);
+    return o ? stampOf(o) : this.#stamp(rid2);
   }
   // Seq: seq-sync.md#1.1 to seq-sync.md#1.6 | R170, R174, R175, R185, R188
   #out() {
     const { game } = this.#w, chars = characters(game);
-    let rids = [...this.#pending].filter((rid) => !LOCAL.has(rid));
+    let rids = [...this.#pending].filter((rid2) => !LOCAL.has(rid2));
     this.#pending.clear();
-    if (rids.some((rid) => kindOf(game.get(rid)) === "character" || kindOf(this.#public.get(rid)) === "character")) {
-      rids = [...game.all().map(([rid]) => rid).filter((rid) => !LOCAL.has(rid)), ...rids.filter((rid) => !game.get(rid))];
+    if (rids.some((rid2) => kindOf(game.get(rid2)) === "character" || kindOf(this.#public.get(rid2)) === "character")) {
+      rids = [...game.all().map(([rid2]) => rid2).filter((rid2) => !LOCAL.has(rid2)), ...rids.filter((rid2) => !game.get(rid2))];
     }
     const puts = [], dels = [], sealFor = /* @__PURE__ */ new Map();
     const gone = [];
-    for (const rid of /* @__PURE__ */ new Set([...rids, ...this.#answerDel])) {
-      const rec = game.get(rid);
+    for (const rid2 of /* @__PURE__ */ new Set([...rids, ...this.#answerDel])) {
+      const rec = game.get(rid2);
       if (!rec) {
-        if (!this.#public.has(rid) && !this.#answerDel.has(rid)) continue;
-        this.#public.delete(rid);
-        for (const t of this.#tabs.values()) t.holds.delete(rid);
-        dels.push({ rid, ...this.#stamp(rid) });
-        gone.push(rid);
+        if (!this.#public.has(rid2) && !this.#answerDel.has(rid2)) continue;
+        this.#public.delete(rid2);
+        for (const t of this.#tabs.values()) t.holds.delete(rid2);
+        dels.push({ rid: rid2, ...this.#stamp(rid2) });
+        gone.push(rid2);
         continue;
       }
-      const pv = redact(rec, null, chars), changed = !same(this.#public.get(rid), pv);
+      const pv = redact(rec, null, chars), changed = !same(this.#public.get(rid2), pv);
       let stamp2;
-      const stampOnce = () => stamp2 ??= this.#stamp(rid);
+      const stampOnce = () => stamp2 ??= this.#stamp(rid2);
       if (changed) {
-        this.#public.set(rid, pv);
-        puts.push({ rid, ...stampOnce(), rec: pv });
+        this.#public.set(rid2, pv);
+        puts.push({ rid: rid2, ...stampOnce(), rec: pv });
       }
       for (const [tab2, t] of this.#tabs) {
-        const tv = redact(rec, this.#viewer(t), chars), holds = changed ? pv : t.holds.get(rid);
-        t.holds.set(rid, tv);
+        const tv = redact(rec, this.#viewer(t), chars), holds = changed ? pv : t.holds.get(rid2);
+        t.holds.set(rid2, tv);
         if (!same(tv, holds)) {
           const f = sealFor.get(tab2) ?? [];
-          f.push({ rid, ...stampOnce(), rec: tv });
+          f.push({ rid: rid2, ...stampOnce(), rec: tv });
           sealFor.set(tab2, f);
         }
       }
@@ -1685,7 +1696,7 @@ var Authority = class {
     if (!puts.length && !dels.length && !sealFor.size) return;
     const book2 = game.get("book"), g = book2.gv + 1;
     const tomb = { ...book2.tomb };
-    for (const rid of gone) if (isPiece(rid)) tomb[rid] = g;
+    for (const rid2 of gone) if (isPiece(rid2)) tomb[rid2] = g;
     for (const p of puts) delete tomb[p.rid];
     const keys2 = Object.keys(tomb);
     if (keys2.length > TOMBS) for (const k of keys2.sort((a, b) => tomb[a] - tomb[b]).slice(0, keys2.length - TOMBS)) delete tomb[k];
@@ -1711,13 +1722,13 @@ var Authority = class {
     const { game } = this.#w, chars = characters(game), viewer = this.#viewer(t);
     const puts = [], mine = [];
     t.holds.clear();
-    for (const [rid, rec] of game.all()) {
-      if (LOCAL.has(rid)) continue;
-      const stamp2 = this.#current(rid), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
-      puts.push({ rid, ...stamp2, rec: pv });
-      if (!this.#public.has(rid)) this.#public.set(rid, pv);
-      if (!same(tv, pv)) mine.push({ rid, ...stamp2, rec: tv });
-      t.holds.set(rid, tv);
+    for (const [rid2, rec] of game.all()) {
+      if (LOCAL.has(rid2)) continue;
+      const stamp2 = this.#current(rid2), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
+      puts.push({ rid: rid2, ...stamp2, rec: pv });
+      if (!this.#public.has(rid2)) this.#public.set(rid2, pv);
+      if (!same(tv, pv)) mine.push({ rid: rid2, ...stamp2, rec: tv });
+      t.holds.set(rid2, tv);
     }
     const g = game.get("book").gv;
     this.#send({ g, full: true, puts, dels: [] }, mine.length ? /* @__PURE__ */ new Map([[tab2, mine]]) : /* @__PURE__ */ new Map(), tab2);
@@ -1733,51 +1744,41 @@ var Authority = class {
     });
     return this.#work;
   }
-  // R179, R182: a player's drags, as the move actor places them, are judged like a change: a piece
-  // they may not move is answered with the GM's version, which puts it back on their page.
-  /** Moves from other pages, after the move actor's pass (Moves.place on the GM's page). */
-  moved(commands) {
-    const { game } = this.#w, gv = game.get("book").gv;
-    const groups = /* @__PURE__ */ new Map();
-    for (const c of commands) {
-      const r = game.get(c.rid);
-      if (!r || !this.#tabs.has(c.tab)) continue;
-      const at3 = { x: c.x, y: c.y, z: c.z };
-      let rec = r;
-      if (r.kind === "character") rec = c.part === "pool" ? { ...r, pool: { ...r.pool, ...at3 } } : { ...r, card: { ...r.card, ...at3 } };
-      else if ("place" in r) rec = { ...r, place: { ...r.place, ...at3 } };
-      const key = `${c.tab}:${c.s}`, g = groups.get(key) ?? { tab: c.tab, s: c.s, base: gv, puts: [], dels: [] };
-      g.puts.push({ rid: c.rid, rec });
-      groups.set(key, g);
-    }
-    for (const { tab: tab2, ...edit } of groups.values()) this.#take(edit, tab2);
+  // R300: a move saves nothing; this page shows a player's carry only of what it would take from
+  // them, unchanged (a nobody's, or another's piece, isn't shown). The drop's change is judged.
+  /** Whether this page shows `tab`'s move of `rid`. */
+  mayMove(tab2, rid2) {
+    const t = this.#tabs.get(tab2), r = this.#w.game.get(rid2);
+    if (!t || !r) return false;
+    const gv = this.#w.game.get("book").gv;
+    return judge(this.#w.game, { s: 0, base: gv, puts: [{ rid: rid2, rec: r }], dels: [] }, this.#viewer(t)?.name ?? null).refused.length === 0;
   }
   // Seq: seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7: judge, take what's allowed, answer the rest.
   #take(edit, tab2) {
     const t = this.#tabs.get(tab2), { game, stamps } = this.#w;
     if (!t) return;
-    const fresh3 = (rid) => stamps.fresh(rid, tab2, edit.s);
+    const fresh3 = (rid2) => stamps.fresh(rid2, tab2, edit.s);
     const current = { ...edit, puts: edit.puts.filter((p) => fresh3(p.rid)), dels: edit.dels.filter(fresh3) };
     const verdict = judge(game, current, this.#viewer(t)?.name ?? null);
-    for (const rid of [...current.puts.map((p) => p.rid), ...current.dels]) stamps.mark(rid, tab2, edit.s);
-    const theirs = (rid) => {
-      this.#origin.set(rid, { s: edit.s, by: tab2, fresh: true });
+    for (const rid2 of [...current.puts.map((p) => p.rid), ...current.dels]) stamps.mark(rid2, tab2, edit.s);
+    const theirs = (rid2) => {
+      this.#origin.set(rid2, { s: edit.s, by: tab2, fresh: true });
     };
-    const answer = (rid) => {
-      theirs(rid);
-      this.#public.delete(rid);
-      for (const x of this.#tabs.values()) x.holds.delete(rid);
-      if (!game.get(rid)) this.#answerDel.add(rid);
+    const answer = (rid2) => {
+      theirs(rid2);
+      this.#public.delete(rid2);
+      for (const x of this.#tabs.values()) x.holds.delete(rid2);
+      if (!game.get(rid2)) this.#answerDel.add(rid2);
     };
     const taken = [...verdict.puts.map((p) => p.rid), ...verdict.dels];
-    for (const rid of taken) theirs(rid);
+    for (const rid2 of taken) theirs(rid2);
     const changed = game.change((w) => {
       for (const p of verdict.puts) w.put(p.rid, p.rec);
-      for (const rid of verdict.dels) w.del(rid);
+      for (const rid2 of verdict.dels) w.del(rid2);
     });
-    const unchanged = taken.filter((rid) => !changed.has(rid));
-    for (const rid of unchanged) answer(rid);
-    for (const rid of verdict.refused) answer(rid);
+    const unchanged = taken.filter((rid2) => !changed.has(rid2));
+    for (const rid2 of unchanged) answer(rid2);
+    for (const rid2 of verdict.refused) answer(rid2);
     this.#queue([...verdict.refused, ...unchanged]);
   }
 };
@@ -1890,14 +1891,14 @@ var Copy = class {
       return;
     }
     if (!this.#gmPeer || !this.#pending.size) return;
-    const due = [...this.#pending].filter(([, p]) => now2 - p.at >= RESEND_MS).map(([rid]) => rid);
+    const due = [...this.#pending].filter(([, p]) => now2 - p.at >= RESEND_MS).map(([rid2]) => rid2);
     if (!due.length) return;
-    const gaveUp = due.filter((rid) => ++this.#pending.get(rid).tries > TRIES);
-    for (const rid of gaveUp) {
-      this.#pending.delete(rid);
-      this.#w.stamps.forget(rid, this.#w.link.tab);
+    const gaveUp = due.filter((rid2) => ++this.#pending.get(rid2).tries > TRIES);
+    for (const rid2 of gaveUp) {
+      this.#pending.delete(rid2);
+      this.#w.stamps.forget(rid2, this.#w.link.tab);
     }
-    this.#resend(due.filter((rid) => this.#pending.has(rid)));
+    this.#resend(due.filter((rid2) => this.#pending.has(rid2)));
     if (gaveUp.length) {
       this.#keepPending();
       this.#ask();
@@ -1948,12 +1949,12 @@ var Copy = class {
   }
   // Seq: seq-sync.md#1.9, seq-edit.md#1.8: newer than what was applied from that page, and not
   // pending, unless it is the GM's answer to ours.
-  #takes(rid, by, s) {
-    if (!this.#w.stamps.fresh(rid, by, s)) return false;
-    const p = this.#pending.get(rid);
+  #takes(rid2, by, s) {
+    if (!this.#w.stamps.fresh(rid2, by, s)) return false;
+    const p = this.#pending.get(rid2);
     if (!p) return true;
     if (by !== this.#w.link.tab || s < p.s) return false;
-    this.#pending.delete(rid);
+    this.#pending.delete(rid2);
     this.#keepPending();
     return true;
   }
@@ -1982,8 +1983,8 @@ var Copy = class {
     }
     if (full) {
       const have = new Set(puts.map((p) => p.rid));
-      for (const [rid] of this.#w.game.all()) {
-        if (isPiece(rid) && !have.has(rid) && !this.#pending.has(rid) && !held(rid)) gone.push(rid);
+      for (const [rid2] of this.#w.game.all()) {
+        if (isPiece(rid2) && !have.has(rid2) && !this.#pending.has(rid2) && !held(rid2)) gone.push(rid2);
       }
     }
     this.#quietly(now2, gone);
@@ -1994,42 +1995,29 @@ var Copy = class {
     try {
       this.#w.game.change((w) => {
         for (const p of puts) w.put(p.rid, p.rec);
-        for (const rid of dels) w.del(rid);
+        for (const rid2 of dels) w.del(rid2);
       });
     } finally {
       this.#quiet = false;
     }
   }
-  // R179: another page's drags, as the move actor places them: places only, never a change of ours.
-  /** Moves from other pages, after the move actor's pass (Moves.place on a player's page). */
-  place(commands) {
-    const puts = [];
-    for (const c of commands) {
-      const r = this.#w.game.get(c.rid);
-      if (!r || this.#pending.has(c.rid)) continue;
-      const at3 = { x: c.x, y: c.y, z: c.z };
-      if (r.kind === "character") puts.push({ rid: c.rid, rec: c.part === "pool" ? { ...r, pool: { ...r.pool, ...at3 } } : { ...r, card: { ...r.card, ...at3 } } });
-      else if ("place" in r) puts.push({ rid: c.rid, rec: { ...r, place: { ...r.place, ...at3 } } });
-    }
-    this.#quietly(puts, []);
-  }
   // R183: what waited for a held piece is checked again when it's let go.
   /** This page let go of `rid`. */
-  release(rid) {
-    const d = this.#deferred.get(rid);
+  release(rid2) {
+    const d = this.#deferred.get(rid2);
     if (!d) return;
-    this.#deferred.delete(rid);
+    this.#deferred.delete(rid2);
     if (d.put) this.#apply([{ ...d.put, by: d.by }], [], d.by, false);
     if (d.del) this.#apply([], [{ ...d.del, by: d.by }], d.by, false);
   }
   // Seq: seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3 | R172
   #changed(rids) {
-    const mine = [...rids].filter((rid) => isPiece(rid) || rid === "yards");
+    const mine = [...rids].filter((rid2) => isPiece(rid2) || rid2 === "yards");
     if (!mine.length) return;
     const s = this.#w.stamps.next(), at3 = this.#w.clock.now();
-    for (const rid of mine) {
-      this.#w.stamps.mark(rid, this.#w.link.tab, s);
-      this.#pending.set(rid, { s, at: at3, tries: 0, base: this.#seen, group: s });
+    for (const rid2 of mine) {
+      this.#w.stamps.mark(rid2, this.#w.link.tab, s);
+      this.#pending.set(rid2, { s, at: at3, tries: 0, base: this.#seen, group: s });
     }
     this.#keepPending();
     this.#sendEdit(s, this.#seen, mine);
@@ -2040,10 +2028,10 @@ var Copy = class {
     if (!gm || !this.synced) return;
     const { game, sealer, link } = this.#w;
     const edit = { s, base, puts: [], dels: [] };
-    for (const rid of rids) {
-      const rec = game.get(rid);
-      if (rec) edit.puts.push({ rid, rec });
-      else if (isPiece(rid)) edit.dels.push(rid);
+    for (const rid2 of rids) {
+      const rec = game.get(rid2);
+      if (rec) edit.puts.push({ rid: rid2, rec });
+      else if (isPiece(rid2)) edit.dels.push(rid2);
     }
     this.#work = this.#work.then(async () => {
       link.send("edit", { box: await sealer.seal(gm.sealKey, "edit", link.tab, gm.tab, edit) });
@@ -2053,21 +2041,21 @@ var Copy = class {
   // and as old as its copy, so one refused as stale can't take a fresh one down with it.
   #resend(rids) {
     const groups = /* @__PURE__ */ new Map();
-    for (const rid of rids) {
-      const p = this.#pending.get(rid);
+    for (const rid2 of rids) {
+      const p = this.#pending.get(rid2);
       if (!p) continue;
       const g = groups.get(p.group) ?? { base: p.base, rids: [] };
-      g.rids.push(rid);
+      g.rids.push(rid2);
       groups.set(p.group, g);
     }
     const now2 = this.#w.clock.now();
     for (const { base, rids: group } of groups.values()) {
       const s = this.#w.stamps.next();
-      for (const rid of group) {
-        const p = this.#pending.get(rid);
+      for (const rid2 of group) {
+        const p = this.#pending.get(rid2);
         p.s = s;
         p.at = now2;
-        this.#w.stamps.mark(rid, this.#w.link.tab, s);
+        this.#w.stamps.mark(rid2, this.#w.link.tab, s);
       }
       this.#sendEdit(s, base, group);
     }
@@ -2176,13 +2164,13 @@ var ImageExchange = class {
   /** Every image the game shows is wanted, as it arrives. */
   watch(game) {
     const check3 = (rids) => {
-      for (const rid of rids) {
-        const r = game.get(rid);
+      for (const rid2 of rids) {
+        const r = game.get(rid2);
         if (r && "kind" in r && r.kind === "image") void this.want(r.blob);
       }
     };
     game.listen(check3);
-    check3(game.all().map(([rid]) => rid));
+    check3(game.all().map(([rid2]) => rid2));
   }
   // Seq: seq-images.md#2 | R195: asked again every 10 s until a page with it is back.
   start() {
@@ -2232,21 +2220,21 @@ var Moves = class {
       this.#w.timers.clearTimeout(this.#timer);
       this.#timer = null;
     }
-    this.#sendNow(items);
+    this.#sendNow(items.map(({ aim: _, ...i }) => i), true);
   }
-  #sendNow(items) {
+  #sendNow(items, drop = false) {
     if (!items.length) return;
     const s = this.#w.stamps.next();
     for (const i of items) this.#w.stamps.mark(i.rid, this.#w.tab, s);
-    this.#w.send({ s, items });
+    this.#w.send({ s, items, ...drop && { drop: true } });
   }
   // Seq: seq-move.md#1.1, seq-move.md#1.2
   /** A move from another page joins the queue; an actor starts if none is running. */
   receive(from, move) {
-    for (const i of move.items) this.#filling.push({ ...i, tab: from, s: move.s });
+    for (const i of move.items) this.#filling.push({ ...i, tab: from, s: move.s, ...move.drop && { drop: true } });
     this.#startActor();
   }
-  // Seq: seq-move.md#1.3, seq-move.md#1.5 | R179, R182
+  // Seq: seq-move.md#1.3, seq-move.md#1.5 | R182
   /**
    * Swaps the buffers and works through what arrived, newest arrival first. The first command to
    * reach a piece places it; an older arrival changes it only if it is from the same page with a
@@ -2277,19 +2265,19 @@ var Moves = class {
   }
   // R183: a piece in your hand, or one you're writing in, waits until you let go.
   /** Whether this page holds `rid` (in hand, or being written in). */
-  holds(rid) {
-    return this.#held.has(rid);
+  holds(rid2) {
+    return this.#held.has(rid2);
   }
   /** This page holds `rid`: what arrives for it waits. */
-  hold(rid) {
-    this.#held.add(rid);
+  hold(rid2) {
+    this.#held.add(rid2);
   }
   /** Let go of `rid`: what waited for it is checked again, as if it had just arrived. */
-  release(rid) {
-    this.#held.delete(rid);
-    const waited = this.#waiting.get(rid);
+  release(rid2) {
+    this.#held.delete(rid2);
+    const waited = this.#waiting.get(rid2);
     if (!waited) return;
-    this.#waiting.delete(rid);
+    this.#waiting.delete(rid2);
     this.#filling.push(waited.c);
     this.#startActor();
   }
@@ -2607,9 +2595,9 @@ function diceOnly(r) {
 }
 function mint(game) {
   let top = 0;
-  for (const [rid] of game.all()) {
-    if (!isPiece(rid)) continue;
-    const n = parseInt(oidOf(rid), 16);
+  for (const [rid2] of game.all()) {
+    if (!isPiece(rid2)) continue;
+    const n = parseInt(oidOf(rid2), 16);
     if (n < PLAYER_OIDS) top = Math.max(top, n);
   }
   return (top + 1).toString(16).padStart(8, "0");
@@ -2970,20 +2958,20 @@ var Stamps = class {
     return n;
   }
   /** The highest number applied to `rid` from that page (0 if none). */
-  highest(rid, tab2) {
-    return this.#highest.get(rid)?.get(this.peer(tab2)) ?? 0;
+  highest(rid2, tab2) {
+    return this.#highest.get(rid2)?.get(this.peer(tab2)) ?? 0;
   }
   // R181: lower than what was applied from that page is stale.
-  fresh(rid, tab2, s) {
-    return s >= this.highest(rid, tab2);
+  fresh(rid2, tab2, s) {
+    return s >= this.highest(rid2, tab2);
   }
   /** Forget what was applied to `rid` from one page: a change given up on lets the GM's version win. */
-  forget(rid, tab2) {
-    this.#highest.get(rid)?.delete(this.peer(tab2));
+  forget(rid2, tab2) {
+    this.#highest.get(rid2)?.delete(this.peer(tab2));
   }
-  mark(rid, tab2, s) {
-    let m = this.#highest.get(rid);
-    if (!m) this.#highest.set(rid, m = /* @__PURE__ */ new Map());
+  mark(rid2, tab2, s) {
+    let m = this.#highest.get(rid2);
+    if (!m) this.#highest.set(rid2, m = /* @__PURE__ */ new Map());
     const p = this.peer(tab2);
     if (s > (m.get(p) ?? 0)) m.set(p, s);
   }
@@ -7695,27 +7683,27 @@ var RollRowView = class {
     const doc = this.#row.ownerDocument, body = doc.body;
     const under = (e) => {
       for (const el3 of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
-        const rid = el3.closest?.(".pool, .obj.card")?.dataset.rid;
-        if (rid) return rid.slice(2);
+        const rid2 = el3.closest?.(".pool, .obj.card")?.dataset.rid;
+        if (rid2) return rid2.slice(2);
       }
       return null;
     };
     let lit;
-    const light2 = (oid) => {
+    const light = (oid) => {
       lit?.classList.remove("aimed");
       lit = oid && oid !== r.pool ? this.#w.pool(oid) : void 0;
       lit?.classList.add("aimed");
     };
     body.classList.add("tapping", "dragging");
     doc.getSelection()?.removeAllRanges();
-    const onMove = (ev) => light2(under(ev));
+    const onMove = (ev) => light(under(ev));
     const onUp = (ev) => {
       const e = ev;
       if (e.pointerId !== down.pointerId) return;
       doc.removeEventListener("pointermove", onMove);
       doc.removeEventListener("pointerup", onUp);
       body.classList.remove("tapping", "dragging");
-      light2(null);
+      light(null);
       const oid = under(e), opp = oid && oid !== r.pool ? this.#w.game.get(ridOf(oid)) : void 0;
       if (opp?.kind !== "character") return;
       const viewer = this.#w.viewer;
@@ -7919,18 +7907,18 @@ function ended(game) {
   return (w) => {
     const meta = game.get("meta");
     w.put("meta", { ...meta, round: 0 });
-    for (const [rid, r] of game.all()) {
+    for (const [rid2, r] of game.all()) {
       const p = r;
       if (!("kind" in p)) continue;
       if (p.kind === "character") {
-        w.put(rid, recharge(p));
+        w.put(rid2, recharge(p));
         continue;
       }
       if (p.kind !== "influence") continue;
       const k = p;
-      if (k.crit || k.where === "used" && k.tap) w.del(rid);
-      else if (k.where === "used") w.put(rid, { ...k, where: "drawer", used: false });
-      else if (k.used) w.put(rid, { ...k, used: false });
+      if (k.crit || k.where === "used" && k.tap) w.del(rid2);
+      else if (k.where === "used") w.put(rid2, { ...k, where: "drawer", used: false });
+      else if (k.used) w.put(rid2, { ...k, used: false });
     }
   };
 }
@@ -8013,7 +8001,7 @@ var RegisterView = class {
 
 // src/ui/actions.ts
 function minter(game, gm, rng = Math.random) {
-  const used = new Set(game.all().map(([rid]) => rid).filter(isPiece).map(oidOf));
+  const used = new Set(game.all().map(([rid2]) => rid2).filter(isPiece).map(oidOf));
   let top = 0;
   for (const o of used) {
     const n = parseInt(o, 16);
@@ -8029,13 +8017,13 @@ function minter(game, gm, rng = Math.random) {
   };
 }
 var lookup = (game) => (oid) => game.get(ridOf(oid));
-var item = (game, rid) => {
-  const r = game.get(rid);
+var item = (game, rid2) => {
+  const r = game.get(rid2);
   return r && "kind" in r && (r.kind === "chip" || r.kind === "influence") ? r : void 0;
 };
 var inSlot2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && i.where.name === slot2;
 function slotItems(game, owner, slot2) {
-  return game.all().map(([rid]) => item(game, rid)).filter((i) => !!i && inSlot2(i, owner, slot2));
+  return game.all().map(([rid2]) => item(game, rid2)).filter((i) => !!i && inSlot2(i, owner, slot2));
 }
 function settle(w, items, mint2) {
   const plan = rollUp(items, mint2);
@@ -8048,8 +8036,8 @@ function withItem(game, owner, slot2, changed, gone) {
   const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
   return changed ? [...rest, changed] : rest;
 }
-function toSlot(game, rid, owner, slot2, mint2) {
-  const i = item(game, rid);
+function toSlot(game, rid2, owner, slot2, mint2) {
+  const i = item(game, rid2);
   if (!i || !accepts(slot2, i)) return null;
   const home = i.kind === "influence" && i.mot ? { home: owner } : {};
   const moved = { ...i, ...home, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
@@ -8060,55 +8048,55 @@ function toSlot(game, rid, owner, slot2, mint2) {
 function drawerCards(game, owner) {
   return game.all().map(([, r]) => r).filter((r) => "kind" in r && r.kind === "influence" && r.home === owner && r.where === "drawer").sort((a, b) => a.n - b.n);
 }
-function toDrawer(game, rid, owner, at3) {
-  const i = item(game, rid);
+function toDrawer(game, rid2, owner, at3) {
+  const i = item(game, rid2);
   if (!i || i.kind !== "influence") return null;
-  const order = drawerCards(game, owner).filter((k) => ridOf(k.oid) !== rid);
+  const order = drawerCards(game, owner).filter((k) => ridOf(k.oid) !== rid2);
   const card2 = { ...i, home: owner, where: "drawer", used: false };
   order.splice(at3 === void 0 ? order.length : Math.max(0, Math.min(at3, order.length)), 0, card2);
   return (w) => order.forEach((k, n) => {
     if (k === card2 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
   });
 }
-function toTable(game, rid, at3) {
-  const i = item(game, rid);
+function toTable(game, rid2, at3) {
+  const i = item(game, rid2);
   if (!i) return null;
-  if (i.kind === "influence" && !i.tap) return toDrawer(game, rid, i.home);
-  return (w) => w.put(rid, { ...i, where: { table: at3 } });
+  if (i.kind === "influence" && !i.tap) return toDrawer(game, rid2, i.home);
+  return (w) => w.put(rid2, { ...i, where: { table: at3 } });
 }
-function killCard(game, rid) {
-  const i = item(game, rid);
+function killCard(game, rid2) {
+  const i = item(game, rid2);
   if (!i || i.kind !== "influence") return null;
   const refunds = kill(lookup(game), i);
   return (w) => {
-    w.del(rid);
+    w.del(rid2);
     for (const c of refunds) w.put(ridOf(c.oid), c);
   };
 }
-function vanish(game, rid) {
-  const i = item(game, rid);
-  return i?.kind === "chip" ? (w) => w.del(rid) : null;
+function vanish(game, rid2) {
+  const i = item(game, rid2);
+  return i?.kind === "chip" ? (w) => w.del(rid2) : null;
 }
-function chipClick(game, rid, shift, mint2) {
-  const c = item(game, rid);
+function chipClick(game, rid2, shift, mint2) {
+  const c = item(game, rid2);
   if (c?.kind !== "chip") return null;
   const next2 = shift ? lowerChip(c) : raiseChip(c);
   if (typeof c.where !== "object" || !("slot" in c.where)) {
     return (w) => {
-      if (next2) w.put(rid, next2);
-      else w.del(rid);
+      if (next2) w.put(rid2, next2);
+      else w.del(rid2);
     };
   }
   const { slot: owner, name: name2 } = c.where;
   return (w) => {
-    if (!next2) w.del(rid);
+    if (!next2) w.del(rid2);
     settle(w, withItem(game, owner, name2, next2, next2 ? void 0 : c.oid), mint2);
   };
 }
-function riderClick(game, rid, shift) {
-  const c = item(game, rid);
+function riderClick(game, rid2, shift) {
+  const c = item(game, rid2);
   if (c?.kind !== "chip" || !c.rider || !shift) return null;
-  return (w) => w.put(rid, { ...c, rider: false });
+  return (w) => w.put(rid2, { ...c, rider: false });
 }
 function addLoose(game, owner, slot2, shift, mint2) {
   const chip2 = {
@@ -8122,25 +8110,25 @@ function addLoose(game, owner, slot2, shift, mint2) {
   };
   return (w) => w.put(ridOf(chip2.oid), chip2);
 }
-function cardClick(game, rid, shift, mint2) {
-  const c = item(game, rid);
+function cardClick(game, rid2, shift, mint2) {
+  const c = item(game, rid2);
   if (c?.kind !== "influence") return null;
-  if (shift && c.points <= MIN) return killCard(game, rid);
+  if (shift && c.points <= MIN) return killCard(game, rid2);
   if (c.tap) {
     const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
     return t ? apply2(t, c) : null;
   }
   const next2 = shift ? lowerCard(c) : raiseCard(c);
-  return next2.points === c.points ? null : (w) => w.put(rid, next2);
+  return next2.points === c.points ? null : (w) => w.put(rid2, next2);
 }
 function writeCard(game, owner, sign2, name2, mint2) {
   const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
   const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
   return (w) => w.put(ridOf(card2.oid), card2);
 }
-function restoreUsed(game, rid) {
-  const c = item(game, rid);
-  return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid, { ...c, where: "drawer", used: false }) : null;
+function restoreUsed(game, rid2) {
+  const c = item(game, rid2);
+  return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid2, { ...c, where: "drawer", used: false }) : null;
 }
 function apply2(t, old) {
   return (w) => {
@@ -8244,7 +8232,7 @@ var run = (game, c) => {
 var isPile2 = (u) => "members" in u;
 var at = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
 function drawPool(c, items, old, w) {
-  const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
+  const doc = old?.ownerDocument ?? document, rid2 = ridOf(c.oid);
   const e = old ?? make3(doc, c, w);
   e.style.left = `${c.pool.x}px`;
   e.style.top = `${c.pool.y}px`;
@@ -8254,16 +8242,16 @@ function drawPool(c, items, old, w) {
   die3.textContent = ownerWord(c);
   die3.title = c.owner === OPEN ? "Open: click to claim this character" : "Click to roll for this character; shift-click to open it for someone else";
   e.querySelector(".gather").hidden = c.gathered;
-  const opened = w.poolOpen(), shown2 = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
+  const opened = w.poolOpen(), shown3 = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
   const slotEls = [...e.querySelectorAll(".slot")];
   const mine = slotEls.map((slotEl) => items.filter((i) => at(i, c.oid, slotEl.dataset.slot)));
   holdingOf.set(e, slotEls.map((slotEl, k) => mine[k].length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
   layout(e);
-  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown2, drawn));
-  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown2, drawn);
-  for (const k of pops(seen2.get(e), shown2)) pop(drawn.get(k));
-  seen2.set(e, shown2);
-  e.dataset.rid = rid;
+  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown3, drawn));
+  drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown3, drawn);
+  for (const k of pops(seen2.get(e), shown3)) pop(drawn.get(k));
+  seen2.set(e, shown3);
+  e.dataset.rid = rid2;
   return e;
 }
 var holdingOf = /* @__PURE__ */ new WeakMap();
@@ -8293,12 +8281,12 @@ function pop(e) {
 function make3(doc, c, w) {
   const e = el2(doc, "div", "obj pool");
   e.dataset.part = "pool";
-  const rid = ridOf(c.oid);
+  const rid2 = ridOf(c.oid);
   const hd = el2(doc, "div", "hd");
   const gather = el2(doc, "button", "gather", "gather");
   gesture(gather, { click: () => {
-    const cur = w.game.get(rid);
-    w.game.change((x) => x.put(rid, { ...cur, gathered: true }));
+    const cur = w.game.get(rid2);
+    w.game.change((x) => x.put(rid2, { ...cur, gathered: true }));
   } });
   const name2 = el2(doc, "span", "name");
   const die3 = el2(doc, "button", "die-own");
@@ -8334,10 +8322,10 @@ function make3(doc, c, w) {
   drawer2.dataset.drawer = c.oid;
   drawer2.append(el2(doc, "div", "cards"), el2(doc, "div", "tools"));
   e.append(hd, slots, drawer2);
-  for (const part of [name2, slots, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid, d, m) });
+  for (const part of [name2, slots, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid2, d, m) });
   return e;
 }
-function units(slotEl, items, w, shown2, drawn) {
+function units(slotEl, items, w, shown3, drawn) {
   const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
   const opened = w.poolOpen(), place3 = slotEl.dataset.slot;
   for (const sign2 of [1, -1]) {
@@ -8348,7 +8336,7 @@ function units(slotEl, items, w, shown2, drawn) {
       const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
       e.style.zIndex = String(50 - k);
       const key = piled ? `pile:${u.members[0]?.oid ?? ""}` : u.oid;
-      shown2.set(key, { points: u.points, place: place3 });
+      shown3.set(key, { points: u.points, place: place3 });
       drawn.set(key, e);
       return e;
     }));
@@ -8367,22 +8355,22 @@ function chip(doc, i, w) {
     `chip ${i.sign > 0 ? "pos" : "neg"}${card2 ? " card-chip" : ""}${card2 && i.tap ? " res" : ""}${card2 && i.used ? " used" : ""}`,
     chipFace(i)
   );
-  const rid = ridOf(i.oid);
-  b.dataset.rid = rid;
+  const rid2 = ridOf(i.oid);
+  b.dataset.rid = rid2;
   if (card2) {
     b.title = i.name;
     b.dataset.name = i.name;
   }
   if (i.kind === "chip" && i.rider) {
     const r = el2(doc, "span", "rider", "+1");
-    gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid, true)) });
+    gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid2, true)) });
     b.append(r);
   }
   const click2 = i.kind === "chip" ? chipClick : cardClick;
   gesture(b, {
-    click: () => run(w.game, click2(w.game, rid, false, w.mint())),
-    shift: () => run(w.game, click2(w.game, rid, true, w.mint())),
-    drag: (d, m) => w.dragItem(rid, d, m)
+    click: () => run(w.game, click2(w.game, rid2, false, w.mint())),
+    shift: () => run(w.game, click2(w.game, rid2, true, w.mint())),
+    drag: (d, m) => w.dragItem(rid2, d, m)
   });
   return b;
 }
@@ -8400,13 +8388,13 @@ function pile(doc, p, open, w) {
   }
   return d;
 }
-function drawer(box2, c, cards, w, shown2, drawn) {
+function drawer(box2, c, cards, w, shown3, drawn) {
   const doc = box2.ownerDocument, opened = w.poolOpen();
   const visible = canSee(w.viewer, c);
   const here2 = cards.filter((k) => k.where === "drawer"), used = cards.filter((k) => k.where === "used");
   box2.querySelector(".cards").replaceChildren(...here2.sort((a, b) => a.n - b.n).map((k) => {
     const e = card(doc, k, visible, w);
-    shown2.set(k.oid, { points: k.points, place: "drawer" });
+    shown3.set(k.oid, { points: k.points, place: "drawer" });
     drawn.set(k.oid, e);
     return e;
   }));
@@ -8444,10 +8432,10 @@ function drawer(box2, c, cards, w, shown2, drawn) {
   box2.querySelector(".tools").replaceChildren(...tools);
 }
 function card(doc, k, visible, w) {
-  const rid = ridOf(k.oid);
+  const rid2 = ridOf(k.oid);
   const e = el2(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
-  e.dataset.rid = rid;
-  const drag = { drag: (d, m) => w.dragItem(rid, d, m) };
+  e.dataset.rid = rid2;
+  const drag = { drag: (d, m) => w.dragItem(rid2, d, m) };
   if (!visible) {
     e.classList.add("facedown");
     gesture(e, drag);
@@ -8457,13 +8445,13 @@ function card(doc, k, visible, w) {
   name2.contentEditable = "true";
   name2.spellcheck = false;
   name2.addEventListener("input", () => {
-    const cur = w.game.get(rid);
-    if (cur) w.game.change((x) => x.put(rid, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
+    const cur = w.game.get(rid2);
+    if (cur) w.game.change((x) => x.put(rid2, { ...cur, name: (name2.textContent ?? "").slice(0, 200) }));
   });
   const level = el2(doc, "button", "level", `${k.sign > 0 ? "+" : "\u2212"}${levelName(k.points)}`);
   gesture(level, {
-    click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
-    shift: () => run(w.game, cardClick(w.game, rid, true, w.mint()))
+    click: () => run(w.game, cardClick(w.game, rid2, false, w.mint())),
+    shift: () => run(w.game, cardClick(w.game, rid2, true, w.mint()))
   });
   e.append(name2, level);
   gesture(e, drag);
@@ -8927,10 +8915,10 @@ var BlobStore = class {
   }
   /** An object URL for showing the image; each url() is paired with a release(). */
   async url(hash) {
-    const shown2 = this.#shown.get(hash);
-    if (shown2) {
-      shown2.n++;
-      return shown2.url;
+    const shown3 = this.#shown.get(hash);
+    if (shown3) {
+      shown3.n++;
+      return shown3.url;
     }
     const blob = await this.get(hash);
     if (!blob) return void 0;
@@ -8945,9 +8933,9 @@ var BlobStore = class {
   }
   /** One image stops showing; the URL is revoked when none does. */
   release(hash) {
-    const shown2 = this.#shown.get(hash);
-    if (!shown2 || --shown2.n > 0) return;
-    this.#urls.revoke(shown2.url);
+    const shown3 = this.#shown.get(hash);
+    if (!shown3 || --shown3.n > 0) return;
+    this.#urls.revoke(shown3.url);
     this.#shown.delete(hash);
   }
 };
@@ -9178,7 +9166,7 @@ var GameStore = class {
     this.#storage = storage;
     this.game.listen((rids) => {
       if (this.#quiet) return;
-      for (const rid of rids) this.#pending.add(rid);
+      for (const rid2 of rids) this.#pending.add(rid2);
       if (this.#timer !== null) this.#clock.clearTimeout(this.#timer);
       this.#timer = this.#clock.setTimeout(() => {
         this.#timer = null;
@@ -9209,7 +9197,7 @@ var GameStore = class {
     const info = { id, name: name2, made: now2, opened: now2, ...copyOf && { copyOf } };
     await this.#db.tx(["games", "records", "checkpoints"], "readwrite", async (t) => {
       await t.put("games", id, info);
-      for (const [rid, rec] of records2) await t.put("records", [id, rid], rec);
+      for (const [rid2, rec] of records2) await t.put("records", [id, rid2], rec);
       for (const cp of checkpoints) {
         const cid = this.#id("c");
         await t.put("checkpoints", [id, cid], { ...cp, id: cid });
@@ -9260,21 +9248,21 @@ var GameStore = class {
     const cur = this.current, rids = [...this.#pending];
     this.#pending.clear();
     if (!cur || !rids.length) return this.#saving;
-    const records2 = rids.map((rid) => [rid, this.game.get(rid)]);
+    const records2 = rids.map((rid2) => [rid2, this.game.get(rid2)]);
     this.#busy++;
     this.#saving = this.#saving.then(() => this.#db.tx(["records"], "readwrite", async (t) => {
-      for (const [rid, rec] of records2) {
-        const stored = await t.get("records", [cur.id, rid]);
+      for (const [rid2, rec] of records2) {
+        const stored = await t.get("records", [cur.id, rid2]);
         if (same(stored, rec)) continue;
-        if (rec === void 0) await t.del("records", [cur.id, rid]);
-        else await t.put("records", [cur.id, rid], rec);
+        if (rec === void 0) await t.del("records", [cur.id, rid2]);
+        else await t.put("records", [cur.id, rid2], rec);
       }
     })).then(() => {
       this.#savedAt = this.#clock.now();
       this.#failed = null;
     }, (e) => {
       this.#failed = e instanceof Error ? e.message : String(e);
-      for (const [rid] of records2) this.#pending.add(rid);
+      for (const [rid2] of records2) this.#pending.add(rid2);
     }).finally(() => {
       this.#busy--;
     });
@@ -9309,7 +9297,7 @@ var GameStore = class {
     if (!cp) throw new Error(`no checkpoint ${id}`);
     await this.checkpoint(beforeRestoring(cp.name), true);
     const book2 = this.game.get("book");
-    const records2 = Object.entries(cp.records).filter(([rid]) => rid !== "book");
+    const records2 = Object.entries(cp.records).filter(([rid2]) => rid2 !== "book");
     this.game.load(book2 ? [...records2, ["book", book2]] : records2);
     await this.save();
   }
@@ -9461,9 +9449,9 @@ var BadFile = class extends Error {
 var isObject2 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 function records(v, where2) {
   if (!isObject2(v)) throw new BadFile(`${where2}: no records`);
-  return Object.entries(v).map(([rid, rec]) => {
-    if (!check(rid, rec)) throw new BadFile(`${where2}: ${rid} is not a well-formed record`);
-    return [rid, rec];
+  return Object.entries(v).map(([rid2, rec]) => {
+    if (!check(rid2, rec)) throw new BadFile(`${where2}: ${rid2} is not a well-formed record`);
+    return [rid2, rec];
   });
 }
 async function importGame(store, blobs, text) {
@@ -9661,23 +9649,12 @@ var LedgerView = class {
 
 // src/ui/drag.ts
 var TAP_GLYPH_X = 10;
-function asChip(el3, i) {
-  el3.className = `loose-item chip ${i.sign > 0 ? "pos" : "neg"}`;
-  el3.textContent = chipFace(i);
-  if (i.kind === "influence") el3.title = i.name;
-}
-function light(was, now2) {
-  if (was !== now2) {
-    was?.classList.remove("over");
-    now2?.classList.add("over");
-  }
-  return now2;
-}
 function leaveWriting(doc) {
   doc.activeElement?.blur?.();
   doc.getSelection?.()?.removeAllRanges();
 }
 var pinnable = (r) => r.kind === "sticky" || r.kind === "text" || r.kind === "image";
+var less = (p, g) => ({ x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) });
 var Drag = class {
   #w;
   constructor(w) {
@@ -9692,137 +9669,197 @@ var Drag = class {
     }
     return z + 1;
   }
-  // Seq: seq-drag.md#1.2: lift; seq-drag.md#1.3: carry; seq-drag.md#1.6: drop.
-  /** Carries a piece from the press that started it, and what's pinned to it. */
-  start(rid, down, move) {
-    const { game, table, moves } = this.#w;
-    const rec = game.get(rid), at3 = rec && placeOf(rec), el3 = table.element(rid);
-    if (!rec || !at3 || !el3) return;
-    const doc = el3.ownerDocument;
-    const drawn = rec.kind === "character" && rec.gathered ? { ...at3, x: parseFloat(el3.style.left), y: parseFloat(el3.style.top) } : at3;
-    const carried = [{ rid, el: el3, from: drawn, ...rec.kind === "character" && { part: "card" } }];
-    if (rec.kind === "character") {
-      for (const [r2, other] of game.all()) {
-        const o = other;
-        if ("kind" in o && pinnable(o) && o.pin?.card === rec.oid) {
-          const e2 = table.element(r2);
-          if (e2) carried.push({ rid: r2, el: e2, from: o.place });
-        }
-      }
-    }
-    const p0 = table.toWorld(down.clientX, down.clientY);
+  // Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.6 | R298, R299, R300, R215,
+  // R217, R223, R183: the one carry. Each frame: the place and aim, drawn by Hands here and sent
+  // through Moves; at the release, let go everywhere, then the drop's one change.
+  #carry(c, down, move) {
+    const { game, table, hands, moves, hand } = this.#w;
+    const doc = (c.el ?? table.element(c.rid) ?? table.pool(c.rid))?.ownerDocument;
+    if (!doc) return;
     leaveWriting(doc);
-    for (const c of carried) {
-      c.el.classList.add("lifted");
-      moves?.hold(c.rid);
-    }
-    doc.body.classList.add("dragging");
     const z = this.#top();
-    const items = (dx, dy) => carried.slice(0, 8).map((c) => ({
-      rid: c.rid,
-      x: Math.round(c.from.x + dx),
-      y: Math.round(c.from.y + dy),
-      z,
-      ...c.part && { part: c.part }
-    }));
-    const delta = (e) => {
-      const p = table.toWorld(e.clientX, e.clientY);
-      return { dx: p.x - p0.x, dy: p.y - p0.y };
-    };
-    const show = (dx, dy) => {
-      for (const c of carried) {
-        c.el.style.left = `${c.from.x + dx}px`;
-        c.el.style.top = `${c.from.y + dy}px`;
-      }
-    };
-    let lit = null;
-    const pins = pinnable(rec);
-    const pace = paced(this.#w.schedule, ({ dx, dy, cx, cy }) => {
-      show(dx, dy);
-      moves?.drag(items(dx, dy));
-      if (pins) lit = light(lit, this.#cardAt(doc, cx, cy, el3)?.el ?? null);
-      this.#lightBar(doc, cy, rec.kind !== "reference" && !this.#fresh.has(rid));
+    const item2 = (f) => ({ rid: c.rid, x: f.x, y: f.y, z, ...c.part && { part: c.part }, ...f.aim && { aim: f.aim } });
+    let last = c.frame(move.clientX, move.clientY);
+    if (c.el) table.lift(c.rid, c.el, last);
+    moves?.hold(c.rid);
+    doc.body.classList.add("dragging");
+    if (c.pointing) doc.body.classList.add("tapping");
+    const pace = paced(this.#w.schedule, ({ cx, cy }) => {
+      last = c.frame(cx, cy);
+      hands.show(hand, [item2(last)], true);
+      moves?.drag([item2(last)]);
+      this.#lightBar(doc, cy, c.buries);
     });
-    const onMove = (ev) => {
-      const e = ev;
-      if (e.pointerId !== down.pointerId) return;
-      pace.to({ ...delta(e), cx: e.clientX, cy: e.clientY });
-    };
-    const onUp = (ev) => {
-      const e = ev;
-      if (e.pointerId !== down.pointerId) return;
-      doc.removeEventListener("pointermove", onMove);
-      doc.removeEventListener("pointerup", onUp);
-      doc.removeEventListener("pointercancel", onUp);
+    const to = (e) => pace.to({ cx: e.clientX, cy: e.clientY });
+    to(move);
+    pace.flush();
+    this.#follow(doc, down, to, (e) => {
       pace.cancel();
-      light(lit, null);
-      doc.body.classList.remove("dragging");
-      const { dx, dy } = delta(e);
-      for (const c of carried) c.el.classList.remove("lifted");
+      last = c.frame(e.clientX, e.clientY);
       const away = this.#overBar(doc, e.clientY);
       this.#lightBar(doc, null, false);
-      moves?.drop(items(dx, dy));
-      if (away) this.#w.game.change(this.#putAway(rec));
-      else this.#drop(rec, carried, dx, dy, z, e);
-      for (const c of carried) moves?.release(c.rid);
-    };
-    doc.addEventListener("pointermove", onMove);
-    doc.addEventListener("pointerup", onUp);
-    doc.addEventListener("pointercancel", onUp);
-    onMove(move);
-    pace.flush();
+      doc.body.classList.remove("dragging", "tapping");
+      hands.drop(hand, [], true);
+      moves?.drop([item2(last)]);
+      const change3 = c.drop(last, away, z);
+      table.still(() => {
+        if (change3) game.change(change3);
+      });
+      moves?.release(c.rid);
+      table.render([c.rid]);
+      c.done?.();
+    });
   }
-  // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it, as a group.
+  // Seq: seq-drag.md#1.2 | R27, R32, R222: paper, or a character's card (what's pinned to it follows,
+  // Hands); paper is aimed at the card it would pin to.
+  /** Carries a piece from the press that started it, and what's pinned to it. */
+  start(rid2, down, move) {
+    const { game, table } = this.#w;
+    const rec = game.get(rid2), at3 = rec && placeOf(rec), el3 = table.element(rid2);
+    if (!rec || !at3 || !el3) return;
+    const from = rec.kind === "character" && rec.gathered ? { ...at3, x: parseFloat(el3.style.left), y: parseFloat(el3.style.top) } : at3;
+    const p0 = table.toWorld(down.clientX, down.clientY), grip = { x: p0.x - from.x, y: p0.y - from.y };
+    const pins = pinnable(rec);
+    this.#carry({
+      rid: rid2,
+      ...rec.kind === "character" && { part: "card" },
+      frame: (cx, cy) => {
+        const f = less(table.toWorld(cx, cy), grip), card2 = pins ? this.#cardAt(el3.ownerDocument, cx, cy, el3) : void 0;
+        return card2 ? { ...f, aim: { card: ridOf(card2.oid) } } : f;
+      },
+      buries: rec.kind !== "reference" && !this.#fresh.has(rid2),
+      drop: (last, away, z) => away ? this.#putAway(rec) : this.#drop(rec, "card", from, last, z, last.aim)
+    }, down, move);
+  }
+  // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it (Hands).
   /** Carries a character's pool. */
-  startPool(rid, down, _move, done2) {
-    const { game, table, moves } = this.#w;
-    const c = game.get(rid), mat = table.pool(rid);
-    if (!c || c.kind !== "character" || !mat) return;
-    const doc = mat.ownerDocument, z = this.#top();
-    const carried = [{ rid, el: mat, from: c.pool, part: "pool" }];
-    const card2 = table.element(rid);
-    const followers = card2 ? [card2, ...this.#pinned(c)] : [];
-    const start = followers.map((e) => ({ e, x: parseFloat(e.style.left), y: parseFloat(e.style.top) }));
-    const p0 = table.toWorld(down.clientX, down.clientY);
-    leaveWriting(doc);
-    mat.classList.add("lifted");
-    moves?.hold(rid);
-    doc.body.classList.add("dragging");
-    const delta = (e) => {
-      const p = table.toWorld(e.clientX, e.clientY);
-      return { dx: p.x - p0.x, dy: p.y - p0.y };
-    };
-    const item2 = (dx, dy) => [{ rid, x: Math.round(c.pool.x + dx), y: Math.round(c.pool.y + dy), z, part: "pool" }];
-    const show = (dx, dy) => {
-      mat.style.left = `${c.pool.x + dx}px`;
-      mat.style.top = `${c.pool.y + dy}px`;
-      for (const f of start) {
-        f.e.style.left = `${f.x + dx}px`;
-        f.e.style.top = `${f.y + dy}px`;
+  startPool(rid2, down, move, done2) {
+    const { game, table } = this.#w;
+    const c = game.get(rid2);
+    if (!c || c.kind !== "character" || !table.pool(rid2)) return;
+    const p0 = table.toWorld(down.clientX, down.clientY), grip = { x: p0.x - c.pool.x, y: p0.y - c.pool.y };
+    let away = false;
+    this.#carry({
+      rid: rid2,
+      part: "pool",
+      frame: (cx, cy) => less(table.toWorld(cx, cy), grip),
+      buries: !this.#fresh.has(rid2),
+      drop: (last, over, z) => {
+        away = over;
+        return over ? this.#putAway(c) : this.#drop(c, "pool", c.pool, last, z);
+      },
+      done: () => {
+        if (!away) done2?.();
       }
+    }, down, move);
+  }
+  // Seq: seq-drag.md#1.2 | R220, R287: the chip or card itself, found by its rid when the press was
+  // elsewhere (a chip just taken from the bar was pressed on the supply).
+  /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
+  startItem(rid2, down, move) {
+    const { game, table } = this.#w;
+    const i = game.get(rid2);
+    const pressed = down.target?.closest?.("[data-rid]");
+    const el3 = pressed?.dataset.rid === rid2 ? pressed : table.loose(rid2) ?? pressed;
+    if (!i || !el3) return;
+    const r = el3.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
+    const from = typeof i.where === "object" && "slot" in i.where ? { owner: i.where.slot, slot: i.where.name } : null;
+    this.#carryItem(rid2, el3, { x: p.x - corner.x, y: p.y - corner.y }, down, move, from);
+  }
+  // R55, R225: the tap is a card from the first pixel, its Level spent, carried by its glyph; dropped
+  // on a resource-made card it merges into it.
+  /** Taps a glyph (`<character oid>:<source>`) and carries the card it makes. */
+  startGlyph(source2, down, move) {
+    const { game, table, mint: mint2 } = this.#w;
+    const oid = mint2()(), rid2 = ridOf(oid), p = table.toWorld(down.clientX, down.clientY);
+    const change3 = tapOut(game, source2, { table: { x: Math.round(p.x), y: Math.round(p.y), z: this.#top(), tilt: 0 } }, () => oid);
+    if (!change3) return;
+    table.still(() => game.change(change3));
+    const el3 = table.loose(rid2);
+    if (el3) this.#carryItem(rid2, el3, { x: TAP_GLYPH_X, y: el3.offsetHeight / 2 }, down, move);
+  }
+  // R216, R243, R221: a chip or card, glued at its grip (in world coordinates, so at any zoom); a card
+  // over a pool's slots is a chip centred on the pointer.
+  #carryItem(rid2, el3, grip, down, move, from = null) {
+    const { game, table, hands, hand, mint: mint2 } = this.#w;
+    const doc = el3.ownerDocument, item2 = game.get(rid2);
+    const isCard = item2?.kind === "influence" && el3.classList.contains("icard");
+    let strip;
+    this.#carry({
+      rid: rid2,
+      el: el3,
+      pointing: true,
+      buries: false,
+      frame: (cx, cy) => {
+        const aim2 = this.#itemAim(rid2, doc, cx, cy, from, isCard, strip);
+        strip = aim2.reach;
+        if (!!aim2.chip !== hands.chip(rid2) && table.held(rid2)) hands.show(hand, [{ rid: rid2, x: parseFloat(el3.style.left), y: parseFloat(el3.style.top), z: 0, aim: { chip: !!aim2.chip } }], true);
+        const g = aim2.chip ? { x: el3.offsetWidth / 2, y: el3.offsetHeight / 2 } : grip;
+        return { ...less(table.toWorld(cx, cy), g), aim: aim2 };
+      },
+      drop: (last, away, z) => this.#itemDrop(rid2, last.aim, away, { x: last.x, y: last.y, z, tilt: 0 }, mint2())
+    }, down, move);
+  }
+  // R299, R222, R240, R243, R244: what a chip or card is aimed at, under the pointer, in this order: a
+  // tap's merge, a slot, the kill box, a drawer (and where among its cards); the strip it opens; a
+  // card over the slots shows as a chip.
+  #itemAim(rid2, doc, x, y, from, isCard, strip) {
+    const { game } = this.#w, i = game.get(rid2);
+    const hits = doc.elementsFromPoint?.(x, y) ?? [];
+    const first = (sel) => {
+      for (const h of hits) {
+        const m = h.closest?.(sel);
+        if (m) return m;
+      }
+      return null;
     };
-    const pace = paced(this.#w.schedule, ({ dx, dy, cy }) => {
-      show(dx, dy);
-      moves?.drag(item2(dx, dy));
-      this.#lightBar(doc, cy, !this.#fresh.has(rid));
-    });
-    this.#follow(doc, down, (e) => pace.to({ ...delta(e), cy: e.clientY }), (e) => {
-      pace.cancel();
-      doc.body.classList.remove("dragging");
-      mat.classList.remove("lifted");
-      const { dx, dy } = delta(e), away = this.#overBar(doc, e.clientY);
-      this.#lightBar(doc, null, false);
-      moves?.drop(item2(dx, dy));
-      if (away) this.#w.game.change(this.#putAway(c));
-      else this.#drop(c, carried, dx, dy, z, e);
-      moves?.release(rid);
-      if (!away) done2?.();
-    });
+    const aim2 = {};
+    const into = i?.kind === "influence" && i.tap ? first(".tapped[data-rid]") : null;
+    const slot2 = first(".slot"), kill2 = first(".kill"), drawer2 = first(".drawer");
+    if (into && mergeTap(game, rid2, into.dataset.rid, () => "")) aim2.merge = into.dataset.rid;
+    else if (slot2) aim2.slot = { owner: slot2.dataset.owner, name: slot2.dataset.slot };
+    else if (kill2) {
+      const pool = kill2.closest(".pool")?.dataset.rid;
+      if (pool) aim2.kill = pool.slice(2);
+    } else if (drawer2) aim2.drawer = { owner: drawer2.dataset.drawer, ...i?.kind === "influence" && { at: gapAt(drawer2, x, y) } };
+    const reach2 = this.#reach(x, y, from, strip);
+    if (reach2) aim2.reach = reach2;
+    if (isCard && hits.some((h) => h.closest?.(".slots"))) aim2.chip = true;
+    return aim2;
+  }
+  // Seq: seq-drag.md#1.4 | R244: over a pool's slots, the strip under the pointer opens (trading
+  // with the slot it came from, or an empty one); it stays open over open slots, and the pool goes
+  // back when the carry leaves its slots.
+  #reach(x, y, from, was) {
+    for (const pool of this.#w.table.pools()) {
+      const r = pool.querySelector(".slots")?.getBoundingClientRect();
+      if (!r || x < r.left || x >= r.right || y < r.top || y >= r.bottom) continue;
+      const owner = pool.dataset.rid.slice(2), kept = was?.owner === owner ? was : void 0;
+      const under = [...pool.querySelectorAll(".slot")].find((s) => {
+        const b = s.getBoundingClientRect();
+        return x >= b.left && x < b.right;
+      });
+      if (!under?.classList.contains("narrow")) return kept;
+      return { owner, at: under.dataset.slot, from: from && from.owner === owner ? from.slot : null };
+    }
+    return void 0;
+  }
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R268, R60, R211, R260: the
+  // drop, from the last aim.
+  #itemDrop(rid2, aim2, away, place3, mint2) {
+    const { game } = this.#w, i = game.get(rid2);
+    if (!i) return null;
+    if (aim2?.merge) return mergeTap(game, rid2, aim2.merge, mint2);
+    if (aim2?.slot) return toSlot(game, rid2, aim2.slot.owner, aim2.slot.name, mint2) ?? (i.kind === "influence" ? toDrawer(game, rid2, i.home) : null);
+    if (aim2?.kill) return killCard(game, rid2);
+    if (aim2?.drawer) return toDrawer(game, rid2, aim2.drawer.owner, aim2.drawer.at);
+    if (away) return i.kind === "influence" ? toDrawer(game, rid2, i.home) : vanish(game, rid2);
+    return toTable(game, rid2, place3);
   }
   /** Pieces just taken from the bar (R19): put back there, they are never made. */
   #fresh = /* @__PURE__ */ new Set();
-  fresh(rid) {
-    this.#fresh.add(rid);
+  fresh(rid2) {
+    this.#fresh.add(rid2);
   }
   // R288: over the bar, anything carried turns it red; "→ <graveyard>" when letting go would bury it.
   #overBar(doc, cy) {
@@ -9840,8 +9877,8 @@ var Drag = class {
   // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is
   // buried in the current graveyard, a character with its cards and pinned paper, under its name.
   #putAway(rec) {
-    const { game } = this.#w, rid = ridOf(rec.oid);
-    if (this.#fresh.delete(rid) || rec.kind === "reference") return (w) => w.del(rid);
+    const { game } = this.#w, rid2 = ridOf(rec.oid);
+    if (this.#fresh.delete(rid2) || rec.kind === "reference") return (w) => w.del(rid2);
     const all2 = game.all().map(([, r]) => r).filter((r) => "kind" in r);
     const recs = burialOf(rec, all2), y = game.get("yards") ?? empty();
     const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
@@ -9849,18 +9886,6 @@ var Drag = class {
       w.put("yards", bury(y, cur, recs, graveName(rec)));
       for (const r of recs) w.del(ridOf(r.oid));
     };
-  }
-  /** Pieces pinned to a character's card. */
-  #pinned(c) {
-    const out = [];
-    for (const [rid, r] of this.#w.game.all()) {
-      const o = r;
-      if ("kind" in o && pinnable(o) && o.pin?.card === c.oid) {
-        const e = this.#w.table.element(rid);
-        if (e) out.push(e);
-      }
-    }
-    return out;
   }
   /** Follows one pointer on the document until it lets go. */
   #follow(doc, down, onMove, onUp) {
@@ -9880,194 +9905,45 @@ var Drag = class {
     doc.addEventListener("pointerup", up);
     doc.addEventListener("pointercancel", up);
   }
-  // Seq: seq-drag.md#1.4 | R244: over a pool's slots, the strip under the pointer opens (trading
-  // with the slot it came from, or an empty one); it stays open over open slots, and the pool goes
-  // back when the carry leaves its slots.
-  #reach(x, y, from) {
-    for (const pool of this.#w.table.pools()) {
-      const r = pool.querySelector(".slots")?.getBoundingClientRect();
-      if (!r || x < r.left || x >= r.right || y < r.top || y >= r.bottom) {
-        reach(pool, null, null);
-        continue;
-      }
-      const under = [...pool.querySelectorAll(".slot")].find((s) => {
-        const b = s.getBoundingClientRect();
-        return x >= b.left && x < b.right;
-      });
-      if (!under?.classList.contains("narrow")) continue;
-      const fromHere = from && from.owner === under.dataset.owner ? from.slot : null;
-      reach(pool, under.dataset.slot, fromHere);
-    }
-  }
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R268, R60, R220, R243: in this order:
-  // a tap's merge, a slot, the kill box, a drawer, the bar, else the table.
-  /** Carries a chip or an Influence card (from a slot, a drawer, a pile or the table): the piece itself. */
-  startItem(rid, down, move) {
-    const { game, table } = this.#w;
-    const i = game.get(rid);
-    const pressed = down.target?.closest?.("[data-rid]");
-    const el3 = pressed?.dataset.rid === rid ? pressed : table.loose(rid) ?? pressed;
-    if (!i || !el3) return;
-    const r = el3.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
-    const from = typeof i.where === "object" && "slot" in i.where ? { owner: i.where.slot, slot: i.where.name } : null;
-    this.#carryItem(rid, el3, { x: p.x - corner.x, y: p.y - corner.y }, down, move, from);
-  }
-  // R55, R225: the tap is a card from the first pixel, its Level spent, carried by its glyph; dropped
-  // on a resource-made card it merges into it.
-  /** Taps a glyph (`<character oid>:<source>`) and carries the card it makes. */
-  startGlyph(source2, down, move) {
-    const { game, table, mint: mint2 } = this.#w;
-    const oid = mint2()(), rid = ridOf(oid), p = table.toWorld(down.clientX, down.clientY);
-    const change3 = tapOut(game, source2, { table: { x: Math.round(p.x), y: Math.round(p.y), z: this.#top(), tilt: 0 } }, () => oid);
-    if (!change3) return;
-    table.still(() => game.change(change3));
-    const el3 = table.loose(rid);
-    if (el3) this.#carryItem(rid, el3, { x: TAP_GLYPH_X, y: el3.offsetHeight / 2 }, down, move);
-  }
-  /** Carries a held chip or card in the world layer, lighting where it would land, until let go. */
-  #carryItem(rid, el3, grip, down, move, from = null) {
-    const { game, table, mint: mint2 } = this.#w;
-    const doc = el3.ownerDocument;
-    const item2 = game.get(rid), isCard = item2?.kind === "influence" && el3.classList.contains("icard");
-    let chip2 = false, card2 = null;
-    const form = (cx, cy) => {
-      const over = isCard && (doc.elementsFromPoint?.(cx, cy) ?? []).some((h) => h.closest?.(".slots"));
-      if (over === chip2 || !item2) return;
-      chip2 = over;
-      if (chip2) {
-        card2 = { cls: el3.className, kids: [...el3.childNodes], title: el3.title };
-        asChip(el3, item2);
-        el3.classList.add("obj", "lifted");
-      } else if (card2) {
-        el3.className = card2.cls;
-        el3.replaceChildren(...card2.kids);
-        el3.title = card2.title;
-      }
-    };
-    const at3 = (cx, cy) => {
-      const p = table.toWorld(cx, cy), g = chip2 ? { x: el3.offsetWidth / 2, y: el3.offsetHeight / 2 } : grip;
-      return { x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) };
-    };
-    leaveWriting(doc);
-    table.lift(rid, el3, at3(move.clientX, move.clientY));
-    doc.body.classList.add("dragging", "tapping");
-    let lit = null, gapIn = null;
-    const gap = (t) => {
-      const into = t?.kind === "drawer" && t.at !== void 0 ? t : null;
-      if (gapIn && gapIn !== into?.el) showGap(gapIn, null);
-      if (into) showGap(into.el, into.at);
-      gapIn = into?.el ?? null;
-    };
-    const pace = paced(this.#w.schedule, ({ x, y }) => {
-      form(x, y);
-      const a = at3(x, y);
-      el3.style.left = `${a.x}px`;
-      el3.style.top = `${a.y}px`;
-      this.#reach(x, y, from);
-      const t = this.#itemTarget(rid, doc, x, y);
-      lit = light(lit, t?.el ?? null);
-      gap(t);
-      this.#lightBar(doc, y, false);
-    });
-    const to = (e) => pace.to({ x: e.clientX, y: e.clientY });
-    to(move);
-    pace.flush();
-    this.#follow(doc, down, to, (e) => {
-      pace.cancel();
-      light(lit, null);
-      this.#lightBar(doc, null, false);
-      doc.body.classList.remove("dragging", "tapping");
-      for (const pool of table.pools()) reach(pool, null, null);
-      const t = this.#itemTarget(rid, doc, e.clientX, e.clientY);
-      if (gapIn) showGap(gapIn, null, false);
-      const place3 = { ...at3(e.clientX, e.clientY), z: this.#top(), tilt: 0 };
-      table.letGo(rid);
-      const change3 = this.#itemDrop(rid, t, place3, mint2());
-      table.still(() => {
-        if (change3) game.change(change3);
-      });
-      table.render([rid]);
-    });
-  }
-  /** Where a carried chip or card would land at the pointer, and the element to light. */
-  #itemTarget(rid, doc, x, y) {
-    const { game } = this.#w, i = game.get(rid);
-    const hits = doc.elementsFromPoint?.(x, y) ?? [];
-    const first = (sel) => {
-      for (const h of hits) {
-        const m = h.closest?.(sel);
-        if (m) return m;
-      }
-      return null;
-    };
-    if (i?.kind === "influence" && i.tap) {
-      const into = first(".tapped[data-rid]");
-      if (into && mergeTap(game, rid, into.dataset.rid, () => "")) return { kind: "merge", el: into };
-    }
-    const slot2 = first(".slot");
-    if (slot2) return { kind: "slot", el: slot2 };
-    const kill2 = first(".kill");
-    if (kill2) return { kind: "kill", el: kill2 };
-    const drawer2 = first(".drawer");
-    if (drawer2) return { kind: "drawer", el: drawer2, ...i?.kind === "influence" && { at: gapAt(drawer2, x, y) } };
-    const bar = first("#bar");
-    return bar ? { kind: "bar", el: bar } : null;
-  }
-  #itemDrop(rid, t, place3, mint2) {
-    const { game } = this.#w;
-    switch (t?.kind) {
-      case "merge":
-        return mergeTap(game, rid, t.el.dataset.rid, mint2);
-      case "slot": {
-        const i = game.get(rid);
-        return toSlot(game, rid, t.el.dataset.owner, t.el.dataset.slot, mint2) ?? (i?.kind === "influence" ? toDrawer(game, rid, i.home) : null);
-      }
-      case "kill":
-        return killCard(game, rid);
-      case "drawer":
-        return toDrawer(game, rid, t.el.dataset.drawer, t.at);
-      case "bar": {
-        const i = game.get(rid);
-        return i.kind === "influence" ? toDrawer(game, rid, i.home) : vanish(game, rid);
-      }
-      default:
-        return toTable(game, rid, place3);
-    }
-  }
-  /** The card under the pointer, other than the piece itself, and its element. */
+  /** The card under the pointer, other than the piece itself. */
   #cardAt(doc, x, y, not) {
     for (const hit of doc.elementsFromPoint?.(x, y) ?? []) {
       const el3 = hit.closest?.(".obj.card");
       const card2 = el3 && el3 !== not ? this.#w.game.get(el3.dataset.rid) : void 0;
-      if (el3 && card2) return { card: card2, el: el3 };
+      if (card2) return card2;
     }
     return void 0;
   }
-  // Seq: seq-drag.md#1.7 | R27: one change: the new places, pinned to a card or let go of one.
-  #drop(rec, carried, dx, dy, z, e) {
-    const { game } = this.#w;
-    this.#fresh.delete(ridOf(rec.oid));
+  // Seq: seq-drag.md#1.7 | R27, R32: one change: the carried part from where it started (`from`) to
+  // where it was let go (`to`); a pool's card comes too unless gathered; a card's pinned paper moves
+  // with it; paper is pinned to the card it was aimed at, or let go of one.
+  #drop(rec, part, from, to, z, aim2) {
+    const { game } = this.#w, rid2 = ridOf(rec.oid), dx = to.x - from.x, dy = to.y - from.y;
+    this.#fresh.delete(rid2);
     const moved = (p) => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
-    this.#w.table.still(() => game.change((w) => {
-      for (const c of carried) {
-        const r = game.get(c.rid);
-        if (!r) continue;
-        if (r.kind === "character") {
-          if (c.part === "pool") w.put(c.rid, { ...r, pool: moved(r.pool), card: r.gathered ? r.card : moved(r.card) });
-          else w.put(c.rid, { ...r, card: moved(c.from), gathered: false });
-          continue;
+    return (w) => {
+      if (rec.kind === "character") {
+        if (part === "pool") {
+          w.put(rid2, { ...rec, pool: moved(rec.pool), card: rec.gathered ? rec.card : moved(rec.card) });
+          return;
         }
-        if (!("place" in r)) continue;
-        const place3 = moved(r.place);
-        if (c.rid !== ridOf(rec.oid) || !pinnable(r)) {
-          w.put(c.rid, { ...r, place: place3 });
-          continue;
+        w.put(rid2, { ...rec, card: { ...rec.card, x: to.x, y: to.y, z }, gathered: false });
+        for (const [r2, o] of game.all()) {
+          const q = o;
+          if ("kind" in q && pinnable(q) && q.pin?.card === rec.oid) w.put(r2, { ...q, place: moved(q.place) });
         }
-        const card2 = this.#cardAt(carried[0].el.ownerDocument, e.clientX, e.clientY, carried[0].el)?.card;
-        const { pin: _old, ...loose } = r;
-        w.put(c.rid, card2 ? { ...loose, place: place3, pin: { card: card2.oid, dx: place3.x - card2.card.x, dy: place3.y - card2.card.y } } : { ...loose, place: place3 });
+        return;
       }
-    }));
+      if (!("place" in rec)) return;
+      const place3 = moved(rec.place);
+      if (!pinnable(rec)) {
+        w.put(rid2, { ...rec, place: place3 });
+        return;
+      }
+      const card2 = aim2?.card ? game.get(aim2.card) : void 0;
+      const { pin: _old, ...loose } = rec;
+      w.put(rid2, card2?.kind === "character" ? { ...loose, place: place3, pin: { card: card2.oid, dx: place3.x - card2.card.x, dy: place3.y - card2.card.y } } : { ...loose, place: place3 });
+    };
   }
 };
 
@@ -10082,7 +9958,7 @@ function fitView(b, size) {
   return { x: (size.w - bw * zoom) / 2 - b.left * zoom, y: 14 - b.top * zoom, zoom };
 }
 function pushClear(mat, pieces, gap = GATHER_GAP) {
-  return pieces.filter(({ box: b }) => b.left < mat.right && b.right > mat.left && b.top < mat.bottom && b.bottom > mat.top).map(({ rid, box: box2 }) => ({ rid, dy: mat.bottom + gap - box2.top }));
+  return pieces.filter(({ box: b }) => b.left < mat.right && b.right > mat.left && b.top < mat.bottom && b.bottom > mat.top).map(({ rid: rid2, box: box2 }) => ({ rid: rid2, dy: mat.bottom + gap - box2.top }));
 }
 var TableView = class {
   #root;
@@ -10091,16 +9967,18 @@ var TableView = class {
   #els = /* @__PURE__ */ new Map();
   #pools = /* @__PURE__ */ new Map();
   #loose = /* @__PURE__ */ new Map();
-  /** Chips and cards in hand (R220): skipped by pools and the loose layer until let go. */
+  /** What is in a hand (R220), this page's or another's, by rid or `rid#pool`: skipped by redraws. */
   #held = /* @__PURE__ */ new Map();
+  /** Run after every redraw (Hands draws its reactions again). */
+  after = null;
   /** Inside still(): a redraw that moves a piece doesn't glide (R226). */
   #still = false;
   #sized = new ResizeObserver((entries3) => {
     for (const e of entries3) {
-      const rid = e.target.dataset.rid;
-      if (rid) {
-        this.#snap(rid);
-        this.#push(rid);
+      const rid2 = e.target.dataset.rid;
+      if (rid2) {
+        this.#snap(rid2);
+        this.#push(rid2);
       }
     }
   });
@@ -10114,7 +9992,7 @@ var TableView = class {
     this.view = w.view ? { ...w.view } : { x: 0, y: 0, zoom: 1 };
     this.#place();
     w.game.listen((rids) => this.render(rids));
-    this.render(w.game.all().map(([rid]) => rid));
+    this.render(w.game.all().map(([rid2]) => rid2));
     this.#panZoom();
     this.#images();
     this.#raisePins();
@@ -10124,26 +10002,56 @@ var TableView = class {
       if (t.parentElement === world && (e.propertyName === "left" || e.propertyName === "top")) t.classList.remove("glide");
     });
   }
-  // R220: the hand.
-  /** Holds a chip or card: into the world layer at `at`, squared up and raised, skipped by redraws. */
-  lift(rid, el3, at3) {
-    this.#held.set(rid, el3);
+  // CRC: crc-TableView.md | R220, R298: the hand, this page's or another's (Hands).
+  /** Holds a piece (`rid`, or `rid#pool`): into the world layer at `at`, squared up and raised, skipped by redraws. */
+  lift(key, el3, at3) {
+    this.#held.set(key, { el: el3, at: at3 });
     if (el3.parentElement !== this.#world) this.#world.append(el3);
     el3.classList.add("obj", "lifted");
     el3.classList.remove("glide");
-    el3.style.left = `${at3.x}px`;
-    el3.style.top = `${at3.y}px`;
     el3.style.pointerEvents = "none";
-    this.render([rid]);
+    this.place(key, at3);
+    if (!key.endsWith("#pool")) this.render([key]);
   }
-  /** Lets go of a held chip or card: back in the loose layer if it was loose, otherwise gone. */
-  letGo(rid) {
-    const el3 = this.#held.get(rid);
-    this.#held.delete(rid);
-    if (!el3) return;
+  /** Puts a held piece at `at`. */
+  place(key, at3) {
+    const h = this.#held.get(key);
+    if (!h) return;
+    h.at = at3;
+    h.el.style.left = `${at3.x}px`;
+    h.el.style.top = `${at3.y}px`;
+  }
+  /** What holds `key`, if it's held. */
+  held(key) {
+    return this.#held.get(key)?.el;
+  }
+  /**
+   * Lets go of a held piece: a chip or card back in the loose layer if it was loose, and gone if it
+   * was a hand's own; paper, cards and pools stay, for their record to draw.
+   */
+  letGo(key) {
+    const h = this.#held.get(key);
+    this.#held.delete(key);
+    if (!h) return;
+    const { el: el3 } = h;
     el3.style.pointerEvents = "";
-    el3.classList.remove("lifted");
-    if (this.#loose.get(rid) !== el3) el3.remove();
+    el3.classList.remove("lifted", "carried");
+    const rid2 = key.replace(/#pool$/, "");
+    if (this.#loose.get(rid2) !== el3 && this.#els.get(rid2) !== el3 && this.#pools.get(rid2) !== el3) el3.remove();
+  }
+  /**
+   * The element drawing a chip or card, wherever it lies (a slot, a drawer, loose), or a new one
+   * shaped as a loose one for a piece drawn only in a pile.
+   */
+  handFor(rid2, make4 = true) {
+    const i = this.#w.game.get(rid2);
+    if (!i || i.kind !== "chip" && i.kind !== "influence") return void 0;
+    const drawn = this.#loose.get(rid2) ?? this.#world.querySelector(`.pool [data-rid="${rid2}"]`);
+    if (drawn || !make4) return drawn ?? void 0;
+    const e = this.#world.ownerDocument.createElement("div");
+    e.dataset.rid = rid2;
+    this.#shape(e, i);
+    return e;
   }
   // R226, R217: what this page let go itself is drawn where it landed, without gliding.
   /** Runs `fn` (a change of this page's own) with gliding off. */
@@ -10157,15 +10065,15 @@ var TableView = class {
     }
   }
   /** The element drawing a piece (a character's card), if any. */
-  element(rid) {
-    return this.#els.get(rid);
+  element(rid2) {
+    return this.#els.get(rid2);
   }
   /** A character's pool mat, or a chip or card lying loose on the table. */
-  pool(rid) {
-    return this.#pools.get(rid);
+  pool(rid2) {
+    return this.#pools.get(rid2);
   }
-  loose(rid) {
-    return this.#loose.get(rid);
+  loose(rid2) {
+    return this.#loose.get(rid2);
   }
   /** Every pool mat, for opening the strip a carry is over (R244). */
   pools() {
@@ -10175,32 +10083,32 @@ var TableView = class {
     return this.#w.game.all().map(([, r]) => r).filter((r) => "kind" in r && (r.kind === "chip" || r.kind === "influence"));
   }
   // R33: a gathered card is drawn under its pool's drawer, wherever that ends; the same on every page.
-  #snap(rid) {
-    const c = this.#w.game.get(rid), card2 = this.#els.get(rid), mat = this.#pools.get(rid);
-    if (!c || c.kind !== "character" || !card2 || !mat || !c.gathered) return;
+  #snap(rid2) {
+    const c = this.#w.game.get(rid2), card2 = this.#els.get(rid2), mat = this.#pools.get(rid2);
+    if (!c || c.kind !== "character" || !card2 || !mat || !c.gathered || this.#held.has(rid2)) return;
     card2.style.left = `${c.pool.x}px`;
     card2.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
   }
   // R241: on the GM's page, a mat that grew pushes the pieces it now covers just clear below it, in
   // one change (they glide on every page). Not mid-carry: a drawer's gap is only there for a moment.
-  #push(rid) {
-    const { game, viewer } = this.#w, mat = this.#pools.get(rid), c = game.get(rid);
+  #push(rid2) {
+    const { game, viewer } = this.#w, mat = this.#pools.get(rid2), c = game.get(rid2);
     if (!mat || !c || c.kind !== "character" || mat.ownerDocument.body.classList.contains("dragging")) return;
     const row2 = mat.querySelector(".roller"), own2 = row2 ? row2.offsetHeight + parseFloat(getComputedStyle(row2).marginBottom || "0") : 0;
-    const h = mat.offsetHeight - own2, was = this.#heights.get(rid);
-    this.#heights.set(rid, h);
+    const h = mat.offsetHeight - own2, was = this.#heights.get(rid2);
+    this.#heights.set(rid2, h);
     if (was === void 0 || h <= was || !viewer?.gm) return;
-    const box2 = (e, less = 0) => {
+    const box2 = (e, less2 = 0) => {
       const left2 = parseFloat(e.style.left), top = parseFloat(e.style.top);
-      return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight - less };
+      return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight - less2 };
     };
     const pieces = [];
     for (const [r, e] of this.#els) {
       const p = game.get(r);
-      if (!p || r === rid || (p.kind === "character" ? p.gathered : "pin" in p && !!p.pin)) continue;
+      if (!p || r === rid2 || (p.kind === "character" ? p.gathered : "pin" in p && !!p.pin)) continue;
       pieces.push({ rid: r, box: box2(e) });
     }
-    for (const [r, e] of this.#pools) if (r !== rid) pieces.push({ rid: `${r}#pool`, box: box2(e) });
+    for (const [r, e] of this.#pools) if (r !== rid2) pieces.push({ rid: `${r}#pool`, box: box2(e) });
     for (const [r, e] of this.#loose) pieces.push({ rid: r, box: box2(e) });
     const moves = pushClear(box2(mat, own2), pieces);
     if (!moves.length) return;
@@ -10227,61 +10135,74 @@ var TableView = class {
   }
   #drawPools(rids) {
     const items = this.#items().filter((i) => !this.#held.has(ridOf(i.oid)));
-    for (const rid of rids) {
-      const c = this.#w.game.get(rid), old = this.#pools.get(rid);
+    for (const rid2 of rids) {
+      const c = this.#w.game.get(rid2), old = this.#pools.get(rid2);
       if (!c || c.kind !== "character") {
         if (old) {
           this.#sized.unobserve(old);
           old.remove();
-          this.#pools.delete(rid);
+          this.#pools.delete(rid2);
         }
         continue;
       }
       const e = drawPool(c, items, old, this.#w);
       if (e !== old) {
         this.#world.append(e);
-        this.#pools.set(rid, e);
+        this.#pools.set(rid2, e);
         this.#sized.observe(e);
       }
-      this.#snap(rid);
+      const held = this.#held.get(`${rid2}#pool`);
+      if (held) {
+        e.style.left = `${held.at.x}px`;
+        e.style.top = `${held.at.y}px`;
+      }
+      this.#snap(rid2);
     }
   }
   // R60: a chip or a tap can lie loose on the table.
-  #drawLoose(rid) {
-    if (this.#held.has(rid)) return;
-    const i = this.#w.game.get(rid), old = this.#loose.get(rid);
+  /** A loose chip's or card's look: a chip's face, or a card's name and Level (returned, for its clicks). */
+  #shape(e, i) {
+    e.className = `obj loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
+    if (i.kind === "chip") {
+      e.textContent = chipFace(i);
+      return null;
+    }
+    const level = e.ownerDocument.createElement("button");
+    level.className = "level";
+    level.textContent = `${i.sign > 0 ? "+" : "\u2212"}${levelName(i.points)}`;
+    e.replaceChildren(`${i.name} `, level);
+    return level;
+  }
+  #drawLoose(rid2) {
+    if (this.#held.has(rid2)) return;
+    const i = this.#w.game.get(rid2), old = this.#loose.get(rid2);
     const where2 = i && typeof i.where === "object" && "table" in i.where ? i.where.table : null;
     if (!i || !where2) {
       old?.remove();
-      this.#loose.delete(rid);
+      this.#loose.delete(rid2);
       return;
     }
     const doc = this.#world.ownerDocument;
     let e = old;
     if (!e) {
       e = doc.createElement("div");
-      e.dataset.rid = rid;
+      e.dataset.rid = rid2;
       const click2 = (shift) => {
-        if (this.#w.game.get(rid)?.kind !== "chip") return;
-        const ch = chipClick(this.#w.game, rid, shift, this.#w.mint());
+        if (this.#w.game.get(rid2)?.kind !== "chip") return;
+        const ch = chipClick(this.#w.game, rid2, shift, this.#w.mint());
         if (ch) this.#w.game.change(ch);
       };
-      gesture(e, { click: () => click2(false), shift: () => click2(true), drag: (d, m) => this.#w.dragItem(rid, d, m) });
+      gesture(e, { click: () => click2(false), shift: () => click2(true), drag: (d, m) => this.#w.dragItem(rid2, d, m) });
       this.#world.append(e);
-      this.#loose.set(rid, e);
+      this.#loose.set(rid2, e);
     }
-    e.className = `obj loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
-    if (i.kind === "chip") e.textContent = chipFace(i);
-    else {
-      const level = doc.createElement("button");
-      level.className = "level";
-      level.textContent = `${i.sign > 0 ? "+" : "\u2212"}${levelName(i.points)}`;
+    const level = this.#shape(e, i);
+    if (level) {
       const click2 = (shift) => {
-        const ch = cardClick(this.#w.game, rid, shift, this.#w.mint());
+        const ch = cardClick(this.#w.game, rid2, shift, this.#w.mint());
         if (ch) this.#w.game.change(ch);
       };
       gesture(level, { click: () => click2(false), shift: () => click2(true) });
-      e.replaceChildren(`${i.name} `, level);
     }
     e.style.left = `${where2.x}px`;
     e.style.top = `${where2.y}px`;
@@ -10292,30 +10213,32 @@ var TableView = class {
     const was = /* @__PURE__ */ new Map();
     for (const m of [this.#els, this.#pools, this.#loose]) for (const e of m.values()) was.set(e, `${e.style.left},${e.style.top}`);
     this.#render(rids);
-    if (this.#still) return;
-    for (const [e, at3] of was) {
-      if (e.isConnected && !e.classList.contains("lifted") && at3 !== "," && at3 !== `${e.style.left},${e.style.top}`) e.classList.add("glide");
+    if (!this.#still) {
+      for (const [e, at3] of was) {
+        if (e.isConnected && !e.classList.contains("lifted") && at3 !== "," && at3 !== `${e.style.left},${e.style.top}`) e.classList.add("glide");
+      }
     }
+    this.after?.();
   }
   #render(rids) {
     const characters2 = /* @__PURE__ */ new Set();
     let items = false;
-    for (const rid of rids) {
-      if (!isPiece(rid)) continue;
-      const r = this.#w.game.get(rid);
-      if (!r || r.kind === "character") characters2.add(rid);
+    for (const rid2 of rids) {
+      if (!isPiece(rid2)) continue;
+      const r = this.#w.game.get(rid2);
+      if (!r || r.kind === "character") characters2.add(rid2);
       if (!r || r.kind === "chip" || r.kind === "influence") {
         items = true;
-        this.#drawLoose(rid);
+        this.#drawLoose(rid2);
         if (r) continue;
       }
-      const old = this.#els.get(rid);
-      if (r && old?.classList.contains("lifted")) continue;
+      const old = this.#els.get(rid2);
+      if (r && this.#held.has(rid2)) continue;
       const e = r ? draw(r, old, this.#w) : null;
       if (!e) {
         if (old) {
           old.remove();
-          this.#els.delete(rid);
+          this.#els.delete(rid2);
           if (old.dataset.blob) this.#w.imageGone(old.dataset.blob);
         }
         continue;
@@ -10323,7 +10246,7 @@ var TableView = class {
       if (e !== old) {
         old?.remove();
         this.#world.append(e);
-        this.#els.set(rid, e);
+        this.#els.set(rid2, e);
       }
     }
     this.#pinZ();
@@ -10332,8 +10255,8 @@ var TableView = class {
       return;
     }
     const pools2 = /* @__PURE__ */ new Set();
-    for (const [rid, r] of this.#w.game.all()) if (r.kind === "character") pools2.add(rid);
-    for (const rid of this.#pools.keys()) pools2.add(rid);
+    for (const [rid2, r] of this.#w.game.all()) if (r.kind === "character") pools2.add(rid2);
+    for (const rid2 of this.#pools.keys()) pools2.add(rid2);
     this.#drawPools([...pools2]);
   }
   #fit() {
@@ -10367,8 +10290,8 @@ var TableView = class {
   // R273: pinned paper lies on its card: at least one above it, and over it while the card is written on.
   #pinZ() {
     const game = this.#w.game;
-    for (const [rid, r] of game.all()) {
-      const p = r, e = this.#els.get(rid);
+    for (const [rid2, r] of game.all()) {
+      const p = r, e = this.#els.get(rid2);
       if (!e || !("pin" in p)) continue;
       e.classList.toggle("pinned", !!p.pin);
       if (!p.pin) {
@@ -10440,6 +10363,185 @@ var TableView = class {
   }
 };
 
+// src/ui/hands.ts
+var LAND_MS = 1e3;
+function asChip(el3, i) {
+  el3.className = `loose-item chip ${i.sign > 0 ? "pos" : "neg"}`;
+  el3.textContent = chipFace(i);
+  if (i.kind === "influence") el3.title = i.name;
+}
+var pinnable2 = (r) => r.kind === "sticky" || r.kind === "text" || r.kind === "image";
+var Hands = class {
+  #w;
+  /** hand → key → piece. */
+  #hands = /* @__PURE__ */ new Map();
+  #t = 0;
+  /** What is drawn now: lit places, gaps, strips, cards shown as chips (with their own look). */
+  #lit = /* @__PURE__ */ new Set();
+  #gaps = /* @__PURE__ */ new Set();
+  #chips = /* @__PURE__ */ new Map();
+  constructor(w) {
+    this.#w = w;
+    w.game.listen((rids) => {
+      for (const [hand, pieces] of this.#hands) for (const [key, p] of pieces) if (!p.own && rids.has(p.rid)) this.#land(hand, key);
+    });
+  }
+  // Seq: seq-move.md#1.4, seq-drag.md#1.3 | R298, R218: each piece lifted at its place, with what follows it.
+  /** A hand's pieces are at these places, aimed so. Another page's slide there (`carried`). */
+  show(hand, items, own2) {
+    const { table, game } = this.#w;
+    const pieces = this.#hands.get(hand) ?? /* @__PURE__ */ new Map();
+    this.#hands.set(hand, pieces);
+    for (const i of items) {
+      const key = i.part === "pool" ? `${i.rid}#pool` : i.rid;
+      const old = pieces.get(key);
+      if (old?.landing) {
+        clearTimeout(old.landing);
+        delete old.landing;
+      }
+      const at3 = { x: i.x, y: i.y };
+      const keys2 = this.#hold(key, i.rid, at3, own2);
+      if (!keys2.length) continue;
+      const r = game.get(i.rid);
+      if (r?.kind === "character") {
+        let card2 = at3;
+        if (i.part === "pool") {
+          const mat = table.pool(i.rid);
+          card2 = r.gathered && mat ? { x: at3.x, y: at3.y + mat.offsetHeight + GATHER_GAP } : { x: r.card.x + at3.x - r.pool.x, y: r.card.y + at3.y - r.pool.y };
+          keys2.push(...this.#hold(i.rid, i.rid, card2, own2));
+        }
+        for (const [r2, o] of game.all()) {
+          const q = o;
+          if ("kind" in q && pinnable2(q) && q.pin?.card === r.oid) keys2.push(...this.#hold(r2, r2, { x: card2.x + q.pin.dx, y: card2.y + q.pin.dy }, own2));
+        }
+      }
+      pieces.set(key, { rid: i.rid, keys: [...new Set(keys2)], aim: i.aim, t: ++this.#t, own: own2 });
+    }
+    this.react();
+  }
+  /** Holds one piece at `at`, lifting it first if it isn't held; the keys it holds. */
+  #hold(key, rid2, at3, own2) {
+    const { table } = this.#w;
+    if (!table.held(key)) {
+      const el4 = key.endsWith("#pool") ? table.pool(rid2) : table.element(rid2) ?? table.handFor(rid2);
+      if (!el4) return [];
+      table.lift(key, el4, at3);
+    }
+    const el3 = table.held(key);
+    el3.classList.toggle("carried", !own2);
+    table.place(key, at3);
+    return [key];
+  }
+  // Seq: seq-move.md#2.1 | R300: this page's let go at once; another page's wait for the drop's change.
+  /** The hand let go of these pieces, here. */
+  drop(hand, items, own2) {
+    const pieces = this.#hands.get(hand);
+    if (!pieces) return;
+    if (own2) {
+      for (const key of [...pieces.keys()]) this.#release(hand, key);
+      this.react(false);
+      return;
+    }
+    this.show(hand, items.map(({ aim: _, ...i }) => i), false);
+    for (const i of items) {
+      const key = i.part === "pool" ? `${i.rid}#pool` : i.rid, p = pieces.get(key);
+      if (p) p.landing = setTimeout(() => this.#land(hand, key), LAND_MS);
+    }
+    this.react(false);
+  }
+  // R301: a page that leaves lets go of what it held.
+  /** Lets go of everything `hand` holds. */
+  leave(hand) {
+    const pieces = this.#hands.get(hand);
+    if (!pieces) return;
+    for (const key of [...pieces.keys()]) this.#land(hand, key);
+    this.#hands.delete(hand);
+  }
+  // Seq: seq-move.md#2.2: let go, and drawn where its record says.
+  #land(hand, key) {
+    const p = this.#hands.get(hand)?.get(key);
+    if (!p) return;
+    this.#release(hand, key);
+    this.#w.table.render(p.keys.map((k) => k.replace(/#pool$/, "")));
+    this.react(false);
+  }
+  #release(hand, key) {
+    const pieces = this.#hands.get(hand), p = pieces?.get(key);
+    if (!p) return;
+    if (p.landing) clearTimeout(p.landing);
+    pieces.delete(key);
+    for (const k of p.keys) {
+      const el3 = this.#w.table.held(k);
+      if (el3) this.#unchip(el3);
+      this.#w.table.letGo(k);
+    }
+  }
+  // Seq: seq-drag.md#1.4 | R299, R222, R240, R244, R243: every hand's aims, latest last; only what
+  // differs from what's drawn is drawn.
+  /** Draws what the aims do. Run again after every redraw (a drawer's redraw drops its gap). */
+  react(animate = true) {
+    const { table, game } = this.#w;
+    const lit = /* @__PURE__ */ new Set(), gaps = /* @__PURE__ */ new Map(), strips = /* @__PURE__ */ new Map();
+    const chips = /* @__PURE__ */ new Map();
+    const all2 = [...this.#hands.values()].flatMap((m) => [...m.values()]).sort((a, b) => a.t - b.t);
+    for (const p of all2) {
+      const a = p.aim;
+      if (!a) continue;
+      const pool = (oid) => table.pool(ridOf(oid));
+      let target = null;
+      if (a.slot) target = pool(a.slot.owner)?.querySelector(`.slot-${a.slot.name}`);
+      else if (a.drawer) {
+        target = pool(a.drawer.owner)?.querySelector(".drawer");
+        if (target && a.drawer.at !== void 0) gaps.set(target, a.drawer.at);
+      } else if (a.kill) target = pool(a.kill)?.querySelector(".kill");
+      else if (a.merge) target = table.held(a.merge) ? null : table.handFor(a.merge, false);
+      else if (a.card) target = table.element(a.card);
+      if (target) lit.add(target);
+      if (a.reach) {
+        const m = pool(a.reach.owner);
+        if (m) strips.set(m, { at: a.reach.at, from: a.reach.from });
+      }
+      const el3 = table.held(p.rid), i = game.get(p.rid);
+      if (a.chip && el3 && i?.kind === "influence") chips.set(el3, i);
+    }
+    for (const e of this.#lit) if (!lit.has(e)) e.classList.remove("over");
+    for (const e of lit) e.classList.add("over");
+    this.#lit = lit;
+    for (const d of this.#gaps) if (!gaps.has(d)) showGap(d, null, animate);
+    for (const [d, at3] of gaps) showGap(d, at3, animate);
+    this.#gaps = new Set(gaps.keys());
+    for (const m of table.pools()) {
+      const s = strips.get(m);
+      reach(m, s?.at ?? null, s?.from ?? null);
+    }
+    for (const e of [...this.#chips.keys()]) if (!chips.has(e)) this.#unchip(e);
+    for (const [e, i] of chips) {
+      if (this.#chips.has(e)) continue;
+      const carried = e.classList.contains("carried");
+      this.#chips.set(e, { cls: e.className, kids: [...e.childNodes], title: e.title });
+      asChip(e, i);
+      e.classList.add("obj", "lifted");
+      e.classList.toggle("carried", carried);
+    }
+  }
+  /** Puts a card shown as a chip back to its own look. */
+  #unchip(e) {
+    const was = this.#chips.get(e);
+    if (!was) return;
+    this.#chips.delete(e);
+    const carried = e.classList.contains("carried");
+    e.className = was.cls;
+    e.replaceChildren(...was.kids);
+    e.title = was.title;
+    e.classList.toggle("carried", carried);
+  }
+  /** Whether `rid` is shown as a chip in a hand now. */
+  chip(rid2) {
+    const e = this.#w.table.held(rid2);
+    return !!e && this.#chips.has(e);
+  }
+};
+
 // src/main.ts
 var clock = { now: () => Date.now(), setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (h) => clearTimeout(h) };
 async function measure(blob) {
@@ -10483,14 +10585,27 @@ function frame(fn) {
   raf = requestAnimationFrame(go);
   const t = setTimeout(go, 100);
 }
-function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, checkpoint) {
+function shown2(hands, cs, may = () => true) {
+  const by = /* @__PURE__ */ new Map();
+  for (const c of cs) {
+    if (!may(c)) continue;
+    const g = by.get(c.tab) ?? { moved: [], dropped: [] };
+    (c.drop ? g.dropped : g.moved).push(c);
+    by.set(c.tab, g);
+  }
+  for (const [tab2, g] of by) {
+    if (g.moved.length) hands?.show(tab2, g.moved, false);
+    if (g.dropped.length) hands?.drop(tab2, g.dropped, false);
+  }
+}
+function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rolling, checkpoint) {
   const who = viewer?.name ?? "nobody", gm = !!viewer?.gm;
   let seat = load(localStorage, gameId, who);
   const keep = (s) => {
     seat = s;
     save(localStorage, gameId, who, s);
   };
-  const redraw = () => table.render(game.all().map(([rid]) => rid));
+  const redraw = () => table.render(game.all().map(([rid2]) => rid2));
   const mint2 = () => minter(game, gm);
   let drag, rollRow;
   const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ("kind" in r ? placeOf(r) : null)?.z ?? 0));
@@ -10513,22 +10628,22 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
         return newChip(oid, what.sign, what.points, at3);
     }
   };
-  const clearOfBar = (rid) => {
-    const c = game.get(rid), bar2 = document.getElementById("bar");
+  const clearOfBar = (rid2) => {
+    const c = game.get(rid2), bar2 = document.getElementById("bar");
     if (c?.kind !== "character" || !bar2) return;
     const top = Math.round(table.toWorld(0, bar2.getBoundingClientRect().bottom).y + 10);
     const dy = top - c.pool.y;
-    if (dy > 0) game.change((w) => w.put(rid, { ...c, pool: { ...c.pool, y: top }, card: { ...c.card, y: c.card.y + dy } }));
+    if (dy > 0) game.change((w) => w.put(rid2, { ...c, pool: { ...c.pool, y: top }, card: { ...c.card, y: c.card.y + dy } }));
   };
   const bar = new BarView(document.getElementById("bar"), {
     stamp: "dev",
     take: (what, e) => {
-      const oid = mint2()(), rid = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
-      game.change((w) => w.put(rid, rec));
-      drag?.fresh(rid);
-      if (rec.kind === "character") drag?.startPool(rid, e, e, () => clearOfBar(rid));
-      else if (rec.kind === "chip") drag?.startItem(rid, e, e);
-      else drag?.start(rid, e, e);
+      const oid = mint2()(), rid2 = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
+      game.change((w) => w.put(rid2, rec));
+      drag?.fresh(rid2);
+      if (rec.kind === "character") drag?.startPool(rid2, e, e, () => clearOfBar(rid2));
+      else if (rec.kind === "chip") drag?.startItem(rid2, e, e);
+      else drag?.start(rid2, e, e);
     },
     images: (files) => {
       const r = document.getElementById("table").getBoundingClientRect(), c = table.toWorld(r.left + r.width / 2, r.top + r.height / 2);
@@ -10550,7 +10665,7 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
       keep({ ...seat, open: { ...seat.open, columns: [...o] } });
       redraw();
     },
-    drag: (rid, down, move) => drag?.start(rid, down, move),
+    drag: (rid2, down, move) => drag?.start(rid2, down, move),
     // R259: your own Resources only; anyone's Motivations and Damage.
     dragGlyph: (src, down, move) => {
       const colon = src.indexOf(":"), c = game.get(ridOf(src.slice(0, colon)));
@@ -10568,7 +10683,7 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
       keep({ ...seat, open: { ...seat.open, [kind]: [...now2] } });
       redraw();
     },
-    dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
+    dragItem: (rid2, down, move) => drag?.startItem(rid2, down, move),
     // R75–R77: an action's die brings the roll row; the action in use gets its swish.
     useAction: (oid, label) => rollRow?.action(oid, label) ?? false,
     inUse: (oid) => rollRow?.inUse(oid) ?? null,
@@ -10584,13 +10699,15 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
         die3.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
       }
     },
-    dragPool: (rid, down, move) => drag?.startPool(rid, down, move)
+    dragPool: (rid2, down, move) => drag?.startPool(rid2, down, move)
   });
   const yard = () => {
     const y = game.get("yards") ?? empty(), cur = Math.min(seat.boothill.cur, y.yards.length - 1);
     return { cur, name: y.yards[cur].name };
   };
-  drag = new Drag({ game, table, moves, mint: mint2, schedule: frame, yard });
+  const hands = new Hands({ game, table });
+  table.after = () => hands.react();
+  drag = new Drag({ game, table, hands, hand, moves, mint: mint2, schedule: frame, yard });
   const tape = new TapeView(document.getElementById("table"), {
     game,
     viewer,
@@ -10599,7 +10716,7 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
     crit: (id, choice, lock) => rolling().crit(id, choice, lock),
     mint: () => mint2()(),
     toWorld: (x, y) => table.toWorld(x, y),
-    carry: (rid, down, move) => drag?.start(rid, down, move)
+    carry: (rid2, down, move) => drag?.start(rid2, down, move)
   });
   const register = new RegisterView(document.getElementById("bar"), { game, viewer, checkpoint, paperRoll: () => tape.toggleUp() });
   const hang = () => {
@@ -10612,7 +10729,7 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
   new LedgerView(document.getElementById("bar"), document.body, { ...ledger, restore: async (id) => {
     await ledger.restore(id);
     const yards = game.get("yards") ?? empty();
-    keep(prune(seat, (rid) => game.get(rid) !== void 0, yards.yards.length));
+    keep(prune(seat, (rid2) => game.get(rid2) !== void 0, yards.yards.length));
     redraw();
   } });
   new BootHillView(document.getElementById("bar"), document.body, {
@@ -10651,7 +10768,7 @@ function views(game, gameId, viewer, blobs, moves, missing, ledger, rolling, che
       });
     }
   });
-  return { table, drag, bar };
+  return { table, drag, bar, hands };
 }
 function askName() {
   for (; ; ) {
@@ -10688,7 +10805,7 @@ function ledgerOf(store, blobs, player) {
   };
 }
 function redrawImages(game, table, hash) {
-  table.render(game.all().filter(([, r]) => r.kind === "image" && r.blob === hash).map(([rid]) => rid));
+  table.render(game.all().filter(([, r]) => r.kind === "image" && r.blob === hash).map(([rid2]) => rid2));
 }
 async function main() {
   const db = await IdbDb.open();
@@ -10717,13 +10834,17 @@ async function main() {
       local: localStorage,
       room: invited.room,
       gm: invited.gm,
-      held: (rid) => moves2.holds(rid)
+      held: (rid2) => moves2.holds(rid2)
     });
+    let hands2;
     const moves2 = new Moves({ stamps, tab: tab2, send: (m) => {
       void wire.send("move", m);
-    }, place: (cs) => copy.place(cs), timers: clock, schedule: frame });
+    }, place: (cs) => shown2(hands2, cs), timers: clock, schedule: frame });
     wire.on("move", (b, from) => moves2.receive(from.tab, b));
-    const presence = new Presence({ net: wire, clock, role: "player", name: name2, gone: (tab3) => rolls2.left(tab3) });
+    const presence = new Presence({ net: wire, clock, role: "player", name: name2, gone: (tab3) => {
+      rolls2.left(tab3);
+      hands2?.leave(tab3);
+    } });
     let notYours = null;
     wire.on("claim", (b) => {
       notYours = b.why;
@@ -10735,7 +10856,9 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const { table: table2, drag: drag2, bar: bar2 } = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, (hash) => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls2);
+    const v = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, tab2, (hash) => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls2);
+    const { table: table2, drag: drag2, bar: bar2 } = v;
+    hands2 = v.hands;
     new FolksView(bar2.folks, bar2.youAre, { me: () => ({ ...meOf(presence, name2, false), ...notYours !== null && { notYours } }), people: () => here(presence), held: () => void 0 });
     return { stamp: "dev", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
@@ -10750,7 +10873,7 @@ async function main() {
     send: (m) => {
       void table?.wire.send("move", m);
     },
-    place: (cs) => table?.authority.moved(cs),
+    place: (cs) => shown2(hands, cs, (c) => !!table?.authority.mayMove(c.tab, c.rid)),
     timers: clock,
     schedule: frame
   });
@@ -10766,7 +10889,8 @@ async function main() {
       name: gmShown,
       here: (p, from) => {
         if (p.role === "player") authority.join(from.tab, p.name, from.browser, from.sealKey);
-      }
+      },
+      gone: (tab3) => hands.leave(tab3)
     });
     const authority = new Authority({ game, stamps, sealer, link: wire, schedule: queueMicrotask });
     const whoIs2 = (from) => {
@@ -10791,12 +10915,13 @@ async function main() {
     rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
   };
   const gmSeat = load(localStorage, store.current.id, GM), viewer = gmSeat.viewAs ? { name: gmSeat.viewAs, gm: false } : { name: GM, gm: true };
-  const { table: view, drag, bar } = views(
+  const { table: view, drag, bar, hands } = views(
     game,
     store.current.id,
     viewer,
     blobs,
     moves,
+    tab2,
     (hash) => table?.images.missing.get(hash),
     ledgerOf(store, blobs, false),
     () => rolls,

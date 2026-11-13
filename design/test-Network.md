@@ -90,6 +90,28 @@ one: the GM's page has it; Ann joins later and has both; an image nobody has is 
 **Inject:** src/main.ts:main
 **Pulled:** 2026-11-13 — rang: Dana's page kept waiting on the GM's gone page instead of saying nobody can roll (Chromium)
 
+## Test: one carry, shown alike
+**Purpose:** R298–R301: what one page carries shows lifted on another, aimed there, and is saved only
+by the drop
+**Expected:**
+- the GM takes Beauford's Stagger chip: Dana's page holds it lifted (`carried`) at the GM's place;
+  on both pages its record still says Stagger
+- over Sam's Bias strip it opens on both pages, lit on Dana's; let go there, Bias holds it on both
+  and no hand holds anything
+- Devreux's Keep the Peace in the GM's hand is a card on Dana's page, and a chip over Sam's slots;
+  over Sam's drawer the gap opens in Sam's drawer on Dana's page, and closes when it leaves; let
+  go there, it is Sam's on both pages
+- Beauford's chip dropped on the kill box changes nothing; Dana's page puts it back in Stagger by
+  itself, and neither page's record moved
+- Dana carrying Devreux's pool (not hers) isn't shown on the GM's page; carrying Sam's (given her)
+  is, and when she leaves holding it the GM's page lets it go
+**Refs:** crc-Hands.md, crc-Moves.md, crc-Drag.md, seq-move.md
+**Code:** `tests/hands.spec.ts`
+**Alarm:** 5
+**Fire alarm:** Send drags without their aim: Sam's Bias strip opens only on the GM's page
+**Inject:** src/net/moves.ts:Moves.drag
+**Pulled:** 2026-11-13 — rang: without the aim, Sam's Bias strip stayed narrow on Dana's page and the card never showed as a chip there (Chromium)
+
 ## Test: the public relays
 **Purpose:** R160, R297: the relays in use still introduce pages (opt-in, `npm run spec:public`)
 **Expected:** the GM and Dana see each other live

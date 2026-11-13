@@ -158,6 +158,9 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .obj.pinned.atop { z-index: 100001 !important; }
 .obj.pinned.lifted { z-index: 1000001 !important; }
 .obj.glide { transition: box-shadow .15s, transform .15s, left .12s linear, top .12s linear; }
+/* R298, R218: a piece in another page's hand slides to each place that page sends. */
+.obj.lifted.carried { transition: left .1s linear, top .1s linear; }
+@media (prefers-reduced-motion: reduce) { .obj.lifted.carried { transition: none; } }
 
 /* ---- R1, R22: the character card, a two-sided index card. R252: flat, one face at a time (Chrome
    draws text held in 3D soft); PieceView turns it with a 2D squeeze. ---- */

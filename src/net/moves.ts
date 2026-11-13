@@ -1,17 +1,30 @@
-// CRC: crc-Moves.md | Seq: seq-move.md#1, seq-move.md#1.1, seq-move.md#1.2, seq-move.md#1.3, seq-move.md#1.5, seq-move.md#2 | R178, R179, R182, R183
+// CRC: crc-Moves.md | Seq: seq-move.md#1, seq-move.md#1.1, seq-move.md#1.2, seq-move.md#1.3, seq-move.md#1.5, seq-move.md#2 | R298, R299, R300, R182, R183
 // Drags go straight to the room, without passing through the GM's page. A receiving page queues
-// what arrives and an actor works through it in passes, newest arrival first; the GM's saved records
-// settle where things end up.
+// what arrives and an actor works through it in passes, newest arrival first, and shows the winners
+// (Hands). A move saves nothing: the drop's change does.
 
-import type { Rid } from '../model/records.ts';
+import type { Oid, Rid, SlotName } from '../model/records.ts';
 import type { Stamps } from './stamps.ts';
 
 export const SEND_MS = 100;
 
-export type MoveItem = { rid: Rid; x: number; y: number; z: number; part?: string };
-export type Move = { s: number; items: MoveItem[] };
-/** One item of a move as the actor sees it: who sent it and under what number. */
-export type Command = MoveItem & { tab: string; s: number };
+// R299: what a carried piece is aimed at, as the carrying page decided it.
+/** What a piece would land on, the strip it opened, and whether a card shows as a chip. */
+export type Aim = {
+  slot?: { owner: Oid; name: SlotName };
+  drawer?: { owner: Oid; at?: number };
+  kill?: Oid;
+  merge?: Rid;
+  card?: Rid;
+  reach?: { owner: Oid; at: SlotName; from: SlotName | null };
+  chip?: boolean;
+};
+
+/** A piece in hand: the one held (what follows it, each page works out), where, and its aim. */
+export type MoveItem = { rid: Rid; x: number; y: number; z: number; part?: string; aim?: Aim };
+export type Move = { s: number; items: MoveItem[]; drop?: boolean };
+/** One item of a move as the actor sees it: who sent it, under what number, and whether it let go. */
+export type Command = MoveItem & { tab: string; s: number; drop?: boolean };
 
 export type Timers = { setTimeout(fn: () => void, ms: number): unknown; clearTimeout(h: unknown): void };
 /** Runs `fn` once, on the next animation frame or after SEND_MS, whichever comes first. */
@@ -23,7 +36,7 @@ export type MovesWith = {
   tab: string;
   /** Sends a move to the room. */
   send: (move: Move) => void;
-  /** Applies a pass's winners (through Game.change). */
+  /** Shows a pass's winners (Hands): moves in hand, or let go. */
   place: (commands: Command[]) => void;
   timers: Timers;
   schedule: Schedule;
@@ -56,24 +69,24 @@ export class Moves {
   /** The pieces were let go: their places go out now. */
   drop(items: MoveItem[]): void {
     if (this.#timer !== null) { this.#w.timers.clearTimeout(this.#timer); this.#timer = null; }
-    this.#sendNow(items);
+    this.#sendNow(items.map(({ aim: _, ...i }) => i), true);
   }
 
-  #sendNow(items: MoveItem[]): void {
+  #sendNow(items: MoveItem[], drop = false): void {
     if (!items.length) return;
     const s = this.#w.stamps.next();
     for (const i of items) this.#w.stamps.mark(i.rid, this.#w.tab, s);
-    this.#w.send({ s, items });
+    this.#w.send({ s, items, ...(drop && { drop: true }) });
   }
 
   // Seq: seq-move.md#1.1, seq-move.md#1.2
   /** A move from another page joins the queue; an actor starts if none is running. */
   receive(from: string, move: Move): void {
-    for (const i of move.items) this.#filling.push({ ...i, tab: from, s: move.s });
+    for (const i of move.items) this.#filling.push({ ...i, tab: from, s: move.s, ...(move.drop && { drop: true }) });
     this.#startActor();
   }
 
-  // Seq: seq-move.md#1.3, seq-move.md#1.5 | R179, R182
+  // Seq: seq-move.md#1.3, seq-move.md#1.5 | R182
   /**
    * Swaps the buffers and works through what arrived, newest arrival first. The first command to
    * reach a piece places it; an older arrival changes it only if it is from the same page with a
@@ -137,3 +150,4 @@ export class Moves {
     if (newer) this.#waiting.set(c.rid, { c, pass: this.#pass });
   }
 }
+

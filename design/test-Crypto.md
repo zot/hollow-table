@@ -29,11 +29,12 @@ different sealing key
 ## Test: hostile envelopes are dropped
 **Purpose:** nothing a peer sends is parsed as markup or accepted out of range
 **Input:** a roll with a die showing 7; rolls of 40 and 41 dice; a roll whose character name is `<img src=x onerror=alert(1)>`;
-a move with 9 items; a record failing check, and one whose oid isn't its rid; a record whose text
+a move with 9 items; moves aimed at a slot with a strip and a chip, at a drawer with and without a
+gap's place (one a drop), at a slot named `pocket`, with an unknown `gap`, and at a gap of −1; a record failing check, and one whose oid isn't its rid; a record whose text
 holds `<script>` and an attributed tag; things that are no message, and an envelope of another
 version
-**Expected:** the 7 drops the roll, and so do 41 dice (40 pass); the name is kept as text; the 9-item move and the bad records
-are dropped; the text keeps its tags as plain text; no message is no envelope. That no element is
+**Expected:** the 7 drops the roll, and so do 41 dice (40 pass); the name is kept as text; the 9-item move, the three bad aims and the bad records
+are dropped (R299); the text keeps its tags as plain text; no message is no envelope. That no element is
 made from the name is the views' (test-Table); big batches travel whole, chunked by Trystero
 (crc-Envelope.md)
 **Refs:** crc-Envelope.md, crc-MarkedText.md

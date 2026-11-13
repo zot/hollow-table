@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R269, R270, R271, R272, R273, R285
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -54,8 +54,10 @@ export class TableView {
   #els = new Map<Rid, HTMLElement>();
   #pools = new Map<Rid, HTMLElement>();
   #loose = new Map<Rid, HTMLElement>();
-  /** Chips and cards in hand (R220): skipped by pools and the loose layer until let go. */
-  #held = new Map<Rid, HTMLElement>();
+  /** What is in a hand (R220), this page's or another's, by rid or `rid#pool`: skipped by redraws. */
+  #held = new Map<string, { el: HTMLElement; at: { x: number; y: number } }>();
+  /** Run after every redraw (Hands draws its reactions again). */
+  after: (() => void) | null = null;
   /** Inside still(): a redraw that moves a piece doesn't glide (R226). */
   #still = false;
   #sized = new ResizeObserver(entries => {
@@ -85,27 +87,58 @@ export class TableView {
     });
   }
 
-  // R220: the hand.
-  /** Holds a chip or card: into the world layer at `at`, squared up and raised, skipped by redraws. */
-  lift(rid: Rid, el: HTMLElement, at: { x: number; y: number }): void {
-    this.#held.set(rid, el);
+  // CRC: crc-TableView.md | R220, R298: the hand, this page's or another's (Hands).
+  /** Holds a piece (`rid`, or `rid#pool`): into the world layer at `at`, squared up and raised, skipped by redraws. */
+  lift(key: string, el: HTMLElement, at: { x: number; y: number }): void {
+    this.#held.set(key, { el, at });
     if (el.parentElement !== this.#world) this.#world.append(el);
     el.classList.add('obj', 'lifted');
     el.classList.remove('glide');
-    el.style.left = `${at.x}px`;
-    el.style.top = `${at.y}px`;
     el.style.pointerEvents = 'none';   // hit tests see what's under it
-    this.render([rid]);               // its pool, if it came from one, is drawn without it
+    this.place(key, at);
+    if (!key.endsWith('#pool')) this.render([key]);   // its pool, if it came from one, is drawn without it
   }
 
-  /** Lets go of a held chip or card: back in the loose layer if it was loose, otherwise gone. */
-  letGo(rid: Rid): void {
-    const el = this.#held.get(rid);
-    this.#held.delete(rid);
-    if (!el) return;
+  /** Puts a held piece at `at`. */
+  place(key: string, at: { x: number; y: number }): void {
+    const h = this.#held.get(key);
+    if (!h) return;
+    h.at = at;
+    h.el.style.left = `${at.x}px`;
+    h.el.style.top = `${at.y}px`;
+  }
+
+  /** What holds `key`, if it's held. */
+  held(key: string): HTMLElement | undefined { return this.#held.get(key)?.el; }
+
+  /**
+   * Lets go of a held piece: a chip or card back in the loose layer if it was loose, and gone if it
+   * was a hand's own; paper, cards and pools stay, for their record to draw.
+   */
+  letGo(key: string): void {
+    const h = this.#held.get(key);
+    this.#held.delete(key);
+    if (!h) return;
+    const { el } = h;
     el.style.pointerEvents = '';
-    el.classList.remove('lifted');
-    if (this.#loose.get(rid) !== el) el.remove();
+    el.classList.remove('lifted', 'carried');
+    const rid = key.replace(/#pool$/, '');
+    if (this.#loose.get(rid) !== el && this.#els.get(rid) !== el && this.#pools.get(rid) !== el) el.remove();
+  }
+
+  /**
+   * The element drawing a chip or card, wherever it lies (a slot, a drawer, loose), or a new one
+   * shaped as a loose one for a piece drawn only in a pile.
+   */
+  handFor(rid: Rid, make = true): HTMLElement | undefined {
+    const i = this.#w.game.get(rid) as Item | undefined;
+    if (!i || (i.kind !== 'chip' && i.kind !== 'influence')) return undefined;
+    const drawn = this.#loose.get(rid) ?? this.#world.querySelector<HTMLElement>(`.pool [data-rid="${rid}"]`);
+    if (drawn || !make) return drawn ?? undefined;
+    const e = this.#world.ownerDocument.createElement('div');
+    e.dataset.rid = rid;
+    this.#shape(e, i);
+    return e;
   }
 
   // R226, R217: what this page let go itself is drawn where it landed, without gliding.
@@ -131,7 +164,7 @@ export class TableView {
   // R33: a gathered card is drawn under its pool's drawer, wherever that ends; the same on every page.
   #snap(rid: Rid): void {
     const c = this.#w.game.get(rid) as Character | undefined, card = this.#els.get(rid), mat = this.#pools.get(rid);
-    if (!c || c.kind !== 'character' || !card || !mat || !c.gathered) return;
+    if (!c || c.kind !== 'character' || !card || !mat || !c.gathered || this.#held.has(rid)) return;
     card.style.left = `${c.pool.x}px`;
     card.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
   }
@@ -189,12 +222,26 @@ export class TableView {
       if (!c || c.kind !== 'character') { if (old) { this.#sized.unobserve(old); old.remove(); this.#pools.delete(rid); } continue; }
       const e = drawPool(c, items, old, this.#w);
       if (e !== old) { this.#world.append(e); this.#pools.set(rid, e); this.#sized.observe(e); }
+      // R220: a pool in hand keeps its place in the hand; its contents are still drawn.
+      const held = this.#held.get(`${rid}#pool`);
+      if (held) { e.style.left = `${held.at.x}px`; e.style.top = `${held.at.y}px`; }
       this.#snap(rid);
     }
   }
 
   // R60: a chip or a tap can lie loose on the table.
-  #drawLoose(rid: Rid): void {
+/** A loose chip's or card's look: a chip's face, or a card's name and Level (returned, for its clicks). */
+  #shape(e: HTMLElement, i: Item): HTMLElement | null {
+    e.className = `obj loose-item ${i.kind === 'chip' ? `chip ${i.sign > 0 ? 'pos' : 'neg'}` : `icard ${i.sign > 0 ? 'pos' : 'neg'} tapped`}`;
+    if (i.kind === 'chip') { e.textContent = chipFace(i); return null; }
+    const level = e.ownerDocument.createElement('button');
+    level.className = 'level';
+    level.textContent = `${i.sign > 0 ? '+' : '−'}${levelName(i.points)}`;
+    e.replaceChildren(`${i.name} `, level);
+    return level;
+  }
+
+    #drawLoose(rid: Rid): void {
     if (this.#held.has(rid)) return;
     const i = this.#w.game.get(rid) as Item | undefined, old = this.#loose.get(rid);
     const where = i && typeof i.where === 'object' && 'table' in i.where ? i.where.table : null;
@@ -214,16 +261,11 @@ export class TableView {
       this.#world.append(e);
       this.#loose.set(rid, e);
     }
-    e.className = `obj loose-item ${i.kind === 'chip' ? `chip ${i.sign > 0 ? 'pos' : 'neg'}` : `icard ${i.sign > 0 ? 'pos' : 'neg'} tapped`}`;
-    if (i.kind === 'chip') e.textContent = chipFace(i);
-    else {
+    const level = this.#shape(e, i);
+    if (level) {
       // R269: a loose card's Level answers clicks as in a drawer.
-      const level = doc.createElement('button');
-      level.className = 'level';
-      level.textContent = `${i.sign > 0 ? '+' : '−'}${levelName(i.points)}`;
       const click = (shift: boolean) => { const ch = cardClick(this.#w.game, rid, shift, this.#w.mint()); if (ch) this.#w.game.change(ch); };
       gesture(level, { click: () => click(false), shift: () => click(true) });
-      e.replaceChildren(`${i.name} `, level);
     }
     e.style.left = `${where.x}px`;
     e.style.top = `${where.y}px`;
@@ -232,14 +274,16 @@ export class TableView {
 
   // Seq: seq-save.md#1.4: only the changed rids are touched.
   render(rids: Iterable<Rid>): void {
-    // R226, R178: where everything was, so a piece another page moved slides to its new place.
+    // R226: where everything was, so a piece another page changed slides to its new place.
     const was = new Map<HTMLElement, string>();
     for (const m of [this.#els, this.#pools, this.#loose]) for (const e of m.values()) was.set(e, `${e.style.left},${e.style.top}`);
     this.#render(rids);
-    if (this.#still) return;
-    for (const [e, at] of was) {
-      if (e.isConnected && !e.classList.contains('lifted') && at !== ',' && at !== `${e.style.left},${e.style.top}`) e.classList.add('glide');
+    if (!this.#still) {
+      for (const [e, at] of was) {
+        if (e.isConnected && !e.classList.contains('lifted') && at !== ',' && at !== `${e.style.left},${e.style.top}`) e.classList.add('glide');
+      }
     }
+    this.after?.();
   }
 
   #render(rids: Iterable<Rid>): void {
@@ -252,7 +296,7 @@ export class TableView {
       if (!r || r.kind === 'chip' || r.kind === 'influence') { items = true; this.#drawLoose(rid); if (r) continue; }
       const old = this.#els.get(rid);
       // R220: a piece in hand isn't redrawn under it; the drop draws it (gone, it still goes).
-      if (r && old?.classList.contains('lifted')) continue;
+      if (r && this.#held.has(rid)) continue;
       const e = r ? draw(r, old, this.#w) : null;
       if (!e) {
         if (old) { old.remove(); this.#els.delete(rid); if (old.dataset.blob) this.#w.imageGone(old.dataset.blob); }

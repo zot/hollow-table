@@ -12,7 +12,7 @@ import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
 import { Identity } from './net/identity.ts';
 import { ImageExchange } from './net/images.ts';
-import { Moves, type Move } from './net/moves.ts';
+import { Moves, type Command, type Move } from './net/moves.ts';
 import { Presence, fromUrl, invite, newRoom } from './net/presence.ts';
 import { Rolls } from './net/rolls.ts';
 import { Sealer } from './net/seal.ts';
@@ -37,6 +37,7 @@ import { exportGame, importGame } from './store/exchange.ts';
 import { LedgerView, type LedgerWith } from './ui/ledger.ts';
 import { minter } from './ui/actions.ts';
 import { Drag } from './ui/drag.ts';
+import { Hands } from './ui/hands.ts';
 import { TableView } from './ui/table.ts';
 
 declare const HOLLOW_STAMP: string;
@@ -75,8 +76,24 @@ function frame(fn: () => void): void {
 }
 
 /** The table's views for this page: drawn from the game, the view kept in this viewer's seat. */
-function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, missing: (hash: string) => string | undefined, ledger: LedgerWith,
-  rolling: () => Rolls, checkpoint?: (name: string) => Promise<unknown>): { table: TableView; drag: Drag; bar: BarView } {
+// Seq: seq-move.md#1.4, seq-move.md#2.1 | R298, R300: a pass's winners, shown in their hands (only
+// those `may` allows), and what was let go.
+function shown(hands: Hands | undefined, cs: Command[], may: (c: Command) => boolean = () => true): void {
+  const by = new Map<string, { moved: Command[]; dropped: Command[] }>();
+  for (const c of cs) {
+    if (!may(c)) continue;
+    const g = by.get(c.tab) ?? { moved: [], dropped: [] };
+    (c.drop ? g.dropped : g.moved).push(c);
+    by.set(c.tab, g);
+  }
+  for (const [tab, g] of by) {
+    if (g.moved.length) hands?.show(tab, g.moved, false);
+    if (g.dropped.length) hands?.drop(tab, g.dropped, false);
+  }
+}
+
+function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, hand: string, missing: (hash: string) => string | undefined, ledger: LedgerWith,
+  rolling: () => Rolls, checkpoint?: (name: string) => Promise<unknown>): { table: TableView; drag: Drag; bar: BarView; hands: Hands } {
   const who = viewer?.name ?? 'nobody', gm = !!viewer?.gm;
   let seat: Seat = loadSeat(localStorage, gameId, who);
   const keep = (s: Seat) => { seat = s; saveSeat(localStorage, gameId, who, s); };
@@ -167,7 +184,10 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     const y = (game.get('yards') as Yards | undefined) ?? emptyYards(), cur = Math.min(seat.boothill.cur, y.yards.length - 1);
     return { cur, name: y.yards[cur]!.name };
   };
-  drag = new Drag({ game, table, moves, mint, schedule: frame, yard });
+  // R298, R299: every hand, this page's and others', drawn alike, again after every redraw.
+  const hands = new Hands({ game, table });
+  table.after = () => hands.react();
+  drag = new Drag({ game, table, hands, hand, moves, mint, schedule: frame, yard });
   // R110–R113: this page's tape, under the pieces; a torn roll is carried off like any piece.
   const tape = new TapeView(document.getElementById('table')!, {
     game, viewer, up: () => seat.tapeUp, setUp: up => keep({ ...seat, tapeUp: up }),
@@ -210,7 +230,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       void rolls.request(intent).then(why => { rollRow!.waiting(false); if (why) rolls.note(why); });
     },
   });
-  return { table, drag, bar };
+  return { table, drag, bar, hands };
 }
 
 // R294: arriving by an invite asks for a name until one that isn't "GM" is given; cancel is "Player".
@@ -269,9 +289,10 @@ async function main() {
     // Copy only asks what's held when a message arrives, after Moves is made.
     const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm,
       held: rid => moves.holds(rid) });
-    const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, place: cs => copy.place(cs), timers: clock, schedule: frame });
+    let hands: Hands | undefined;
+    const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, place: cs => shown(hands, cs), timers: clock, schedule: frame });
     wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
-    const presence = new Presence({ net: wire, clock, role: 'player', name, gone: tab => rolls.left(tab) });
+    const presence = new Presence({ net: wire, clock, role: 'player', name, gone: tab => { rolls.left(tab); hands?.leave(tab); } });
     // R167, R296: the GM's page says when this page is nobody, and when it is handed the name.
     let notYours: string | null = null;
     wire.on('claim', (b: { why: string | null }) => { notYours = b.why; });
@@ -282,7 +303,9 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const { table, drag, bar } = views(game, store.current!.id, { name, gm: false }, blobs, moves, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls);
+    const v = views(game, store.current!.id, { name, gm: false }, blobs, moves, tab, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls);
+    const { table, drag, bar } = v;
+    hands = v.hands;
     new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }) }), people: () => here(presence), held: () => undefined });
     return { stamp: HOLLOW_STAMP, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
@@ -295,7 +318,7 @@ async function main() {
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
   // Drags go to the room once there is one; players' drags are judged like their changes.
   const moves = new Moves({ stamps, tab, send: m => { void table?.wire.send('move', m); },
-    place: cs => table?.authority.moved(cs), timers: clock, schedule: frame });
+    place: cs => shown(hands, cs, c => !!table?.authority.mayMove(c.tab, c.rid)), timers: clock, schedule: frame });
 
   // R157: Open the table makes the room (or reopens this game's); the GM's URL is never rewritten.
   const open = () => {
@@ -304,7 +327,8 @@ async function main() {
     const room = local(key) ?? local(key, newRoom(store.current!.name))!;
     const wire = new Wire(room, { identity, sealer, tab, loopback, relay });
     const presence = new Presence({ net: wire, clock, role: 'gm', name: gmShown,
-      here: (p, from) => { if (p.role === 'player') authority.join(from.tab, p.name, from.browser, from.sealKey); } });
+      here: (p, from) => { if (p.role === 'player') authority.join(from.tab, p.name, from.browser, from.sealKey); },
+      gone: tab => hands.leave(tab) });
     const authority = new Authority({ game, stamps, sealer, link: wire, schedule: queueMicrotask });
     const whoIs = (from: { tab: string; browser: string }) => {
       const p = presence.people.get(from.tab), held = p && (game.get('book') as Book).claims[p.name];
@@ -331,7 +355,7 @@ async function main() {
   };
   // R153: the real GM views as someone else from the seat's viewAs; the page reloads to change it.
   const gmSeat = loadSeat(localStorage, store.current!.id, GM), viewer: Viewer = gmSeat.viewAs ? { name: gmSeat.viewAs, gm: false } : { name: GM, gm: true };
-  const { table: view, drag, bar } = views(game, store.current!.id, viewer, blobs, moves, hash => table?.images.missing.get(hash), ledgerOf(store, blobs, false), () => rolls,
+  const { table: view, drag, bar, hands } = views(game, store.current!.id, viewer, blobs, moves, tab, hash => table?.images.missing.get(hash), ledgerOf(store, blobs, false), () => rolls,
     name => store.checkpoint(name, true));
   new FolksView(bar.folks, bar.youAre, {
     me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },

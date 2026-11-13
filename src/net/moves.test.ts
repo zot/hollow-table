@@ -90,3 +90,20 @@ test('a held piece slides to the most recent move', () => {
   p.run();
   assert.equal(p.x(), 650);
 });
+
+test('a move carries its aim, and a drop says it let go', () => {
+  // R299, R300: what the carrying page sends reaches the receiving page's hands as it was sent.
+  const stamps = new Stamps(memoryStorage()), got: Command[] = [], sent: Move[] = [];
+  const { clock, advance } = fakeClock();
+  let queued: (() => void)[] = [];
+  const moves = new Moves({ stamps, tab: 'me', send: m => sent.push(m), timers: clock, place: cs => got.push(...cs), schedule: fn => { queued.push(fn); } });
+  const aim = { slot: { owner: '00000001', name: 'main' as const }, chip: true };
+  moves.drag([{ rid: STICKY, x: 5, y: 6, z: 1, aim }]);
+  advance(SEND_MS);
+  moves.drop([{ rid: STICKY, x: 9, y: 6, z: 1, aim }]);
+  assert.deepEqual(sent.map(m => [m.items[0]!.aim, m.drop]), [[aim, undefined], [undefined, true]]);
+  for (const m of sent) moves.receive('A', m);
+  while (queued.length) { const q = queued; queued = []; q.forEach(f => f()); }
+  // Both arrived in one pass: the drop, the newest, places it, and says so.
+  assert.deepEqual(got.map(c => [c.x, c.drop, c.aim]), [[9, true, undefined]]);
+});

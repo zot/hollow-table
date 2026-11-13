@@ -36,6 +36,11 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
   `Game.change`; it holds no game state. Every pointer reading goes through Gesture, so each
   shift-click has its long press by construction. Drag resolves what a drop means in one ordered
   list (crc-Drag.md).
+- **One carry, shown alike everywhere.** Drag carries every kind of piece one way; each frame's
+  place and aim go to Hands on this page and to the room through Moves, and every other page hands
+  what arrives to its own Hands. Reactions (the lit place, a drawer's gap, a pool's strip, a card
+  as a chip) are drawn from the aim in each page's own layout and never sent; a move saves nothing
+  (crc-Hands.md, R298-R300).
 - **Erasable TypeScript only** (no enums, namespaces or parameter properties), so Node runs the
   sources and tests directly; esbuild bundles the same sources for the page.
 
@@ -66,6 +71,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Claims.md → `src/net/claims.ts`
 - [x] crc-Stamps.md → `src/net/stamps.ts`
 - [x] crc-Moves.md → `src/net/moves.ts`
+- [x] crc-Hands.md → `src/ui/hands.ts`
 - [x] crc-Authority.md → `src/net/authority.ts`
 - [x] crc-Copy.md → `src/net/copy.ts`
 - [x] crc-ImageExchange.md → `src/net/images.ts`
@@ -75,7 +81,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] crc-PieceView.md → `src/ui/piece.ts`
 - [ ] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
 - [x] crc-Gesture.md → `src/ui/gesture.ts`
-- [ ] crc-Drag.md → `src/ui/drag.ts`
+- [x] crc-Drag.md → `src/ui/drag.ts`
 - [x] crc-Pens.md → `src/ui/pens.ts`
 - [ ] crc-RollRow.md → `src/ui/rollrow.ts`
 - [ ] crc-Tape.md → `src/ui/tape.ts`, `src/ui/receipt.ts`
@@ -84,7 +90,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] crc-Ledger.md → `src/ui/ledger.ts`
 - [ ] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
-- [ ] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`
+- [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`
 - [ ] crc-Theme.md → `src/ui/theme.css`
 
 ### Sequences
@@ -93,10 +99,10 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] seq-join.md → `src/net/wire.ts`, `src/net/identity.ts`, `src/net/presence.ts`, `src/net/claims.ts`
 - [ ] seq-sync.md → `src/net/authority.ts`, `src/net/copy.ts`, `src/net/stamps.ts`
 - [ ] seq-edit.md → `src/net/copy.ts`, `src/net/authority.ts`
-- [ ] seq-move.md → `src/net/moves.ts`
+- [x] seq-move.md → `src/net/moves.ts`
 - [ ] seq-roll.md → `src/net/rolls.ts`
 - [ ] seq-images.md → `src/net/images.ts`
-- [ ] seq-drag.md → `src/ui/drag.ts`, `src/ui/pool.ts`, `src/ui/gesture.ts`
+- [x] seq-drag.md → `src/ui/drag.ts`, `src/ui/pool.ts`, `src/ui/gesture.ts`
 
 ### UI Layouts
 - [ ] manifest-ui.md → `src/ui/theme.css`, `src/index.html`
@@ -148,7 +154,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 
 ## Gaps
 - [ ] O1: Checked by hand only, after 9.4.6c's browser specs (`tests/table.spec.ts`, `drag.spec.ts`, `card.spec.ts`, `rolls-local.spec.ts`, `floor.spec.ts`, which now check R215's drop, R216, R217, R220–R222, R225, R240, R241, R243, R244, R251–R253, R255, R256, R260, R268–R272, the roll row, aiming, the tape and the register): R215 frame pacing (passes against pointer events); R226 another page's move gliding; the pool's look R227–R236 and R237's pop; the card's text look R245–R250 and the big sticky R248; R254 headings on one line; R258 the Motivation pen and marks; R259 someone else's Resource glyph shaking; R263–R267 Damage entry fill, the absorb and boxes from Wis, the Attributes pen; R271 a resize keeping the view; R273 pinned paper over its card while written on; R274, R275 and R77 the roll row's look and the swish; R279–R283 receipt titles, the CRIT punch; R117's recharge after End.
-- [ ] O8: A gathered card slides down with its growing drawer over whatever lies below it, unpushed: R241 pushes only what the mat covers. Ask Bill whether the card's area counts too.
+- [x] O8: Resolved 11-13 (Bill: no, moving the card is fine): nothing changes; R241 pushes only what the mat covers. Was: A gathered card slides down with its growing drawer over whatever lies below it, unpushed: R241 pushes only what the mat covers. Ask Bill whether the card's area counts too.
 - [ ] O2: No scene end yet (R262). Tap.rechargeMotives is built and tested, but nothing calls it: the register's End (R117) ends a Conflict, and the table has no scene. Decide with Bill when the register is built (9.4.5).
 - [ ] O3: Hollow Folks' Con/Wis table has negative rows ("worth only 1" at −2 and −1) that the Markdown export garbles; Influence.room gives nothing extra below 1. Read the PDF's table and ask Bill what the negative rows do (R264, R265).
 - [x] O6: Resolved 11-13: Authority.handedOver tells every page of the name where it is (a `claim` with why, or null), and FolksView draws a player's "not yours" tag (R296). Was: A player's page can't draw its "not yours" tag yet (R167, R293): Authority sends `claim` when a page is nobody, but nothing when the GM hands the name over, so the page would keep the tag until it reloads. Authority needs to say when a claim ends (after handOver, a `claim` with no why) before FolksView draws it.
@@ -165,3 +171,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T8: R257 retired by R266 (Bill 11-12: attributes get a mark, <att>)
 - T9: R49 retired by R268 (Bill 11-12: shift-click at Min deletes a card too)
 - T10: R51 retired by R269 (Bill 11-12: a card's Level answers clicks anywhere, and shift-click at Min deletes it)
+- T11: R178 retired by R298 (moves show the piece in hand, whatever is carried (Bill 11-13: one carry for every piece))
+- T12: R179 retired by R300 (a move changes no record; the drop's change places the piece)

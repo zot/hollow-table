@@ -19,12 +19,16 @@ How the sources become the page, and how the page is published and tested.
   (nothing stored), CLOSE. `npm run spec:public` runs the one spec through the public relays.
 - `tsconfig.json`: strict, `erasableSyntaxOnly`, `noEmit`, DOM and ES2022 libs.
 - `build.mjs`: esbuild bundles `src/main.ts` into `dist/app.js`, copies `src/index.html` and
-  `src/ui/theme.css`; stamps "dev" unless publishing.
+  `src/ui/theme.css`; stamps "dev" unless publishing, which sets the stamp (`HOLLOW_STAMP`) and
+  builds into a folder of its own (`HOLLOW_OUT`), so `dist/` keeps saying "dev".
 
 ## Does
 - The page loads only its own bundle and Google Fonts; nothing else from a third party.
-- `publish.sh`: builds, stamps the build time, publishes `dist/` under the IPNS key (15 s TTL), and
-  waits until the test machine serves it.
+- `publish.sh` (R200): builds stamped with the time into a temporary folder, adds it (pinned, and
+  mirrored in the node's Files as `/hollow-table`), makes the key `hollow-table` if it's missing,
+  publishes under it with a 15 s TTL in the background, prints the key's subdomain link, and polls
+  this machine's gateway for up to 90 s (`WAIT`) until `app.js` carries the new stamp. `IPFS` names
+  the binary; otherwise it is on the path or in IPFS Desktop's AppImage.
 - GitHub Pages serves `dist/` for players.
 - main (`src/main.ts`): assembles the page. The plain page is the GM's: GameStore opens its game, and
   `open()` makes (or reopens) this game's room: Wire, Presence, Authority, Rolls, ImageExchange.

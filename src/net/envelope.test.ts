@@ -26,6 +26,14 @@ test('hostile envelopes are dropped', () => {
   const item = (i: number) => ({ rid: ridOf('0000000' + i), x: i, y: 0, z: 0 });
   assert.ok(check(make('move', 'tab-a', { s: 5, items: [1, 2, 3, 4, 5, 6, 7, 8].map(item) })));
   assert.equal(check(make('move', 'tab-a', { s: 5, items: [1, 2, 3, 4, 5, 6, 7, 8, 9].map(item) })), null);
+  // R299: a move's aim and its drop; a slot name not one of the seven, or anything extra, drops it.
+  const aimed = (aim: unknown, drop?: boolean) => make('move', 'tab-a', { s: 6, items: [{ ...item(1), aim }], ...(drop !== undefined && { drop }) });
+  assert.ok(check(aimed({ slot: { owner: '00000001', name: 'main' }, reach: { owner: '00000001', at: 'bias', from: null }, chip: true })));
+  assert.ok(check(aimed({ drawer: { owner: '00000003', at: 2 } }, true)));
+  assert.ok(check(aimed({ drawer: { owner: '00000003' } })));
+  assert.equal(check(aimed({ slot: { owner: '00000001', name: 'pocket' } })), null);
+  assert.equal(check(aimed({ gap: 3 })), null);
+  assert.equal(check(aimed({ drawer: { owner: '00000003', at: -1 } })), null);
 
   // A record failing check drops the batch.
   const batch = (rec: unknown) => make('recs', 'gm', { g: 3, full: false, puts: [{ rid: ridOf('00000008'), s: 9, rec }], dels: [], sealed: {} });

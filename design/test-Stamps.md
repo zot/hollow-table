@@ -33,6 +33,15 @@ A 125 to x 650 then A 124 to x 640 arriving in one pass, then let go
 **Inject:** src/net/moves.ts:#hold
 **Pulled:** 2026-11-12 — rang: the later B arrival was ignored and the piece went to 630, not 720
 
+## Test: a move carries its aim, and a drop says it let go
+**Purpose:** R299, R300: the aim travels with a move and reaches the receiver's hands as sent; a drop
+goes out at once, `drop: true`, with no aim
+**Input:** a drag aimed at Sam's Main as a chip, then its drop, both received from A in one pass
+**Expected:** sent: the drag with its aim, the drop with none and `drop: true`; shown: the drop
+alone (the newest arrival), x 9, `drop: true`
+**Refs:** crc-Moves.md
+**Code:** `src/net/moves.test.ts`
+
 ## Test: a deletion after a drag is not stale
 **Purpose:** the 11-11 bug: the GM drags a piece to the bar (moves numbered s+1..s+n), which
 deletes it; a player's page must remove it

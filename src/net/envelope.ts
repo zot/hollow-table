@@ -1,10 +1,10 @@
-// CRC: crc-Envelope.md | R109, R177, R296
+// CRC: crc-Envelope.md | R109, R177, R296, R299
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
 
 import {
-  CAPS, bool, check as checkRecord, dict, fields, int, isOid, list, num, oneOf, receipt, str, type Shape,
+  CAPS, SLOTS, bool, check as checkRecord, dict, fields, int, isOid, list, num, oneOf, receipt, str, type Shape,
 } from '../model/records.ts';
 
 export const VERSION = 1;
@@ -22,6 +22,12 @@ const oidOrNull: Shape = v => v === null || isOid(v);
 // R296: a claim's why is null when the page now holds its name.
 const whyOrNull: Shape = v => v === null || why(v);
 const box = fields({ iv: str(24), data: str(LIMITS.box) });
+// R299: a move's aim, each part optional; a slot name is one of the seven.
+const slotName = oneOf(...SLOTS), rid = str(CAPS.id);
+const aim = fields({}, {
+  slot: fields({ owner: isOid, name: slotName }), drawer: fields({ owner: isOid }, { at: int(0, 1000) }), kill: isOid,
+  merge: rid, card: rid, reach: fields({ owner: isOid, at: slotName, from: (v: unknown) => v === null || slotName(v) }), chip: bool,
+});
 // A record travels with its rid and the stamp it was sent under; it must pass Records.check.
 const put: Shape = v => fields({ rid: str(CAPS.id), s: seq, rec: () => true }, { by: tab })(v)
   && checkRecord((v as { rid: string }).rid, (v as { rec: unknown }).rec);
@@ -40,7 +46,7 @@ const BODIES: Record<Kind, Shape> = {
   sync: fields({}),
   // A player's change, sealed to the GM's page.
   edit: fields({ box }),
-  move: fields({ s: seq, items: list(fields({ rid: str(CAPS.id), x: coord, y: coord, z: int(0, CAPS.coord) }, { part: str(CAPS.id) }), LIMITS.moveItems) }),
+  move: fields({ s: seq, items: list(fields({ rid: str(CAPS.id), x: coord, y: coord, z: int(0, CAPS.coord) }, { part: str(CAPS.id), aim }), LIMITS.moveItems) }, { drop: bool }),
   intent: fields({ n: seq, pool: isOid, action: name, vs: oidOrNull, defend: oneOf('mental', 'psych'),
     hand: fields({ yellows: int(-LIMITS.dice, LIMITS.dice), bonus: int(-1000, 1000) }) }, { row: str(32) }),
   roll,

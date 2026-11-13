@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260, R273, R19, R119, R122, R288
+**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260, R273, R19, R119, R122, R288
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -13,13 +13,21 @@ Lifting, carrying and dropping, and deciding what a drop means.
   current graveyard with burialOf's records under graveName (R119, R122, R290). Chips and cards go
   by their own bar target (vanish, or home).
 - carrying a card lifts its pinned pieces with it; they stay drawn over it (`pinned` and `lifted`, R273).
-- start(rid, press, move): lifts a piece, with what's pinned to it if it's a card: a lift shadow;
-  Moves.hold; Moves.drag while carrying; Moves.drop and Moves.release at the drop. Lifting leaves
-  any writing and clears the text selection (R223). (Prototype 9.4.1
-  moves paper and pins it; the other drop targets below land with their views.)
-- carry(pointer): sets where it is headed (Gesture.paced); the next frame moves it; over a pool's
-  slots, opens the strip under it (PoolView.reach, R244), remembering the slot it came from; shows "→ graveyard" over
-  the bar; marks a would-be opponent while aiming.
+- carry (R298, R299, R300): the one way anything is carried: paper, a card, a pool, a chip or an
+  Influence card. Each kind gives only where the piece goes for the pointer, its aim, whether the
+  bar would bury it, and what its drop changes. The carry leaves any writing and clears the text
+  selection (R223), lifts the piece (TableView.lift) and Moves.hold; each frame (Gesture.paced) it
+  works out the place and aim, has Hands.show draw them on this page, sends the same items
+  (Moves.drag), and lights the bar (this page's alone). At the release: Hands.drop, Moves.drop with
+  no aim, the drop's change (one Game.change, inside still), Moves.release. A drop that changes
+  nothing leaves the record as it was; the other pages put the piece back (R300).
+- aim: worked out on this page from what's under the pointer: the target below, as oids and rids
+  (a slot by its pool and name, a drawer by its pool and the gap's index, the kill box by its pool,
+  a tap to merge with, a card paper would pin to); over a pool's slots, the strip under the pointer
+  and the slot paying for it (R244, remembering the slot it came from); a card over the slots as a
+  chip (R243). The drop resolves from the last aim.
+- start(rid, press, move): paper or a character's card, with what's pinned to the card following it
+  (Hands works that out on every page).
 - drop(pointer): resolves the target, in this order, then one Game.change:
   - a tap glyph or resource-made card on a resource-made card: Tap.feed (merge);
   - a chip or Influence card on a slot: into the slot (Pool.rollUp applied); a card the slot
@@ -38,7 +46,7 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - exhume: dragging a name out of Boot Hill brings its records back under the pointer.
 
 - startPool(rid): from its name, frame or drawer (R251), a pool carries its card (and what is pinned
-  to it) by the same offset, gathered or not; the drop saves both places.
+  to it) by the same offset, gathered or not (Hands); the drop saves both places.
 - startItem(rid) (R220, R243): the chip or card itself is lifted (TableView.lift), found by its rid
   when the press was elsewhere (a chip just taken from the bar was pressed on the supply, R287): taken out of its
   slot, drawer, pile or the table into the table's world layer, where the zoom applies to it as to
@@ -49,11 +57,11 @@ Lifting, carrying and dropping, and deciding what a drop means.
   like any loose card with its glyph under the pointer, and stays a card in hand. Dropped on a
   resource-made card it merges into it (its Level back to its source and fed into that card).
 - drawer gap (R240): over a drawer, each frame works out where among its cards the card would go
-  (insertAt over the cards' rects, reading order) and has PoolView open the gap there; the drop
-  puts it there (toDrawer with that index).
-- target (R222): while carrying, each frame lights the place the drop would land (`over`): the slot,
-  the drawer, the kill box, the resource-made card a tap merges into, or for paper the card it
-  would pin to. Over the bar, toss or bury lands with the bar (9.4.5).
+  (insertAt over the cards' rects, reading order); the aim carries it and Hands opens the gap
+  there; the drop puts it there (toDrawer with that index).
+- target (R222): the aim's place, lit by Hands (`over`): the slot, the drawer, the kill box, the
+  resource-made card a tap merges into, or for paper the card it would pin to. Over the bar, toss
+  or bury is this page's own.
 - cursor (R221): carrying a chip, card or tap puts the pointing hand on the whole page (`tapping`).
 - grip (R216): the press's offset from the piece's corner, kept in world coordinates; each frame
   places the piece at `toWorld(pointer) - grip`, so it stays glued at any zoom with nothing to

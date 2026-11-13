@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -41,6 +41,8 @@ judges every player's change.
     the GM has it, and is refused if it leaves out something they couldn't read.
   Returns what to take and what to answer.
 - recheck(): every record again, after a hand-over.
+- mayMove(tab, rid) (R300): whether this page shows that tab's move of the piece: judge would take
+  the piece, unchanged, from it. A move is never saved; the drop's change is judged like any other.
 - take(edit): applies what judge allowed (Game.change), which sends it to everyone; a refused piece
   is answered with the GM's version, under the player's own number, so their page takes it as the
   answer.

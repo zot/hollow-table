@@ -60,11 +60,23 @@ them. Nothing to install, no local-network grant, no daemon.
 
 ## Moves
 
-- **Every page publishes its drags straight to the room**, at most every 100 ms, and the receiving
-  page slides the piece there: always to the most recent position it has for it, never through the
-  ones in between, including moves that arrived while you were holding it. Only what another page
-  moved slides; what you let go yourself never does. A drop counts as a move; what the drop changed beyond places goes out
-  right after it.
+- **Every page publishes its drags straight to the room**, at most every 100 ms, whatever is
+  carried: paper, a character's card or pool, a chip, an Influence card. Every other page shows the
+  piece in that hand, lifted, and slides it to the most recent position it has for it, never through
+  the ones in between, including moves that arrived while you were holding it. Only what another
+  page moved slides; what you let go yourself never does.
+- **A move carries its aim**: what the piece would land on (a slot, a drawer and where among its
+  cards, the kill box, a tap it would merge with, a card paper would pin to), the strip it opened in
+  a pool and the slot paying for it, and whether a card is showing as a chip over the slots. The
+  carrying page decides the aim; every page, the carrier's too, draws what the aim does (the place
+  lit, the gap in the drawer, the strip open, the chip) in its own layout. Those reactions are never
+  sent otherwise and never saved. Where two hands aim at one pool or drawer, the latest aim shows.
+- **A move changes nothing saved.** The drop counts as a move, and the drop's change, sent right
+  after it, places the piece on every page. A piece another page let go stays where it was dropped
+  until that change arrives, and goes back where its record says if none comes within a second. A
+  piece in another page's hand whose record changes is let go there and then (the change may
+  overtake the drop), and its next move, if any, takes it up again. A piece in the hand of a page
+  that leaves is let go.
 - Each page numbers what it sends, moves and changes on one counter that continues across a reload.
   **Each piece keeps the highest number it has applied from each page and discards anything
   lower.** Among moves arriving together, the newest arrival places a piece; an older one changes it
