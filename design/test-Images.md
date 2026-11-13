@@ -15,3 +15,10 @@ it is there and no longer missing
 **Fire alarm:** Count an answer as had without keeping it (skip BlobStore.accept): Dana's page never has the GM's image, so can't answer Ann
 **Inject:** src/net/images.ts:ImageExchange
 **Pulled:** 2026-11-12 — rang: Dana's page never kept the GM's image
+
+## Test: the page hears when an image arrives or is found missing
+**Purpose:** R195: so the image is drawn again, shown or striped with why
+**Input:** Dana's page wants an image nobody has, then one the GM has, then the missing one again
+**Expected:** told of the missing one, then of the arrived one; not told again while still missing
+**Refs:** crc-ImageExchange.md
+**Code:** `src/net/images.test.ts`

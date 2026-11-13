@@ -30,6 +30,8 @@ export type WireWith = {
   tab: string;
   /** Tests only: pages in one headless browser need Trystero's loopback fallback. */
   loopback?: boolean;
+  /** Tests only (R297): the local relay the spec run starts, in place of the public ones. */
+  relay?: string;
   /** A peer the handshake refused, and why. */
   refused?: (peer: string, why: string) => void;
 };
@@ -50,7 +52,7 @@ export class Wire implements Net {
   constructor(roomName: string, w: WireWith) {
     this.tab = w.tab;
     this.#room = joinRoom({
-      appId: APP, maxReceiveBytes: MAX_BYTES, relayConfig: { urls: RELAYS },
+      appId: APP, maxReceiveBytes: MAX_BYTES, relayConfig: { urls: w.relay ? [w.relay] : RELAYS },
       rtcConfig: { iceServers: STUN.map(urls => ({ urls })) },
       ...(w.loopback && { _test_only_mdnsHostFallbackToLoopback: true }),
     }, roomName, {

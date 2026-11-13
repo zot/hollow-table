@@ -327,3 +327,4 @@
 - **R199:** Players are served from GitHub Pages.
 - **R200:** `publish.sh` publishes the build under a dedicated IPNS key, served at the key's subdomain, stamps the build time on the page ("dev" when served locally), publishes with a 15 s TTL, and waits until the test machine serves the build.
 - **R201:** Behaviour is tested by driving the page in a real browser, with two or more pages for networked behaviour, through a test hook; the bundle exposes no other globals.
+- **R297:** The specs run headless in Chromium and Firefox, each page in its own browser context; networked specs meet through a local Nostr relay the spec run starts (a page with the test hook may be told to use it), so the suite runs offline, and one meets through the public relays.

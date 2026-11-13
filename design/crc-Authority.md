@@ -28,7 +28,9 @@ judges every player's change.
   whose view differs from what it holds, its view sealed to it, in the same batch. Deletions go out
   under a **fresh** stamp (Stamps). Also re-checks every record when a character changes hands, so
   sheets and cards follow ownership though their records didn't change.
-- catchUp(tab): the whole table, to that tab only, at the current version without moving it.
+- catchUp(tab): the whole table, to that tab only, at the current version without moving it. What it
+  sends counts as gone out to everyone (where nothing had yet), so deleting it later is sent and tombed
+  (R188, R192).
 - judge(game, edit, who): pure. For each record in a player's change, refuses it when:
   - the sender is nobody (Claims);
   - Ownership.mayChange says no;

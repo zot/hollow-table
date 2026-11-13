@@ -16,6 +16,7 @@ export const NOBODY = 'Nobody at the table has sent this image yet (the page tha
 export class ImageExchange {
   /** Hashes shown on the table but not in the BlobStore, with why. */
   missing = new Map<string, string>();
+  #changed: ((hash: string) => void)[] = [];
   #net: Net;
   #blobs: BlobStore;
   #clock: Clock;
@@ -30,6 +31,16 @@ export class ImageExchange {
     net.answer(hash => blobs.get(hash));
   }
 
+  // R195: whoever draws images hears when one arrives or is found missing.
+  /** Calls `fn` with a hash whenever that image arrives or is found missing. */
+  changed(fn: (hash: string) => void): void { this.#changed.push(fn); }
+
+  #mark(hash: string, why: string | undefined): void {
+    const was = this.missing.get(hash);
+    if (why) this.missing.set(hash, why); else this.missing.delete(hash);
+    if (was !== why || !why) for (const fn of this.#changed) fn(hash);
+  }
+
   // Seq: seq-images.md#1.2 to seq-images.md#1.5 | R194
   /** Makes sure this page has the image: true once it does. */
   want(hash: string): Promise<boolean> {
@@ -38,9 +49,9 @@ export class ImageExchange {
       asking = (async () => {
         if (!await this.#blobs.get(hash)) {
           const blob = await this.#net.request(hash);
-          if (!blob || !await this.#blobs.accept(hash, blob)) { this.missing.set(hash, NOBODY); return false; }
+          if (!blob || !await this.#blobs.accept(hash, blob)) { this.#mark(hash, NOBODY); return false; }
         }
-        this.missing.delete(hash);
+        this.#mark(hash, undefined);
         return true;
       })().finally(() => this.#asking.delete(hash));
       this.#asking.set(hash, asking);

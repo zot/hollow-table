@@ -211,6 +211,10 @@ export class Rolls {
 
   idle(): Promise<void> { return this.#work; }
 
+  // R103: a page that has left (Presence) can't roll for anyone; if it was the GM's, nobody can.
+  /** Told by Presence that a tab has gone. */
+  left(tab: string): void { if (this.#gmPeer?.tab === tab) this.#gmPeer = undefined; }
+
   // R281: an error or a lost roll, as a short red note on this page's tape.
   note(text: string): void {
     const at = this.#w.clock.now();

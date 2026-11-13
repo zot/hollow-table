@@ -240,6 +240,9 @@ export class Authority {
       if (LOCAL.has(rid)) continue;
       const stamp = this.#current(rid), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
       puts.push({ rid, ...stamp, rec: pv });
+      // R188, R192: what a catch-up sends has gone out, so its deletion is sent and tombed. A record
+      // already out keeps what went out, so a change not yet sent still reaches the other tabs.
+      if (!this.#public.has(rid)) this.#public.set(rid, pv);
       if (!same(tv, pv)) mine.push({ rid, ...stamp, rec: tv });
       t.holds.set(rid, tv);
     }

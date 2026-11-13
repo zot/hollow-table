@@ -44,3 +44,21 @@ test('images by hash', async () => {
   assert.ok(await ann.blobs.get(kept.blob));
   ann.images.stop();
 });
+
+test('the page hears when an image arrives or is found missing', async () => {
+  // R195: so the image is drawn again, striped with why, or shown.
+  const room = new FakeRoom(), { clock } = fakeClock();
+  const page = (tab: string) => {
+    const blobs = new BlobStore(new MemoryDb(), async () => ({ w: 1, h: 1 }));
+    return { blobs, images: new ImageExchange(room.link({ tab, browser: `b-${tab}`, sealKey: '' }), blobs, clock) };
+  };
+  const gm = page('gm'), dana = page('dana'), heard: string[] = [];
+  dana.images.changed(h => heard.push(h));
+  const { blob } = await gm.blobs.add(new Blob([new Uint8Array([137, 80, 78, 71, 9])], { type: 'image/png' }));
+  const nobody = 'cd'.repeat(32);
+  await dana.images.want(nobody);
+  await dana.images.want(blob);
+  assert.deepEqual(heard, [nobody, blob]);
+  await dana.images.want(nobody);
+  assert.deepEqual(heard, [nobody, blob], 'still missing: nothing new to draw');
+});

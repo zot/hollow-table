@@ -26,7 +26,7 @@ missing action is refused, saying so. Devreux's is "Devreux, roll 1", and Sam's 
 **Input:** the GM's page, Dana (Sam) and Ann (Beauford) over a fake room. Dana rolls Sam's Infer
 against Devreux; Dana asks to roll Beauford; the GM's page away, Dana rolls; a page that hasn't heard
 the GM rolls
-**Expected:** Dana's tape: her view, with ✓; Ann's: the table view, rolled by Dana; the GM's: the
+**Expected:** Dana's tape: her view, with ✓; Ann's: the table view, rolled by Dana; the GM's: the Once the GM's page has gone (Rolls.left), a request says at once "Nobody can roll: the GM isn't at the table." (R103).
 full receipt. Beauford: refused, "Beauford isn't yours to roll." Away: after 10 s "The GM's page
 didn't answer that roll." Unheard: "Nobody can roll: the GM isn't at the table." The request named
 no numbers

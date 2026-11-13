@@ -15,6 +15,8 @@ know.
 - lastRoll: sender tab → the last roll number heard.
 
 ## Does
+- left(tab): Presence's word that a tab has gone; if it was the GM's page, the next request says
+  nobody can roll at once (R103).
 - request(intent): a player's Roll: an `intent` naming the character, the action, the opponent and
   Defend kind, hand adjustments, and a hand-picked row if any; never numbers. Resolves with null
   when answered, or why not (refused, no GM heard, or nothing within WAIT_MS); Roll shows "GM…"

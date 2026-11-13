@@ -2,18 +2,23 @@
 **Source:** crc-Seat.md
 
 ## Test: the seat is not the game
-**Purpose:** seat changes never touch the game; a reload restores the seat; each viewer has their own
-**Input and Expected**, in the browser:
-1. as GM: pan and zoom, dock the roll row on Devreux, pick Attack, aim at Sam, pick a row by hand,
-   two Yellows, roll the tape up, open Boot Hill, open a used pile
-2. the game's records: byte-identical to before; the seat is one localStorage key per game and
-   viewer, nothing in the database
-3. reload: the seat exactly as set
-4. as Player 2 on the same browser: its own seat (default view, nothing docked)
-5. back as GM: the GM's seat again
-6. restore a checkpoint: the seat kept
+**Purpose:** R126–R128: seat changes never touch the game; a reload restores the seat; each viewer
+has their own (R153); a restore keeps it (R136)
+**Input and Expected**, in Chromium and Firefox:
+1. as GM: dock the roll row on Devreux, roll the tape up, open Devreux's used pile, pan and zoom
+   over an empty stretch of table, open Boot Hill
+2. the game's records, held and saved: as before; the seat is the one key `hollow.seat.<game>.GM`,
+   holding the view, the roller on Devreux, the tape up, Boot Hill open and the used pile
+3. reload: the seat exactly as set, and drawn so
+4. "You are" another viewer: nothing docked, Boot Hill closed
+5. "You are" back to the GM: the GM's seat again, the roller docked
+6. restore a checkpoint from the Ledger: the seat as it was just before
 **Refs:** crc-Seat.md, crc-Game.md
 **Code:** `tests/seat.spec.ts`
+**Alarm:** 3
+**Fire alarm:** Keep the tape's up or down in the game too: the records change when the tape rolls up
+**Inject:** src/main.ts:views
+**Pulled:** 2026-11-13 — rang: the game's records changed when the tape rolled up (Chromium)
 
 ## Test: the seat on its own
 **Purpose:** the seat is per game and viewer, survives broken storage, and prunes what vanished

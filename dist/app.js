@@ -1714,6 +1714,7 @@ var Authority = class {
       if (LOCAL.has(rid)) continue;
       const stamp2 = this.#current(rid), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
       puts.push({ rid, ...stamp2, rec: pv });
+      if (!this.#public.has(rid)) this.#public.set(rid, pv);
       if (!same(tv, pv)) mine.push({ rid, ...stamp2, rec: tv });
       t.holds.set(rid, tv);
     }
@@ -2128,6 +2129,7 @@ var NOBODY = "Nobody at the table has sent this image yet (the page that has it 
 var ImageExchange = class {
   /** Hashes shown on the table but not in the BlobStore, with why. */
   missing = /* @__PURE__ */ new Map();
+  #changed = [];
   #net;
   #blobs;
   #clock;
@@ -2139,6 +2141,17 @@ var ImageExchange = class {
     this.#clock = clock2;
     net.answer((hash) => blobs.get(hash));
   }
+  // R195: whoever draws images hears when one arrives or is found missing.
+  /** Calls `fn` with a hash whenever that image arrives or is found missing. */
+  changed(fn) {
+    this.#changed.push(fn);
+  }
+  #mark(hash, why3) {
+    const was = this.missing.get(hash);
+    if (why3) this.missing.set(hash, why3);
+    else this.missing.delete(hash);
+    if (was !== why3 || !why3) for (const fn of this.#changed) fn(hash);
+  }
   // Seq: seq-images.md#1.2 to seq-images.md#1.5 | R194
   /** Makes sure this page has the image: true once it does. */
   want(hash) {
@@ -2148,11 +2161,11 @@ var ImageExchange = class {
         if (!await this.#blobs.get(hash)) {
           const blob = await this.#net.request(hash);
           if (!blob || !await this.#blobs.accept(hash, blob)) {
-            this.missing.set(hash, NOBODY);
+            this.#mark(hash, NOBODY);
             return false;
           }
         }
-        this.missing.delete(hash);
+        this.#mark(hash, void 0);
         return true;
       })().finally(() => this.#asking.delete(hash));
       this.#asking.set(hash, asking);
@@ -2705,6 +2718,11 @@ var Rolls = class {
   }
   idle() {
     return this.#work;
+  }
+  // R103: a page that has left (Presence) can't roll for anyone; if it was the GM's, nobody can.
+  /** Told by Presence that a tab has gone. */
+  left(tab2) {
+    if (this.#gmPeer?.tab === tab2) this.#gmPeer = void 0;
   }
   // R281: an error or a lost roll, as a short red note on this page's tape.
   note(text) {
@@ -7356,7 +7374,7 @@ var Wire = class {
     this.#room = joinRoom({
       appId: APP,
       maxReceiveBytes: MAX_BYTES,
-      relayConfig: { urls: RELAYS },
+      relayConfig: { urls: w.relay ? [w.relay] : RELAYS },
       rtcConfig: { iceServers: STUN.map((urls) => ({ urls })) },
       ...w.loopback && { _test_only_mdnsHostFallbackToLoopback: true }
     }, roomName, {
@@ -10661,6 +10679,9 @@ function ledgerOf(store, blobs, player) {
     imported: async (text) => onto((await importGame(store, blobs, text)).id)
   };
 }
+function redrawImages(game, table, hash) {
+  table.render(game.all().filter(([, r]) => r.kind === "image" && r.blob === hash).map(([rid]) => rid));
+}
 async function main() {
   const db = await IdbDb.open();
   const store = new GameStore(db, clock, localStorage);
@@ -10668,6 +10689,7 @@ async function main() {
   const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
   const tab2 = tabId(sessionStorage), invited = fromUrl(location.search);
   const loopback = !!local("hollow.loopback");
+  const relay = new URLSearchParams(location.search).has("test") ? local("hollow.relay") ?? void 0 : void 0;
   const stamps = new Stamps(sessionStorage);
   const rng = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
   addEventListener("pagehide", () => {
@@ -10676,7 +10698,7 @@ async function main() {
   if (invited) {
     await store.copyFor(invited.room);
     const game2 = store.game, name2 = local("hollow.name") ?? local("hollow.name", askName());
-    const wire = new Wire(invited.room, { identity, sealer, tab: tab2, loopback });
+    const wire = new Wire(invited.room, { identity, sealer, tab: tab2, loopback, relay });
     const copy = new Copy({
       game: game2,
       stamps,
@@ -10693,7 +10715,7 @@ async function main() {
       void wire.send("move", m);
     }, place: (cs) => copy.place(cs), timers: clock, schedule: frame });
     wire.on("move", (b, from) => moves2.receive(from.tab, b));
-    const presence = new Presence({ net: wire, clock, role: "player", name: name2 });
+    const presence = new Presence({ net: wire, clock, role: "player", name: name2, gone: (tab3) => rolls2.left(tab3) });
     let notYours = null;
     wire.on("claim", (b) => {
       notYours = b.why;
@@ -10701,6 +10723,7 @@ async function main() {
     const rolls2 = new Rolls({ game: game2, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game2);
+    images.changed((hash) => redrawImages(game2, table2, hash));
     images.start();
     presence.start();
     copy.start();
@@ -10727,7 +10750,7 @@ async function main() {
     if (table) return table;
     const key = `hollow.room.${store.current.id}`;
     const room2 = local(key) ?? local(key, newRoom(store.current.name));
-    const wire = new Wire(room2, { identity, sealer, tab: tab2, loopback });
+    const wire = new Wire(room2, { identity, sealer, tab: tab2, loopback, relay });
     const presence = new Presence({
       net: wire,
       clock,
@@ -10744,6 +10767,8 @@ async function main() {
     };
     rolls = new Rolls({ game, sealer, clock, rng, link: wire, session: sessionStorage, gm: true, whoIs: whoIs2 });
     const images = new ImageExchange(wire, blobs, clock);
+    images.watch(game);
+    images.changed((hash) => redrawImages(game, view, hash));
     images.start();
     presence.start();
     wire.on("move", (b, from) => moves.receive(from.tab, b));

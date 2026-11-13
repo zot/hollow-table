@@ -129,3 +129,14 @@ test('a name handed over: the new holder is told and gets its secrets, the old o
   assert.match(claims.get('ann')![0]!, /^Ann is played from another browser/);
   assert.ok(imp.mine.length > 0, 'its secrets follow');
 });
+
+test('a deletion of what a tab only had from its catch-up still reaches it, and is tombed', async () => {
+  // R171, R188, R192: everything a catch-up sends has gone out, so deleting it is news.
+  const { room, game, got } = await table();
+  got.get('dana')!.link.send('sync', {});
+  await room.settle();
+  game.change(w => w.del(STICKY));
+  await room.settle();
+  assert.ok(got.get('dana')!.public.some(b => b.dels.some(d => d.rid === STICKY)), 'Dana is told it is gone');
+  assert.ok(((game.get('book') as Book).tomb[STICKY] ?? 0) > 0, 'and a stale copy cannot put it back');
+});

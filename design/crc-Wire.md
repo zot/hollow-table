@@ -5,7 +5,8 @@ The only code that knows Trystero. Joins a room over the pinned Nostr relays, le
 after the identity handshake, and sends envelopes to everyone or to one peer.
 
 ## Knows
-- RELAYS: the pinned relay list, the same on every page.
+- RELAYS: the pinned relay list, the same on every page; a page opened with the test hook may be
+  given the specs' local relay instead (R297).
 - APP: the Trystero app id, `hollow-table`; Trystero `@trystero-p2p/nostr` 0.26.0, pinned.
 - peers: Trystero peer id → `{tab, browser, sealKey}` once the handshake has proved them; a tab's
   peer, for sending to one tab. A message is taken only from a proven peer speaking for its own tab.

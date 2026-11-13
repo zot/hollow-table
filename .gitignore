@@ -11,3 +11,5 @@
 /.fslckout
 /node_modules/
 /requests/
+/test-results/
+/playwright-report/

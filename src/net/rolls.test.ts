@@ -104,6 +104,11 @@ test('a roll at the table', async () => {
 
   assert.equal(await ask(t, { ...infer(), pool: BEAUFORD }), "Beauford isn't yours to roll.");
 
+  // R103: once the GM's page has gone, nobody can roll, and the page says so at once.
+  t.page('dana').rolls.left('gm');
+  assert.equal(await ask(t, infer()), "Nobody can roll: the GM isn't at the table.");
+  await t.hello();
+
   t.room.online('gm', false);
   const lost = t.page('dana').rolls.request(infer());
   await t.room.settle();

@@ -1,13 +1,22 @@
 # Build
-**Requirements:** R196, R197, R198, R199, R200, R201
+**Requirements:** R196, R197, R198, R199, R200, R201, R297
 
 How the sources become the page, and how the page is published and tested.
 
 ## Knows
 - The page is `src/index.html`, built into `dist/`.
-- `package.json`: `typescript` and `esbuild` as dev dependencies, Trystero as a dependency, all at
-  pinned versions; scripts `build`, `check` (`tsc --noEmit`), `test` (`node --test`), `spec`
-  (Playwright).
+- `package.json`: `typescript`, `esbuild` and `@playwright/test` (1.56.1) as dev dependencies,
+  Trystero as a dependency, all at pinned versions; scripts `build`, `check` (`tsc --noEmit`), `test`
+  (`node --test`), `spec` (Playwright).
+- `playwright.config.ts` (R297): the specs in `tests/`, headless in Playwright's own Chromium and
+  Firefox, one at a time, a 1400 × 840 page; it builds and serves `dist/` on port 8781 for the run, a
+  test origin of its own. Each test's pages get fresh contexts, so each has its own identity and
+  database. `tests/page.ts`: open a page with the test hook and wait for it; read the game back as
+  held and as saved; read localStorage; a person (a fresh context with a name, the local relay and
+  the loopback); the GM's table and its invite; a player joining and synced.
+- `tests/relay.ts` (R297): the local Nostr relay the spec run starts on port 8782: EVENT
+  acknowledged and passed to matching subscriptions (kind, `#x`, since), REQ answered with EOSE
+  (nothing stored), CLOSE. `npm run spec:public` runs the one spec through the public relays.
 - `tsconfig.json`: strict, `erasableSyntaxOnly`, `noEmit`, DOM and ES2022 libs.
 - `build.mjs`: esbuild bundles `src/main.ts` into `dist/app.js`, copies `src/index.html` and
   `src/ui/theme.css`; stamps "dev" unless publishing.

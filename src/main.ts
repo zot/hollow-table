@@ -243,6 +243,11 @@ function ledgerOf(store: GameStore, blobs: BlobStore, player: boolean): LedgerWi
   };
 }
 
+// R195: an image is drawn again when its bytes arrive or it is found missing.
+function redrawImages(game: Game, table: TableView, hash: string): void {
+  table.render(game.all().filter(([, r]) => (r as PieceRecord).kind === 'image' && (r as Image).blob === hash).map(([rid]) => rid));
+}
+
 async function main() {
   const db = await IdbDb.open();
   const store = new GameStore(db, clock, localStorage);
@@ -250,6 +255,8 @@ async function main() {
   const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
   const tab = tabId(sessionStorage), invited = fromUrl(location.search);
   const loopback = !!local('hollow.loopback');
+  // R297: a page opened with the test hook may be told to meet through the specs' local relay.
+  const relay = new URLSearchParams(location.search).has('test') ? local('hollow.relay') ?? undefined : undefined;
   const stamps = new Stamps(sessionStorage);
   const rng = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 2 ** 32;
   addEventListener('pagehide', () => { void store.save(); });
@@ -258,19 +265,20 @@ async function main() {
     // R155, R140: a player, joining with a copy of the GM's table, kept per room.
     await store.copyFor(invited.room);
     const game: Game = store.game, name = local('hollow.name') ?? local('hollow.name', askName())!;
-    const wire = new Wire(invited.room, { identity, sealer, tab, loopback });
+    const wire = new Wire(invited.room, { identity, sealer, tab, loopback, relay });
     // Copy only asks what's held when a message arrives, after Moves is made.
     const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm,
       held: rid => moves.holds(rid) });
     const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, place: cs => copy.place(cs), timers: clock, schedule: frame });
     wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
-    const presence = new Presence({ net: wire, clock, role: 'player', name });
+    const presence = new Presence({ net: wire, clock, role: 'player', name, gone: tab => rolls.left(tab) });
     // R167, R296: the GM's page says when this page is nobody, and when it is handed the name.
     let notYours: string | null = null;
     wire.on('claim', (b: { why: string | null }) => { notYours = b.why; });
     const rolls = new Rolls({ game, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game);
+    images.changed(hash => redrawImages(game, table, hash));
     images.start();
     presence.start();
     copy.start();
@@ -294,7 +302,7 @@ async function main() {
     if (table) return table;
     const key = `hollow.room.${store.current!.id}`;
     const room = local(key) ?? local(key, newRoom(store.current!.name))!;
-    const wire = new Wire(room, { identity, sealer, tab, loopback });
+    const wire = new Wire(room, { identity, sealer, tab, loopback, relay });
     const presence = new Presence({ net: wire, clock, role: 'gm', name: gmShown,
       here: (p, from) => { if (p.role === 'player') authority.join(from.tab, p.name, from.browser, from.sealKey); } });
     const authority = new Authority({ game, stamps, sealer, link: wire, schedule: queueMicrotask });
@@ -304,6 +312,9 @@ async function main() {
     };
     rolls = new Rolls({ game, sealer, clock, rng, link: wire, session: sessionStorage, gm: true, whoIs });
     const images = new ImageExchange(wire, blobs, clock);
+    // R26: the GM's page fetches a player's images too.
+    images.watch(game);
+    images.changed(hash => redrawImages(game, view, hash));
     images.start();
     presence.start();
     wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
