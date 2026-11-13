@@ -14,8 +14,12 @@ and is at the table.
 
 ## Hosting
 
-- **Players get GitHub Pages.** The repository's built files are served from GitHub Pages, so a
-  player needs only a browser.
+- **Players get GitHub Pages**, at `https://zot.github.io/hollow-table/`, so a player needs only a
+  browser. Every push to `main` publishes: GitHub builds the page from the sources, checks it (the
+  type check and the unit tests), stamps it with the time of the commit, and serves that. A push
+  that fails the checks publishes nothing. The origin, `zot.github.io`, is shared with the account's
+  other Pages sites, which could read what the table keeps there; a custom domain would give it its
+  own (Bill, 11-13: shared for now).
 - **The test rig gets IPNS.** `publish.sh` publishes the built files under a dedicated IPNS key
   (`hollow-table`) and serves them at the key's subdomain (`<key>.ipns.localhost:<port>`), never at a CID. The origin is
   what saved games and each browser's identity belong to, so a new origin every build would strand

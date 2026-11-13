@@ -90,7 +90,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] crc-Ledger.md → `src/ui/ledger.ts`
 - [ ] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
-- [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`
+- [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`
 - [ ] crc-Theme.md → `src/ui/theme.css`
 
 ### Sequences

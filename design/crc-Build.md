@@ -1,5 +1,5 @@
 # Build
-**Requirements:** R196, R197, R198, R199, R200, R201, R297
+**Requirements:** R196, R197, R198, R199, R200, R201, R297, R302
 
 How the sources become the page, and how the page is published and tested.
 
@@ -29,7 +29,11 @@ How the sources become the page, and how the page is published and tested.
   publishes under it with a 15 s TTL in the background, prints the key's subdomain link, and polls
   this machine's gateway for up to 90 s (`WAIT`) until `app.js` carries the new stamp. `IPFS` names
   the binary; otherwise it is on the path or in IPFS Desktop's AppImage.
-- GitHub Pages serves `dist/` for players.
+- GitHub Pages (R199, R302): `.github/workflows/pages.yml`, on every push to `main`: `npm ci`, the
+  type check and the unit tests, then `build.mjs` into `site/` stamped with the commit's time (the
+  committer's clock, as git records it), uploaded and deployed by GitHub's Pages actions. Served
+  at `https://zot.github.io/hollow-table/`. The committed `dist/` (stamped "dev") is what local
+  serving and the specs use.
 - main (`src/main.ts`): assembles the page. The plain page is the GM's: GameStore opens its game, and
   `open()` makes (or reopens) this game's room: Wire, Presence, Authority, Rolls, ImageExchange.
   An invite makes a player: its copy of the room's table (GameStore.copyFor), Wire, Copy, Presence,

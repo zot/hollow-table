@@ -1,7 +1,7 @@
-// CRC: crc-Build.md | R196, R197
+// CRC: crc-Build.md | R196, R197, R200, R302
 // Bundles src/main.ts into dist/app.js and copies the page beside it. The stamp is "dev" unless
-// publishing sets HOLLOW_STAMP (publish.sh stamps the build time) and HOLLOW_OUT (a folder of its
-// own, so dist/ keeps saying "dev").
+// publishing sets HOLLOW_STAMP (publish.sh stamps the build time; the Pages workflow, the commit's)
+// and HOLLOW_OUT (a folder of its own, so dist/ keeps saying "dev").
 import { build } from 'esbuild';
 import { copyFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
