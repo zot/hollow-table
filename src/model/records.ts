@@ -38,7 +38,11 @@ export type Damage = (typeof DAMAGE)[number];
  * its Level, and the Levels spent until End recharges them (R61): `spent[0]` from the slot,
  * `spent[k]` from its k-th box.
  */
-export type DamageSlot = { name: string; boxes: boolean[]; spent: number[] };
+export type DamageSlot = {
+  name: string; boxes: boolean[]; spent: number[];
+  /** R312: waiting for the attacker's name: the attacking character's name and the receipt it came from. */
+  naming?: { by: string; id: string };
+};
 // R264: `absorb` is no longer read (a column's absorb is worked out from Wis or Con); it stays so
 // old games load.
 export type CardBack = { damage: Record<Damage, Record<RowName, DamageSlot>>; absorb: Record<Damage, number>; notes: Marked };
@@ -79,12 +83,32 @@ export const DICE = ['W', 'G', 'R', 'B', 'Y'] as const;
 export type DieColour = (typeof DICE)[number];
 export type Die = { c: DieColour; v: number; added: boolean; dropped: boolean };
 export type Crit = { max: number; dbl: number; chosen: 'max' | 'dbl'; locked: boolean };
+
+// R319: what a roll is: `?` for not saying, plain Skill use, Create Influence, the three Attacks, and
+// Bunkum's actions against Defend.
+export const ROLL_TYPES = ['?', 'skill', 'influence', 'phys', 'mental', 'psych', 'infer', 'impress', 'request'] as const;
+export type RollType = (typeof ROLL_TYPES)[number];
+/** R306: an Attack's kind, which picks its Damage column. */
+export const ATTACKS = ['phys', 'mental', 'psych'] as const;
+export type AttackKind = (typeof ATTACKS)[number];
+export const isAttack = (t: RollType): t is AttackKind => (ATTACKS as readonly string[]).includes(t);
+
+/**
+ * R308, R312: the Attack a receipt can give its target: the target and its name, the attacking
+ * character's name (`from`), the kind, the
+ * Result to absorb; once taken, the Slots waiting for the attacker's names.
+ */
+export type Attack = {
+  target: Oid; name: string; from: string; kind: AttackKind; result: number; taken?: boolean;
+  waiting?: { damage: Damage; row: RowName }[];
+};
 export type Receipt = {
   id: string; at: number; title: string; by?: string; dice: Die[];
-  /** R279: the action's label, on every page's receipt. */
+  /** R317: the action's label, on every page's receipt. */
   action?: string;
   influence?: number; base?: number; vs?: string;
   row?: string; resolution: string; level: string; outcome: string; crit?: Crit; priv?: boolean;
+  attack?: Attack;
   /** This page's own roll has reached the table (R107). */
   ok?: boolean;
 };
@@ -104,7 +128,18 @@ export type Meta = { round: number; rolls: number; counts?: Record<Oid, number> 
  * The GM's page only, never sent: who holds which name, the table's version, the version each piece
  * was deleted at (at most TOMBS), and the version Boot Hill last changed at.
  */
-export type Book = { claims: Record<string, string>; gv: number; tomb: Record<Rid, number>; hillGv?: number };
+export type Book = { claims: Record<string, string>; gv: number; tomb: Record<Rid, number>; hillGv?: number; kept?: KeptRoll[] };
+
+/**
+ * R308, R313: a roll the GM's page keeps so its CRIT, its Attack's take and its names can be acted on
+ * later, across a reload: the rolling character, the roll's number on the wire, its three receipts,
+ * and where the roller's own receipt goes (a player's tab and sealing key); `priv` is never sent.
+ */
+export type KeptRoll = {
+  character: Oid; n: number; full: Receipt; roller: Receipt; table: Receipt; tab?: string; sealKey?: string; priv?: true;
+};
+/** The most rolls the book keeps, oldest dropped first. */
+export const KEPT = 200;
 export const TOMBS = 3000;
 /** Each page's own, never sent (R111). */
 export type Tape = { receipts: Receipt[] };
@@ -151,7 +186,8 @@ const points = int(0, 1000);
 const where: Shape = v => v === 'drawer' || v === 'used'
   || fields({ slot: isOid, name: oneOf(...SLOTS) })(v) || fields({ table: place })(v);
 const marked = str(CAPS.text);
-const slot = fields({ name: str(CAPS.name), boxes: list(bool, 20), spent: list(int(0, 100), 21) });
+const slot = fields({ name: str(CAPS.name), boxes: list(bool, 20), spent: list(int(0, 100), 21) },
+  { naming: fields({ by: str(CAPS.name), id: str(CAPS.id) }) });
 const column = fields(Object.fromEntries(ROWS.map(r => [r, slot])));
 const damage = fields(Object.fromEntries(DAMAGE.map(d => [d, column])));
 const absorb = fields(Object.fromEntries(DAMAGE.map(d => [d, int(0, 100)])));
@@ -162,7 +198,9 @@ export const receipt = fields(
     resolution: str(CAPS.name), level: str(CAPS.name), outcome: str(CAPS.name) },
   { by: str(CAPS.name), action: str(CAPS.name), influence: int(-1000, 1000), base: int(-1000, 1000), vs: str(CAPS.name), row: str(CAPS.name), ok: bool,
     crit: fields({ max: int(0, 10_000), dbl: int(0, 10_000), chosen: oneOf('max', 'dbl'), locked: bool }),
-    priv: bool });
+    priv: bool,
+    attack: fields({ target: isOid, name: str(CAPS.name), from: str(CAPS.name), kind: oneOf(...ATTACKS), result: int(0, 10_000) },
+      { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS) }), 20) }) });
 
 const PIECES: Record<PieceRecord['kind'], Shape> = {
   character: fields({ kind: oneOf('character'), oid: isOid, owner: str(CAPS.name), name: str(CAPS.name), pool: place,
@@ -186,7 +224,9 @@ const SINGLETONS: Record<string, Shape> = {
     items: list(fields({ name: str(CAPS.name), records: list(piece) })) }), 100) }),
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000) }),
   book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
-    { hillGv: int(0, Number.MAX_SAFE_INTEGER) }),
+    { hillGv: int(0, Number.MAX_SAFE_INTEGER),
+      kept: list(fields({ character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },
+        { tab: str(CAPS.id), sealKey: str(CAPS.text), priv: oneOf(true) }), KEPT) }),
   tape: fields({ receipts: list(receipt, 10_000) }),
 };
 

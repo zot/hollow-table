@@ -1,14 +1,15 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R279, R69, R281
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R306, R307, R308, R316
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
 // tape what its person may know.
 
 import type { Game, Writer } from '../model/game.ts';
-import { GM, PLAYER_OIDS, isPiece, oidOf, ridOf, type Character, type Die, type Influence, type Meta, type Oid, type Receipt, type Tape } from '../model/records.ts';
+import { GM, KEPT, PLAYER_OIDS, ROWS, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type RowName, type Die, type Influence, type Meta, type Oid, type Receipt, type RollType, type Tape } from '../model/records.ts';
 import { roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
+import { COLUMN_OF, fill, pages, same, type Page } from '../rules/absorb.ts';
 import { action as readAction, defend as readDefend } from '../rules/readmarks.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { marks, parse } from '../text/marks.ts';
@@ -25,6 +26,10 @@ export const MANY = 20;
 export type Intent = {
   n: number; pool: Oid; action: string; vs: Oid | null; defend: 'mental' | 'psych';
   hand: { yellows: number; bonus: number }; row?: string;
+  /** R319: what the roll is; absent from an older page, which counts as `?`. */
+  type?: RollType;
+  /** R316: the alternative of a `/` label that was clicked, which names the action. */
+  alt?: string;
 };
 export type RollMsg = { n: number; receipt: Receipt; sealed: Record<string, Box> };
 export type SealedRoll = { re: number; receipt: Receipt };
@@ -33,7 +38,7 @@ const OUTCOME = { success: 'Success', cost: 'Success at cost', failure: 'Failure
 const signed = (n: number) => n >= 0 ? `+${n}` : `−${-n}`;
 const DIE_NAME = { G: 'Green', R: 'Red' } as const;
 
-// R279: a receipt's lines in the book's words (Hollow Folks, IV. Dice & Resolution).
+// R317: a receipt's lines in the book's words (Hollow Folks, IV. Dice & Resolution).
 /** A row in full: its range, the book's name, and its dice: "+7 to +9 Strong Advantage: Green + 1". */
 export function rowWords(r: Row): string {
   const i = ADV.indexOf(r), above = ADV[i - 1];
@@ -64,9 +69,14 @@ export function levelWords(dice: readonly Die[], bonus: number, failure: boolean
   return parts.join(' + ') + b;
 }
 
-/** "Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger". */
-export function outcomeWords(outcome: keyof typeof OUTCOME, result: number): string {
-  return `${OUTCOME[outcome]} ${result}, ${levelName(result)}${outcome === 'failure' ? ' Stagger' : ''}`;
+const SHORT: Record<string, string> = { Minor: 'Min', Significant: 'Sig', Major: 'Maj', Extreme: 'Ext', Exquisite: 'Exq' };
+
+// R317: the outcome with its Level, signed: + for a Success, − for the Stagger a Failure causes; only a
+// successful Attack gives its amount, since only an Attack's Result is absorbed as Damage.
+/** "Success +Maj", "Success at cost +Sig", "Failure −Sig"; a successful Attack, "Success 10". */
+export function outcomeWords(outcome: keyof typeof OUTCOME, result: number, attack = false): string {
+  if (attack && outcome !== 'failure') return `${OUTCOME[outcome]} ${result}`;
+  return `${OUTCOME[outcome]} ${outcome === 'failure' ? '−' : '+'}${SHORT[levelName(result)] ?? '0'}`;
 }
 
 /** A row as its dice, never its range: what a roller who can't see the opponent is told (R106). */
@@ -110,12 +120,16 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
   const items = game.all().map(([, r]) => r).filter((r): r is Item => 'kind' in r && (r.kind === 'chip' || r.kind === 'influence'));
   const mine = pools(character.oid, items), sum = act ? total(act.base, mine) : null;
 
+  const type = intent.type ?? '?';
+  const kind = isAttack(type) ? type : intent.defend;
   let opp: Character | undefined, against: number | undefined;
   if (intent.vs && sum) {
     opp = game.get(ridOf(intent.vs)) as Character | undefined;
     if (opp?.kind !== 'character') return { refused: 'That opponent is not on the table.' };
     const def = marks(parse(opp.front), 'def').map(m => readDefend(m.text)).find(d => d);
-    against = opposition(def ? def[intent.defend] : 0, pools(opp.oid, items)).total;
+    // R306: an Attack goes at its own Defend, a Phys Attack at 0; the GM's page decides, not the intent.
+    const base = kind === 'phys' || !def ? 0 : def[kind];
+    against = opposition(base, pools(opp.oid, items)).total;
   }
   const diff = against === undefined || !sum ? undefined : sum.total - against;
   const picked = intent.row ? ADV.find(r => r.key === intent.row) : undefined;
@@ -126,13 +140,18 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
 
   // R278: each character's rolls are numbered on their own.
   const meta = game.get('meta') as Meta, n = (meta.counts?.[character.oid] ?? 0) + 1;
-  const by = character.owner === GM ? 'GM' : character.owner;
+  const by = character.owner === GM ? 'GM' : character.owner, outcome = r.crit ? 'success' : r.outcome;
+  // R308: an Attack that succeeds against a character gives its target the Result to absorb.
+  const attack = isAttack(type) && opp && outcome !== 'failure'
+    ? { attack: { target: opp.oid, name: opp.name, from: character.name, kind: type, result: r.result } } : {};
+  const id = `roll-${character.oid}-${n}`;
   const base: Receipt = {
-    id: `roll-${character.oid}-${n}`, at, title: `${character.name}, roll ${n}`, by, ...(act && { action: act.label }), dice: r.dice,
+    id, at, title: `${character.name}, roll ${n}`, by, ...(act && { action: alternative(act.label, intent.alt) }), dice: r.dice,
     resolution: resolutionWords(row, r.dice), level: levelWords(r.dice, dice.bonus, r.outcome === 'failure'),
-    outcome: outcomeWords(r.crit ? 'success' : r.outcome, r.result), ...(r.crit && { crit: r.crit }),
+    outcome: outcomeWords(outcome, r.result, isAttack(type)), ...(r.crit && { crit: r.crit }), ...attack,
   };
-  const vsFull = opp && `${opp.name} (${intent.defend} ${against}), Difference ${signed(diff!)}`;
+  // R307: an Attack's kind in the `vs` line.
+  const vsFull = opp && `${opp.name} (${kind === 'phys' ? 'physical' : kind} ${against}), Difference ${signed(diff!)}`;
   const owner: Viewer = character.owner === GM ? { name: GM, gm: true } : { name: character.owner, gm: false };
   const seesOpp = !opp || canSee(owner, opp);
   const numbers = sum && act ? { influence: sum.total, base: act.base } : {};
@@ -161,12 +180,23 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
   return { full, roller, table, apply, character };
 }
 
-/** The receipt after a CRIT choice: the chosen result and its Level. */
+/** The receipt after a CRIT choice: the chosen result and its Level; an Attack's amount follows it. */
 export function choose(r: Receipt, choice: 'max' | 'dbl', lock: boolean): Receipt {
   if (!r.crit) return r;
   const value = choice === 'max' ? r.crit.max : r.crit.dbl;
-  return { ...r, outcome: outcomeWords('success', value), crit: { ...r.crit, chosen: choice, locked: lock } };
+  return { ...r, outcome: outcomeWords('success', value, !!r.attack), crit: { ...r.crit, chosen: choice, locked: lock },
+    ...(r.attack && !r.attack.taken && { attack: { ...r.attack, result: value } }) };
 }
+
+// R316: `Mental Atk / Req` is two actions with the same numbers; the one clicked names the roll.
+/** The action's name: the clicked alternative of its label when there is one, else the label. */
+export function alternative(label: string, alt: string | undefined): string {
+  const alts = label.split('/').map(a => a.trim());
+  return alt && alts.includes(alt) ? alt : label;
+}
+
+export type TakeMsg = { id: string; page: Page };
+export type NameMsg = { id: string; damage: Damage; row: RowName; name: string };
 
 export type RollsWith = {
   game: Game; sealer: Sealer; clock: Clock; rng: Rng;
@@ -182,14 +212,13 @@ export type RollsWith = {
   whoIs?: (from: Peer) => string | null;
 };
 
-type Kept = { character: Oid; n: number; full: Receipt; roller: Receipt; table: Receipt; tab?: string; sealKey?: string };
+type Kept = KeptRoll;
 
 export class Rolls {
   #w: RollsWith;
   #gmPeer: Peer | undefined;
   #last = new Map<string, number>();
   #waiting = new Map<number, { done: (why: string | null) => void; timer: unknown }>();
-  #kept = new Map<string, Kept>();
   #work: Promise<void> = Promise.resolve();
 
   constructor(w: RollsWith) {
@@ -199,6 +228,8 @@ export class Rolls {
     if (w.gm) {
       link.on('intent', (body: Intent, from: Peer) => this.#intent(body, from));
       link.on('crit', (body: { id: string; choice: 'max' | 'dbl'; lock: boolean }, from: Peer) => this.#crit(body, from));
+      link.on('take', (body: TakeMsg, from: Peer) => this.#take(body, from));
+      link.on('name', (body: NameMsg, from: Peer) => this.#name(body, from));
     } else {
       link.on('roll', (body: RollMsg, from: Peer) => this.#heard(body, from));
       link.on('refuse', (body: { why: string; n?: number }, from: Peer) => {
@@ -210,6 +241,20 @@ export class Rolls {
   }
 
   idle(): Promise<void> { return this.#work; }
+
+  // R308, R313: kept rolls live in the GM's own book (never sent), so a take or a name still works
+  // after the GM's page reloads.
+  /** The kept roll by its receipt's id. */
+  #kept(id: string): Kept | undefined {
+    const k = ((this.#w.game.get('book') as Book | undefined)?.kept ?? []).find(x => x.full.id === id);
+    return k && { ...k };   // a copy: the record itself changes only through #keep
+  }
+  /** Keeps a roll (replacing it by id), the newest KEPT. */
+  #keep(k: Kept): void {
+    const { game } = this.#w, book = (game.get('book') as Book | undefined) ?? { claims: {}, gv: 0, tomb: {} };
+    const kept = [...(book.kept ?? []).filter(x => x.full.id !== k.full.id), k].slice(-KEPT);
+    game.change(w => w.put('book', { ...book, kept }));
+  }
 
   // R103: a page that has left (Presence) can't roll for anyone; if it was the GM's, nobody can.
   /** Told by Presence that a tab has gone. */
@@ -247,12 +292,15 @@ export class Rolls {
     const done = resolve(game, { ...intent, n: 0 }, rng, clock.now());
     if ('refused' in done) return done.refused;
     game.change(done.apply);
+    // R308: every roll is kept, so an Attack can be taken; a private one is never sent.
     if (priv || !link) {
-      this.#print({ ...done.full, ...(priv && { priv: true }) });
+      const full = { ...done.full, ...(priv && { priv: true as const }) };
+      this.#keep({ character: done.character.oid, n: 0, full, roller: full, table: full, priv: true });
+      this.#print(full);
       return null;
     }
     const n = this.#count('hollow.rolls.sent');
-    this.#kept.set(done.full.id, { character: done.character.oid, n, full: done.full, roller: done.roller, table: done.table });
+    this.#keep({ character: done.character.oid, n, full: done.full, roller: done.roller, table: done.table });
     this.#print({ ...done.full, ok: true });
     link.send('roll', { n, receipt: done.table, sealed: {} } satisfies RollMsg);
     return null;
@@ -271,7 +319,7 @@ export class Rolls {
     game.change(done.apply);
     this.#print(done.full);
     const n = this.#count('hollow.rolls.sent');
-    this.#kept.set(done.full.id, { character: done.character.oid, n, full: done.full, roller: done.roller, table: done.table, tab: from.tab, sealKey: from.sealKey });
+    this.#keep({ character: done.character.oid, n, full: done.full, roller: done.roller, table: done.table, tab: from.tab, sealKey: from.sealKey });
     this.#work = this.#work.then(async () => {
       const box = await sealer.seal(from.sealKey, 'roll', link!.tab, from.tab, { re: intent.n, receipt: done.roller } satisfies SealedRoll);
       link!.send('roll', { n, receipt: done.table, sealed: { [from.tab]: box } } satisfies RollMsg);
@@ -281,21 +329,75 @@ export class Rolls {
 
   // Seq: seq-roll.md#2 | R97: the owner or the GM switches or locks a CRIT; every tape updates.
   #crit(body: { id: string; choice: 'max' | 'dbl'; lock: boolean }, from: Peer | null): Promise<void> {
-    const k = this.#kept.get(body.id), { game, link, sealer } = this.#w;
+    const k = this.#kept(body.id), { game } = this.#w;
     if (!k || k.full.crit?.locked) return this.#work;
     const c = game.get(ridOf(k.character)) as Character | undefined;
     if (from && (!c || c.owner !== this.#w.whoIs?.(from))) return this.#work;
     k.full = choose(k.full, body.choice, body.lock);
     k.roller = choose(k.roller, body.choice, body.lock);
     k.table = choose(k.table, body.choice, body.lock);
+    return this.#resend(k);
+  }
+
+  /** A kept roll's receipts again: on this tape, and (unless private) every tape, by id. */
+  #resend(k: Kept): Promise<void> {
+    const { link, sealer } = this.#w;
+    this.#keep(k);
     this.#print(k.full);
-    if (!link) return this.#work;
+    if (!link || k.priv) return this.#work;
     this.#work = this.#work.then(async () => {
       const sealed = k.tab && k.sealKey
         ? { [k.tab]: await sealer.seal(k.sealKey, 'roll', link.tab, k.tab, { re: 0, receipt: k.roller } satisfies SealedRoll) } : {};
       link.send('roll', { n: k.n, receipt: k.table, sealed } satisfies RollMsg);
     });
     return this.#work;
+  }
+
+  /** Each of a kept roll's receipts with its Attack changed by `f`. */
+  #attack(k: Kept, f: (a: Attack) => Attack): void {
+    for (const key of ['full', 'roller', 'table'] as const) {
+      const r = k[key];
+      if (r.attack) k[key] = { ...r, attack: f(r.attack) };
+    }
+  }
+
+  // Seq: seq-take.md#1.4.1, seq-take.md#1.4.2, seq-take.md#1.4.3, seq-take.md#1.5 | R308, R312, R314
+  // The target's owner or the GM takes an Attack: refused unless it is untaken and the page is one of
+  // the GM's own pages for it; then filled, marked taken, its named Slots waiting for names.
+  #take(body: TakeMsg, from: Peer | null): Promise<void> {
+    const { game } = this.#w, k = this.#kept(body.id), a = k?.full.attack;
+    if (!k || !a || a.taken) return this.#work;
+    const c = game.get(ridOf(a.target)) as Character | undefined, by = game.get(ridOf(k.character)) as Character | undefined;
+    if (c?.kind !== 'character' || by?.kind !== 'character') return this.#work;
+    if (from && c.owner !== this.#w.whoIs?.(from)) return this.#work;
+    if (!pages(c, a.kind, a.result).some(p => same(p, body.page))) return this.#work;
+    const next = fill(c, a.kind, body.page, { name: by.name, id: body.id }), d = COLUMN_OF[a.kind];
+    const waiting = ROWS.filter(r => next.back.damage[d][r].naming?.id === body.id && !c.back.damage[d][r].naming)
+      .map(row => ({ damage: d, row }));
+    game.change(w => w.put(ridOf(c.oid), next));
+    this.#attack(k, x => ({ ...x, taken: true, ...(waiting.length && { waiting }) }));
+    return this.#resend(k);
+  }
+
+  // Seq: seq-take.md#2.1, seq-take.md#2.2, seq-take.md#2.3 | R313, R314
+  // The attacking character's owner or the GM names a Slot this Attack left waiting.
+  #name(body: NameMsg, from: Peer | null): Promise<void> {
+    const { game } = this.#w, k = this.#kept(body.id), a = k?.full.attack, text = body.name.trim();
+    if (!k || !a || !text || !a.waiting?.some(x => x.damage === body.damage && x.row === body.row)) return this.#work;
+    const by = game.get(ridOf(k.character)) as Character | undefined, c = game.get(ridOf(a.target)) as Character | undefined;
+    if (by?.kind !== 'character' || c?.kind !== 'character') return this.#work;
+    if (from && by.owner !== this.#w.whoIs?.(from)) return this.#work;
+    const slot = c.back.damage[body.damage][body.row];
+    if (slot.naming?.id !== body.id) return this.#work;
+    const { naming: _, ...named } = { ...slot, name: text };
+    game.change(w => w.put(ridOf(c.oid), { ...c, back: { ...c.back, damage: { ...c.back.damage,
+      [body.damage]: { ...c.back.damage[body.damage], [body.row]: named } } } }));
+    this.#attack(k, x => {
+      const rest = x.waiting!.filter(w => w.damage !== body.damage || w.row !== body.row);
+      const { waiting: __, ...left } = x;
+      return rest.length ? { ...left, waiting: rest } : left;
+    });
+    return this.#resend(k);
   }
 
   // ---- a player's page ----
@@ -325,6 +427,20 @@ export class Rolls {
   crit(id: string, choice: 'max' | 'dbl', lock: boolean): void {
     if (this.#w.gm) { void this.#crit({ id, choice, lock }, null); return; }
     if (this.#gmPeer) this.#w.link?.send('crit', { id, choice, lock }, this.#gmPeer.tab);
+  }
+
+  /** Take an Attack by one of its pages (R308): the GM's page decides; on the GM's page, at once. */
+  take(id: string, page: Page): Promise<void> {
+    if (this.#w.gm) return this.#take({ id, page }, null);
+    if (this.#gmPeer) this.#w.link?.send('take', { id, page } satisfies TakeMsg, this.#gmPeer.tab);
+    return this.#work;
+  }
+
+  /** Name a Slot an Attack left waiting (R313): the GM's page writes it, even on a card the sender can't see. */
+  name(id: string, damage: Damage, row: RowName, name: string): Promise<void> {
+    if (this.#w.gm) return this.#name({ id, damage, row, name }, null);
+    if (this.#gmPeer) this.#w.link?.send('name', { id, damage, row, name } satisfies NameMsg, this.#gmPeer.tab);
+    return this.#work;
   }
 
   // Seq: seq-roll.md#1.8 | R106, R107, R108

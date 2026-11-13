@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
 import { ridOf, type Character } from '../model/records.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
-import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction } from './rollrow.ts';
+import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase } from './rollrow.ts';
 
 const scene = () => { const g = new Game(); g.load(playtest('Dana', 'Ann')); return g; };
 
@@ -82,9 +82,29 @@ test('aiming at an opponent', () => {
 test('a Roll asks by names', () => {
   // R100: the row goes along only when picked by hand, or set with nobody aimed at.
   const a = withAction(dock(null, SAM), 'Infer');
-  assert.deepEqual(intentOf(a), { pool: SAM, action: 'Infer', vs: null, defend: 'mental', hand: { yellows: 0, bonus: 0 } });
+  assert.deepEqual(intentOf(a), { pool: SAM, action: 'Infer', vs: null, defend: 'mental', hand: { yellows: 0, bonus: 0 }, type: 'infer' });
   assert.equal(intentOf(picked(a, 'green')).row, 'green');
   const auto = { ...aimed(a, DEVREUX, 'psych'), row: 'red' };
   assert.equal('row' in intentOf(auto), false, "a Difference row is the GM's page's to pick");
   assert.equal(intentOf(picked(aimed(a, DEVREUX, 'psych'), 'red')).row, 'red');
+});
+
+test('the roll type', () => {
+  // R320: the label's words preselect it; a label that doesn't say starts at what was chosen last, else `?`.
+  assert.deepEqual(['Mental Atk', 'Psych Atk', 'Phys Attack', 'Physical Atk', 'Req', 'Request', 'Infer', 'Impress', 'Create Influence', 'Shoot', 'Attack']
+    .map(typeOf), ['mental', 'psych', 'phys', 'phys', 'request', 'request', 'infer', 'impress', 'influence', null, null]);
+  const base = dock(null, SAM);
+  assert.equal(withAction(base, 'Shoot').type, '?');
+  assert.equal(withAction(base, 'Shoot', undefined, 'phys').type, 'phys', 'remembered');
+  assert.equal(withAction(base, 'Infer', undefined, 'skill').type, 'infer', "the label's word comes first");
+  // R316: the alternative clicked names the roll and picks its type; it goes in the intent.
+  const req = withAction(base, 'Mental Atk / Req', 'Req');
+  assert.deepEqual([req.type, intentOf(req).alt, intentOf(req).action], ['request', 'Req', 'Mental Atk / Req']);
+  assert.equal(withAction(base, 'Mental Atk / Req').type, 'mental', 'with no alternative, the first');
+  // R306: turning a roll to `?` stops aiming; an Attack goes at its own Defend, a Phys Attack at none.
+  const atk = aimed(withAction(base, 'Mental Atk / Req', 'Mental Atk'), DEVREUX, 'mental');
+  assert.equal(typed(atk, '?').opponent, null);
+  const def = { mental: 6, psych: 5 };
+  assert.deepEqual([defendBase(atk, def), defendBase(typed(atk, 'psych'), def), defendBase(typed(atk, 'phys'), def),
+    defendBase({ ...typed(atk, 'infer'), defend: 'psych' }, def)], [6, 5, 0, 5]);
 });

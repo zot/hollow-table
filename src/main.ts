@@ -5,9 +5,10 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, ridOf, type Book, type Character, type Image, type Meta, type PieceRecord, type Yards } from './model/records.ts';
+import { GM, ridOf, type Book, type Character, type Image, type Meta, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
+import { COLUMN_OF, pages } from './rules/absorb.ts';
 import { empty as emptyYards } from './rules/yards.ts';
-import { placeOf } from './ui/piece.ts';
+import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
 import { Identity } from './net/identity.ts';
@@ -100,6 +101,41 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const redraw = () => table.render(game.all().map(([rid]) => rid));
   const mint = () => minter(game, gm);
   let drag: Drag | undefined, rollRow: RollRowView | undefined;
+  // Seq: seq-take.md#1, seq-take.md#1.1, seq-take.md#1.2, seq-take.md#1.3, seq-take.md#1.4 | R308–R312
+  // An Attack being taken on this page: its pages on the target's card, which turns to its back with
+  // the Attack's column in front. Escape or a click off the card backs out (a pan doesn't); nothing is saved.
+  let taking: Taking | null = null;
+  const cancelTake = () => {
+    if (!taking) return;
+    taking = null;
+    removeEventListener('keydown', onTakeKey, true);
+    removeEventListener('pointerdown', onTakePress, true);
+    removeEventListener('pointerup', onTakeUp, true);
+    redraw();
+  };
+  const onTakeKey = (e: KeyboardEvent) => { if (e.key === 'Escape') cancelTake(); };
+  let pressedOff: { x: number; y: number } | null = null;
+  const onTakePress = (e: PointerEvent) => {
+    const card = taking && document.querySelector(`.obj.card[data-rid="${ridOf(taking.oid)}"]`);
+    pressedOff = card && !card.contains(e.target as Node) ? { x: e.clientX, y: e.clientY } : null;
+  };
+  const onTakeUp = (e: PointerEvent) => {
+    if (pressedOff && Math.hypot(e.clientX - pressedOff.x, e.clientY - pressedOff.y) < 5) cancelTake();
+    pressedOff = null;
+  };
+  const startTake = (r: Receipt) => {
+    const a = r.attack, c = a && game.get(ridOf(a.target)) as Character | undefined;
+    if (!a || c?.kind !== 'character') return;
+    cancelTake();
+    taking = { oid: c.oid, id: r.id, kind: a.kind, by: a.from, result: a.result, pages: pages(c, a.kind, a.result), k: 0 };
+    const col = `${c.oid}:${COLUMN_OF[a.kind]}`;
+    keep({ ...seat, open: { ...seat.open, columns: [...seat.open.columns.filter(k => !k.startsWith(`${c.oid}:`)), col] } });
+    if (!c.flipped) game.change(w => w.put(ridOf(c.oid), { ...c, flipped: true }));
+    addEventListener('keydown', onTakeKey, true);
+    addEventListener('pointerdown', onTakePress, true);
+    addEventListener('pointerup', onTakeUp, true);
+    redraw();
+  };
   /** The height that puts a piece on top of everything. */
   const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ('kind' in r ? placeOf(r as PieceRecord) : null)?.z ?? 0));
   // R272, R287: an image's bytes kept, and an Image put on top where it goes.
@@ -166,8 +202,16 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     },
     dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
     // R75–R77: an action's die brings the roll row; the action in use gets its swish.
-    useAction: (oid, label) => rollRow?.action(oid, label) ?? false,
+    useAction: (oid, label, alt) => rollRow?.action(oid, label, alt) ?? false,
     inUse: oid => rollRow?.inUse(oid) ?? null,
+    taking: () => taking,
+    turnPage: k => { if (taking) { taking = { ...taking, k: Math.max(0, Math.min(k, taking.pages.length - 1)) }; redraw(); } },
+    takePage: () => {
+      const t = taking;
+      cancelTake();
+      if (t) void rolling().take(t.id, t.pages[t.k]!);
+    },
+    cancelTake,
     // R142, R144, R146, R68: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die) => {
       const c = game.get(ridOf(oid)) as Character | undefined;
@@ -192,6 +236,9 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const tape = new TapeView(document.getElementById('table')!, {
     game, viewer, up: () => seat.tapeUp, setUp: up => keep({ ...seat, tapeUp: up }),
     crit: (id, choice, lock) => rolling().crit(id, choice, lock), mint: () => mint()(),
+    owner: oid => (game.get(ridOf(oid)) as Character | undefined)?.owner,
+    take: startTake,
+    name: (id, damage, row, text) => void rolling().name(id, damage, row, text),
     toWorld: (x, y) => table.toWorld(x, y), carry: (rid, down, move) => drag?.start(rid, down, move),
   });
   // R115–R117: the register at the bar's right end; the tape hangs under it (R282).
@@ -220,6 +267,9 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   void document.fonts?.ready.then(hang);
   rollRow = new RollRowView({
     game, viewer, roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
+    // R320: the type last chosen for an action on a card, in this viewer's seat.
+    remembered: (oid, label) => seat.types[`${oid}:${label}`],
+    remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
     pool: oid => table.pool(ridOf(oid)), redraw: oids => table.render(oids.map(ridOf)),
     // R100–R104, R281: the GM's page rolls at once (privately if switched); a player's asks it, Roll
     // reading "GM…" meanwhile; why not prints as a note on the tape.

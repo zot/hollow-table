@@ -1,5 +1,5 @@
 # Theme
-**Requirements:** R1, R3, R4, R6, R7, R8, R11, R12, R13, R17
+**Requirements:** R1, R3, R4, R6-8, R11-13, R17, R318
 
 The look, in one stylesheet: the tokens, the type, and the rules every view's markup relies on
 (manifest-ui.md).

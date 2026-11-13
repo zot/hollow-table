@@ -14,3 +14,14 @@ true, false, true, false; false; false
 **Fire alarm:** In mayChoose, let anyone at the table switch: Ann switches Dana's CRIT
 **Inject:** src/ui/tape.ts:mayChoose
 **Pulled:** 2026-11-12 — rang: Ann could switch Dana's CRIT
+
+## Test: who takes an Attack, and who names it
+**Purpose:** R308: Take shows for the target's owner and the GM until the Attack is taken; R313: the name lines for whoever rolled it and the GM; the line's words
+**Input:** an Attack Ann rolled at Dana's Sam; viewers Dana, Ann, the GM and nobody; then taken with a Min Bias waiting
+**Expected:** Take for Dana and the GM only, none once taken; names for Ann and the GM only, none with nothing waiting; "Name Sam's Minor Bias"
+**Refs:** crc-Tape.md
+**Code:** src/ui/tape.test.ts
+**Alarm:** 2
+**Fire alarm:** let anyone see Take (`mayTake` true for any viewer); red: Ann is offered Take on Dana's Sam
+**Inject:** src/ui/tape.ts:mayTake
+**Pulled:** 2026-11-13 — 2026-11-13 — rang: "who takes an Attack, and who names it" failed (Ann offered Take); restored clean

@@ -53,6 +53,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Influence.md → `src/rules/influence.ts`
 - [x] crc-Pool.md → `src/rules/pool.ts`
 - [x] crc-Tap.md → `src/rules/tap.ts`
+- [x] crc-Absorb.md → `src/rules/absorb.ts`
 - [x] crc-Odds.md → `src/rules/odds.ts`
 - [x] crc-Dice.md → `src/rules/dice.ts`
 - [x] crc-Visibility.md → `src/rules/visibility.ts`
@@ -101,6 +102,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] seq-edit.md → `src/net/copy.ts`, `src/net/authority.ts`
 - [x] seq-move.md → `src/net/moves.ts`
 - [ ] seq-roll.md → `src/net/rolls.ts`
+- [x] seq-take.md → `src/net/rolls.ts`, `src/rules/absorb.ts`, `src/ui/tape.ts`, `src/ui/piece.ts`
 - [ ] seq-images.md → `src/net/images.ts`
 - [x] seq-drag.md → `src/ui/drag.ts`, `src/ui/pool.ts`, `src/ui/gesture.ts`
 
@@ -128,6 +130,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Influence.md → `src/rules/influence.test.ts`
 - [x] test-Pool.md → `src/rules/pool.test.ts`
 - [x] test-Tap.md → `src/rules/tap.test.ts`
+- [x] test-Absorb.md → `src/rules/absorb.test.ts`
 - [x] test-Odds.md → `src/rules/odds.test.ts`
 - [x] test-Dice.md → `src/rules/dice.test.ts`
 - [x] test-Visibility.md → `src/rules/visibility.test.ts`
@@ -153,7 +156,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Network.md → `tests/sync.spec.ts`, `tests/secret.spec.ts`, `tests/away.spec.ts`, `tests/deletion.spec.ts`, `tests/images.spec.ts`, `tests/rolls.spec.ts`, `tests/relays.spec.ts`
 
 ## Gaps
-- [ ] O1: Checked by hand only, after 9.4.6c's browser specs (`tests/table.spec.ts`, `drag.spec.ts`, `card.spec.ts`, `rolls-local.spec.ts`, `floor.spec.ts`, which now check R215's drop, R216, R217, R220–R222, R225, R240, R241, R243, R244, R251–R253, R255, R256, R260, R268–R272, the roll row, aiming, the tape and the register): R215 frame pacing (passes against pointer events); R226 another page's move gliding; the pool's look R227–R236 and R237's pop; the card's text look R245–R250 and the big sticky R248; R254 headings on one line; R258 the Motivation pen and marks; R259 someone else's Resource glyph shaking; R263–R267 Damage entry fill, the absorb and boxes from Wis, the Attributes pen; R271 a resize keeping the view; R273 pinned paper over its card while written on; R274, R275 and R77 the roll row's look and the swish; R279–R283 receipt titles, the CRIT punch; R117's recharge after End.
+- [ ] O1: Checked by hand only, after 9.4.6c's browser specs (`tests/table.spec.ts`, `drag.spec.ts`, `card.spec.ts`, `rolls-local.spec.ts`, `floor.spec.ts`, which now check R215's drop, R216, R217, R220–R222, R225, R240, R241, R243, R244, R251–R253, R255, R256, R260, R268–R272, the roll row, aiming, the tape and the register): R215 frame pacing (passes against pointer events); R226 another page's move gliding; the pool's look R227–R236 and R237's pop; the card's text look R245–R250 and the big sticky R248; R254 headings on one line; R258 the Motivation pen and marks; R259 someone else's Resource glyph shaking; R263–R267 Damage entry fill, the absorb and boxes from Wis, the Attributes pen; R271 a resize keeping the view; R273 pinned paper over its card while written on; R274, R275 and R77 the roll row's look and the swish; R279–R283 receipt titles, the CRIT punch; R117's recharge after End; and from #7, checked by hand 11-13 on a fresh page: R318 the blue action die, R319 the type tag's look and R321 its place in the row, R308 the Take stamp, R309–R312 the take strip and pencilled Slots, R313 the name blanks.
 - [x] O8: Resolved 11-13 (Bill: no, moving the card is fine): nothing changes; R241 pushes only what the mat covers. Was: A gathered card slides down with its growing drawer over whatever lies below it, unpushed: R241 pushes only what the mat covers. Ask Bill whether the card's area counts too.
 - [ ] O2: No scene end yet (R262). Tap.rechargeMotives is built and tested, but nothing calls it: the register's End (R117) ends a Conflict, and the table has no scene. Decide with Bill when the register is built (9.4.5).
 - [ ] O3: Hollow Folks' Con/Wis table has negative rows ("worth only 1" at −2 and −1) that the Markdown export garbles; Influence.room gives nothing extra below 1. Read the PDF's table and ask Bill what the negative rows do (R264, R265).
@@ -175,3 +178,8 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T12: R179 retired by R300 (a move changes no record; the drop's change places the piece)
 - T13: R302 retired by R303 (only releases are published, on their tag, showing version and date (Bill 11-13))
 - T14: R286 retired by R304 (the wordmark shows the version and the date, not a build stamp (Bill 11-13))
+- T15: R75 retired by R316 (Bill 11-13: a die before each alternative of an action's label)
+- T16: R279 retired by R317 (Bill 11-13: the outcome line carries the Level and its sum; only an Attack gives its amount)
+- T17: R67 retired by R321 (Bill 11-13: the roll row gains a type tag)
+- [ ] O9: Taking or naming an Attack that the GM's page refuses (someone else's, a stale page, already taken) changes nothing and says nothing to the sender: Rolls.#take and #name return without a note. A refusal note like a roll's (R281) would tell them why.
+- [ ] O10: Receipts kept on a tape from before R317 still hold the old outcome words, so they print as "Success 12, Major: 6 + 4"; only new rolls read the new way. Cosmetic; tapes are each page's own.

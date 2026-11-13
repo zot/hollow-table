@@ -2,8 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
-import { Rolls, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
+import { ridOf, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
+import { pages } from '../rules/absorb.ts';
+import { Rolls, choose, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
 import { ADV } from '../rules/odds.ts';
 import type { Die } from '../model/records.ts';
 import { FakeRoom } from './fakeroom.ts';
@@ -36,10 +37,11 @@ test('resolve', () => {
   const r = resolve(game, { ...infer(), n: 1 }, faces(4, 3), 1000);
   if ('refused' in r) throw new Error(r.refused);
   const pick = (x: Receipt) => [x.influence, x.base, x.row, x.vs];
-  // R279: the receipt in the book's words.
+  // R317: the receipt in the book's words.
   assert.deepEqual(pick(r.full), [10, 4, '+3 to +4 Weak Advantage: White + 1', 'Devreux (mental 6), Difference +4']);
   assert.deepEqual([r.full.title, r.full.action, r.full.resolution, r.full.level, r.full.outcome, r.full.by],
-    ['Sam, roll 1', 'Infer', 'White 4 + 1', '3 + 2 bonus', 'Success 5, Significant', 'Dana']);
+    ['Sam, roll 1', 'Infer', 'White 4 + 1', '3 + 2 bonus', 'Success +Sig', 'Dana']);
+  assert.equal(r.full.attack, undefined, 'R308: only an Attack gives its target anything');
   assert.deepEqual(pick(r.roller), [10, 4, 'White + 1', 'Devreux']);
   assert.deepEqual(pick(r.table), [undefined, undefined, undefined, 'Devreux']);
   game.change(r.apply);
@@ -144,6 +146,70 @@ test('CRIT', async () => {
   assert.equal(t.tape('ann').find(x => x.id === first.id)!.crit!.chosen, other, 'locked stays');
 });
 
+test('taking an Attack, and naming it', async () => {
+  // R308, R312–R314: Ann's Beauford attacks Dana's Sam; only Dana (or the GM) takes it, by one of the
+  // GM's own pages, once; only Ann (or the GM) names the Slot it leaves waiting.
+  const t = await table(faces(5, 5, 5, 5, 5, 5));
+  await t.hello();
+  const sam = () => t.page('gm').game.get(ridOf(SAM)) as Character;
+  const before = sam();
+  const asked = t.page('ann').rolls.request({ pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Mental Atk', type: 'mental',
+    vs: SAM, defend: 'psych', hand: { yellows: 0, bonus: 0 } });
+  await t.room.settle();
+  assert.equal(await asked, null);
+  const r = t.tape('dana')[0]!, a = r.attack!;
+  assert.deepEqual([a.target, a.kind, a.taken], [SAM, 'mental', undefined]);
+  const [page] = pages(before, 'mental', a.result);
+
+  t.page('ann').rolls.take(r.id, page!);
+  await t.room.settle();
+  assert.deepEqual(sam().back, before.back, "not Ann's to take");
+  t.page('dana').rolls.take(r.id, { use: { mild: 9, min: 0, sig: 0, maj: 0 }, overflow: 0 });
+  await t.room.settle();
+  assert.deepEqual(sam().back, before.back, 'a page the GM did not offer');
+
+  t.page('dana').rolls.take(r.id, page!);
+  await t.room.settle();
+  const after = sam();
+  assert.notDeepEqual(after.back, before.back, 'taken');
+  const taken = t.tape('ann').find(x => x.id === r.id)!.attack!;
+  assert.equal(taken.taken, true);
+  assert.ok(taken.waiting?.length, 'its named Slots wait for names');
+  // A page that still fits the card as it is now, so only "already taken" can refuse it.
+  t.page('dana').rolls.take(r.id, pages(after, 'mental', a.result)[0]!);
+  await t.room.settle();
+  assert.deepEqual(sam().back, after.back, 'taken once');
+
+  const [w] = taken.waiting!;
+  t.page('dana').rolls.name(r.id, w!.damage, w!.row, 'Suspicious');
+  await t.room.settle();
+  assert.equal(sam().back.damage[w!.damage][w!.row].name, '', "not Dana's to name");
+  t.page('ann').rolls.name(r.id, w!.damage, w!.row, 'Suspicious');
+  await t.room.settle();
+  const named = sam().back.damage[w!.damage][w!.row];
+  assert.deepEqual([named.name, named.naming], ['Suspicious', undefined]);
+  for (const tab of ['gm', 'dana', 'ann']) {
+    assert.ok(!t.tape(tab).find(x => x.id === r.id)!.attack!.waiting?.some(x => x.row === w!.row), tab);
+  }
+});
+
+test('a kept roll survives a reload', async () => {
+  // R308, R313: the GM's page keeps its rolls in its book, so a take and a name still work on a page
+  // made afresh on the same game (a reload).
+  const game = scene(), { clock } = fakeClock(), sealer = await Sealer.make();
+  const page = () => new Rolls({ game, sealer, clock, rng: faces(5, 5, 5, 5, 5, 5), link: null, session: memoryStorage(), gm: true });
+  assert.equal(page().roll({ pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Mental Atk', type: 'mental', vs: SAM,
+    defend: 'mental', hand: { yellows: 0, bonus: 0 } }), null);
+  const r = (game.get('tape') as Tape).receipts[0]!, a = r.attack!;
+  const sam = () => game.get(ridOf(SAM)) as Character;
+  const [first] = pages(sam(), 'mental', a.result);
+  await page().take(r.id, first!);
+  const w = (game.get('tape') as Tape).receipts[0]!.attack!.waiting![0]!;
+  assert.ok(sam().back.damage[w.damage][w.row].naming, 'taken by a fresh page');
+  await page().name(r.id, w.damage, w.row, 'Suspicious');
+  assert.equal(sam().back.damage[w.damage][w.row].name, 'Suspicious', 'named by another fresh page');
+});
+
 test('private rolls and gaps', async () => {
   const t = await table();
   const gm = t.page('gm').rolls;
@@ -171,7 +237,7 @@ test('private rolls and gaps', async () => {
 });
 
 test('a receipt in the book\'s words', () => {
-  // R279: each row's range (nearer zero first below zero), the book's name, and its dice.
+  // R317: each row's range (nearer zero first below zero), the book's name, and its dice.
   assert.deepEqual(ADV.map(rowWords), [
     '+10 or more Outclass: automatic success', '+7 to +9 Strong Advantage: Green + 1', '+5 to +6 Advantage: Green',
     '+3 to +4 Weak Advantage: White + 1', '−2 to +2 No Advantage: White', '−3 to −4 Weak Disadvantage: White − 1',
@@ -181,8 +247,33 @@ test('a receipt in the book\'s words', () => {
   assert.equal(levelWords(dice, 2, false), '6 + 3 + 2 bonus');
   assert.equal(levelWords(dice, -1, false), '6 + 3 − 1 bonus');
   assert.equal(levelWords(dice, 2, true), '6 + 3', 'the bonus is ignored on a Failure');
-  assert.deepEqual([outcomeWords('success', 12), outcomeWords('cost', 5), outcomeWords('failure', 3)],
-    ['Success 12, Major', 'Success at cost 5, Significant', 'Failure 3, Minor Stagger']);
+  // R317: the outcome with its Level, signed; only a successful Attack gives its amount.
+  assert.deepEqual([outcomeWords('success', 12), outcomeWords('cost', 5), outcomeWords('failure', 7), outcomeWords('success', 0)],
+    ['Success +Maj', 'Success at cost +Sig', 'Failure −Sig', 'Success +0']);
+  assert.deepEqual([outcomeWords('success', 10, true), outcomeWords('cost', 4, true), outcomeWords('failure', 7, true)],
+    ['Success 10', 'Success at cost 4', 'Failure −Sig']);
+});
+
+test('an Attack', () => {
+  // R306: a Mental Attack goes at Mental Defend, a Phys Attack at 0, whatever the intent's defend says;
+  // R307: its kind in the vs line; R308: a success gives the target its Result; R316: the alternative clicked.
+  const game = scene();
+  const atk = (type: Intent['type'], defend: Intent['defend']) =>
+    resolve(game, { pool: SAM, action: 'Mental Atk / Req', alt: 'Mental Atk', vs: DEVREUX, defend, hand: { yellows: 0, bonus: 0 }, type, n: 1 }, faces(4, 3), 1000);
+  const mental = atk('mental', 'psych'), phys = atk('phys', 'mental');
+  if ('refused' in mental || 'refused' in phys) throw new Error('refused');
+  assert.match(mental.full.vs!, /^Devreux \(mental \d+\)/);
+  assert.match(phys.full.vs!, /^Devreux \(physical \d+\)/);
+  assert.equal(mental.full.action, 'Mental Atk');
+  assert.ok(Number(/\((?:mental|physical) (\d+)\)/.exec(phys.full.vs!)![1]) < Number(/\(mental (\d+)\)/.exec(mental.full.vs!)![1]),
+    'a Phys Attack is opposed by less than Mental Defend');
+  for (const r of [mental.full, mental.roller, mental.table]) {
+    assert.deepEqual(r.attack && { ...r.attack, result: 0 }, { target: DEVREUX, name: 'Devreux', from: 'Sam', kind: 'mental', result: 0 });
+  }
+  assert.match(mental.full.outcome, /^Success( at cost)? \d+$/);
+  // A `?` roll is no Attack.
+  const unsaid = atk('?', 'mental');
+  assert.ok(!('refused' in unsaid) && unsaid.full.attack === undefined && unsaid.full.action === 'Mental Atk');
 });
 
 test('a roll with no action, and a note', () => {
@@ -202,4 +293,15 @@ test('why not, on the tape', async () => {
   rolls.note("The GM's page didn't answer that roll.");
   const [n] = (game.get('tape') as Tape).receipts;
   assert.deepEqual([n!.title, n!.outcome, n!.at], ["The GM's page didn't answer that roll.", 'missing', clock.now()]);
+});
+
+test("a CRIT's choice moves an Attack's amount", () => {
+  // R308, R317: switching a CRIT changes the Result the target takes, until it is taken.
+  const r: Receipt = { id: 'x', at: 0, title: 'Beauford, roll 1', dice: [], resolution: '', level: '6 + 5', outcome: 'Success 12',
+    crit: { max: 12, dbl: 22, chosen: 'max', locked: false },
+    attack: { target: SAM, name: 'Sam', from: 'Beauford', kind: 'mental', result: 12 } };
+  const dbl = choose(r, 'dbl', false);
+  assert.deepEqual([dbl.attack!.result, dbl.outcome], [22, 'Success 22']);
+  const taken = choose({ ...r, attack: { ...r.attack!, taken: true } }, 'dbl', false);
+  assert.equal(taken.attack!.result, 12, 'a taken Attack keeps what was taken');
 });

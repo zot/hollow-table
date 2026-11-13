@@ -1,8 +1,8 @@
-// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136
+// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136, R320
 // Your seat at the table: how you're looking, kept per game and per viewer in localStorage, never
 // checkpointed, exported or sent. Every read and write survives a blocked or empty storage.
 
-import type { Die, Oid, Rid } from '../model/records.ts';
+import type { Die, Oid, Rid, RollType } from '../model/records.ts';
 import { ridOf } from '../model/records.ts';
 import type { KeyValue } from './gamestore.ts';
 
@@ -12,6 +12,10 @@ export type Roller = {
   byHand: boolean; hand: { yellows: number; bonus: number }; dice: Die[];
   /** R104, R275: the GM's private switch. */
   priv?: boolean;
+  /** R319: what the roll is (absent in a seat saved before, which counts as `?`). */
+  type?: RollType;
+  /** R316: the alternative of a `/` label whose die was clicked. */
+  alt?: string;
 };
 
 export type Seat = {
@@ -25,6 +29,8 @@ export type Seat = {
   /** Opened things, each named by the oid it belongs to: used piles and piles by oid, slots as
    * `<oid>:<slot>`, card columns as `<oid>:<damage>`. */
   open: { used: Oid[]; piles: Oid[]; slots: string[]; columns: string[] };
+  /** R320: the roll type this viewer last chose for each action on each card, by `<oid>:<label>`. */
+  types: Record<string, RollType>;
 };
 
 export const seatKey = (game: string, viewer: string) => `hollow.seat.${game}.${viewer}`;
@@ -32,7 +38,7 @@ export const seatKey = (game: string, viewer: string) => `hollow.seat.${game}.${
 export function fresh(): Seat {
   return {
     view: null, roller: null, viewAs: null, tapeUp: false,
-    boothill: { cur: 0, open: false }, open: { used: [], piles: [], slots: [], columns: [] },
+    boothill: { cur: 0, open: false }, open: { used: [], piles: [], slots: [], columns: [] }, types: {},
   };
 }
 
@@ -50,6 +56,7 @@ export function load(storage: KeyValue, game: string, viewer: string): Seat {
     view: isObject(saved.view) ? { x: 0, y: 0, zoom: 1, ...saved.view } : null,
     boothill: { ...base.boothill, ...(isObject(saved.boothill) ? saved.boothill : {}) },
     open: { ...base.open, ...(isObject(saved.open) ? saved.open : {}) },
+    types: isObject(saved.types) ? saved.types as Seat['types'] : {},
   } as Seat;
 }
 

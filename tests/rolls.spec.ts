@@ -42,7 +42,8 @@ test('rolls at the table', async ({ browser }) => {
   expect(await dana.evaluate(() => (window as any).said)).toContain('GM…');
   // A roll with no action (R69): her numbers are its resolution and Level.
   await expect(receipts(dana).first()).toContainText('Resolution:');
-  await expect(receipts(dana).first()).toContainText('Level:');
+  // R317: the outcome with its Level and how it adds up, "Failure −Sig: 2 + 5".
+  await expect(receipts(dana).first().locator('.outcome')).toHaveText(/^(Success|Success at cost|Failure) [+−]\w+: \d/);
   await expect(receipts(gm).first().locator('.by')).toHaveText('rolled by Dana');
 
   // Beauford isn't Dana's: refused, saying why.

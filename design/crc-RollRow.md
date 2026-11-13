@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67, R68, R69, R70, R71, R72, R73, R76, R77, R78, R86, R87, R88, R274-277
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321
 
 The dice you're about to roll, docked on the pool you roll for, in your view only (Seat).
 
@@ -26,16 +26,23 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   Defend chooser and the note share a small box at the pointer (`#defchoice`).
 - dock(character): from its die (own, or any for the GM); the same die again starts fresh; leaves
   when its viewer stops owning the character.
-- action(mark): from an action's die: fills Base, Yellows and bonus (Odds.bonus), highlights that
+- action(mark, label): from an action's die, the alternative it stands before naming the action (R316): fills Base, Yellows and bonus (Odds.bonus), highlights that
   line; clicking the Base clears it. A new action starts the row at White unless it is aiming (R276).
 - aim(character, kind): from dragging the Base; refused for a character hidden from the rolling
   character's owner ("Only the GM can aim at …", gone after about 2 s); a Defend chooser when the
   `<def>` has two numbers, at the pointer with its first choice focused, closed by Escape or a click
   elsewhere. While dragging, the pool under the pointer has a dashed amber outline (`aimed`) and the
   pointing hand holds (R277).
+- type (R319, R320): the roll's type, `?`, `skill`, `influence`, `phys`, `mental`, `psych`
+  (the three Attacks), `infer`, `impress` or `request`; typeOf(label) preselects it from the label's
+  words, else the seat's remembered type for that action on that card, else `?`. The tag on the row
+  opens the list; a choice is remembered in the seat.
+- An Attack aims straight at its Defend (R306): Mental at Mental, Psych at Psych, Phys at 0, with no
+  chooser; a `?` roll's aim at a character is refused ("Say what this roll is first", gone after
+  about 2 s). The type goes in the intent, and an Attack's kind in the receipt's `vs` (R307).
 - row(): the White row from the Difference (Odds), live as pools change, unless picked by hand in
   the Difference menu (held until the next aim).
-- show() (R274, R275): docked between the pool's header and its slots, a dark walnut strip the
+- show() (R274, R275, R321): the type tag before Roll, as a tag like the private switch; docked between the pool's header and its slots, a dark walnut strip the
   drawer's width; blank 24 px dice in their colours, a dashed ghost for no Yellows, a faint "+0"; Roll
   a blue key at the right; (GM) the private tag, "to table" / "private", titled with who will see it; numbers follow the rolling
   character's owner: if they can't see the opponent, `vs` name and the White setting as dice only,

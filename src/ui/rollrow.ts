@@ -1,9 +1,9 @@
-// CRC: crc-RollRow.md | R67, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277
+// CRC: crc-RollRow.md | R321, R306, R316, R319, R320, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277
 // The dice you're about to roll, docked on the pool you roll for, in your view only (the Seat).
 // The decisions are pure (dock, action, hand, row, numbers); the view below draws them.
 
 import type { Game } from '../model/game.ts';
-import { GM, OPEN, ridOf, type Character, type Oid } from '../model/records.ts';
+import { GM, OPEN, ROLL_TYPES, isAttack, ridOf, type Character, type Oid, type RollType } from '../model/records.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
 import { action as readAction, defend as readDefend, type Action, type Defend } from '../rules/readmarks.ts';
@@ -24,10 +24,42 @@ export function dock(r: Roller | null, pool: Oid): Roller {
   return { ...fresh(pool), ...(r?.priv && { priv: true }) };
 }
 
+// R320: what a label's words say the roll is, or null when they don't say (Shoot, a plain Attack).
+/** The roll type a label (or one alternative of it) names. */
+export function typeOf(label: string): RollType | null {
+  const w = label.toLowerCase(), has = (re: RegExp) => re.test(w);
+  if (has(/\b(atk|attack)\b/)) {
+    if (has(/\bmental\b/)) return 'mental';
+    if (has(/\bpsych/)) return 'psych';
+    if (has(/\bphys(ical)?\b/)) return 'phys';
+    return null;
+  }
+  if (has(/\binfer\b/)) return 'infer';
+  if (has(/\bimpress\b/)) return 'impress';
+  if (has(/\breq(uest)?\b/)) return 'request';
+  if (has(/\binfluence\b/)) return 'influence';
+  return null;
+}
+
 // R76, R82, R276: an action fills the row; the hand adjustment starts over, and the row starts at
-// White unless it is aiming at someone.
-export function withAction(r: Roller, label: string): Roller {
-  return { ...r, action: label, hand: { yellows: 0, bonus: 0 }, ...(!r.opponent && { row: null, byHand: false }) };
+// White unless it is aiming at someone. R316, R320: the alternative clicked names it, and its type
+// starts as the label says, else as last chosen for it (`remembered`), else `?`.
+export function withAction(r: Roller, label: string, alt?: string, remembered?: RollType): Roller {
+  const type = typeOf(alt ?? label.split('/')[0]!) ?? remembered ?? '?';
+  const { alt: _, ...rest } = r;
+  return { ...rest, action: label, ...(alt && { alt }), type, hand: { yellows: 0, bonus: 0 },
+    ...(!r.opponent && { row: null, byHand: false }), ...(type === '?' && r.opponent && { opponent: null }) };
+}
+
+// R319: the type tag; a roll turned to `?` stops aiming (R306).
+export function typed(r: Roller, type: RollType): Roller {
+  return { ...r, type, ...(type === '?' && { opponent: null }) };
+}
+
+/** The Defend an Attack goes at (R306): its own kind, a Phys Attack at none; other rolls as aimed. */
+export function defendBase(r: Roller, def: Defend | null): number {
+  if (r.type === 'phys' || !def) return 0;
+  return def[r.type === 'mental' || r.type === 'psych' ? r.type : r.defend];
 }
 
 // R78: clicking the Base clears the action (and with it the opponent): the row starts fresh.
@@ -64,7 +96,8 @@ export const ownerAsViewer = (c: Character): Viewer => c.owner === GM ? { name: 
 // R100: a Roll asks by names, never numbers: the row only when picked (by hand, or set with no opponent).
 export function intentOf(r: Roller): Omit<Intent, 'n'> {
   const row = r.row && (r.byHand || !r.opponent) ? { row: r.row } : {};
-  return { pool: r.pool, action: r.action, vs: r.opponent, defend: r.defend, hand: r.hand, ...row };
+  return { pool: r.pool, action: r.action, vs: r.opponent, defend: r.defend, hand: r.hand, ...row,
+    type: r.type ?? '?', ...(r.alt && { alt: r.alt }) };
 }
 
 /** Whether `viewer` may roll for this character: its owner, or the GM for anyone (R68, R71). */
@@ -94,11 +127,12 @@ export function shown(game: Game, r: Roller): Shown {
   const row = ADV.find(x => x.key === r.row) ?? rowFor(0);
   if (!act || !mine) return { label: '', base: null, total: null, parts: {}, yellows: Math.max(0, r.hand.yellows), bonus: r.hand.bonus, row };
   const sum = total(act.base, mine), dice = bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, r.hand);
-  const out: Shown = { label: act.label, base: act.base, total: sum.total, parts: sum.parts, yellows: dice.yellows, bonus: dice.bonus, row };
+  // R316: the alternative clicked names the action.
+  const out: Shown = { label: r.alt ?? act.label, base: act.base, total: sum.total, parts: sum.parts, yellows: dice.yellows, bonus: dice.bonus, row };
   // R84, R85: against an opponent, the Difference picks the row unless one was picked by hand.
   const opp = r.opponent ? game.get(ridOf(r.opponent)) as Character | undefined : undefined;
   if (opp?.kind !== 'character') return out;
-  const against = opposition(defendOf(opp)?.[r.defend] ?? 0, pools(opp.oid, items)).total, diff = sum.total - against;
+  const against = opposition(defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum.total - against;
   return { ...out, row: r.byHand ? row : rowFor(diff), vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c!), opp) } };
 }
 
@@ -119,7 +153,18 @@ export type RollRowWith = {
   redraw: (oids: Oid[]) => void;
   /** Rolls what the row shows: at once on the GM's page; a request from a player's (R100). */
   roll: (r: Roller) => void;
+  /** R320: the type last chosen for an action on a card, and keeping a new choice. */
+  remembered: (oid: Oid, label: string) => RollType | undefined;
+  remember: (oid: Oid, label: string, type: RollType) => void;
 };
+
+// R319: the type tag's words.
+export const TYPE_WORDS: Record<RollType, string> = {
+  '?': '?', skill: 'Skill', influence: 'Create Influence', phys: 'Phys Attack', mental: 'Mental Attack',
+  psych: 'Psych Attack', infer: 'Infer', impress: 'Impress', request: 'Request',
+};
+/** The tag's own short words, as the cards spell them, so the row's dice keep their room. */
+const TAG_WORDS: Partial<Record<RollType, string>> = { influence: 'Influence', phys: 'Phys Atk', mental: 'Mental Atk', psych: 'Psych Atk' };
 
 const SIGN = (n: number) => n < 0 ? `−${-n}` : `+${n}`;
 
@@ -161,11 +206,11 @@ export class RollRowView {
   dock(oid: Oid): void { this.#set(dock(this.#w.roller(), oid)); }
 
   /** An action's die (R76): false when the viewer can't roll for that character. */
-  action(oid: Oid, label: string): boolean {
+  action(oid: Oid, label: string, alt?: string): boolean {
     const c = this.#w.game.get(ridOf(oid)) as Character | undefined;
     if (!rollsFor(this.#w.viewer, c)) return false;
-    const r = this.#w.roller();
-    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label));
+    const r = this.#w.roller(), name = alt ?? label;
+    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label, alt, this.#w.remembered(oid, name)));
     return true;
   }
 
@@ -225,6 +270,14 @@ export class RollRowView {
     b.title = 'Success Bonus: click to raise, shift-click to lower';
     gesture(b, { click: () => step(handStep(r, 'bonus', 1)), shift: () => step(handStep(r, 'bonus', -1)) });
     const parts: HTMLElement[] = [white, die('B', 'Blue: always rolled'), ys, b];
+    // R319, R321: the type tag, before Roll: what the roll is; a click opens the list.
+    const type = r.type ?? '?', t = doc.createElement('button');
+    t.className = type === '?' ? 'rtype unsaid' : 'rtype';
+    t.textContent = TAG_WORDS[type] ?? TYPE_WORDS[type];
+    t.title = type === '?' ? "What is this roll? Click to say. A roll that doesn't say can't be aimed at anyone."
+      : `This roll is ${TYPE_WORDS[type]}. Click to change it.`;
+    gesture(t, { click: e => this.#types(r, e) });
+    parts.push(t);
     // R275: the GM's private switch.
     if (this.#w.viewer?.gm) {
       const p = doc.createElement('button');
@@ -303,6 +356,9 @@ export class RollRowView {
       if (opp?.kind !== 'character') return;
       const viewer = this.#w.viewer;
       if (!viewer?.gm && !canSee(viewer, opp)) { this.#note(`Only the GM can aim at ${opp.name}.`, e); return; }
+      // R306: a roll that doesn't say what it is can't be aimed; an Attack goes at its own Defend.
+      if ((r.type ?? '?') === '?') { this.#note('Say what this roll is first.', e); return; }
+      if (isAttack(r.type!)) { this.#set(aimed(r, opp.oid, r.type === 'psych' ? 'psych' : 'mental')); return; }
       const def = defendOf(opp);
       if (!def || def.mental === def.psych) { this.#set(aimed(r, opp.oid, 'mental')); return; }
       this.#choose(opp, def, e, kind => this.#set(aimed(r, opp.oid, kind)));
@@ -337,6 +393,24 @@ export class RollRowView {
     p.textContent = text;
     box.append(p);
     setTimeout(() => box.remove(), 2200);
+  }
+
+  // R319, R320: the list of types at the tag; a choice is kept for this action on this card.
+  #types(r: Roller, at: PointerLike): void {
+    const box = this.#box(at), doc = box.ownerDocument;
+    box.classList.add('types');
+    for (const type of ROLL_TYPES) {
+      const b = doc.createElement('button');
+      b.textContent = TYPE_WORDS[type];
+      if (type === (r.type ?? '?')) b.className = 'on';
+      b.addEventListener('click', () => {
+        box.remove();
+        if (r.action) this.#w.remember(r.pool, r.alt ?? r.action, type);
+        this.#set(typed(r, type));
+      });
+      box.append(b);
+    }
+    box.querySelector<HTMLElement>('button.on')?.focus();
   }
 
   #choose(opp: Character, def: Defend, at: PointerLike, pick: (kind: 'mental' | 'psych') => void): void {

@@ -80,3 +80,14 @@ Red picked by hand
 **Fire alarm:** In intentOf, send the row whenever one is set: the Difference row Red goes along
 **Inject:** src/ui/rollrow.ts:intentOf
 **Pulled:** 2026-11-12 — rang: the Difference row Red went along with the request
+
+## Test: the roll type
+**Purpose:** R320: a label's words preselect the type, a label that doesn't say starts at the remembered type, else `?`; R316: the alternative clicked names the roll and picks its type, and goes in the intent; R306: turning a roll to `?` stops aiming, and an Attack goes at its own Defend, a Phys Attack at 0
+**Input:** labels Mental Atk, Psych Atk, Phys Attack, Physical Atk, Req, Request, Infer, Impress, Create Influence, Shoot, Attack; Shoot with and without a remembered `phys`; Infer with a remembered `skill`; `Mental Atk / Req` by its Req die; an aimed Mental Attack turned to `?`, psych, phys and infer, against Defend 6 / 5
+**Expected:** the types in order (Shoot and Attack null); `?` then `phys`; `infer`; `request` with `alt: 'Req'`; opponent null; Defend bases 6, 5, 0, 5
+**Refs:** crc-RollRow.md, crc-Seat.md
+**Code:** src/ui/rollrow.test.ts
+**Alarm:** 7
+**Fire alarm:** let `typed` keep the opponent when turning to `?`; red: the `?` roll stays aimed at Devreux
+**Inject:** src/ui/rollrow.ts:typed
+**Pulled:** 2026-11-13 — 2026-11-13 — rang: "the roll type" failed (the ? roll stayed aimed); restored clean

@@ -1,17 +1,17 @@
-// CRC: crc-Tape.md | Seq: seq-roll.md#2 | R97, R110, R111, R112, R113, R279, R282, R283
+// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R111, R112, R113, R317, R282, R283, R308, R313
 // The paper tape from the register: this page's receipts, never sent (R111). It lies under the
 // pieces and rises for a new roll or a press; rolled up it leaves a sliver; dragged, it tears off
 // the whole roll as a torn-roll piece. The decisions are pure (retitled, torn, mayChoose).
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Oid, type Place, type Receipt, type Tape, type TornRoll } from '../model/records.ts';
+import { ridOf, type Damage, type Oid, type Place, type Receipt, type RowName, type Tape, type TornRoll } from '../model/records.ts';
 import type { Viewer } from '../rules/visibility.ts';
 import type { PointerLike } from './gesture.ts';
 import { receiptEl } from './receipt.ts';
 
 const EMPTY: Tape = { receipts: [] };
 
-// R279: a receipt's title can be edited on this page's tape.
+// R317: a receipt's title can be edited on this page's tape.
 export function retitled(tape: Tape, id: string, title: string): Tape {
   return { receipts: tape.receipts.map(r => r.id === id ? { ...r, title } : r) };
 }
@@ -19,6 +19,23 @@ export function retitled(tape: Tape, id: string, title: string): Tape {
 // R113: the whole roll comes off as one piece; the next roll starts a fresh tape.
 export function torn(tape: Tape, oid: Oid, place: Place): TornRoll {
   return { kind: 'tornroll', oid, place, receipts: tape.receipts };
+}
+
+// R308: the target's owner, or the GM, may take an untaken Attack.
+export function mayTake(viewer: Viewer, r: Receipt, targetOwner: string | undefined): boolean {
+  return !!r.attack && !r.attack.taken && !!viewer && (viewer.gm || targetOwner === viewer.name);
+}
+
+// R313: the attacking character's owner (who rolled it), or the GM, names the Slots it left waiting.
+export function mayName(viewer: Viewer, r: Receipt): boolean {
+  return !!r.attack?.waiting?.length && !!viewer && (viewer.gm || r.by === viewer.name);
+}
+
+const ROW_WORDS: Record<RowName, string> = { mild: 'Mild', min: 'Minor', sig: 'Significant', maj: 'Major' };
+const KIND_WORDS: Record<Damage, string> = { bias: 'Bias', affliction: 'Affliction', injury: 'Injury' };
+/** "Name Devreux's Minor Bias" (R313). */
+export function nameWords(target: string, damage: Damage, row: RowName): string {
+  return `Name ${target}'s ${ROW_WORDS[row]} ${KIND_WORDS[damage]}`;
 }
 
 // R97: the rolling character's owner, or the GM, may switch a CRIT until it is locked.
@@ -33,6 +50,11 @@ export type TapeWith = {
   setUp: (up: boolean) => void;
   /** A CRIT switched or locked (Rolls.crit). */
   crit: (id: string, choice: 'max' | 'dbl', lock: boolean) => void;
+  /** R308: a character's owner; taking an Attack (its pages open on the target's card). */
+  owner: (oid: Oid) => string | undefined;
+  take: (r: Receipt) => void;
+  /** R313: a waiting Slot named (Rolls.name). */
+  name: (id: string, damage: Damage, row: RowName, text: string) => void;
   /** A new oid, screen to table coordinates, and carrying a torn roll off (Drag). */
   mint: () => Oid;
   toWorld: (clientX: number, clientY: number) => { x: number; y: number };
@@ -97,7 +119,7 @@ export class TapeView {
 
   #receipt(doc: Document, r: Receipt): HTMLElement {
     const e = receiptEl(doc, r), title = e.querySelector<HTMLElement>('.title')!;
-    // R279: the title can be edited; the tape keeps it.
+    // R317: the title can be edited; the tape keeps it.
     title.contentEditable = 'true';
     title.spellcheck = false;
     title.addEventListener('blur', () => {
@@ -115,6 +137,30 @@ export class TapeView {
       lock.addEventListener('click', () => this.#w.crit(r.id, chosen, true));
       e.querySelector('.chosen')?.append(lock);
     }
+    // R308: Take N, on the target's owner's tape and the GM's, until it is taken.
+    if (mayTake(this.#w.viewer, r, this.#w.owner(r.attack?.target ?? ''))) {
+      const take = doc.createElement('button');
+      take.className = 'take';
+      take.textContent = `Take ${r.attack!.result}`;
+      take.title = `${r.attack!.name} takes this Attack: choose which Slots absorb it`;
+      take.addEventListener('click', () => this.#w.take(r));
+      e.append(take);
+    }
+    // R313: a line to write each waiting name on, for the attacker's owner and the GM; Enter sends it.
+    if (mayName(this.#w.viewer, r)) {
+      for (const { damage, row } of r.attack!.waiting!) {
+        const label = doc.createElement('label'), input = doc.createElement('input');
+        label.className = 'naming';
+        label.append(nameWords(r.attack!.name, damage, row), input);
+        input.spellcheck = false;
+        input.addEventListener('keydown', ev => {
+          if (ev.key !== 'Enter' || !input.value.trim()) return;
+          this.#w.name(r.id, damage, row, input.value.trim());
+          input.disabled = true;
+        });
+        e.append(label);
+      }
+    }
     return e;
   }
 
@@ -124,7 +170,8 @@ export class TapeView {
     const t = e.target as HTMLElement;
     e.stopPropagation();   // the table doesn't pan under the tape
     this.#el.classList.add('raised');
-    if (t.closest('.title[contenteditable]') || t.closest('button, .other')) return;
+    // R313: a press on a name's blank writes in it, never tears.
+    if (t.closest('.title[contenteditable]') || t.closest('button, .other, .naming')) return;
     const tape = (this.#w.game.get('tape') as Tape | undefined) ?? EMPTY;
     if (!tape.receipts.length) return;
     e.preventDefault();

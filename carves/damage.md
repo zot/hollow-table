@@ -12,7 +12,7 @@ Opened by Bill, 2026-11-12, after the back gained its Damage columns.
 - [x] ~~**Item 1 — Damage columns, kinds and absorb in the records and rules.**~~ **LANDED (2026-11-12.)**
 - [x] ~~**Item 2 — draw and edit the back.**~~ **LANDED (2026-11-13 — `#5`.)** PieceView, with the rest of the views.
 - [x] ~~**Item 3 — Slots and absorb from Con and Wis.**~~ **LANDED (2026-11-13 — `#6`.)**
-- [ ] **Item 4 — taking an Attack.** **OPEN (#7.)**
+- [x] ~~**Item 4 — taking an Attack.**~~ **LANDED (2026-11-13 — `#7`.)**
 - [ ] **Item 5 — Damage that ends.** **OPEN (#8.)**
 - [ ] **Item 6 — Convictions and Burdens.** **OPEN (#9.)**
 - [ ] **Item 7 — what a card tapped from a Mild slot is worth.** **OPEN (#10.)**
@@ -74,8 +74,28 @@ ones are nameless, which on the card is a checked box. Result left with no Slot 
 the character: unconscious for a physical Attack, a Conviction for a mental one, a Burden for a
 psychological one.
 
-@undecided: the book gives the target the choice of Slots; whether the table proposes a filling
-for the target to accept, or only shows what is free.
+DECIDED (Bill, 2026-11-13): the table proposes every possible filling and the target flips through
+them like pages: "There aren't *that* many possibilities because there's a limited number of
+target slots." Filling them all leads to a Conviction or a Burden, which the table doesn't track
+yet (Item 6), so this part depends on Item 6 for what happens when the Slots run out.
+DECIDED (Bill, 2026-11-13): the excess from a physical Attack makes a **Condition**, as a mental
+one makes a Conviction and a psychological one a Burden. The book doesn't have this yet: *Absorbing
+Damage* only says the character falls unconscious (or dies, from Lethal Damage), and "Condition"
+is not a defined term in any published book; Conditions come from the unpublished Hollow physical
+injury rules (Bill, 2026-11-13).
+DECIDED (Bill, 2026-11-13): **any Slots that account for the damage.** "The player can choose any
+slots, as long as they account for the damage. But if only a Maj slot remains and they take 1 point
+of damage, they must use the Maj slot to cover it. So covering 3 points of damage with 2 minor slots
+could be a worse choice than using a Sig slot. On the other hand, smaller slots heal faster, so it's
+not a simple choice." Read as: a filling is a set of available Slots that covers the Result, with
+none of them spare (drop any one and the rest fall short); when none can cover it, every Slot fills
+and the rest is overflow.
+DECIDED (Bill, 2026-11-13): **the target's owner chooses the Slots; the attacker names them**,
+"unless they're boxes", which stay nameless. Same as at the table with pencil and paper.
+Found 11-13: targeting's chooser offers Mental or Psych **Defend** (R83, `rollrow.ts`), only when
+the card's two numbers differ; there is no physical choice, and a roll records `defend: mental |
+psych` only. Bill (11-13): the choice "can 'color' the action". #7 needs the Attack's kind every
+time.
 
 ## Item 5
 
@@ -88,7 +108,8 @@ than leaving to the GM.
 
 ## Item 6
 
-Convictions and Burdens: where they sit on the card, and what tapping them makes. In Bunkum,
+Convictions, Burdens and Conditions (Bill, 2026-11-13: a Condition is the physical one): where
+they sit on the card, and what tapping them makes. In Bunkum,
 Convictions are Resources that create Bias Influences, like Biases (*Bunkum*, Resources).
 
 ## Item 7

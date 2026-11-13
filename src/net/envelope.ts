@@ -1,14 +1,14 @@
-// CRC: crc-Envelope.md | R109, R177, R296, R299
+// CRC: crc-Envelope.md | R109, R177, R296, R299, R306, R314, R319
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
 
 import {
-  CAPS, SLOTS, bool, check as checkRecord, dict, fields, int, isOid, list, num, oneOf, receipt, str, type Shape,
+  CAPS, DAMAGE, ROLL_TYPES, ROWS, SLOTS, bool, check as checkRecord, dict, fields, int, isOid, list, num, oneOf, receipt, str, type Shape,
 } from '../model/records.ts';
 
 export const VERSION = 1;
-export const KINDS = ['hello', 'here', 'bye', 'recs', 'sync', 'edit', 'move', 'intent', 'roll', 'crit', 'refuse', 'claim'] as const;
+export const KINDS = ['hello', 'here', 'bye', 'recs', 'sync', 'edit', 'move', 'intent', 'roll', 'crit', 'take', 'name', 'refuse', 'claim'] as const;
 export type Kind = (typeof KINDS)[number];
 /** Limits beyond the records' own (R109, R177). */
 export const LIMITS = { dice: 40, moveItems: 8, batch: 10_000, why: 500, box: 4_000_000 };
@@ -48,9 +48,13 @@ const BODIES: Record<Kind, Shape> = {
   edit: fields({ box }),
   move: fields({ s: seq, items: list(fields({ rid: str(CAPS.id), x: coord, y: coord, z: int(0, CAPS.coord) }, { part: str(CAPS.id), aim }), LIMITS.moveItems) }, { drop: bool }),
   intent: fields({ n: seq, pool: isOid, action: name, vs: oidOrNull, defend: oneOf('mental', 'psych'),
-    hand: fields({ yellows: int(-LIMITS.dice, LIMITS.dice), bonus: int(-1000, 1000) }) }, { row: str(32) }),
+    hand: fields({ yellows: int(-LIMITS.dice, LIMITS.dice), bonus: int(-1000, 1000) }) },
+    { row: str(32), type: oneOf(...ROLL_TYPES), alt: name }),
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf('max', 'dbl'), lock: bool }),
+  // R314: a take names a page, a count per row; a name is for one waiting Slot.
+  take: fields({ id: str(CAPS.id), page: fields({ use: fields(Object.fromEntries(ROWS.map(r => [r, int(0, 20)]))), overflow: int(0, 10_000) }) }),
+  name: fields({ id: str(CAPS.id), damage: oneOf(...DAMAGE), row: oneOf(...ROWS), name }),
   refuse: fields({ why }, { n: seq }),
   claim: fields({ name, why: whyOrNull }),
 };

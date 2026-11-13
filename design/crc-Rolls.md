@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R69, R97, R100, R101, R102, R103, R104, R106, R107, R108, R278, R279, R281
+**Requirements:** R69, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -8,8 +8,10 @@ know.
 - WAIT_MS: 10 s for the GM's page to answer.
 - The receipt's words (R279), from the book: rowWords (range nearer zero first below zero, name,
   dice: "+7 to +9 Strong Advantage: Green + 1"), resolutionWords ("higher of White 4 and Green 6 +
-  1"), levelWords (the Blue and remaining Yellows, "+ 2 bonus" unless a Failure), outcomeWords
-  ("Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger"). A receipt
+  1"), and the outcome line (R317): the outcome, its Level as a signed short name, and the sum of the
+  Blue and remaining Yellows ("+ 2 bonus" unless a Failure): "Success +Maj: 6 + 4", "Success at cost
+  +Sig: 3 + 2", "Failure −Sig: 2 + 5"; a successful Attack gives its amount instead, "Success 10: 6
+  + 4". A receipt
   carries the action's label, its title "Sam, roll 3" from `meta.counts` (R278).
 - rollNo: this page's roll counter (sessionStorage), so receivers can notice skipped rolls.
 - lastRoll: sender tab → the last roll number heard.
@@ -24,7 +26,7 @@ know.
 - resolve(game, intent, rng, at): pure: with no action (R69), the row as set, its hand the dice, no
   Total Influence; otherwise looks up the action on the GM's own records, totals both
   sides (Odds, Pool), picks the White row from the Difference unless the player picked one, rolls
-  (Dice), and gives three receipts in R279's words and the roll's effects (the character's own roll
+  (Dice), and gives three receipts in R317's words and the roll's effects (the character's own roll
   count, R278, kept in meta by character; used cards; a CRIT!
   card: an Influence with `crit`, minted in the drawer, or the one there strengthened by a Level).
   The receipts: the GM's has everything; the roller's has their Total Influence and base, and `vs`
@@ -39,13 +41,26 @@ know.
   and every tape updates that receipt (by id). A locked CRIT stays.
 - Each page prints on its own tape (the `tape` record, never sent), newest first; its own answered
   roll gets ✓ (`ok`).
+- An Attack (R307, R308): an action labelled Attack, aimed, that succeeds (at cost or not) gives
+  all three receipts `attack: {target, name, from, kind, result}`; a CRIT's choice moves `result` with it.
+- take(id, page) (R314, seq-take.md#1.4): the target's owner or the GM; on the GM's page, refused
+  unless the kept receipt has an untaken Attack, the sender owns the target (or is the GM), and the
+  page is one of Absorb.pages on the GM's own records; then Absorb.fill, the receipts marked taken
+  with the named Slots now waiting (`waiting: [{damage, row}]`), and every tape updated as for a CRIT.
+- name(id, damage, row, text) (R313, R314, seq-take.md#2): the attacking character's owner or the
+  GM; on the GM's page, refused unless that Slot waits for this receipt's name; then the Slot named,
+  no longer waiting, and every tape updated.
+- kept (R308, R313): every roll the GM's page makes or answers is kept in its own book (`book.kept`,
+  never sent; the newest 200), copied on read and written back whole, so a CRIT, a take or a name
+  still works after the GM's page reloads.
 - note(text) (R281): a refusal or an unanswered roll printed on this page's tape as a red note.
 - gaps: a skipped roll number prints "N rolls from the GM didn't arrive" ("Many" over 20), as a
   receipt with outcome `missing`; an error (refused, unanswered) prints the same way, a red note
   with the time (R281).
 
 ## Collaborators
-- Wire, Seal, Odds, Pool, Dice, Visibility, Ownership, Game
+- Wire, Seal, Odds, Pool, Dice, Visibility, Ownership, Game, Absorb
 
 ## Sequences
 - seq-roll.md
+- seq-take.md

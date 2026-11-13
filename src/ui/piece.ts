@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R311, R312, R316, R318
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -7,11 +7,13 @@ import type { Game } from '../model/game.ts';
 import {
   DAMAGE, ROWS, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
+  type AttackKind,
 } from '../model/records.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { action as readAction, influence } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
 import { columnRoom } from '../rules/influence.ts';
+import { OVERFLOW, fill, type Page } from '../rules/absorb.ts';
 import { parse, read, render, serialize } from '../text/marks.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 import { tray } from './pens.ts';
@@ -33,10 +35,18 @@ export type PieceWith = {
   /** Starts carrying a tap glyph, `<character oid>:<source>` (Drag). */
   dragGlyph: (source: string, down: PointerLike, move: PointerLike) => boolean;
   /** An action's die (R76): false when this page can't roll for the character. */
-  useAction: (oid: Oid, label: string) => boolean;
+  useAction: (oid: Oid, label: string, alt?: string) => boolean;
   /** The action in use on a character, for its swish (R77). */
   inUse: (oid: Oid) => string | null;
+  /** R309–R312: an Attack being taken on this page, its pages flipped on the target's card. */
+  taking: () => Taking | null;
+  turnPage: (k: number) => void;
+  takePage: () => void;
+  cancelTake: () => void;
 };
+
+/** An Attack being taken: whose card, the receipt, the kind, the attacker's name, its Result, the pages and the one shown. */
+export type Taking = { oid: Oid; id: string; kind: AttackKind; by: string; result: number; pages: Page[]; k: number };
 
 /** The class a kind is drawn with, where it isn't the kind's own name. */
 const CLASS: Partial<Record<PieceRecord['kind'], string>> = { text: 'loose', character: 'card' };
@@ -290,6 +300,9 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       box.append(col);
     }
   }
+  // R310, R312: while an Attack is taken here, the page shown is pencilled on its column.
+  const taking = w.taking(), mine = taking?.oid === c.oid ? taking : null, page = mine?.pages[mine.k];
+  const preview = mine && page ? fill(c, mine.kind, page, { name: mine.by, id: mine.id }) : null;
   const order = frontOrder(DAMAGE.find(d => opened.has(`${c.oid}:${d}`)) ?? null);
   for (const col of box.children as unknown as HTMLElement[]) {
     const d = col.dataset.damage as Damage, slots = c.back.damage[d], room = columnRoom(c, d), absorb = room?.absorb ?? 0;
@@ -303,6 +316,11 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       const name = line.querySelector<HTMLElement>('.name')!;
       if (doc.activeElement !== name && name.textContent !== s.name) name.textContent = s.name;
       const spent = s.spent.reduce((a, b) => a + b, 0);
+      // R312: a Slot waiting for the attacker's name says whose it is.
+      name.classList.toggle('waiting', !!s.naming);
+      if (s.naming) name.dataset.by = `${s.naming.by} names it`; else delete name.dataset.by;
+      const after = preview?.back.damage[d][row];
+      line.classList.toggle('fill', !!after && !!after.naming && !s.naming);
       line.querySelector('.spent')!.textContent = spent ? `−${spent}` : '';
       slotGlyphs(line, s, `${c.oid}:${d}/${row}`, w);
       // R213: the boxes in front of the Level word; R24, R62: they toggle, once the slot has a name.
@@ -323,9 +341,39 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
           return b;
         }));
       }
-      [...boxes.children].forEach((b, k) => b.classList.toggle('on', !!s.boxes[k]));
+      [...boxes.children].forEach((b, k) => {
+        b.classList.toggle('on', !!s.boxes[k]);
+        b.classList.toggle('pencil', !!after?.boxes[k] && !s.boxes[k]);
+      });
     }
   }
+  takeStrip(box, c, w);
+}
+
+// R309–R311: the strip under the columns while an Attack is taken: its pages, Take and Cancel, and
+// the overflow when nothing covers it.
+function takeStrip(box: HTMLElement, c: Character, w: PieceWith): void {
+  const doc = box.ownerDocument, t = w.taking(), mine = t?.oid === c.oid ? t : null;
+  let strip = box.parentElement!.querySelector<HTMLElement>(':scope > .takestrip');
+  if (!mine) { strip?.remove(); return; }
+  if (!strip) { strip = el(doc, 'div', 'takestrip'); box.after(strip); }
+  const page = mine.pages[mine.k]!, n = mine.pages.length, empty = ROWS.every(r => !page.use[r]);
+  const button = (text: string, cls: string, title: string, go: () => void, off = false) => {
+    const b = el(doc, 'button', cls, text) as HTMLButtonElement;
+    b.title = title;
+    b.disabled = off;
+    gesture(b, { click: () => { if (!off) go(); } });
+    return b;
+  };
+  const head = el(doc, 'div', 'takehd', `${mine.by}'s Attack, ${mine.result}`);
+  const pager = el(doc, 'div', 'pager');
+  pager.append(button('‹', 'turn', 'The page before', () => w.turnPage(mine.k - 1), mine.k === 0),
+    el(doc, 'span', 'of', empty ? 'all absorbed' : `${mine.k + 1} of ${n}`),
+    button('›', 'turn', 'The next page', () => w.turnPage(mine.k + 1), mine.k >= n - 1),
+    button('Take', 'take', 'Fill these Slots', () => w.takePage()),
+    button('Cancel', 'cancel', 'Back out: nothing changes', () => w.cancelTake()));
+  strip.replaceChildren(head, pager);
+  if (page.overflow) strip.append(el(doc, 'div', 'over', `${page.overflow} left over: a ${OVERFLOW[mine.kind]}`));
 }
 
 // ---- R54: tap glyphs, before each Resource and each named Damage slot, and for each checked box ----
@@ -364,18 +412,49 @@ function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
     const name = influence(span.textContent ?? '')?.name;
     if (name) span.before(glyph(doc, `${c.oid}:${name}`, w));
   }
-  // R75, R76: a small die at the start of each action; it brings the roll row and fills it.
+  // R316, R76: a small die before each alternative of an action's label (`Mental Atk / Req`); it brings
+  // the roll row and fills it, the alternative naming the action. The dice hold no text, so the card's
+  // text stays as written.
   for (const span of text.querySelectorAll<HTMLElement>('span.act')) {
     const label = readAction(span.textContent ?? '')?.label;
     if (!label) continue;
-    const d = doc.createElement('span');
-    d.className = 'actdie';
-    d.contentEditable = 'false';
-    d.title = `Roll this: ${label}`;
-    d.addEventListener('pointerdown', ev => ev.preventDefault());
-    gesture(d, { click: () => { if (!w.useAction(c.oid, label)) d.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); } });
-    span.before(d);
+    const alts = label.split('/').map(a => a.trim()).filter(Boolean);
+    const die = (alt?: string) => {
+      const d = doc.createElement('span'), name = alt ?? label;
+      d.className = 'actdie';
+      d.contentEditable = 'false';
+      d.title = `Roll this: ${name}`;
+      d.addEventListener('pointerdown', ev => ev.preventDefault());
+      gesture(d, { click: () => { if (!w.useAction(c.oid, label, alt)) d.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); } });
+      return d;
+    };
+    if (alts.length < 2) { span.before(die()); continue; }
+    span.before(die(alts[0]));
+    // Each later alternative: split the text where it starts, after its slash.
+    let from = 0;
+    for (const alt of alts.slice(1)) {
+      const at = atText(span, alt, from);
+      if (!at) break;
+      from = at.offset;
+      const rest = at.node.splitText(at.local);
+      rest.before(die(alt));
+    }
   }
+}
+
+/** Where `needle` starts after a `/` at or past `from` in the element's text: its text node and offset. */
+function atText(el: HTMLElement, needle: string, from: number): { node: globalThis.Text; local: number; offset: number } | null {
+  const whole = el.textContent ?? '', slash = whole.indexOf('/', from);
+  if (slash < 0) return null;
+  const offset = whole.indexOf(needle, slash);
+  if (offset < 0) return null;
+  const walk = el.ownerDocument.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let seen = 0;
+  for (let n = walk.nextNode() as globalThis.Text | null; n; n = walk.nextNode() as globalThis.Text | null) {
+    if (offset < seen + n.length) return { node: n, local: offset - seen, offset: offset + needle.length };
+    seen += n.length;
+  }
+  return null;
 }
 
 function slotGlyphs(line: HTMLElement, s: DamageSlot, base: string, w: PieceWith): void {

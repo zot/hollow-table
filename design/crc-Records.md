@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -50,6 +50,12 @@ record crosses the wire, the database and an export file unchanged.
   Hill last changed at.
 - Tape (each page's own, never sent): `{receipts: Receipt[]}`.
 - Marked: card text with marks (see crc-MarkedText.md), stored as its source string.
+
+- Book.kept (R308, R313): the GM's page's recent rolls, `{character, n, full, roller, table, tab?, sealKey?, priv?}`, at most KEPT (200); the book is never sent.
+- DamageSlot.naming (R312): `{by, id}` while the Slot waits for the attacker's name: the attacking
+  character's name, and the receipt it came from.
+- Receipt.attack (R308): `{target, name, from, kind, result, taken?, waiting?}` (`from` the attacking character's name), the Attack a receipt can
+  give; `waiting` lists the Slots waiting for names, as `{damage, row}`.
 
 ## Does
 - isPiece(rid), oidOf(rid), ridOf(oid): key helpers.

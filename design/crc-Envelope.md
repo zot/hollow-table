@@ -1,5 +1,5 @@
 # Envelope
-**Requirements:** R109, R177, R296, R299
+**Requirements:** R109, R177, R296, R299, R314
 
 Every message's shape, checked field by field before anyone reads it. A message that fails any check
 is dropped whole.
@@ -22,6 +22,9 @@ is dropped whole.
 - make(kind, tab, body): an envelope `{v, kind, tab, at, body}` with this page's tab id and time.
 - check(envelope): the kind's fields, types and limits; records inside pass `Records.check`;
   dice show 1 to 6. Takes an object or a JSON string; never throws.
+
+- `take {id, page}` and `name {id, damage, row, name}` (R314): a page is a count per row, each
+  0–20; a name is plain text within the usual cap. `intent.defend` also takes `physical`, and `intent.type` is one of the nine types (R306, R319).
 
 ## Collaborators
 - Records: check.

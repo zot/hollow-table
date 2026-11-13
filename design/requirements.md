@@ -153,7 +153,7 @@
 ## Feature: rolls
 **Source:** specs/rolls.md
 
-- **R67:** The roll row is the dice with no labels: White, Blue, Yellows, bonus, and Roll; Roll is a key and the GM's private switch a tag.
+- **~~R67:~~** (Retired T17 — see R321) The roll row is the dice with no labels: White, Blue, Yellows, bonus, and Roll; Roll is a key and the GM's private switch a tag.
 - **R68:** Clicking the die of a pool you own docks the roll row there, in your view only.
 - **R69:** Clicking the die of the pool the row is on starts fresh: no action, no opponent, White, one Yellow, +0.
 - **R70:** The roll row leaves a pool its viewer stops owning.
@@ -163,7 +163,7 @@
 - **R274:** The roll row docks between the pool's header and its slots, a dark walnut strip the drawer's width: blank 24 px dice in their colours (White `#f6f6f2`, Green `#6aa84f`, Red `#cc4125`, Blue `#3d85c6`, Yellow `#f1c232`), Roll a blue key at the right, a dashed yellow ghost die for no Yellows, a faint "+0" for no bonus, the clickable parts lit faintly under the pointer; in the header the action in the hand font with its number bold, `vs` in peach.
 - **R275:** The GM's private switch reads "to table" or "private", its title saying who will see the roll.
 - **R74:** Text marked `<act>` reads `LABEL: N [stuff], [Nd][±N] [stuff]`, giving Base N, Yellows `Nd` and bonus `±N` as written, split at the first comma outside parentheses.
-- **R75:** Each `<act>` mark, including ones marked later, gets a small die-shaped button at its start, and its text stays editable.
+- **~~R75:~~** (Retired T15 — see R316) Each `<act>` mark, including ones marked later, gets a small die-shaped button at its start, and its text stays editable.
 - **R76:** Clicking an action's die brings the roll row to that character (owner or GM) and fills Base, Yellows and bonus.
 - **R276:** A new action starts the row at White unless the row is aiming at someone.
 - **R77:** The action in use gets a highlighter swish that follows the choice, survives edits, and clears with the action.
@@ -172,7 +172,7 @@
 - **R80:** The Bonus pool feeds the Success Bonus, not Total Influence; with an empty Bonus pool the action is taken as written.
 - **R81:** Once the Bonus pool adds points, the bonus total regroups to a Yellow per 3 full points with the rest added; a negative adds no dice.
 - **R82:** Hand edits to Yellows and bonus are kept as an adjustment until the next action.
-- **R83:** Dragging from the Base onto another character's pool or card aims at them; a chooser offers Mental or Psych Defend from their `<def>` mark, and a single number needs no choice.
+- **R83:** Dragging from the Base onto another character's pool or card aims at them; a chooser offers Mental or Psych Defend from their `<def>` mark, and a single number needs no choice (an Attack goes straight at its own Defend, and a roll typed ? can't be aimed: R306).
 - **R84:** The opponent's total is Defend + Main + Edge + Bias + Affliction + Injury + Stagger.
 - **R85:** The Difference picks the White row live as either side's pools change, until the roller picks a row by hand, which holds until they aim again.
 - **R86:** The current opponent is marked with an amber ring and ⌖; clicking `vs` stops aiming.
@@ -197,7 +197,7 @@
 - **R104:** The GM's private switch makes a roll print "Private: not shown to the table" on the GM's tape and send nothing.
 - **R105:** A receipt shows the character and roll number, the time at the upper right (24-hour with seconds), the dice, the resolution, the Level and the outcome.
 - **R278:** Each character's rolls are numbered on their own ("Sam, roll 3" is Sam's third).
-- **R279:** A receipt reads, in order: the title ("Sam, roll 3") and time; "rolled by …"; the dice; "<action>: Total Influence T (base B)"; "vs <name> (<kind> <total>), Difference ±D"; the row in its words; "Resolution: …" naming the dice ("higher of White 4 and Green 6 + 1"); "Level: …" adding them ("3 + 6 + 2 + 1 bonus"); and the outcome ("Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger"); each page leaving out what it may not know. Its title can be edited.
+- **~~R279:~~** (Retired T16 — see R317) A receipt reads, in order: the title ("Sam, roll 3") and time; "rolled by …"; the dice; "<action>: Total Influence T (base B)"; "vs <name> (<kind> <total>), Difference ±D"; the row in its words; "Resolution: …" naming the dice ("higher of White 4 and Green 6 + 1"); "Level: …" adding them ("3 + 6 + 2 + 1 bonus"); and the outcome ("Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger"); each page leaving out what it may not know. Its title can be edited.
 - **R280:** Receipt dice are drawn as dice, 28 px with their numbers in their colours: an exploded Yellow dashed, a die removed on a Failure faded and struck through; they tumble in one after another; each titled with its colour and fate. The receipt is cream paper about 300 px wide in PT Mono with a torn zigzag bottom.
 - **R281:** An error or a lost roll prints on your tape as a short red note with the time.
 - **R106:** The roller's page shows their Total Influence, base and `vs` as they may see it; other pages get the table view (character, action, `vs` name, dice, resolution, Level, outcome, "rolled by"); the GM's tape gets everything.
@@ -211,10 +211,26 @@
 - **R113:** Dragging the tape tears off the whole roll as one table piece that scrolls inside; the next roll starts a fresh tape.
 - **R283:** A tear starts once the drag has gone a few pixels, and the torn roll lands slightly tilted; a torn roll's wheel scrolls it and zooms the table only at its ends; pressing a receipt's title to edit it doesn't tear.
 - **R114:** A torn roll buries as "Tape: N rolls".
+- **R306:** An Attack's kind decides its Damage column, and aiming one goes straight at that Defend with no chooser: a Mental Attack at Mental Defend, a Psych Attack at Psych Defend, a Phys Attack at 0; a roll typed ? can't be aimed (refused with "Say what this roll is first", gone after about 2 s) but can be rolled at nobody (provisional: see #13, every roll gets an opposition).
+- **R307:** A roll's type travels with it; an Attack's kind shows in the receipt's `vs` line (`vs Sam (physical 0)`).
+- **R308:** The receipt of an Attack that succeeded (at cost or not) against a character carries "Take N", N its Result, on the tapes of the target's owner and the GM only, until it is taken.
+- **R309:** Taking it turns the target's card to its back at the Attack's column: Injuries for physical, Biases for mental, Afflictions for psychological.
+- **R310:** The pages are every set of free Slots in that column that covers the Result less the column's absorb with none to spare (dropping any one falls short), each set once, flipped with ‹ k of n ›.
+- **R311:** When no set covers it, the one page fills every free Slot and names the overflow: a Condition (physical), a Conviction (mental) or a Burden (psychological); accepting it writes the overflow into the card's Notes.
+- **R312:** Accepting a page checks a box for each boxed Slot it uses and leaves each named Slot it uses waiting for the attacker's name, shown as "Beauford names it"; Escape or a click elsewhere backs out with nothing changed.
+- **R313:** The attacker's receipt asks for each waiting name ("Name Devreux's Minor Bias"); the name reaches the slot through the GM's page even when the attacker can't see the card, and the GM can rename it.
+- **R314:** (inferred) The GM's page decides a take and a name: it refuses a take from anyone but the target's owner or the GM, a second take of one Attack, or a set that isn't one of its pages, and a name from anyone but the attacking character's owner or the GM.
+- **R315:** (inferred) A Slot waiting for a name is not free.
 - **R115:** The register shows the Round as a pop-up tab with ▲ ▼ keys and End.
 - **R284:** The Round runs from 0 to 99; when it changes, its tab drops and comes back up with the new number.
 - **R116:** End needs a second press within 3 s of the first, which raises an orange "End conflict?" tab.
 - **R117:** End checkpoints the game, then resets the Round to 0, recharges Biases, Afflictions and Injuries, empties the used piles (plain cards home, tapped cards gone), and clears used marks.
+- **R316:** Each `<act>` mark, including ones marked later, gets a small die-shaped button before each alternative of its label (split at `/`), the die clicked naming the action with the same numbers and preselecting its type; its text stays editable.
+- **R317:** A receipt reads, in order: the title ("Sam, roll 3") and time; "rolled by …"; the dice; "<action>: Total Influence T (base B)"; "vs <name> (<kind> <total>), Difference ±D"; the row in its words; "Resolution: …" naming the dice ("higher of White 4 and Green 6 + 1"); and the outcome with its Level and its sum ("Success +Maj: 6 + 4", "Success at cost +Sig: 3 + 2", "Failure −Sig: 2 + 5"), except that a successful Attack gives its amount ("Success 10: 6 + 4"); each page leaving out what it may not know. Its title can be edited.
+- **R318:** An action's die is drawn like the roll row's Blue die, small: blank, blue, rounded and shaded.
+- **R319:** The roll row has a type tag: ?, Skill, Create Influence, Phys Attack, Mental Attack, Psych Attack, Infer, Impress or Request; clicking it opens the list; the tag reads short, as the cards spell them (Influence, Phys Atk, Mental Atk, Psych Atk).
+- **R320:** The action's label preselects the type when it says (Mental Atk, Psych Atk, Phys or Physical with Atk or Attack, Infer, Impress, Req or Request, Influence); otherwise it starts at ?, unless the viewer's seat remembers a type chosen for that action on that card; clicking the tag changes it.
+- **R321:** The roll row is the dice with no labels: White, Blue, Yellows, bonus, the type tag and Roll; Roll is a key, and the type and the GM's private switch are tags.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

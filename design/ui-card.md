@@ -1,5 +1,5 @@
 # UI: a character card
-**Requirements:** R5, R22, R23, R24, R75, R202, R209, R253, R254, R256, R213, R245, R264, R265, R246, R249
+**Requirements:** R5, R22-24, R75, R202, R209, R213, R245, R246, R249, R253, R254, R256, R264, R265, R316, R318
 
 Front:
 ```
@@ -43,7 +43,8 @@ Back (Injuries empty, so collapsed to its name):
   18 px bold, and each action or Defend label bold up to its colon (R246). The highlights show while
   you write on it, pens out.
 - ▭ is the tap glyph, drawn as a tiny white card with an ink edge and offset shadow (R249).
-- ⚀ is the action die: die-shaped, so it can't be taken for a Slot box □ or a tap glyph ▭.
+- ⚀ is the action die, drawn like the roll row's Blue die (blank, blue, rounded, shaded; R318), so it
+  can't be taken for a Slot box □ or a tap glyph ▭.
 - Paper is tilted; it squares up while it holds the cursor.
 - The pens appear beside a card while you write on it: one highlighter per mark, in a row down
   its right edge, tips toward the paper. The pen the caret's line fits slides out to that line.

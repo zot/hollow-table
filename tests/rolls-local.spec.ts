@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R75, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284
+// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
@@ -17,9 +17,22 @@ async function chipInto(page: Page, sign: 'pos' | 'neg', n: number, pool: string
 }
 
 /** Devreux's Attack, aimed at Sam's Mental Defend. */
+/** The roll row's type set from its tag's list (R319). */
+async function typed(page: Page, words: string) {
+  await page.locator(`${DPOOL} .roller .rtype`).click();
+  await page.locator('#defchoice button', { hasText: new RegExp(`^${words.replace('?', '\\?')}$`) }).click();
+}
+
 async function aimed(page: Page) {
+  // R320, R306: Devreux's plain Attack doesn't say what it is, so it starts at ? and can't be aimed;
+  // as a Skill roll it can, through the Defend chooser.
   await page.locator(`.obj.card[data-rid="${DEVREUX}"] .actdie`).first().click();
+  await expect(page.locator(`${DPOOL} .roller .rtype`)).toHaveText('?');
   const base = await at(page, `${DPOOL} .rollinfo .base`, 8, 6), sam = await at(page, `${SPOOL} .slots`, 60, 30);
+  await dragFromTo(page, base.x, base.y, sam.x, sam.y, 15);
+  await expect(page.locator('#defchoice')).toContainText('Say what this roll is first.');
+  await page.keyboard.press('Escape');
+  await typed(page, 'Skill');
   await dragFromTo(page, base.x, base.y, sam.x, sam.y, 15);
   await expect(page.locator('#defchoice button')).toHaveCount(2);
   await expect(page.locator('#defchoice')).toContainText('2');
@@ -44,7 +57,7 @@ test('the roll row docks, and the Difference menu', async ({ page }) => {
 });
 
 test('aiming, and the Difference as pools change', async ({ page }) => {
-  // R75, R76, R83, R87: Devreux's Attack (4) dragged onto Sam offers Mental 2 / Psych 4.
+  // R316, R76, R83, R87: Devreux's Attack (4) dragged onto Sam offers Mental 2 / Psych 4.
   await aimed(page);
   // R86: Mental gives vs Sam 2 (+2), White.
   const vs = page.locator(`${DPOOL} .rollinfo .vs`), white = page.locator(`${DPOOL} .roller .white`);
@@ -67,11 +80,23 @@ test('aiming, and the Difference as pools change', async ({ page }) => {
   const picked = await white.getAttribute('title');
   await chipInto(page, 'neg', 0, SPOOL, 'main');
   await expect(white).toHaveAttribute('title', picked!);
-  // R79, R279: the receipt records Total Influence and the Difference.
+  // R79, R317: the receipt records Total Influence and the Difference.
   await page.locator(`${DPOOL} .roller .roll`).click();
   const receipt = page.locator('#tape .strip .receipt').first();
   await expect(receipt).toContainText('Total Influence 8');
   await expect(receipt).toContainText('Difference');
+});
+
+test('an Attack aims at its own Defend', async ({ page }) => {
+  // R306: a Psych Attack goes straight at Psych Defend (Sam's 4), with no chooser; R307: its kind on the receipt.
+  await page.locator(`.obj.card[data-rid="${DEVREUX}"] .actdie`).first().click();
+  await typed(page, 'Psych Attack');
+  const base = await at(page, `${DPOOL} .rollinfo .base`, 8, 6), sam = await at(page, `${SPOOL} .slots`, 60, 30);
+  await dragFromTo(page, base.x, base.y, sam.x, sam.y, 15);
+  await expect(page.locator('#defchoice')).toHaveCount(0);
+  await expect(page.locator(`${DPOOL} .rollinfo .vs`)).toHaveText('vs Sam 4 (+0)');
+  await page.locator(`${DPOOL} .roller .roll`).click();
+  await expect(page.locator('#tape .strip .receipt').first()).toContainText('vs Sam (psych 4)');
 });
 
 test('a player cannot aim at someone hidden from them', async ({ page }) => {

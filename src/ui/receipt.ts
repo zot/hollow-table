@@ -1,4 +1,4 @@
-// CRC: crc-Tape.md | R105, R106, R107, R109, R279, R280, R281
+// CRC: crc-Tape.md | R105, R106, R107, R109, R317, R280, R281
 // One receipt, built from text only: whatever a receipt says arrives as text, never as markup.
 
 import type { Die, Receipt } from '../model/records.ts';
@@ -26,7 +26,7 @@ function dieEl(doc: Document, d: Die, k: number): HTMLElement {
   return e;
 }
 
-/** A receipt as a slim block of lines in R279's order (R109: textContent only). A lost roll or an
+/** A receipt as a slim block of lines in R317's order (R109: textContent only). A lost roll or an
  * error (outcome `missing`) is a short red note with the time (R281). */
 export function receiptEl(doc: Document, r: Receipt): HTMLElement {
   const el = doc.createElement('div');
@@ -57,7 +57,6 @@ export function receiptEl(doc: Document, r: Receipt): HTMLElement {
   if (r.vs) line(`vs ${r.vs}`);
   if (r.row) line(r.row);
   if (r.resolution) line(`Resolution: ${r.resolution}`);
-  if (r.level) line(`Level: ${r.level}`);
   if (r.crit) {
     for (const k of ['max', 'dbl'] as const) {
       const chosen = r.crit.chosen === k;
@@ -67,7 +66,8 @@ export function receiptEl(doc: Document, r: Receipt): HTMLElement {
       line(`${CRIT[k]}: ${r.crit[k]}`, cls);
     }
   }
-  line(r.outcome, 'outcome');
+  // R317: the outcome with its Level and how it adds up: "Success +Maj: 6 + 4".
+  line(r.level ? `${r.outcome}: ${r.level}` : r.outcome, 'outcome');
   if (r.priv) line('Private: not shown to the table', 'privnote');
   return el;
 }
