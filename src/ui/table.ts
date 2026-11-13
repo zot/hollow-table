@@ -229,8 +229,7 @@ export class TableView {
     }
   }
 
-  // R60: a chip or a tap can lie loose on the table.
-/** A loose chip's or card's look: a chip's face, or a card's name and Level (returned, for its clicks). */
+  /** A loose chip's or card's look: a chip's face, or a card's name and Level (returned, for its clicks). */
   #shape(e: HTMLElement, i: Item): HTMLElement | null {
     e.className = `obj loose-item ${i.kind === 'chip' ? `chip ${i.sign > 0 ? 'pos' : 'neg'}` : `icard ${i.sign > 0 ? 'pos' : 'neg'} tapped`}`;
     if (i.kind === 'chip') { e.textContent = chipFace(i); return null; }
@@ -241,7 +240,8 @@ export class TableView {
     return level;
   }
 
-    #drawLoose(rid: Rid): void {
+  // R60: a chip or a tap can lie loose on the table.
+  #drawLoose(rid: Rid): void {
     if (this.#held.has(rid)) return;
     const i = this.#w.game.get(rid) as Item | undefined, old = this.#loose.get(rid);
     const where = i && typeof i.where === 'object' && 'table' in i.where ? i.where.table : null;

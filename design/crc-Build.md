@@ -9,7 +9,7 @@ How the sources become the page, and how the page is published and tested.
   Trystero as a dependency, all at pinned versions; scripts `build`, `check` (`tsc --noEmit`), `test`
   (`node --test`), `spec` (Playwright).
 - `playwright.config.ts` (R297): the specs in `tests/`, headless in Playwright's own Chromium and
-  Firefox, one at a time, a 1400 × 840 page; it builds and serves `dist/` on port 8781 for the run, a
+  Firefox, four tests at a time (the Deck's cores; `HOLLOW_WORKERS` changes it), a 1400 × 840 page; it builds and serves `dist/` on port 8781 for the run, a
   test origin of its own. Each test's pages get fresh contexts, so each has its own identity and
   database. `tests/page.ts`: open a page with the test hook and wait for it; read the game back as
   held and as saved; read localStorage; a person (a fresh context with a name, the local relay and

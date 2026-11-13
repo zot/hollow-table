@@ -24,8 +24,7 @@ carried with the mouse, as a person does; measurements wait for the web fonts.
 **Alarm:** 1
 **Fire alarm:** Find the carried chip only under the press: a chip taken from the bar isn't carried, and Bias stays a strip
 **Inject:** src/ui/drag.ts:Drag.startItem
-**Pulled:** 2026-11-13 — rang: the bar chip wasn't carried, so Bias stayed a strip (and the 4-chips never reached Beauford's Main) (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the bar chip wasn't carried, Bias stayed a strip and the 4-chips never reached Main (Chromium) *Earlier —* 2026-11-13 — rang: the bar chip wasn't carried, so Bias stayed a strip (and the 4-chips never reached Beauford's Main) (Chromium)
 ## Test: a loose chip answers clicks
 **Purpose:** R40 on the table, not only in a slot
 **Expected:** a loose 2 clicked is 4, shift-clicked 2 again
@@ -34,8 +33,7 @@ carried with the mouse, as a person does; measurements wait for the web fonts.
 **Alarm:** 2
 **Fire alarm:** Give a loose chip only its drag: clicks leave it at 2
 **Inject:** src/ui/table.ts:TableView
-**Pulled:** 2026-11-13 — rang: the loose 2 stayed 2 when clicked (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the loose 2 stayed 2 when clicked (Chromium) *Earlier —* 2026-11-13 — rang: the loose 2 stayed 2 when clicked (Chromium)
 ## Test: Influence in the browser
 **Purpose:** drawers, Roll Up and piles, the kill box, taps merging, secrecy
 **Expected:**
@@ -90,8 +88,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 3
 **Fire alarm:** Redraw a held piece like any other: the sticky jumps from the hand when its record changes
 **Inject:** src/ui/table.ts:TableView
-**Pulled:** 2026-11-13 — rang: the held sticky jumped from 995,132 when its record changed (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the held sticky jumped from 995,132 when its record changed (Chromium) *Earlier —* 2026-11-13 — rang: the held sticky jumped from 995,132 when its record changed (Chromium)
 ## Test: a chip in hand
 **Purpose:** R216 for a chip from a slot
 **Expected:** centred on the pointer within a pixel
@@ -100,8 +97,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 4
 **Fire alarm:** Let the slot's relative position win on the table: the second loose chip is drawn below the first (and a chip carried among loose ones hangs below the pointer)
 **Inject:** src/ui/theme.css
-**Pulled:** 2026-11-13 — rang: the second loose chip was drawn below the first (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the second loose chip was drawn below the first (Chromium) *Earlier —* 2026-11-13 — rang: the second loose chip was drawn below the first (Chromium)
 ## Test: the card and the view
 **Purpose:** R252–R256, R260, R268–R272
 **Expected:**

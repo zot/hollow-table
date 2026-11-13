@@ -18,8 +18,7 @@ has their own (R153); a restore keeps it (R136)
 **Alarm:** 3
 **Fire alarm:** Keep the tape's up or down in the game too: the records change when the tape rolls up
 **Inject:** src/main.ts:views
-**Pulled:** 2026-11-13 — rang: the game's records changed when the tape rolled up (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the game's records changed with the seat (Chromium) *Earlier —* 2026-11-13 — rang: the game's records changed when the tape rolled up (Chromium)
 ## Test: the seat on its own
 **Purpose:** the seat is per game and viewer, survives broken storage, and prunes what vanished
 **Input:** a memory Storage; a seat for (game a, GM) with a view, a docked roller on Devreux aiming

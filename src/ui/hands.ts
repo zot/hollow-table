@@ -16,7 +16,7 @@ export const LAND_MS = 1000;
 export type HandsWith = { game: Game; table: TableView };
 
 // R243: a card over the slots is a chip: its points in the middle, its name on hover.
-export function asChip(el: HTMLElement, i: Item): void {
+function asChip(el: HTMLElement, i: Item): void {
   el.className = `loose-item chip ${i.sign > 0 ? 'pos' : 'neg'}`;
   el.textContent = chipFace(i);
   if (i.kind === 'influence') el.title = i.name;

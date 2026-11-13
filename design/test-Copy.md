@@ -21,8 +21,7 @@
 **Alarm:** 1
 **Fire alarm:** Clear a pending change on any version of the piece from the GM, not only its answer: the catch-up's old sticky replaces Dana's text and the GM never gets it (step 5)
 **Inject:** src/net/copy.ts:Copy
-**Pulled:** 2026-11-12 — rang: at step 5 the GM's page never got `While you were out`
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the catch-up's old sticky replaced Dana's text (Lost once) *Earlier —* 2026-11-12 — rang: at step 5 the GM's page never got `While you were out`
 ## Test: catch-up and gaps
 **Purpose:** a full table removes what the GM doesn't have, except pending new pieces; a gap asks
 again; one player's catch-up doesn't count as a missed batch for another
@@ -35,8 +34,7 @@ both players synced with the same sticky
 **Alarm:** 2
 **Fire alarm:** Let a full table take away pending new pieces too: Dana's own sticky is gone
 **Inject:** src/net/copy.ts:Copy
-**Pulled:** 2026-11-12 — rang: Dana's own pending sticky was taken away by the full table
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the full table took away Dana's own pending sticky *Earlier —* 2026-11-12 — rang: Dana's own pending sticky was taken away by the full table
 ## Test: deletions, the book, and silence
 **Purpose:** the GM's page tombs deletions and dates Boot Hill; a deletion after a drag is not stale
 end to end; a player's page sends nothing before the table arrives; 25 s of silence counts as the
@@ -54,4 +52,4 @@ GM's page coming back
 **Alarm:** 3
 **Fire alarm:** Send a deletion under the stamp the piece last went out with (the 11-11 bug): Dana's page keeps the sticky
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-12 — rang: Dana's page kept the deleted sticky
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept the deleted sticky *Earlier —* 2026-11-12 — rang: Dana's page kept the deleted sticky

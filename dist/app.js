@@ -9686,8 +9686,9 @@ var Drag = class {
     if (c.pointing) doc.body.classList.add("tapping");
     const pace = paced(this.#w.schedule, ({ cx, cy }) => {
       last = c.frame(cx, cy);
-      hands.show(hand, [item2(last)], true);
-      moves?.drag([item2(last)]);
+      const it = item2(last);
+      hands.show(hand, [it], true);
+      moves?.drag([it]);
       this.#lightBar(doc, cy, c.buries);
     });
     const to = (e) => pace.to({ cx: e.clientX, cy: e.clientY });
@@ -10159,7 +10160,6 @@ var TableView = class {
       this.#snap(rid2);
     }
   }
-  // R60: a chip or a tap can lie loose on the table.
   /** A loose chip's or card's look: a chip's face, or a card's name and Level (returned, for its clicks). */
   #shape(e, i) {
     e.className = `obj loose-item ${i.kind === "chip" ? `chip ${i.sign > 0 ? "pos" : "neg"}` : `icard ${i.sign > 0 ? "pos" : "neg"} tapped`}`;
@@ -10173,6 +10173,7 @@ var TableView = class {
     e.replaceChildren(`${i.name} `, level);
     return level;
   }
+  // R60: a chip or a tap can lie loose on the table.
   #drawLoose(rid2) {
     if (this.#held.has(rid2)) return;
     const i = this.#w.game.get(rid2), old = this.#loose.get(rid2);

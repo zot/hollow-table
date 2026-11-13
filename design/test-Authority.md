@@ -14,8 +14,7 @@ refused
 **Alarm:** 1
 **Fire alarm:** Skip the checks that the sender can see the piece as it is, before and after (drop both redaction tests): Dana's rename of Devreux's card is taken
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-12 — rang: Dana's rename of Devreux's card was taken
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's rename of Devreux's card was taken (refused []) *Earlier —* 2026-11-12 — rang: Dana's rename of Devreux's card was taken
 ## Test: out seals what differs and nothing else
 **Purpose:** each tab gets sealed only the pieces it sees differently; giving Sam to Dana sends his
 sheet; taking him back sends the redacted one
@@ -27,8 +26,7 @@ never holds a secret word
 **Alarm:** 2
 **Fire alarm:** Seal each tab's view of every changed piece, whether it differs or not: Ann's box holds Sam
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-12 — rang: the GM's Sam was sealed to Dana (`authority.test.ts:73`), to Ann as well
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, every tab's box held every changed piece, Ann's held Sam *Earlier —* 2026-11-12 — rang: the GM's Sam was sealed to Dana (`authority.test.ts:73`), to Ann as well
 ## Test: claims
 **Purpose:** the first browser to claim a name holds it, until the GM hands it over
 **Input:** "Dana" from browser A twice, then from browser B; "GM" from A; Dana handed to B
@@ -53,8 +51,7 @@ tab told why
 **Alarm:** 4
 **Fire alarm:** Tell every page of the name why, holder or not: the new holder's second claim is a why
 **Inject:** src/net/authority.ts:Authority.handedOver
-**Pulled:** 2026-11-13 — rang: the new holder's second claim was a why, not null
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the new holder's second claim was a why, not null *Earlier —* 2026-11-13 — rang: the new holder's second claim was a why, not null
 ## Test: a deletion of what a tab had only from its catch-up
 **Purpose:** R171, R188, R192: what a catch-up sends has gone out, so deleting it reaches the tab and
 is tombed

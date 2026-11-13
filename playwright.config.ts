@@ -7,8 +7,9 @@ const PORT = 8781, RELAY = 8782;
 
 export default defineConfig({
   testDir: 'tests',
-  fullyParallel: false,
-  workers: 1,
+  // Each test has its own contexts and room, so they run side by side (HOLLOW_WORKERS to change it).
+  fullyParallel: true,
+  workers: Number(process.env.HOLLOW_WORKERS ?? 4),
   timeout: 60_000,
   use: { baseURL: `http://127.0.0.1:${PORT}/`, viewport: { width: 1400, height: 840 } },
   projects: [

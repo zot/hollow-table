@@ -30,8 +30,7 @@ holds, has no secret word, and she hears boxes sealed to others
 **Alarm:** 1
 **Fire alarm:** Send the GM's own view as the public part of a batch: Eve hears the secrets
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-13 — rang: Eve heard 17 secret words in the clear (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, 17 secrets leaked to Dana's page (Chromium) *Earlier —* 2026-11-13 — rang: Eve heard 17 secret words in the clear (Chromium)
 ## Test: names held by browsers
 **Purpose:** an impostor is nobody until the GM hands the name over
 **Expected:** a second browser coming as Dana reads "not yours", sees Sam's sheet blank, and its move
@@ -51,8 +50,7 @@ back on both, and nothing is left pending
 **Alarm:** 2
 **Fire alarm:** Leave what a catch-up sends out of what has gone out to everyone: the buried sticky comes back
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-13 — rang: the buried sticky came back on the GM's table (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the away page brought the buried sticky back (Chromium) *Earlier —* 2026-11-13 — rang: the buried sticky came back on the GM's table (Chromium)
 ## Test: a deletion reaches a player who is at the table
 **Purpose:** the 11-11 bug, end to end
 **Input:** the GM rolls three times, tears the tape off onto the bar, and deletes the graveyard
@@ -71,8 +69,7 @@ one: the GM's page has it; Ann joins later and has both; an image nobody has is 
 **Alarm:** 3
 **Fire alarm:** The GM's page doesn't watch for images: Dana's image never reaches the GM
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-13 — rang: Dana's image never reached the GM's page (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the GM's page never got the blue image (Chromium) *Earlier —* 2026-11-13 — rang: Dana's image never reached the GM's page (Chromium)
 ## Test: rolls at the table
 **Purpose:** rolls resolve on the GM's page; each page prints what it may know
 **Expected:**
@@ -88,8 +85,7 @@ one: the GM's page has it; Ann joins later and has both; an image nobody has is 
 **Alarm:** 4
 **Fire alarm:** Don't tell Rolls when the GM's page has gone: Dana's page keeps waiting on it
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-13 — rang: Dana's page kept waiting on the GM's gone page instead of saying nobody can roll (Chromium)
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept waiting on the GM's gone page (Chromium) *Earlier —* 2026-11-13 — rang: Dana's page kept waiting on the GM's gone page instead of saying nobody can roll (Chromium)
 ## Test: one carry, shown alike
 **Purpose:** R298–R301: what one page carries shows lifted on another, aimed there, and is saved only
 by the drop

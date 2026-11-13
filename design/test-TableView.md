@@ -11,8 +11,7 @@ one overlapping its right edge
 **Alarm:** 1
 **Fire alarm:** Test overlap on one axis only (drop the left/right test): the piece beside the mat is pushed too
 **Inject:** src/ui/table.ts:pushClear
-**Pulled:** 2026-11-12 — rang: the piece beside the mat was pushed too
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the piece beside the mat was pushed too (dy 34) *Earlier —* 2026-11-12 — rang: the piece beside the mat was pushed too
 ## Test: a first visit fits the table
 **Purpose:** R271: fitView shows a box in the table: centred, zoom at most 1 and never below the
 least, 20 px a side and 14 px from the top
@@ -24,4 +23,4 @@ wide box
 **Alarm:** 2
 **Fire alarm:** In fitView, drop the cap at full size: the small box is drawn at zoom 4.5
 **Inject:** src/ui/table.ts:fitView
-**Pulled:** 2026-11-12 — rang: the small box was drawn at zoom 4.5 (x −460, y −226)
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the small box was fitted past full size *Earlier —* 2026-11-12 — rang: the small box was drawn at zoom 4.5 (x −460, y −226)

@@ -19,7 +19,7 @@ number; lower numbers are discarded
 **Alarm:** 1
 **Fire alarm:** Run the drained buffer oldest arrival first: step 2 reads 600 (A placed it, though B arrived last)
 **Inject:** src/net/moves.ts:pass
-**Pulled:** 2026-11-12 — rang: step 2 read 600, not 700 (re-pulled after pass began counting passes)
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, oldest arrival first misplaced the piece at step 2 *Earlier —* 2026-11-12 — rang: step 2 read 600, not 700 (re-pulled after pass began counting passes)
 ## Test: a held piece slides to the most recent move
 **Purpose:** R218: while a piece is held, only the most recent move for it waits, by the pass's rule,
 never the moves in between; let go, it slides there
@@ -31,8 +31,7 @@ A 125 to x 650 then A 124 to x 640 arriving in one pass, then let go
 **Alarm:** 4
 **Fire alarm:** Keep the first move that waits for a held piece (`newer` only when nothing waits): the later B arrival is ignored and the piece goes to 630
 **Inject:** src/net/moves.ts:#hold
-**Pulled:** 2026-11-12 — rang: the later B arrival was ignored and the piece went to 630, not 720
-
+**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the later B arrival was ignored while held *Earlier —* 2026-11-12 — rang: the later B arrival was ignored and the piece went to 630, not 720
 ## Test: a move carries its aim, and a drop says it let go
 **Purpose:** R299, R300: the aim travels with a move and reaches the receiver's hands as sent; a drop
 goes out at once, `drop: true`, with no aim

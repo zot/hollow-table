@@ -91,8 +91,9 @@ export class Drag {
     // R215: a move sets where it's headed; the next frame puts it there.
     const pace = paced<{ cx: number; cy: number }>(this.#w.schedule, ({ cx, cy }) => {
       last = c.frame(cx, cy);
-      hands.show(hand, [item(last)], true);
-      moves?.drag([item(last)]);
+      const it = item(last);
+      hands.show(hand, [it], true);
+      moves?.drag([it]);
       this.#lightBar(doc, cy, c.buries);
     });
     const to = (e: PointerLike) => pace.to({ cx: e.clientX, cy: e.clientY });

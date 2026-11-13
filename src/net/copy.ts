@@ -4,7 +4,7 @@
 // reload, and go again until answered.
 
 import type { Game } from '../model/game.ts';
-import { isPiece, type PieceRecord, type Rec, type Rid } from '../model/records.ts';
+import { isPiece, type Rec, type Rid } from '../model/records.ts';
 import type { Clock, KeyValue } from '../store/gamestore.ts';
 import { LOCAL, type Batch, type Del, type Edit, type Put, type Sealed } from './authority.ts';
 import { sealedRecs } from './envelope.ts';
