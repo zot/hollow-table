@@ -15,7 +15,9 @@ DOM a view of the records.
 - lift(rid, el, at) / letGo(rid) (R220): the hand. A held chip or card is moved into the world layer
   at `at`, squared up and raised (`lifted`); pools and the loose layer skip it while held, so a
   redraw neither recreates nor moves it. letGo puts it back in the loose layer if it was loose, and
-  removes it otherwise, before the drop's change draws it where it landed.
+  removes it otherwise, before the drop's change draws it where it landed. A piece Drag carries
+  (paper, a card, an image) is `lifted` too, and the piece layer skips it while it is: only a
+  deletion takes it from the hand. A chip in the world layer is placed absolutely, like any piece.
 - push (R241): on the GM's page, when a pool's mat grows (not counting the docked roll row, which is
   this page's alone), the pieces it now covers (other characters'
   cards with what's pinned to them, unpinned paper, other pools with their gathered cards) move
@@ -40,7 +42,8 @@ DOM a view of the records.
 - toWorld(clientX, clientY): screen to table coordinates, for drops.
 - element(rid): the element drawing a piece, for Drag; pool(rid), loose(rid) and pools() for a
   character's mat and for chips or taps lying loose on the table. A loose card's Level is a button
-  that answers clicks as in a drawer (R269: actions.cardClick; shift-click at Min deletes it).
+  that answers clicks as in a drawer (R269: actions.cardClick; shift-click at Min deletes it), and
+  a loose chip answers click and shift-click as in a slot (R40: actions.chipClick).
 - gathered: a gathered card is drawn GATHER_GAP (14 px) under its pool's drawer, following the
   drawer as it grows (a ResizeObserver); the same on every page, since it's derived, not stored.
 - A chip or card changing redraws the pools (it may have moved between two).

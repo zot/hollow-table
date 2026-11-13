@@ -8,7 +8,8 @@ Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
   characters at most; "Tape: N rolls, last <title>"; else "Image".
 - bury(yards, cur, records, name): adds a burial to the current graveyard. A character is buried
   with its card, its Influence cards and what's pinned to it.
-- burialOf(piece, all): the records a piece is buried with.
+- burialOf(piece, all): the records a piece is buried with: for a character, its Influence cards,
+  the chips and cards in its pool's slots, and what's pinned to it (R119).
 - Every move below returns the yards and the graveyard now browsed (`cur`, a seat setting), and
   removes an empty, nameless graveyard when it is left, emptied, or its name erased; the only one is
   always kept.

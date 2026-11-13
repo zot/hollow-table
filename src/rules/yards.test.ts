@@ -66,6 +66,8 @@ test('a character is buried with its cards and what is pinned to it', () => {
   const pinned: PieceRecord = { kind: 'sticky', oid: '0000000b', place: { x: 0, y: 0, z: 0, tilt: 0 }, text: 'x', pin: { card: DEVREUX, dx: 1, dy: 1 } };
   const all = [...records, pinned];
   assert.deepEqual(burialOf(piece(DEVREUX), all).map(r => r.oid), [DEVREUX, '00000004', '00000005', '00000006', '0000000b']);
+  // R119: and with what lies in its pool's slots: Beauford's Stagger chip.
+  assert.deepEqual(burialOf(piece(BEAUFORD), all).map(r => r.oid), [BEAUFORD, '00000007']);
 });
 
 test('a burial comes up under the pointer, with everything on it', () => {

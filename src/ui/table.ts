@@ -5,7 +5,7 @@
 import type { Game } from '../model/game.ts';
 import { isPiece, ridOf, type Character, type PieceRecord, type Rid } from '../model/records.ts';
 import { levelName } from '../rules/influence.ts';
-import { cardClick } from './actions.ts';
+import { cardClick, chipClick } from './actions.ts';
 import type { Item } from '../rules/pool.ts';
 import { gesture, paced } from './gesture.ts';
 import { draw, type PieceWith } from './piece.ts';
@@ -204,7 +204,13 @@ export class TableView {
     if (!e) {
       e = doc.createElement('div');
       e.dataset.rid = rid;
-      gesture(e, { drag: (d, m) => this.#w.dragItem(rid, d, m) });
+      // R40, R42: a loose chip answers clicks as in a slot (a loose card's Level does, R269).
+      const click = (shift: boolean) => {
+        if ((this.#w.game.get(rid) as Item | undefined)?.kind !== 'chip') return;
+        const ch = chipClick(this.#w.game, rid, shift, this.#w.mint());
+        if (ch) this.#w.game.change(ch);
+      };
+      gesture(e, { click: () => click(false), shift: () => click(true), drag: (d, m) => this.#w.dragItem(rid, d, m) });
       this.#world.append(e);
       this.#loose.set(rid, e);
     }
@@ -245,6 +251,8 @@ export class TableView {
       if (!r || r.kind === 'character') characters.add(rid);
       if (!r || r.kind === 'chip' || r.kind === 'influence') { items = true; this.#drawLoose(rid); if (r) continue; }
       const old = this.#els.get(rid);
+      // R220: a piece in hand isn't redrawn under it; the drop draws it (gone, it still goes).
+      if (r && old?.classList.contains('lifted')) continue;
       const e = r ? draw(r, old, this.#w) : null;
       if (!e) {
         if (old) { old.remove(); this.#els.delete(rid); if (old.dataset.blob) this.#w.imageGone(old.dataset.blob); }

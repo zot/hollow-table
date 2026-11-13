@@ -224,7 +224,8 @@ var withYard = (y, at3, g) => ({ yards: y.yards.map((x, i) => i === at3 ? g : x)
 function burialOf(piece2, all2) {
   if (piece2.kind !== "character") return [piece2];
   const oid = piece2.oid;
-  return [piece2, ...all2.filter((r) => r.kind === "influence" && r.home === oid || (r.kind === "sticky" || r.kind === "text" || r.kind === "image") && r.pin?.card === oid)];
+  const inSlot3 = (r) => (r.kind === "chip" || r.kind === "influence") && typeof r.where === "object" && "slot" in r.where && r.where.slot === oid;
+  return [piece2, ...all2.filter((r) => r.kind === "influence" && r.home === oid || inSlot3(r) || (r.kind === "sticky" || r.kind === "text" || r.kind === "image") && r.pin?.card === oid)];
 }
 function bury(y, cur, records2, name2) {
   const g = y.yards[cur];
@@ -7678,7 +7679,7 @@ var RollRowView = class {
       vs.append(`vs ${s.vs.name}`);
       if (s.vs.sees) {
         const n = doc.createElement("b");
-        n.textContent = ` ${s.vs.total} (${SIGN(s.vs.diff)})`;
+        n.textContent = ` ${s.vs.total < 0 ? `\u2212${-s.vs.total}` : s.vs.total} (${SIGN(s.vs.diff)})`;
         vs.append(n);
       }
       vs.title = shows ? `${s.vs.name}: ${r.defend} Defend, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
@@ -9904,7 +9905,8 @@ var Drag = class {
   startItem(rid, down, move) {
     const { game, table } = this.#w;
     const i = game.get(rid);
-    const el3 = down.target?.closest?.("[data-rid]");
+    const pressed = down.target?.closest?.("[data-rid]");
+    const el3 = pressed?.dataset.rid === rid ? pressed : table.loose(rid) ?? pressed;
     if (!i || !el3) return;
     const r = el3.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
     const from = typeof i.where === "object" && "slot" in i.where ? { owner: i.where.slot, slot: i.where.name } : null;
@@ -10259,7 +10261,12 @@ var TableView = class {
     if (!e) {
       e = doc.createElement("div");
       e.dataset.rid = rid;
-      gesture(e, { drag: (d, m) => this.#w.dragItem(rid, d, m) });
+      const click2 = (shift) => {
+        if (this.#w.game.get(rid)?.kind !== "chip") return;
+        const ch = chipClick(this.#w.game, rid, shift, this.#w.mint());
+        if (ch) this.#w.game.change(ch);
+      };
+      gesture(e, { click: () => click2(false), shift: () => click2(true), drag: (d, m) => this.#w.dragItem(rid, d, m) });
       this.#world.append(e);
       this.#loose.set(rid, e);
     }
@@ -10303,6 +10310,7 @@ var TableView = class {
         if (r) continue;
       }
       const old = this.#els.get(rid);
+      if (r && old?.classList.contains("lifted")) continue;
       const e = r ? draw(r, old, this.#w) : null;
       if (!e) {
         if (old) {

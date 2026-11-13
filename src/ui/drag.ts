@@ -263,7 +263,9 @@ export class Drag {
   startItem(rid: Rid, down: PointerLike, move: PointerLike): void {
     const { game, table } = this.#w;
     const i = game.get(rid) as Item | undefined;
-    const el = (down.target as HTMLElement | null)?.closest?.('[data-rid]') as HTMLElement | null;
+    // R287: a chip just taken from the bar was pressed on the supply, so it is found by its rid.
+    const pressed = (down.target as HTMLElement | null)?.closest?.('[data-rid]') as HTMLElement | null;
+    const el = pressed?.dataset.rid === rid ? pressed : table.loose(rid) ?? pressed;
     if (!i || !el) return;
     const r = el.getBoundingClientRect(), corner = table.toWorld(r.left, r.top), p = table.toWorld(down.clientX, down.clientY);
     // R244: the slot it came from, which pays for the strip it's carried over if it's left empty.

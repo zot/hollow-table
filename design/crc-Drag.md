@@ -39,7 +39,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
 
 - startPool(rid): from its name, frame or drawer (R251), a pool carries its card (and what is pinned
   to it) by the same offset, gathered or not; the drop saves both places.
-- startItem(rid) (R220, R243): the chip or card itself is lifted (TableView.lift): taken out of its
+- startItem(rid) (R220, R243): the chip or card itself is lifted (TableView.lift), found by its rid
+  when the press was elsewhere (a chip just taken from the bar was pressed on the supply, R287): taken out of its
   slot, drawer, pile or the table into the table's world layer, where the zoom applies to it as to
   everything else, and held there until let go. It keeps the spot it was pressed; a card stays a
   card in hand, and while the pointer is over a pool's slots it is drawn as a chip centred on the

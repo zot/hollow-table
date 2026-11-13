@@ -261,7 +261,7 @@ export class RollRowView {
       const vs = doc.createElement('span'), shows = s.vs.sees || this.#w.viewer?.gm;
       vs.className = 'vs';
       vs.append(`vs ${s.vs.name}`);
-      if (s.vs.sees) { const n = doc.createElement('b'); n.textContent = ` ${s.vs.total} (${SIGN(s.vs.diff)})`; vs.append(n); }
+      if (s.vs.sees) { const n = doc.createElement('b'); n.textContent = ` ${s.vs.total < 0 ? `−${-s.vs.total}` : s.vs.total} (${SIGN(s.vs.diff)})`; vs.append(n); }
       vs.title = shows ? `${s.vs.name}: ${r.defend} Defend, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.`
         : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
       gesture(vs, { click: () => step(unaimed(r)) });

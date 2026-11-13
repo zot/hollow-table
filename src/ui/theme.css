@@ -479,6 +479,9 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
   font: 11px/1 var(--mono); display: grid; place-items: center; background: repeating-linear-gradient(45deg, #3a2a1f 0 5px, #2a1d14 5px 10px); }
 .glyph { cursor: pointer; }
 .loose-item.chip { display: grid; place-items: center; }
+/* R60, R216: a chip on the table, loose or in hand, is placed by its corner like any piece (the
+   slot rule's relative position would put it below the other chips there). */
+.obj.chip { position: absolute; }
 /* R221: what aims takes the pointing hand, its fingertip the hotspot; carrying a chip, card or tap
    keeps it everywhere. Large things (paper, pools, the table) take the open hand. */
 body.tapping, body.tapping * { cursor: pointer !important; }

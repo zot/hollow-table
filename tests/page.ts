@@ -12,6 +12,8 @@ export async function open(page: Page, path = '/'): Promise<void> {
   await page.goto(`${url.pathname}${url.search}`);
   await page.waitForFunction(() => (window as unknown as { hollow?: { ready: Promise<unknown> } }).hollow?.ready);
   await page.evaluate(() => (window as unknown as { hollow: { ready: Promise<unknown> } }).hollow.ready);
+  // The hand-drawn fonts reflow the cards when they arrive: measure only after.
+  await page.evaluate(() => document.fonts.ready.then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))));
 }
 
 type Hook = { ready: Promise<{ store: { current: { id: string }; game: { all(): [string, unknown][] }; read(id: string): Promise<{ records: [string, unknown][] }> } }> };
@@ -79,4 +81,44 @@ export async function synced(player: Page, gm: Page, timeout = 20_000): Promise<
     if (Date.now() - start > timeout) throw new Error(`not synced: ${await rids(player)} vs ${want}`);
     await player.waitForTimeout(200);
   }
+}
+
+/** A record as the page holds it. */
+export function rec(page: Page, rid: string): Promise<any> {
+  return page.evaluate(async rid => (await (window as any).hollow.ready).store.game.get(rid), rid);
+}
+
+/** Every record of a kind the page holds, as [rid, record]. */
+export function kinds(page: Page, kind: string): Promise<[string, any][]> {
+  return page.evaluate(async kind => (await (window as any).hollow.ready).store.game.all().filter(([, r]: [string, any]) => r.kind === kind), kind);
+}
+
+/** Presses at (x, y), moves to (x2, y2) in steps, and lets go: a person's drag. */
+export async function dragFromTo(page: Page, x: number, y: number, x2: number, y2: number, steps = 10): Promise<void> {
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + Math.sign(x2 - x) * 8, y + Math.sign(y2 - y) * 8, { steps: 2 });
+  await page.mouse.move(x2, y2, { steps });
+  await page.mouse.up();
+}
+
+/** A point inside an element, `dx`, `dy` in from its top left. */
+export async function at(page: Page, selector: string, dx = 6, dy = 6): Promise<{ x: number; y: number }> {
+  const b = (await page.locator(selector).first().boundingBox())!;
+  return { x: b.x + dx, y: b.y + dy };
+}
+
+/** The bar's middle, where a carried thing is put away. */
+export async function barMiddle(page: Page): Promise<{ x: number; y: number }> {
+  const b = (await page.locator('#bar').boundingBox())!;
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+}
+
+/** A drag through waypoints: pressed at the first point, let go at the last. */
+export async function dragVia(page: Page, points: { x: number; y: number }[], steps = 8): Promise<void> {
+  const [first, ...rest] = points;
+  await page.mouse.move(first!.x, first!.y);
+  await page.mouse.down();
+  for (const p of rest) await page.mouse.move(p.x, p.y, { steps });
+  await page.mouse.up();
 }

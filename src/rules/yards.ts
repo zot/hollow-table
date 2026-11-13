@@ -35,12 +35,14 @@ function sweep(y: Yards, at: number, cur: number): Browse {
 
 const withYard = (y: Yards, at: number, g: Graveyard): Yards => ({ yards: y.yards.map((x, i) => i === at ? g : x) });
 
-// R119: a character goes with its Influence cards and whatever is pinned to it.
-/** The records a piece is buried with: itself, and for a character its cards and pinned pieces. */
+// R119: a character goes with everything on it: its Influence cards, the chips and cards in its
+// pool's slots, and whatever is pinned to it.
+/** The records a piece is buried with: itself, and for a character everything on it. */
 export function burialOf(piece: PieceRecord, all: PieceRecord[]): PieceRecord[] {
   if (piece.kind !== 'character') return [piece];
   const oid: Oid = piece.oid;
-  return [piece, ...all.filter(r => (r.kind === 'influence' && r.home === oid)
+  const inSlot = (r: PieceRecord) => (r.kind === 'chip' || r.kind === 'influence') && typeof r.where === 'object' && 'slot' in r.where && r.where.slot === oid;
+  return [piece, ...all.filter(r => (r.kind === 'influence' && r.home === oid) || inSlot(r)
     || ((r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image') && r.pin?.card === oid))];
 }
 
@@ -91,7 +93,7 @@ export function forgetAll(y: Yards, cur: number): Browse {
   return sweep(withYard(y, cur, { ...y.yards[cur]!, items: [] }), cur, cur);
 }
 
-// R290: a burial's name: the pool's (or "Nameless"); a sticky's or loose writing's first line;
+// R290, R114: a burial's name: the pool's (or "Nameless"); a sticky's or loose writing's first line;
 // a receipt's title; a torn roll's count and its newest receipt's title.
 const firstLine = (marked: string) => marked.replace(/<[^>]*>/g, '').split('\n').find(l => l.trim())?.trim().slice(0, 28) || '…';
 export function graveName(piece: PieceRecord): string {
