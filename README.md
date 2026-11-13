@@ -5,11 +5,11 @@ peer. The GM's browser holds the game. Players join with an invite link, and pag
 over WebRTC (Trystero, introduced through public Nostr relays). There is no server and nothing to
 install.
 
-Status: specified and designed, implementation starting (TypeScript).
+Status: a working prototype, released as `v*` tags.
 
 - `specs/` — what the table does; start at `specs/index.md`.
 - `design/` — requirements, CRC cards, sequences, layouts and test designs; start at
   `design/design.md`. Developed with mini-spec.
 - `src/` — the TypeScript sources (built with esbuild into `dist/`).
 
-Players will be served from GitHub Pages.
+Players use it at https://zot.github.io/hollow-table/, published from each release tag.

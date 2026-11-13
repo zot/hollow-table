@@ -1,5 +1,35 @@
 # hollow-table
 
+A play manager for Hollow RPG stories (Glimmer, Bunkum): a shared table in the browser, peer to
+peer. The GM's page holds the game; players join from an invite link and pages talk over WebRTC
+(Trystero, introduced through Nostr relays). No server, nothing to install.
+
+## Layout
+
+Developed with mini-spec: `specs/` says what the table does (start at `specs/index.md`),
+`design/` how (start at `design/design.md`: requirements, CRC cards, sequences, test designs), and
+`src/` is the TypeScript, built by `build.mjs` (esbuild) into `dist/`, which is committed. Code
+carries `// CRC: … | R…` comments back to the design. Read the design docs before the code.
+
+- Every behaviour change gets a spec line and a requirement first. A change that replaces old
+  behaviour rewrites or retires the old spec and design text too, so nothing describes it as live.
+- Where the specs and the rule books disagree on a rule, the book wins.
+
+## Rules and table text
+
+- The rules are the Hollow RPG books: **Hollow Folks** is the core (dice, resolution, Levels,
+  Influences), and Bunkum and Glimmer build on it. Check a rule against the book, never against
+  what the table happens to do.
+- Words players read follow the setting. *Inside* and *Outside* are game terms, not plain English;
+  characters say "this cursed land" and "back East".
+- Hollow's setting is a metaphor for addiction and abuse, and the discomfort of the Powder economy
+  is intentional. Don't soften it in table text.
+- The table supports play rather than running it: "play as in music, not chess". The GM handling
+  hidden information fairly is part of the game, which is why secrecy is enforced on the wire and
+  the GM's page arbitrates, not merely hidden in the view.
+- Specific first: build the concrete thing, and factor it only once it has earned it. Don't
+  propose abstractions for parts nobody has played.
+
 ## Tests
 
 - `npm test` runs the unit tests (`node --test`, a few seconds).
@@ -10,6 +40,11 @@
   nothing flaky. Every test has its own browser contexts and room, so they don't disturb each
   other. `HOLLOW_WORKERS=n` changes the count; use 1 to watch one test at a time.
 - `npm run spec:public` runs the one opt-in check that the public relays still introduce pages.
+- `npm run build` builds `dist/`; serve it with `python3 -m http.server <port>` from `dist/` to
+  try the page. Use a port of its own for each experiment: identity and games live in the
+  origin's storage, so a fresh port is a fresh browser.
+- `./publish.sh` publishes a build stamped "dev" and the publish time to IPNS for testing across
+  machines, under the key `hollow-table`, through the local Kubo node.
 
 ## Releases
 
