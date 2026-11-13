@@ -15,15 +15,18 @@ and is at the table.
 ## Hosting
 
 - **Players get GitHub Pages**, at `https://zot.github.io/hollow-table/`, so a player needs only a
-  browser. Every push to `main` publishes: GitHub builds the page from the sources, checks it (the
-  type check and the unit tests), stamps it with the time of the commit, and serves that. A push
-  that fails the checks publishes nothing. The origin, `zot.github.io`, is shared with the account's
+  browser. Only releases are published (Bill, 11-13): work happens on a branch, `main` holds only
+  releases, and each release is tagged with its version (`v0.1.0`). Pushing a release's tag
+  publishes it: GitHub builds the page from that tag's sources, checks it (the type check and the
+  unit tests), and serves it showing the tag as its version and the release's day as its date. A
+  release that fails the checks publishes nothing. The origin, `zot.github.io`, is shared with the account's
   other Pages sites, which could read what the table keeps there; a custom domain would give it its
   own (Bill, 11-13: shared for now).
 - **The test rig gets IPNS.** `publish.sh` publishes the built files under a dedicated IPNS key
   (`hollow-table`) and serves them at the key's subdomain (`<key>.ipns.localhost:<port>`), never at a CID. The origin is
   what saved games and each browser's identity belong to, so a new origin every build would strand
-  them. The publish stamps the build time on the page (a locally served page says "dev"), publishes
+  them. The page it publishes says "dev" with the time of the publish under it (a page built locally says
+  just "dev"), publishes
   with a 15 s TTL, and waits until the test machine's gateway (this machine's own, Bill 11-13)
   serves the new build.
 - Saved games and identities belong to the origin. Moving the page to another host starts everyone

@@ -55,7 +55,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 }
 #bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
 #bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; text-align: center; margin-top: 2px; user-select: text; -webkit-user-select: text; cursor: text; }
-/* R286: the supplies: paper you take from a stack, and the chips in two rows. */
+/* R304: the supplies: paper you take from a stack, and the chips in two rows. */
 #bar .supply { cursor: grab; display: grid; place-items: center; text-align: center; touch-action: none; flex: none; }
 #bar .supply.card { width: 68px; height: 40px; background: #fff; color: #222; border: 1px solid #888; border-radius: 7px; font: 700 15px var(--hand);
   box-shadow: 2px 2px 0 #ddd, 4px 4px 0 #bbb; }

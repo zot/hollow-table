@@ -1,5 +1,5 @@
 # Build
-**Requirements:** R196, R197, R198, R199, R200, R201, R297, R302
+**Requirements:** R196, R197, R198, R199, R200, R201, R297, R303, R305
 
 How the sources become the page, and how the page is published and tested.
 
@@ -19,21 +19,23 @@ How the sources become the page, and how the page is published and tested.
   (nothing stored), CLOSE. `npm run spec:public` runs the one spec through the public relays.
 - `tsconfig.json`: strict, `erasableSyntaxOnly`, `noEmit`, DOM and ES2022 libs.
 - `build.mjs`: esbuild bundles `src/main.ts` into `dist/app.js`, copies `src/index.html` and
-  `src/ui/theme.css`; stamps "dev" unless publishing, which sets the stamp (`HOLLOW_STAMP`) and
-  builds into a folder of its own (`HOLLOW_OUT`), so `dist/` keeps saying "dev".
+  `src/ui/theme.css`. The page's version is "dev" and it has no date (R305) unless publishing,
+  which sets them (`HOLLOW_VERSION`, `HOLLOW_DATE`) and builds into a folder of its own
+  (`HOLLOW_OUT`), so `dist/` keeps saying just "dev". A publishing build is minified.
 
 ## Does
 - The page loads only its own bundle and Google Fonts; nothing else from a third party.
-- `publish.sh` (R200): builds stamped with the time into a temporary folder, adds it (pinned, and
+- `publish.sh` (R200): builds with version "dev" and the publish time as its date into a temporary folder, adds it (pinned, and
   mirrored in the node's Files as `/hollow-table`), makes the key `hollow-table` if it's missing,
   publishes under it with a 15 s TTL in the background, prints the key's subdomain link, and polls
-  this machine's gateway for up to 90 s (`WAIT`) until `app.js` carries the new stamp. `IPFS` names
+  this machine's gateway for up to 90 s (`WAIT`) until `app.js` carries that date. `IPFS` names
   the binary; otherwise it is on the path or in IPFS Desktop's AppImage.
-- GitHub Pages (R199, R302): `.github/workflows/pages.yml`, on every push to `main`: `npm ci`, the
-  type check and the unit tests, then `build.mjs` into `site/` stamped with the commit's time (the
-  committer's clock, as git records it), uploaded and deployed by GitHub's Pages actions. Served
-  at `https://zot.github.io/hollow-table/`. The committed `dist/` (stamped "dev") is what local
-  serving and the specs use.
+- GitHub Pages (R199, R303): `.github/workflows/pages.yml`, on a pushed `v*` tag (or run by hand on
+  one; anything else is refused): `npm ci`, the type check and the unit tests, then `build.mjs`
+  into `site/` with the tag as its version and the tagged commit's day as its date (the release's
+  merge commit, as its committer's clock read it), uploaded and deployed by GitHub's Pages
+  actions. Served at `https://zot.github.io/hollow-table/`. The committed `dist/` (just "dev") is
+  what local serving and the specs use.
 - main (`src/main.ts`): assembles the page. The plain page is the GM's: GameStore opens its game, and
   `open()` makes (or reopens) this game's room: Wire, Presence, Authority, Rolls, ImageExchange.
   An invite makes a player: its copy of the room's table (GameStore.copyFor), Wire, Copy, Presence,

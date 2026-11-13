@@ -8,7 +8,8 @@ carried with the mouse, as a person does; measurements wait for the web fonts.
 ## Test: characters and pools
 **Purpose:** the bar's supplies; making, carrying, burying and digging up characters; the strips
 **Expected:**
-- the bar holds character, note, text, image and how-to supplies, eight chips, Boot Hill and the register
+- the bar holds character, note, text, image and how-to supplies, eight chips, Boot Hill and the register;
+  under the wordmark, a local build says just "dev" (R305)
 - a character dropped on the table: its pool above its card, gathered, the GM's; one dropped near
   the top lies below the bar; one dropped back on the bar is never made
 - a pool's name carries the pool and its gathered card together; the card dragged alone stays

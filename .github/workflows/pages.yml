@@ -1,11 +1,12 @@
-# CRC: crc-Build.md | R199, R302
-# Players get GitHub Pages: every push to main builds the page from the sources, stamped with the
-# commit's time (as its committer's clock read it), checks it, and publishes it.
+# CRC: crc-Build.md | R199, R303, R305
+# Players get GitHub Pages, releases only: pushing a release's tag (vX.Y.Z) builds the page from that
+# tag's sources, checks it, and publishes it showing the tag as its version and the release's day.
+# Run by hand, it must be run on a tag too (gh workflow run pages.yml --ref vX.Y.Z).
 name: Pages
 
 on:
   push:
-    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -24,6 +25,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Releases only
+        run: '[[ "$GITHUB_REF" == refs/tags/v* ]] || { echo "Pages publishes releases: run it on a v* tag"; exit 1; }'
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
@@ -32,8 +35,8 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test
-      - name: Build, stamped with the commit's time
-        run: HOLLOW_STAMP="$(git log -1 --format=%cd --date=format:'%b %-d %H:%M:%S')" HOLLOW_OUT=site node build.mjs
+      - name: Build, showing the tag and the release's day
+        run: HOLLOW_VERSION="$GITHUB_REF_NAME" HOLLOW_DATE="$(git log -1 --format=%cd --date=format:'%b %-d, %Y')" HOLLOW_OUT=site node build.mjs
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

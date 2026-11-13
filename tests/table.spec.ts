@@ -21,6 +21,8 @@ test('the bar holds the supplies', async ({ page }) => {
   await expect(page.locator('#bar .supplychips .chip')).toHaveCount(8);
   await expect(page.locator('#bar #boothill')).toBeVisible();
   await expect(page.locator('#bar .register')).toBeVisible();
+  // R305: a page built locally says just "dev" under the wordmark, with no date.
+  await expect(page.locator('#bar .wordmark .stamp')).toHaveText(['dev']);
 });
 
 test('a new character from the bar', async ({ page }) => {

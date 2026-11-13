@@ -1,4 +1,4 @@
-// CRC: crc-Bar.md | R9, R18, R19, R20, R286, R287
+// CRC: crc-Bar.md | R9, R18, R19, R20, R287, R304, R305
 // The bar along the top: the wordmark and build stamp, the supplies, the chips, and room for the
 // people and "You are"; the register, the Ledger and Boot Hill append themselves at its right end.
 
@@ -8,8 +8,9 @@ import { chipFace } from './pool.ts';
 export type Supply = 'character' | 'sticky' | 'text' | 'howto' | { sign: Sign; points: number };
 
 export type BarWith = {
-  /** The build stamp: the publish time, or "dev" when served locally. */
-  stamp: string;
+  /** The version (a release's tag, or "dev") and the date (a release's day, the test rig's publish time, or none). */
+  version: string;
+  date: string;
   /** A supply pressed: made and taken into the hand at once (R287). */
   take: (what: Supply, down: PointerEvent) => void;
   /** Images picked from the image supply's file picker. */
@@ -37,9 +38,11 @@ export class BarView {
       if (title) e.title = title;
       return e;
     };
-    // R286: the wordmark, and the build stamp under it, the bar's one selectable text.
+    // R304, R305: the wordmark, the version under it and the date under that, the bar's one
+    // selectable text.
     const mark = el('div', 'wordmark', 'Hollow');
-    mark.append(el('span', 'stamp', w.stamp, 'Which build this is: publish.sh stamps the time it was published; a locally served page says dev'));
+    mark.append(el('span', 'stamp version', w.version, 'Which version this is: a release\'s tag, or dev'));
+    if (w.date) mark.append(el('span', 'stamp date', w.date, 'When it was released (on the test rig, when it was published)'));
     const take = (e: HTMLElement, what: Supply) => e.addEventListener('pointerdown', ev => {
       if (ev.button !== 0) return;
       ev.preventDefault();
@@ -54,7 +57,7 @@ export class BarView {
     file.hidden = true;
     file.addEventListener('change', () => { w.images([...(file.files ?? [])]); file.value = ''; });
     image.addEventListener('click', () => file.click());
-    // R18, R286: chips 2, 4, 6 and +1 of each colour, in two rows.
+    // R18, R304: chips 2, 4, 6 and +1 of each colour, in two rows.
     const chips = el('div', 'supplychips', '', 'Influence chips: drag one out');
     for (const sign of [1, -1] as const) for (const points of [2, 4, 6, 1]) {
       const c = el('div', `supply chip ${sign > 0 ? 'pos' : 'neg'}${points === 1 ? ' one' : ''}`, chipFace({ sign, points }));

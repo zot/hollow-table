@@ -8512,7 +8512,8 @@ var BarView = class {
       return e;
     };
     const mark2 = el3("div", "wordmark", "Hollow");
-    mark2.append(el3("span", "stamp", w.stamp, "Which build this is: publish.sh stamps the time it was published; a locally served page says dev"));
+    mark2.append(el3("span", "stamp version", w.version, "Which version this is: a release's tag, or dev"));
+    if (w.date) mark2.append(el3("span", "stamp date", w.date, "When it was released (on the test rig, when it was published)"));
     const take2 = (e, what) => e.addEventListener("pointerdown", (ev) => {
       if (ev.button !== 0) return;
       ev.preventDefault();
@@ -10637,7 +10638,8 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     if (dy > 0) game.change((w) => w.put(rid2, { ...c, pool: { ...c.pool, y: top }, card: { ...c.card, y: c.card.y + dy } }));
   };
   const bar = new BarView(document.getElementById("bar"), {
-    stamp: "dev",
+    version: "dev",
+    date: "",
     take: (what, e) => {
       const oid = mint2()(), rid2 = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
       game.change((w) => w.put(rid2, rec));
@@ -10861,7 +10863,7 @@ async function main() {
     const { table: table2, drag: drag2, bar: bar2 } = v;
     hands2 = v.hands;
     new FolksView(bar2.folks, bar2.youAre, { me: () => ({ ...meOf(presence, name2, false), ...notYours !== null && { notYours } }), people: () => here(presence), held: () => void 0 });
-    return { stamp: "dev", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
+    return { version: "dev", date: "", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
   await store.start();
   const game = store.game;
@@ -10955,7 +10957,8 @@ async function main() {
     }
   });
   return {
-    stamp: "dev",
+    version: "dev",
+    date: "",
     role: "gm",
     tab: tab2,
     identity,
@@ -10976,7 +10979,7 @@ async function main() {
 }
 var ready = main();
 if (new URLSearchParams(location.search).has("test")) {
-  window.hollow = { stamp: "dev", ready };
+  window.hollow = { version: "dev", date: "", ready };
 }
 /*! Bundled license information:
 
