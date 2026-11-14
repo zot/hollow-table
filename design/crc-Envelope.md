@@ -1,5 +1,5 @@
 # Envelope
-**Requirements:** R109, R177, R296, R299, R314
+**Requirements:** R109, R177, R296, R299, R314, R326
 
 Every message's shape, checked field by field before anyone reads it. A message that fails any check
 is dropped whole.
@@ -25,6 +25,8 @@ is dropped whole.
 
 - `take {id, page}` and `name {id, damage, row, name}` (R314): a page is a count per row, each
   0–20; a name is plain text within the usual cap. `intent.defend` also takes `physical`, and `intent.type` is one of the nine types (R306, R319).
+
+- `intent.against` (R326): one of `{def: mental|psych}`, `{act: name}`, `{fld: name}`, `{skl: name}`.
 
 ## Collaborators
 - Records: check.

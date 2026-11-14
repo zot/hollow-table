@@ -1,5 +1,5 @@
 # Theme
-**Requirements:** R1, R3, R4, R6-8, R11-13, R17, R318
+**Requirements:** R1, R3, R4, R6-8, R11-13, R17, R318, R325, R329, R332, R333
 
 The look, in one stylesheet: the tokens, the type, and the rules every view's markup relies on
 (manifest-ui.md).
@@ -8,13 +8,15 @@ The look, in one stylesheet: the tokens, the type, and the rules every view's ma
 - The tokens, pens and type in manifest-ui.md.
 
 ## Does
-- Paper drawn as the print: card, sticky, chip, slot and pool colours; Caveat, PT Mono, Sancreek.
+- Paper drawn as the print: card, sticky, chip, slot and pool colors; Caveat, PT Mono, Sancreek.
 - Slot labels in sentence case; no all-caps anywhere.
 - Panels styled as their objects (the Ledger page, Boot Hill's list), never as floating cards.
-- Each mark's highlight and its non-colour cue; red chips' sign.
+- Each mark's highlight and its non-color cue; red chips' sign.
 - Focus: a visible outline on every control.
 - Motion: transitions only on lift, flip, slide and dice; none under `prefers-reduced-motion`.
 - `user-select: none` on chrome.
+
+- The Field and Skill pens' chartreuse family (R325); the aiming line and box (R329).
 
 ## Collaborators
 - none

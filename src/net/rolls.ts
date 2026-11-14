@@ -10,7 +10,7 @@ import { roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
 import { COLUMN_OF, fill, pages, same, type Page } from '../rules/absorb.ts';
-import { action as readAction, defend as readDefend } from '../rules/readmarks.ts';
+import { action as readAction, defend as readDefend, pointed, type Against } from '../rules/readmarks.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { marks, parse } from '../text/marks.ts';
 import type { Clock, KeyValue } from '../store/gamestore.ts';
@@ -30,6 +30,8 @@ export type Intent = {
   type?: RollType;
   /** R316: the alternative of a `/` label that was clicked, which names the action. */
   alt?: string;
+  /** R326, R327: what was pointed at on the opponent's card, by name; the number is looked up here. */
+  against?: Against;
 };
 export type RollMsg = { n: number; receipt: Receipt; sealed: Record<string, Box> };
 export type SealedRoll = { re: number; receipt: Receipt };
@@ -122,13 +124,18 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
 
   const type = intent.type ?? '?';
   const kind = isAttack(type) ? type : intent.defend;
-  let opp: Character | undefined, against: number | undefined;
+  let opp: Character | undefined, against: number | undefined, point: ReturnType<typeof pointed> = null;
   if (intent.vs && sum) {
     opp = game.get(ridOf(intent.vs)) as Character | undefined;
     if (opp?.kind !== 'character') return { refused: 'That opponent is not on the table.' };
     const def = marks(parse(opp.front), 'def').map(m => readDefend(m.text)).find(d => d);
-    // R306: an Attack goes at its own Defend, a Phys Attack at 0; the GM's page decides, not the intent.
-    const base = kind === 'phys' || !def ? 0 : def[kind];
+    // R326, R327, R330: a number, Field or Skill pointed at is the base, looked up on the GM's own copy;
+    // else (R328) an Attack goes at its own Defend, a Phys Attack at 0; the GM's page decides, not the intent.
+    point = intent.against ? pointed(opp.front, intent.against) : null;
+    let base: number;
+    if (point) base = point.base;
+    else if (kind === 'phys' || !def) base = 0;
+    else base = def[kind];
     against = opposition(base, pools(opp.oid, items)).total;
   }
   const diff = against === undefined || !sum ? undefined : sum.total - against;
@@ -151,7 +158,11 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
     outcome: outcomeWords(outcome, r.result, isAttack(type)), ...(r.crit && { crit: r.crit }), ...attack,
   };
   // R307: an Attack's kind in the `vs` line.
-  const vsFull = opp && `${opp.name} (${kind === 'phys' ? 'physical' : kind} ${against}), Difference ${signed(diff!)}`;
+  // R326, R327: what was pointed at names itself: (Shoot 4), (Investigation 2 + Cha 2), and its total when pools move it.
+  let opposed: string;
+  if (point) opposed = point.words + (against !== point.base ? ` → ${against}` : '');
+  else opposed = `${kind === 'phys' ? 'physical' : kind} ${against}`;
+  const vsFull = opp && `${opp.name} (${opposed}), Difference ${signed(diff!)}`;
   const owner: Viewer = character.owner === GM ? { name: GM, gm: true } : { name: character.owner, gm: false };
   const seesOpp = !opp || canSee(owner, opp);
   const numbers = sum && act ? { influence: sum.total, base: act.base } : {};

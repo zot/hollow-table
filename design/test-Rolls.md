@@ -157,3 +157,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** drop the Attack from `choose` (the amount stays at the first choice); red: result 12, not 22
 **Inject:** src/net/rolls.ts:choose
 **Pulled:** 2026-11-13 — 2026-11-13 — rang: "a CRIT's choice moves an Attack's amount" failed (result stayed 12); restored clean
+
+## Test: pointing at the opposition
+**Purpose:** R326, R327, R330: the GM's page looks up what was pointed at by name on its own copy (a Defend number, an action's Base, a Skill's Level plus Cha) and names it in `vs`; a name not on the card falls back to Defend (R328); a pointed Attack is still an Attack
+**Input:** Beauford's Infer at Sam pointed at `{def: psych}`, `{act: Shoot}`, `{skl: Investigation}`, `{skl: Flying}`; his Mental Attack pointed at `{def: psych}`
+**Expected:** `vs Sam (psych 4 → 10)`, `(Shoot 4 → 10)`, `(Investigation 2 + Cha 2 → 10)`, `(mental 8)`; the Attack `(psych 4 → 10)` with its `attack` still mental
+**Refs:** crc-Rolls.md, crc-MarkReader.md
+**Code:** src/net/rolls.test.ts
+**Alarm:** 13
+**Fire alarm:** ignore the intent's `against` in `resolve` (`point = null`); red: every pointed line reads as Defend
+**Inject:** src/net/rolls.ts:resolve
+**Pulled:** 2026-11-14 — 2026-11-14 — rang: "pointing at the opposition" failed (psych 4 read as Defend); restored clean

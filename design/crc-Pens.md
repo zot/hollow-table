@@ -1,5 +1,5 @@
 # Pens
-**Requirements:** R206, R207, R219, R247, R258, R267
+**Requirements:** R206, R207, R219, R247, R258, R267, R323-325
 
 The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 toolbar. Seven pens, one per stored mark (`act`, `res`, `mot`, `att`, `inf`, `def`, `head`); Damage entries are
@@ -29,6 +29,8 @@ slots, not marks, so they have none (R209).
   their order a step apart and step past it, so none is hidden under it.
 - After a pen acts, the text is redrawn and saved through the writing area's own input (PieceView),
   and the caret goes back to the end of the line it acted on.
+
+- The Field and Skill pens (R323–R325): offered by MarkReader.offer, one chartreuse family.
 
 ## Collaborators
 - MarkedText: locate (selection to line, run and offset), read, render, mark, unmark.

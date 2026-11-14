@@ -29,7 +29,7 @@ with a darker cap and its word printed in PT Mono, sentence case. The Heading pe
 marker with cream lettering, since a heading is drawn bold rather than highlighted. `bias`, `aff`
 and `inj` are how Damage slots are drawn; they have no pen.
 
-| Mark | Highlight | Non-colour cue |
+| Mark | Highlight | Non-color cue |
 |---|---|---|
 | `act` | `#FFD27A` | its die |
 | `res` | `#BDE5A8` | its tap glyph |
@@ -40,6 +40,8 @@ and `inj` are how Damage slots are drawn; they have no pen.
 | `aff` | `#CDB6EE` | its tap glyph, its column |
 | `inj` | `#E9D3A6` | its tap glyph |
 | `def` | `#D6D6D6` | double underline |
+| `fld` | `#D8EC8C` | heavy solid underline (R325) |
+| `skl` | `#EEF6C8` | light solid underline (R325) |
 | `head` | none (pen: `--ink`) | Caveat bold, like the printed headings |
 
 **At rest a card looks printed (R245)**, and while written on, a Damage entry fills only once named (R263). The highlights and their underlines show only while the
@@ -61,7 +63,7 @@ What a carried thing would land on lights up while it's over it.
 |---|---|
 | a slot | 3 px translucent white outline (`#fff8`), 2 px out |
 | a drawer (a card goes home there) | 3 px translucent white outline |
-| the kill box | 3 px outline in the red chip colour: deleting reads as danger |
+| the kill box | 3 px outline in the red chip color: deleting reads as danger |
 | a chip a +1 rides, a card a tap merges into | 3 px solid white outline |
 | a card a sticky, text or image pins to | 3 px translucent white outline on its face |
 | the bar | dark red while tossing; Boot Hill shows its arrow while burying (9.4.5) |

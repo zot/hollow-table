@@ -34,7 +34,7 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
   table" reference card, taken from the supplies like any other paper and put away when known.
 - **One shape, one job.** Controls that do different things look different, even when they are
   small and sit side by side on one card.
-- **Nothing depends on colour alone.** Where colour carries meaning (green and red chips, Bias, Affliction and Injury),
+- **Nothing depends on color alone.** Where color carries meaning (green and red chips, Bias, Affliction and Injury),
   a sign or a word carries it too.
 - **Empty takes no room.** Something waiting to be filled in shrinks to its name and opens when
   you reach for it: a pool's empty slots, a card back's empty columns.
@@ -71,7 +71,7 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 The bar runs along the top. It holds:
 
 - **Supplies**: a character, a sticky note, loose text, an image, the "How to play the table"
-  reference card, and chips (2, 4, 6 and +1 in each colour). Drag one onto the table to take one;
+  reference card, and chips (2, 4, 6 and +1 in each color). Drag one onto the table to take one;
   dropped back on the bar, nothing is made.
 - The people at the table (see `network.md`).
 - The cash register, the Ledger and Boot Hill, at the right end.
@@ -81,7 +81,7 @@ wordmark, with the version under it and the date under that (Bill, 11-13: a rele
 `v0.1.0`, and its day, `Nov 13, 2026`; the test rig shows "dev" and when it was published; a page
 built locally just "dev"). They are the one thing in the bar you can select, to copy into a bug
 report; the paper supplies, a character as a little stack of white card, a note as a yellow square,
-"Aa" for loose text, and an image; the chips, 2, 4, 6 and +1 in each colour, in a grid of two rows
+"Aa" for loose text, and an image; the chips, 2, 4, 6 and +1 in each color, in a grid of two rows
 (the +1 smaller); the people; "You are" (the GM's); then the register, the Ledger and Boot Hill.
 - **Taking a supply**: the piece is made and in your hand the moment you press, its middle under the
   pointer. Loose text starts as "Write here". The image supply opens a file picker; the image lands
@@ -153,6 +153,8 @@ italic or underline.
 | `<mot>` | an NPC's Motivation | `Name ±Level`; gets a tap glyph; what is spent shows in parentheses until the scene ends |
 | `<inf>` | a named Influence | `Name ±Level` |
 | `<def>` | the Defend line | mental and psych Defend |
+| `<fld>` | a Field | `Name N (nXP)`: its Level N (Bill, 11-14) |
+| `<skl>` | a Skill line | a Field's Skill, at the `<fld>` above's Level, one higher with a ✓; or `Skills N: a, b, …`, each Skill Level N (Bill, 11-14) |
 | `<head>` | a section heading | nothing; drawn like the printed headings |
 
 - `<bias>`, `<aff>` and `<inj>` are never written in text: they are how a Damage slot's entry is
@@ -163,15 +165,27 @@ italic or underline.
   text, pick a pen. A pen on marked text unmarks it.
 - **The table offers.** When a line typed in plain text matches a mark's grammar (an action line,
   `Name +Level` after "Resources", `Name ±Level` after "Motivations", an attribute line like
-  `Cha 2  Int 2  Wis 4`), the table offers that pen for it; nobody needs to know the tags.
+  `Cha 2  Int 2  Wis 4`, a Field like `Private Investigator 2 (5XP)`, a `Skills N:` line or a plain
+  line under a Field), the table offers that pen for it; nobody needs to know the tags.
+- **Fields and Skills share a pen family** (Bill, 11-14: "let's give them a highlighter color"):
+  chartreuse for a Field, a paler chartreuse for its Skills, so a Field's Skills read as its own.
+  The book's Levels (Hollow Folks, *Skills*): a Skill in a Field has the Field's Level, one higher
+  with a checkmark; Skills outside a Field are listed by Level in `Skills N:` lines.
+- **A Field's Skills are indented under it, their names aligned** (Bill, 11-14: "I think we should
+  always indent Field Skills, instead of based on whether they have a check mark -- that seems more
+  intuitive and simpler too"): a ✓ hangs in the margin before its Skill's name, so a checked Skill's
+  name lines up with the rest. A `Skills N:` line is not under a Field and stays flush.
 - **A marked card looks printed** (Bill, 11-12). A mark's highlight shows only while its paper is
   being written on, pens out, so you can see what is marked; at rest a card reads as the printed one
   does, with its glyphs and dice as the cues, and the one highlighter swish on it is the action in
-  use. A Damage entry shows its colour then only once it has a name; an empty slot stays a blank line
+  use. A Damage entry shows its color then only once it has a name; an empty slot stays a blank line
   (Bill, 11-12).
 - **Labels take the print's weight from the marks**, with no markup of their own (Bill, 11-12): an
-  action or Defend line's label, up to its colon, is bold; a heading is 18 px bold, and a heading on
-  the card's first line, its name, 21 px.
+  action or Defend line's label, up to its colon, is bold; **a Field is bold**, to tell it from its
+  Skills (Bill, 11-14); a heading is 18 px bold, and a heading on
+  the card's first line, its name, 21 px. **Headings are drawn in capitals** (`HOLLOW MEMORIES`), as
+  the printed cards have them, while the text keeps what was typed; the name on the first line keeps
+  its case (Bill, 11-14: "I think I like the capitals better").
 - **Several Resources may share a line**, separated by commas (`Money +Min, Liquid Courage +Maj`):
   the Resource pen at a bare caret marks each entry as its own Resource (Bill, 11-12). The Motivation
   pen does the same for Motivations, which NPC write-ups list that way (*Be Left Alone +Sig, Starved
@@ -193,7 +207,7 @@ italic or underline.
   as many as fit, and a slot holding anything is always open; the rest stand as strips **1em
   wide** showing their first letter (B M E S B A I), packed against the right edge, so the slots
   always fill the mat with no gap. Bonus and Bias share a letter and are told apart by place (Bonus
-  is always first, Bias fifth) and by colour; the full name shows on hover.
+  is always first, Bias fifth) and by color; the full name shows on hover.
 - **Carrying a chip or card over a pool's slots trades space** (Bill, 11-12): the strip under it
   opens, and a slot closes to pay for it, so the mat keeps its width. The slot that closes is the
   one the chip came from, if taking it left that slot empty (so dragging back and forth just swaps

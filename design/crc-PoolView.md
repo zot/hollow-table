@@ -39,9 +39,9 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   until it's closed.
 - drawer (R229, R230, R231, R244): a tray inside the mat under the slots, MAT_W wide even when the
   mat grows (so its tools don't move while you aim for them); its cards on the left, each a
-  small white card with a band in its sign's colour, name and Level in handwriting, a glyph before
+  small white card with a band in its sign's color, name and Level in handwriting, a glyph before
   a resource-made one's name; its tools on the right as tiles: dashed + and − in their sign's
-  colour, the used pile with its count, the hatched kill box.
+  color, the used pile with its count, the hatched kill box.
 - new card (R232, R239): written as "Influence" last in the drawer, its name focused and selected.
 - gap(owner, at) (R240): while a card is carried over this drawer, an empty card-sized gap stands at
   index `at` among its cards; the cards slide to their new places (each starts where it was and
@@ -52,7 +52,7 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
 - chips (R234, R235): flat discs with one dark rim and the number bold in PT Mono in the middle; a
   card in a slot adds a white inner ring, a resource-made one a tiny glyph at its corner; each tucks
   under the stronger one before it (stronger drawn on top).
-- piles (R236): a stack of discs in their colour; open, the members listed beside the disc, each
+- piles (R236): a stack of discs in their color; open, the members listed beside the disc, each
   with its name.
 - pops(before, after) (R237): pure. What pops in a redraw: a chip or card whose points changed, a
   pile that formed, a new chip in a slot that lost two or more (a Roll Up); popping is a brief grow

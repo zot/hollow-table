@@ -3,7 +3,7 @@
 ## Feature: the table
 **Source:** specs/table.md
 
-- **R1:** Cards, stickies, pools and chips are drawn as the printed components, in the print's colours: card white with a grey border, sticky `#FFF200` with a folded corner, chips `#93C47D` and `#E06666`, pool slots `#CFE2F3`, Stagger `#F4CCCC`, Bias red, Affliction dark violet, Injury a bandage tan.
+- **R1:** Cards, stickies, pools and chips are drawn as the printed components, in the print's colors: card white with a grey border, sticky `#FFF200` with a folded corner, chips `#93C47D` and `#E06666`, pool slots `#CFE2F3`, Stagger `#F4CCCC`, Bias red, Affliction dark violet, Injury a bandage tan.
 - **R2:** The table surface is oiled walnut with a faint grain.
 - **R3:** Caveat sets everything handwritten; PT Mono sets reference cards and chrome; Sancreek sets the wordmark only.
 - **R4:** Motion happens only in answer to a person's action (lift shadow while dragging, a flip, dice); there is no ambient animation.
@@ -14,7 +14,7 @@
 - **R8:** A panel opens as the object it belongs to.
 - **R9:** Instructions live on a "How to play the table" reference card in the supplies, not in permanent chrome.
 - **R10:** Controls that do different things have different shapes.
-- **R11:** Where colour carries meaning, a sign or a word carries it too.
+- **R11:** Where color carries meaning, a sign or a word carries it too.
 - **R12:** Every control shows visible keyboard focus.
 - **R13:** Animation respects the reduced-motion preference.
 - **R14:** Every shift-click action has a long-press equivalent.
@@ -30,11 +30,11 @@
 - **R221:** Things that aim (Resource glyphs, checked boxes, chips, Influence cards, slots) take the pointing hand, its fingertip the hotspot, for the whole drag of a chip, card or tap and while aiming; paper, pools and the table take the open hand, closed while panning.
 - **R222:** While something is carried, the place it would land lights up (a slot, the chip a +1 would ride, the card a sticky would pin to, a drawer); over the bar it says whether letting go puts it away or buries it.
 - **R223:** Picking something up leaves any writing and clears the text selection.
-- **R18:** The bar runs along the top and holds supplies: character, sticky, loose text, image, the "How to play the table" card, and chips 2, 4, 6 and +1 in each colour.
+- **R18:** The bar runs along the top and holds supplies: character, sticky, loose text, image, the "How to play the table" card, and chips 2, 4, 6 and +1 in each color.
 - **R19:** Dragging a supply onto the table makes one; dropping it back on the bar makes nothing.
 - **R20:** The bar shows the people at the table, and the register, the Ledger and Boot Hill at its right end.
-- **~~R286:~~** (Retired T14 — see R304) The bar is a walnut-dark strip 92 px high; left to right: the wordmark with its build stamp (the bar's one selectable text), the paper supplies (a stacked white card, a yellow note, "Aa", an image), the chips 2, 4, 6 and +1 of each colour in two rows (+1 smaller), the people, "You are", then the register, the Ledger and Boot Hill.
-- **R304:** The bar is a walnut-dark strip 92 px high; left to right: the wordmark with its version and date under it (the bar's one selectable text), the paper supplies (a stacked white card, a yellow note, "Aa", an image), the chips 2, 4, 6 and +1 of each colour in two rows (+1 smaller), the people, "You are", then the register, the Ledger and Boot Hill.
+- **~~R286:~~** (Retired T14 — see R304) The bar is a walnut-dark strip 92 px high; left to right: the wordmark with its build stamp (the bar's one selectable text), the paper supplies (a stacked white card, a yellow note, "Aa", an image), the chips 2, 4, 6 and +1 of each color in two rows (+1 smaller), the people, "You are", then the register, the Ledger and Boot Hill.
+- **R304:** The bar is a walnut-dark strip 92 px high; left to right: the wordmark with its version and date under it (the bar's one selectable text), the paper supplies (a stacked white card, a yellow note, "Aa", an image), the chips 2, 4, 6 and +1 of each color in two rows (+1 smaller), the people, "You are", then the register, the Ledger and Boot Hill.
 - **R305:** Under the wordmark is the version, and under that the date: a release's tag and day (`v0.1.0`, `Nov 13, 2026`); on the test rig "dev" and the time it was published; a page built locally just "dev".
 - **R287:** A supply is made and in hand the moment it's pressed, its middle under the pointer; loose text starts "Write here"; the image supply opens a file picker and the image lands in the middle of the view, several a step apart.
 - **R288:** Anything carried over the bar turns it red; if letting go would bury it, "→" and the current graveyard's name show by the gravestone; plain chips, +1s and the reference card vanish there, and an Influence card goes home.
@@ -71,7 +71,7 @@
 - **R256:** A Damage column's blanks are the same length whichever column is open: each collapsed column takes the room of the longest name, and open columns share the rest evenly.
 - **~~R204:~~** (Retired T6 — see R257) Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
 - **~~R257:~~** (Retired T8 — see R266) Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<mot>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
-- **R266:** Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<mot>`, `<att>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
+- **~~R266:~~** (Retired T18 — see R322) Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<mot>`, `<att>`, `<inf>`, `<def>` and `<head>`, with no attributes and no presentational formatting.
 - **R267:** An `<att>` mark holds a character's attributes as `Name N` pairs (`Cha 2  Int 2  Wis 4`); its pen is offered for a plain line of two or more such pairs.
 - **R209:** A Damage slot's entry is stored as a plain name; its column makes it a Bias, Affliction or Injury, and the table draws it as a `<bias>`, `<aff>` or `<inj>` mark. Those tags written in text are plain text.
 - **R213:** A slot's boxes sit in front of its Level word.
@@ -87,6 +87,13 @@
 - **R247:** The Resource pen at a bare caret on a plain line whose comma-separated entries each read `Name +Level` marks each entry as its own Resource, the commas left plain.
 - **R258:** A `<mot>` mark is a Motivation, `Name ±Level`, with a tap glyph; its pen is offered for a plain `Name ±Level` line under a Motivations heading, and at a bare caret marks each comma-separated `Name ±Level` entry as its own Motivation.
 - **R248:** A sticky is the supply's note or a big sticky, 330 by 300, for the GM's long notes; the record keeps which.
+- **R322:** Text on cards, stickies and loose writing carries only the marks `<act>`, `<res>`, `<mot>`, `<att>`, `<inf>`, `<def>`, `<fld>`, `<skl>` and `<head>`, with no attributes and no presentational formatting.
+- **R323:** A `<fld>` mark holds a Field as `Name N (nXP)`, its Level N; its pen is offered for a plain line of that shape.
+- **R324:** A `<skl>` mark holds a Skill line: a Field Skill at the Level of the nearest `<fld>` above it, one higher with a ✓; or `Skills N: a, b, …`, each Skill (split at commas outside parentheses) Level N; its pen is offered for a `Skills N:` line or a plain line under a Field.
+- **R325:** The Field pen is chartreuse and the Skill pen a paler chartreuse, one family, so a Field's Skills read as its own.
+- **R331:** A Field's Skill lines are indented under it, a ✓ hanging in the margin before its Skill's name so the names align; a `Skills N:` line, or a Skill with no Field above, stays flush.
+- **R332:** A `<fld>` Field is drawn bold, at rest and while written on, to tell it from its Skills.
+- **R333:** A heading is drawn in capitals, the text keeping what was typed; the heading on a card's first line, its name, keeps its case.
 
 ## Feature: Influence
 **Source:** specs/influence.md
@@ -102,18 +109,18 @@
 - **R41:** Clicking a pool's empty slot space adds a loose +1; shift-click adds −1.
 - **R42:** Clicking a +1 makes a 2; shift-clicking a 2 makes a +1; shift-clicking a +1 removes it.
 - **R43:** Clicking a +1 rider does nothing; shift-clicking it removes it.
-- **R44:** Three chips of one value and colour in a slot Roll Up into the next Level, chaining.
+- **R44:** Three chips of one value and color in a slot Roll Up into the next Level, chaining.
 - **R45:** A chip carrying a +1 counts at face value in a Roll Up, and its +1 is spent.
 - **R46:** Lowering a chip can complete a Roll Up.
 - **R47:** An Influence card lives in its pool's drawer and shrinks to a chip showing its value (name on hover) in a pool slot.
-- **R230:** A card in a drawer is a small white card with a band down its left edge in its sign's colour, its name and Level in handwriting, a resource-made card's glyph before its name; cards wrap in the tray.
+- **R230:** A card in a drawer is a small white card with a band down its left edge in its sign's color, its name and Level in handwriting, a resource-made card's glyph before its name; cards wrap in the tray.
 - **~~R224:~~** (Retired T2 — see R243) An Influence card picked up from a drawer or the table becomes a chip in hand, centred on the pointer, its value in the middle and its name on hover (Bill, 11-12).
 - **R243:** An Influence card picked up stays a card in hand, held where it was taken; over a pool's slots it becomes a chip centred on the pointer, and a card again when it leaves them.
 - **R48:** An Influence card dropped anywhere but a pool slot goes home to its drawer; dropped on another pool's drawer, it moves to that character.
 - **~~R49:~~** (Retired T9 — see R268) A drawer's kill box is the only way to delete an Influence card.
 - **R268:** An Influence card is deleted only in a drawer's kill box or by shift-clicking it at Min; either way an unused tap gives its sources their Levels back.
 - **R50:** A drawer has buttons to write a new + or − card.
-- **R231:** The drawer's tools are tiles: a dashed + and − in their sign's colour, the used pile as a tile with its count, the kill box as a hatched tile.
+- **R231:** The drawer's tools are tiles: a dashed + and − in their sign's color, the used pile as a tile with its count, the kill box as a hatched tile.
 - **R232:** A new card is written as "Influence" with its name selected, so typing names it.
 - **R239:** A new card goes last in its drawer; a card that comes home without a place chosen goes last too.
 - **R240:** Carrying a card over a drawer opens a gap where it would go, the other cards sliding aside and the drawer growing to fit; the gap follows the card, and letting go puts it there.
@@ -121,7 +128,7 @@
 - **R269:** A card's Level answers clicks wherever the card is (its drawer, a pool slot as a chip, loose on the table): click raises it, shift-click lowers it, and at Min shift-click deletes it.
 - **R52:** Three equal Influence cards in a slot form a pile showing the value they act as, without merging.
 - **R53:** Clicking a pile opens or closes it; an open pile lists its members by name; dragging a member out breaks the pile.
-- **R236:** A pile is drawn as a stack of discs in its colour; open, it lists its members beside it, each chip with its name.
+- **R236:** A pile is drawn as a stack of discs in its color; open, it lists its members beside it, each chip with its name.
 - **R237:** A chip or pile made by a Roll Up, and a card whose Level changes, pops: it grows in from half again its size with a white ring.
 - **R54:** A tap glyph sits before each `<res>` mark, each named Damage slot, and each checked Slot box; only `Name +Level` inside a `<res>` mark is read, and a Damage slot's Level is its row's.
 - **R249:** A tap glyph is a tiny card: white, an ink border and a hard offset shadow, yellow under the pointer; a resource-made card carries the same mark.
@@ -142,7 +149,7 @@
 - **R260:** A card tapped from a Motivation is a Main Pool Influence of the Motivation's sign: it goes only into a Main slot (dropped in another slot, it goes home), only Motivations feed it, and dropped into a Main slot it joins that character's drawer.
 - **R261:** Spending a Motivation is temporary: its written Level stays and the Levels left follow it in parentheses (`Keep the Peace +Sig (+Min)`, `(0)` when spent out); a refund back to full removes them.
 - **R262:** Motivations recharge at the end of every scene, their parentheses removed.
-- **R263:** While a card is written on, a Damage entry shows its colour only once it has a name; an empty slot stays a blank line.
+- **R263:** While a card is written on, a Damage entry shows its color only once it has a name; an empty slot stays a blank line.
 - **R63:** A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); Resources can't feed used cards, and click and shift-click still change them.
 - **R64:** At a character's next roll, still-used cards are swept into the drawer's used pile first; clicking one there puts it back.
 - **R233:** The used pile opens as a paper list under its tile; a used card in a pool is greyed, with a small "used" tag under it.
@@ -160,7 +167,7 @@
 - **R71:** The GM can dock and work any character's roll row without taking the character.
 - **R72:** The White die opens the Difference menu, each row with its words first and its dice at the right; picking one sets the row.
 - **R73:** Yellows: click adds, shift-click removes; bonus: click raises, shift-click lowers, showing −n below zero.
-- **R274:** The roll row docks between the pool's header and its slots, a dark walnut strip the drawer's width: blank 24 px dice in their colours (White `#f6f6f2`, Green `#6aa84f`, Red `#cc4125`, Blue `#3d85c6`, Yellow `#f1c232`), Roll a blue key at the right, a dashed yellow ghost die for no Yellows, a faint "+0" for no bonus, the clickable parts lit faintly under the pointer; in the header the action in the hand font with its number bold, `vs` in peach.
+- **R274:** The roll row docks between the pool's header and its slots, a dark walnut strip the drawer's width: blank 24 px dice in their colors (White `#f6f6f2`, Green `#6aa84f`, Red `#cc4125`, Blue `#3d85c6`, Yellow `#f1c232`), Roll a blue key at the right, a dashed yellow ghost die for no Yellows, a faint "+0" for no bonus, the clickable parts lit faintly under the pointer; in the header the action in the hand font with its number bold, `vs` in peach.
 - **R275:** The GM's private switch reads "to table" or "private", its title saying who will see the roll.
 - **R74:** Text marked `<act>` reads `LABEL: N [stuff], [Nd][±N] [stuff]`, giving Base N, Yellows `Nd` and bonus `±N` as written, split at the first comma outside parentheses.
 - **~~R75:~~** (Retired T15 — see R316) Each `<act>` mark, including ones marked later, gets a small die-shaped button at its start, and its text stays editable.
@@ -172,8 +179,8 @@
 - **R80:** The Bonus pool feeds the Success Bonus, not Total Influence; with an empty Bonus pool the action is taken as written.
 - **R81:** Once the Bonus pool adds points, the bonus total regroups to a Yellow per 3 full points with the rest added; a negative adds no dice.
 - **R82:** Hand edits to Yellows and bonus are kept as an adjustment until the next action.
-- **R83:** Dragging from the Base onto another character's pool or card aims at them; a chooser offers Mental or Psych Defend from their `<def>` mark, and a single number needs no choice (an Attack goes straight at its own Defend, and a roll typed ? can't be aimed: R306).
-- **R84:** The opponent's total is Defend + Main + Edge + Bias + Affliction + Injury + Stagger.
+- **R83:** Dragging from the Base onto another character's pool or card aims at them; a chooser offers Mental or Psych Defend from their `<def>` mark, and a single number needs no choice (an Attack goes straight at its own Defend, and a roll typed ? can't be aimed: R306); a number, Field or Skill pointed at overrides the chooser (R326, R327).
+- **~~R84:~~** (Retired T19 — see R330) The opponent's total is Defend + Main + Edge + Bias + Affliction + Injury + Stagger.
 - **R85:** The Difference picks the White row live as either side's pools change, until the roller picks a row by hand, which holds until they aim again.
 - **R86:** The current opponent is marked with an amber ring and ⌖; clicking `vs` stops aiming.
 - **R87:** A player can't aim at a character hidden from them and is told "Only the GM can aim at" that character.
@@ -198,7 +205,7 @@
 - **R105:** A receipt shows the character and roll number, the time at the upper right (24-hour with seconds), the dice, the resolution, the Level and the outcome.
 - **R278:** Each character's rolls are numbered on their own ("Sam, roll 3" is Sam's third).
 - **~~R279:~~** (Retired T16 — see R317) A receipt reads, in order: the title ("Sam, roll 3") and time; "rolled by …"; the dice; "<action>: Total Influence T (base B)"; "vs <name> (<kind> <total>), Difference ±D"; the row in its words; "Resolution: …" naming the dice ("higher of White 4 and Green 6 + 1"); "Level: …" adding them ("3 + 6 + 2 + 1 bonus"); and the outcome ("Success 12, Major", "Success at cost 5, Significant", "Failure 3, Minor Stagger"); each page leaving out what it may not know. Its title can be edited.
-- **R280:** Receipt dice are drawn as dice, 28 px with their numbers in their colours: an exploded Yellow dashed, a die removed on a Failure faded and struck through; they tumble in one after another; each titled with its colour and fate. The receipt is cream paper about 300 px wide in PT Mono with a torn zigzag bottom.
+- **R280:** Receipt dice are drawn as dice, 28 px with their numbers in their colors: an exploded Yellow dashed, a die removed on a Failure faded and struck through; they tumble in one after another; each titled with its color and fate. The receipt is cream paper about 300 px wide in PT Mono with a torn zigzag bottom.
 - **R281:** An error or a lost roll prints on your tape as a short red note with the time.
 - **R106:** The roller's page shows their Total Influence, base and `vs` as they may see it; other pages get the table view (character, action, `vs` name, dice, resolution, Level, outcome, "rolled by"); the GM's tape gets everything.
 - **R107:** Your own receipt gets a ✓ when the roll has reached the table.
@@ -231,6 +238,11 @@
 - **R319:** The roll row has a type tag: ?, Skill, Create Influence, Phys Attack, Mental Attack, Psych Attack, Infer, Impress or Request; clicking it opens the list; the tag reads short, as the cards spell them (Influence, Phys Atk, Mental Atk, Psych Atk).
 - **R320:** The action's label preselects the type when it says (Mental Atk, Psych Atk, Phys or Physical with Atk or Attack, Infer, Impress, Req or Request, Influence); otherwise it starts at ?, unless the viewer's seat remembers a type chosen for that action on that card; clicking the tag changes it.
 - **R321:** The roll row is the dice with no labels: White, Blue, Yellows, bonus, the type tag and Roll; Roll is a key, and the type and the GM's private switch are tags.
+- **R326:** A drag from the Base can end on a number on the target's card, a Defend number or an action's Base, and that number is the opposition's base; it wins over the Defend chooser and an Attack's own Defend, an Attack's type still picking the Damage column; the `vs` line names it (`vs Sam (Shoot 4)`, `vs Sam (psych 4)`), and it holds until the next aim.
+- **R327:** A drag from the Base can end on a `<fld>` line or one Skill of a `<skl>` line, and the opposition's base is its Level plus the target's Cha; the `vs` line reads `vs Sam (Investigation 2 + Cha 2)` (Cha for now: see gap O11, part 35.2 chooses the attribute).
+- **R328:** A drop elsewhere on the target (its pool, its card away from a number, Field or Skill, or a card turned to its back) aims as before: an Attack at its own Defend, other rolls through the chooser when the Defend has two numbers.
+- **R329:** While dragging from the Base, a line runs from the action to the pointer, and the dashed amber box goes round the number, Field or Skill the drop would pick, or round the pool when there is none under the pointer.
+- **R330:** The opponent's total is the opposition's base (Defend, or what was pointed at) + Main + Edge + Bias + Affliction + Injury + Stagger.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

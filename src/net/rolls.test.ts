@@ -305,3 +305,22 @@ test("a CRIT's choice moves an Attack's amount", () => {
   const taken = choose({ ...r, attack: { ...r.attack!, taken: true } }, 'dbl', false);
   assert.equal(taken.attack!.result, 12, 'a taken Attack keeps what was taken');
 });
+
+test('pointing at the opposition', () => {
+  // R326, R327, R330: the GM's page looks up what was pointed at by name on its own copy: a Defend
+  // number, an action's Base, a Skill (Level + Cha); a name it can't find falls back to Defend (R328).
+  // (Sam has a +6 chip in his Main here, so each total is 6 more than its base.)
+  const game = scene();
+  const at = (against: Intent['against'], type: Intent['type'] = 'infer') => {
+    const r = resolve(game, { ...infer(SAM), pool: BEAUFORD, action: 'Infer', type, against, n: 1 }, faces(4, 3), 1000);
+    if ('refused' in r) throw new Error(r.refused);
+    return r.full.vs;
+  };
+  assert.match(at({ def: 'psych' })!, /^Sam \(psych 4 → 10\), Difference/);
+  assert.match(at({ act: 'Shoot' })!, /^Sam \(Shoot 4 → 10\), Difference/);
+  assert.match(at({ skl: 'Investigation' })!, /^Sam \(Investigation 2 \+ Cha 2 → 10\), Difference/);
+  assert.match(at({ skl: 'Flying' })!, /^Sam \(mental 8\), Difference/, 'a name not on the card: Defend');
+  // A Mental Attack pointed at Psych Defend is opposed by it (the pointing wins), and still an Attack.
+  const atk = resolve(game, { ...infer(SAM), pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Mental Atk', type: 'mental', against: { def: 'psych' }, n: 2 }, faces(5, 5, 5), 1000);
+  assert.ok(!('refused' in atk) && atk.full.vs!.startsWith('Sam (psych 4 → 10)') && atk.full.attack?.kind === 'mental');
+});

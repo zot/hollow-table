@@ -15,8 +15,8 @@ export function when(at: number): string {
 const DIE = { W: 'White', G: 'Green', R: 'Red', B: 'Blue', Y: 'Yellow' } as const;
 const CRIT = { max: 'maximize', dbl: 'double' } as const;
 
-// R280: a die drawn as a die: its number in its colour; an exploded Yellow dashed, a die removed on a
-// Failure faded and struck; titled with its colour and fate; tumbling in after the one before it.
+// R280: a die drawn as a die: its number in its color; an exploded Yellow dashed, a die removed on a
+// Failure faded and struck; titled with its color and fate; tumbling in after the one before it.
 function dieEl(doc: Document, d: Die, k: number): HTMLElement {
   const e = doc.createElement('span');
   e.className = `rdie ${d.c}${d.added ? ' added' : ''}${d.dropped ? ' dropped' : ''}`;

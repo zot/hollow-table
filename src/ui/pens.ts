@@ -1,17 +1,18 @@
-// CRC: crc-Pens.md | R206, R207, R247, R258, R267
+// CRC: crc-Pens.md | R206, R207, R247, R258, R267, R323, R324, R325
 // The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 // toolbar. What a pen does is decided on lines (apply, offered); the tray only finds the selection,
 // draws, and hands the result back to the writing area's own input.
 
 import { influence, offer } from '../rules/readmarks.ts';
 import {
-  locate, mark, plain, read, render, unmark, type Line, type MarkName, type Pos, type Run,
+  locate, mark, plain, read, render, unmark, type Line, type MarkName, type MarkRun, type Pos, type Run,
 } from '../text/marks.ts';
 
 export const PENS: readonly { mark: MarkName; word: string }[] = [
   { mark: 'act', word: 'Action' }, { mark: 'res', word: 'Resource' }, { mark: 'mot', word: 'Motivation' },
   { mark: 'att', word: 'Attributes' }, { mark: 'inf', word: 'Influence' },
-  { mark: 'def', word: 'Defend' }, { mark: 'head', word: 'Heading' },
+  { mark: 'def', word: 'Defend' }, { mark: 'fld', word: 'Field' }, { mark: 'skl', word: 'Skill' },
+  { mark: 'head', word: 'Heading' },
 ];
 
 /** Whether a comes no later than b. */
@@ -91,7 +92,17 @@ export function offered(lines: Line[], line: number): MarkName | null {
   const l = lines[line];
   if (!l || l.some(r => typeof r !== 'string')) return null;
   const text = plain(l).trim();
-  return text ? offer(text, heading(lines, line)) : null;
+  return text ? offer(text, heading(lines, line), underField(lines, line)) : null;
+}
+
+// R324: a line sits under a Field when the lines above it, back to a `<fld>`, hold only Skills or plain text.
+function underField(lines: Line[], line: number): boolean {
+  for (let k = line - 1; k >= 0; k--) {
+    const marks = lines[k]!.filter((r): r is MarkRun => typeof r !== 'string' && !!r.text.trim());
+    if (marks.some(r => r.mark === 'fld')) return true;
+    if (marks.some(r => r.mark !== 'skl')) return false;
+  }
+  return false;
 }
 
 /**

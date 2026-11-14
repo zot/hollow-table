@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309-312, R316, R318
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309-312, R316, R318, R331, R332
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -55,6 +55,8 @@ stickies, loose text, images, torn rolls and reference cards.
   Take sends Rolls.take; Escape, Cancel or a click elsewhere backs out. A local view state, never
   saved.
 - A Slot waiting for a name draws an empty mark with "Beauford names it" (R312).
+
+- skillIndents(front) (R331): which front lines are a Field's Skills, and which of those carry a ✓; the view gives them `sklpad` (indented) and `sklhang` (the ✓ hanging in the margin).
 
 ## Collaborators
 - Absorb: the pages and what they fill

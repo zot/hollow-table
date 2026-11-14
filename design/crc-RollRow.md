@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330
 
 The dice you're about to roll, docked on the pool you roll for, in your view only (Seat).
 
@@ -43,7 +43,7 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
 - row(): the White row from the Difference (Odds), live as pools change, unless picked by hand in
   the Difference menu (held until the next aim).
 - show() (R274, R275, R321): the type tag before Roll, as a tag like the private switch; docked between the pool's header and its slots, a dark walnut strip the
-  drawer's width; blank 24 px dice in their colours, a dashed ghost for no Yellows, a faint "+0"; Roll
+  drawer's width; blank 24 px dice in their colors, a dashed ghost for no Yellows, a faint "+0"; Roll
   a blue key at the right; (GM) the private tag, "to table" / "private", titled with who will see it; numbers follow the rolling
   character's owner: if they can't see the opponent, `vs` name and the White setting as dice only,
   and the menu locked ("set by the GM"); the GM's hover still shows the Difference.
@@ -51,6 +51,14 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   picked (by hand, or set with nobody aimed at), never numbers (R100). On the GM's page Rolls.roll,
   private when switched; on a player's, Rolls.request, Roll reading "GM…" while waiting (R102); why
   not goes to Rolls.note (R281).
+
+- Pointing (R326–R330): the Roller keeps `against`, what was pointed at by name (MarkReader.points),
+  set by a drop on it and cleared by the next aim; shown() and the GM's page take the base from it,
+  else from Defend as before (R328). While dragging from the Base (#aim): what is under the pointer
+  is found by its line (each card line is a `div`) and its offset in that line's text
+  (caretRangeFromPoint), matched against points(); an overlay box (`#aimbox`) goes round that run of
+  text by its Range's rectangles, or round the pool; an overlay line (`#aimline`, SVG) runs from the
+  action in the header to the pointer. Neither touches the card's text.
 
 ## Collaborators
 - Odds, Pool, MarkReader, Visibility, Rolls, Seat, PoolView, Gesture

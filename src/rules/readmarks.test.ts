@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { action, adjust, attributes, defend, influence, motiveLeft, offer, spend, unadjusted } from './readmarks.ts';
+import { field, pointed, points, skillsLine, type Point } from './readmarks.ts';
 
 test('action lines', () => {
   const rows: [string, string, number, number, number][] = [
@@ -69,4 +70,56 @@ test('attributes', () => {
   assert.equal(offer('Saloon Proprietor, Rank 3'), null);
   assert.equal(offer('Sparked: 46  Grains: 14'), null);
   assert.equal(offer('Wis 4'), null, 'one pair is not an attribute line');
+});
+
+// R323, R324: Fields and Skills, read from their marks.
+const MARKED = `<head>Samuel Diamond, Rank 3</head>
+<att>Cha 2   Int 2   Wis 4</att>
+<fld>Private Investigator 2 (5XP)</fld>
+<skl>Investigation (x2)</skl>
+<skl>Fighting† (guns)</skl>
+<fld>Sparker 2 (6XP)</fld>
+<skl>✓ Glimmersense (x2) 3</skl>
+<skl>Skills 1: Suasion (Detective), Tact</skl>
+<act>Shoot: 4, +2 (unfr, x 2)</act>
+<def>Defend: mental 2 / psych 4</def>
+<head>Hollow Memories</head>
+<skl>Wicked deeds</skl>`;
+
+test('Fields, Skills and their pens', () => {
+  assert.deepEqual(field('Private Investigator 2 (5XP)'), { name: 'Private Investigator', level: 2 });
+  assert.equal(field('✓ Glimmersense (x2) 3'), null, 'a ✓ marks a Skill');
+  assert.equal(field('Saloon Proprietor, Rank 3'), null, 'a Rank is no Field');
+  assert.deepEqual(skillsLine('Skills 2: Profession (Saloon Keeper, Bar), Tact')!.skills.map(k => k.name), ['Profession (Saloon Keeper, Bar)', 'Tact']);
+  // R207, R323, R324: the pens offered.
+  assert.deepEqual([offer('Sparker 2 (6XP)'), offer('Skills 1: Suasion, Tact'), offer('Composure'), offer('Composure', null, true)],
+    ['fld', 'skl', null, 'skl']);
+});
+
+test('what a drop can point at', () => {
+  // R326, R327: Defend numbers, an action's Base, Fields and Skills at Level plus Cha (2), each where it is.
+  const lines = MARKED.split('\n'), at = (p: Point) => lines[p.line]!.replace(/<\/?[a-z]+>/g, '').slice(p.start, p.end);
+  const ps = points(MARKED);
+  assert.deepEqual(ps.map(p => [at(p), p.base, p.words]), [
+    ['Private Investigator 2 (5XP)', 4, 'Private Investigator 2 + Cha 2'],
+    ['Investigation (x2)', 4, 'Investigation 2 + Cha 2'],
+    ['Fighting† (guns)', 4, 'Fighting† (guns) 2 + Cha 2'],
+    ['Sparker 2 (6XP)', 4, 'Sparker 2 + Cha 2'],
+    ['✓ Glimmersense (x2) 3', 5, 'Glimmersense 3 + Cha 2'],
+    ['Suasion (Detective)', 3, 'Suasion (Detective) 1 + Cha 2'],
+    ['Tact', 3, 'Tact 1 + Cha 2'],
+    ['4', 4, 'Shoot 4'],
+    ['2', 2, 'mental 2'],
+    ['4', 4, 'psych 4'],
+  ]);
+  // A Skill under a heading, not a Field, has no Level to point at.
+  assert.ok(!ps.some(p => 'skl' in p.against && p.against.skl === 'Wicked deeds'));
+  // A heading straight after a Field's Skills ends them: what follows has no Level.
+  assert.deepEqual(points('<fld>Sparker 2 (6XP)</fld>\n<skl>Composure</skl>\n<head>Memories</head>\n<skl>Wicked deeds</skl>').map(p => p.words),
+    ['Sparker 2 + Cha 0', 'Composure 2 + Cha 0']);
+  assert.deepEqual(pointed(MARKED, { def: 'psych' })?.base, 4);
+  assert.deepEqual(points('<att>Cha 1</att>\n<fld>Snakeoil Salesman 3 (5XP)</fld>\n<skl>Rhetoric (Salesman) (x2)</skl>\n<skl>Finesse (x2, Rhetoric)</skl>')
+    .map(p => p.words), ['Snakeoil Salesman 3 + Cha 1', 'Rhetoric (Salesman) 3 + Cha 1', 'Finesse 3 + Cha 1'], "a Skill's XP note is not its name");
+  assert.equal(pointed(MARKED, { act: 'Fly' }), null);
+  assert.deepEqual(points('<def>Defend: 6 / 5</def>').map(p => [p.against, p.words]), [[{ def: 'mental' }, 'mental 6'], [{ def: 'psych' }, 'psych 5']]);
 });

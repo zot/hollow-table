@@ -98,3 +98,10 @@ test('several Motivations on one line', () => {
   const lines = parse('Be Left Alone +Sig, Dread of the New Moon -Min');
   assert.equal(serialize(apply(lines, at(0, 0, 3), at(0, 0, 3), 'mot')), '<mot>Be Left Alone +Sig</mot>, <mot>Dread of the New Moon -Min</mot>');
 });
+
+test('the Field and Skill pens offered', () => {
+  // R207, R323, R324: a Field line is offered the Field pen; a plain line under a Field (or under its
+  // Skills) the Skill pen; the same line under anything else, nothing.
+  const lines = parse('<fld>Sparker 2 (6XP)</fld>\n<skl>Composure</skl>\nGlimmer Lore (x2)\n<head>Memories</head>\nWicked deeds\nPrivate Investigator 2 (5XP)');
+  assert.deepEqual([2, 4, 5].map(k => offered(lines, k)), ['skl', null, 'fld']);
+});

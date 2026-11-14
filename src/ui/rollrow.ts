@@ -6,7 +6,7 @@ import type { Game } from '../model/game.ts';
 import { GM, OPEN, ROLL_TYPES, isAttack, ridOf, type Character, type Oid, type RollType } from '../model/records.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
-import { action as readAction, defend as readDefend, type Action, type Defend } from '../rules/readmarks.ts';
+import { action as readAction, defend as readDefend, pointed, points, type Action, type Against, type Defend, type Point } from '../rules/readmarks.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import type { Roller } from '../store/seat.ts';
 import { diceOnly, rowWords, type Intent } from '../net/rolls.ts';
@@ -78,8 +78,9 @@ export function picked(r: Roller, key: string): Roller {
 }
 
 // R83, R85: aiming at someone picks the row from the Difference again; stopping keeps a picked row.
-export function aimed(r: Roller, opponent: Oid, defend: 'mental' | 'psych'): Roller {
-  return { ...r, opponent, defend, row: null, byHand: false };
+// R326–R328: what was pointed at holds until the next aim; a drop on no number aims as before.
+export function aimed(r: Roller, opponent: Oid, defend: 'mental' | 'psych', against?: Against): Roller {
+  return { ...r, opponent, defend, row: null, byHand: false, against };
 }
 export function unaimed(r: Roller): Roller {
   return { ...r, opponent: null, ...(!r.byHand && { row: null }) };
@@ -97,7 +98,7 @@ export const ownerAsViewer = (c: Character): Viewer => c.owner === GM ? { name: 
 export function intentOf(r: Roller): Omit<Intent, 'n'> {
   const row = r.row && (r.byHand || !r.opponent) ? { row: r.row } : {};
   return { pool: r.pool, action: r.action, vs: r.opponent, defend: r.defend, hand: r.hand, ...row,
-    type: r.type ?? '?', ...(r.alt && { alt: r.alt }) };
+    type: r.type ?? '?', ...(r.alt && { alt: r.alt }), ...(r.against && r.opponent && { against: r.against }) };
 }
 
 /** Whether `viewer` may roll for this character: its owner, or the GM for anyone (R68, R71). */
@@ -114,7 +115,7 @@ export type Shown = {
   label: string; base: number | null; total: number | null; parts: Record<string, number>;
   yellows: number; bonus: number; row: Row;
   /** R84, R86, R88: the opponent, their total and the Difference; whether the rolling character's owner sees them. */
-  vs?: { oid: Oid; name: string; total: number; diff: number; sees: boolean };
+  vs?: { oid: Oid; name: string; total: number; diff: number; sees: boolean; words?: string };
 };
 
 // R79, R80, R81, R82: what the row shows: the action's Base and Total Influence, the Yellows and
@@ -132,8 +133,11 @@ export function shown(game: Game, r: Roller): Shown {
   // R84, R85: against an opponent, the Difference picks the row unless one was picked by hand.
   const opp = r.opponent ? game.get(ridOf(r.opponent)) as Character | undefined : undefined;
   if (opp?.kind !== 'character') return out;
-  const against = opposition(defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum.total - against;
-  return { ...out, row: r.byHand ? row : rowFor(diff), vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c!), opp) } };
+  // R326, R327, R330: a number, Field or Skill pointed at is the base; else Defend as before (R328).
+  const point = r.against ? pointed(opp.front, r.against) : null;
+  const against = opposition(point ? point.base : defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum.total - against;
+  return { ...out, row: r.byHand ? row : rowFor(diff),
+    vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c!), opp), ...(point && { words: point.words }) } };
 }
 
 /** The die's word for a character's owner (R142): GM, open, or the player. */
@@ -315,7 +319,7 @@ export class RollRowView {
       vs.className = 'vs';
       vs.append(`vs ${s.vs.name}`);
       if (s.vs.sees) { const n = doc.createElement('b'); n.textContent = ` ${s.vs.total < 0 ? `−${-s.vs.total}` : s.vs.total} (${SIGN(s.vs.diff)})`; vs.append(n); }
-      vs.title = shows ? `${s.vs.name}: ${r.defend} Defend, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.`
+      vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.`
         : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
       gesture(vs, { click: () => step(unaimed(r)) });
       this.#info.append(vs);
@@ -327,38 +331,75 @@ export class RollRowView {
 
   // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
   // the pointing hand holds; let go to aim, through the Defend chooser when they have two.
+  // R326, R327, R329: a line runs from the press to the pointer, and the box goes round the number,
+  // Field or Skill under it on the target's card front; a drop there aims at it, with no chooser.
   #aim(r: Roller, down: PointerLike, move: PointerLike): void {
     const doc = this.#row.ownerDocument, body = doc.body;
-    const under = (e: PointerLike): Oid | null => {
+    const under = (e: PointerLike): { oid: Oid; point?: Point; text?: HTMLElement } | null => {
       for (const el of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
-        const rid = (el as HTMLElement).closest?.<HTMLElement>('.pool, .obj.card')?.dataset.rid;
-        if (rid) return rid.slice(2);
+        const hit = (el as HTMLElement).closest?.<HTMLElement>('.pool, .obj.card');
+        const rid = hit?.dataset.rid;
+        if (!rid) continue;
+        const oid = rid.slice(2), text = hit!.matches('.obj.card:not(.flipped)') ? hit!.querySelector<HTMLElement>('.front > .text') : null;
+        const c = this.#w.game.get(ridOf(oid)) as Character | undefined;
+        const at = text && c?.kind === 'character' ? caretIn(text, e) : null;
+        const point = at ? points(c!.front).find(p => p.line === at.line && p.start <= at.offset && at.offset <= p.end) : undefined;
+        return point ? { oid, point, text: text! } : { oid };
       }
       return null;
     };
+    const box = doc.createElement('div'), svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg'), line = doc.createElementNS(svg.namespaceURI, 'line');
+    box.id = 'aimbox';
+    box.hidden = true;
+    svg.id = 'aimline';
+    line.setAttribute('x1', String(down.clientX));
+    line.setAttribute('y1', String(down.clientY));
+    svg.append(line);
+    body.append(svg, box);
     let lit: HTMLElement | undefined;
-    const light = (oid: Oid | null) => {
+    const light = (e: PointerLike) => {
+      line.setAttribute('x2', String(e.clientX));
+      line.setAttribute('y2', String(e.clientY));
+      const t = under(e), oid = t && t.oid !== r.pool ? t.oid : null;
       lit?.classList.remove('aimed');
-      lit = oid && oid !== r.pool ? this.#w.pool(oid) : undefined;
-      lit?.classList.add('aimed');
+      lit = undefined;
+      box.hidden = true;
+      if (!oid) return;
+      const rect = t!.point ? rangeOf(t!.text!, t!.point)?.getBoundingClientRect() : undefined;
+      if (rect) {
+        Object.assign(box.style, { left: `${rect.left - 3}px`, top: `${rect.top - 2}px`, width: `${rect.width + 6}px`, height: `${rect.height + 4}px` });
+        box.hidden = false;
+      } else {
+        lit = this.#w.pool(oid);
+        lit?.classList.add('aimed');
+      }
     };
     body.classList.add('tapping', 'dragging');
     doc.getSelection()?.removeAllRanges();
-    const onMove = (ev: Event) => light(under(ev as PointerLike));
+    const onMove = (ev: Event) => light(ev as PointerLike);
     const onUp = (ev: Event) => {
       const e = ev as PointerLike;
       if (e.pointerId !== down.pointerId) return;
       doc.removeEventListener('pointermove', onMove);
       doc.removeEventListener('pointerup', onUp);
       body.classList.remove('tapping', 'dragging');
-      light(null);
-      const oid = under(e), opp = oid && oid !== r.pool ? this.#w.game.get(ridOf(oid)) as Character | undefined : undefined;
+      lit?.classList.remove('aimed');
+      box.remove();
+      svg.remove();
+      const t = under(e), opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) as Character | undefined : undefined;
       if (opp?.kind !== 'character') return;
       const viewer = this.#w.viewer;
       if (!viewer?.gm && !canSee(viewer, opp)) { this.#note(`Only the GM can aim at ${opp.name}.`, e); return; }
       // R306: a roll that doesn't say what it is can't be aimed; an Attack goes at its own Defend.
       if ((r.type ?? '?') === '?') { this.#note('Say what this roll is first.', e); return; }
-      if (isAttack(r.type!)) { this.#set(aimed(r, opp.oid, r.type === 'psych' ? 'psych' : 'mental')); return; }
+      // R326, R327: pointed at, it is the opposition; a Defend number also sets the Defend kind.
+      const byType = r.type === 'psych' ? 'psych' : 'mental';
+      if (t!.point) {
+        const a = t!.point.against;
+        this.#set(aimed(r, opp.oid, 'def' in a ? a.def : byType, a));
+        return;
+      }
+      if (isAttack(r.type!)) { this.#set(aimed(r, opp.oid, byType)); return; }
       const def = defendOf(opp);
       if (!def || def.mental === def.psych) { this.#set(aimed(r, opp.oid, 'mental')); return; }
       this.#choose(opp, def, e, kind => this.#set(aimed(r, opp.oid, kind)));
@@ -444,3 +485,32 @@ export class RollRowView {
   }
 }
 
+
+// R326, R327: where the pointer is in a card's text: which line (each is a div) and how far into its text.
+function caretIn(text: HTMLElement, e: PointerLike): { line: number; offset: number } | null {
+  const doc = text.ownerDocument as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
+  const pos = doc.caretPositionFromPoint?.(e.clientX, e.clientY);
+  const range = pos ? null : doc.caretRangeFromPoint?.(e.clientX, e.clientY);
+  const node = pos?.offsetNode ?? range?.startContainer, offset = pos?.offset ?? range?.startOffset;
+  if (!node || offset === undefined || !text.contains(node)) return null;
+  const lines = [...text.children], line = lines.findIndex(l => l.contains(node));
+  if (line < 0) return null;
+  const upTo = doc.createRange();
+  upTo.setStart(lines[line]!, 0);
+  upTo.setEnd(node, offset);
+  return { line, offset: upTo.toString().length };
+}
+
+// R329: the run of a card's text a point covers, as a Range, for the box round it.
+function rangeOf(text: HTMLElement, p: Point): Range | null {
+  const div = text.children[p.line];
+  if (!div) return null;
+  const doc = text.ownerDocument, walk = doc.createTreeWalker(div, NodeFilter.SHOW_TEXT), range = doc.createRange();
+  let seen = 0, started = false;
+  for (let n = walk.nextNode() as globalThis.Text | null; n; n = walk.nextNode() as globalThis.Text | null) {
+    if (!started && p.start <= seen + n.length) { range.setStart(n, p.start - seen); started = true; }
+    if (started && p.end <= seen + n.length) { range.setEnd(n, p.end - seen); return range; }
+    seen += n.length;
+  }
+  return null;
+}

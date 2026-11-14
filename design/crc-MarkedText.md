@@ -1,5 +1,5 @@
 # MarkedText
-**Requirements:** R266, R205, R206, R208, R209, R246
+**Requirements:** R205, R206, R208, R209, R246, R266, R322
 
 Handwriting with marks: a closed, attribute-free markup naming what a run of text is in the game.
 A simple DOM over the text: it models only the seven marks, and every other byte stays exactly where
@@ -30,6 +30,8 @@ it was, so parse-then-serialize reproduces the source.
 - locate(el, node, offset): a DOM position (a selection's end) as `{line, run, offset}` in the
   lines read(el) gives, walked the same way; null when it isn't inside el. A position in plain text
   past a line's last run names the run that would be there.
+
+- The marks (R322): `act`, `res`, `mot`, `att`, `inf`, `def`, `fld`, `skl`, `head`.
 
 ## Collaborators
 - MarkReader: reads game data inside marks.

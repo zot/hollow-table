@@ -183,3 +183,6 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T17: R67 retired by R321 (Bill 11-13: the roll row gains a type tag)
 - [ ] O9: Taking or naming an Attack that the GM's page refuses (someone else's, a stale page, already taken) changes nothing and says nothing to the sender: Rolls.#take and #name return without a note. A refusal note like a roll's (R281) would tell them why.
 - [ ] O10: Receipts kept on a tape from before R317 still hold the old outcome words, so they print as "Success 12, Major: 6 + 4"; only new rolls read the new way. Cosmetic; tapes are each page's own.
+- T18: R266 retired by R322 (Bill 11-14: Fields and Skills are marked, <fld> and <skl>)
+- T19: R84 retired by R330 (Bill 11-14: a number, Field or Skill pointed at replaces Defend as the opposition's base)
+- [ ] O11: Skills pointed at add Cha whatever the roll (R327); which attribute a Field or Skill adds — the acting character's, none (the fist), Int (the brain) — is .carves/prototype.md part 35.2.

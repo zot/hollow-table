@@ -27,17 +27,18 @@ function character(oid: Oid, owner: string, name: string, x: number, front: stri
   return { kind: 'character', oid, owner, name, pool: at(x, 20), card: at(x, 300), flipped: false, gathered: true, front, back: b };
 }
 
+// R323, R324: the cards' Fields and Skills are marked (Bill, 11-14).
 export const SAM_FRONT = `<head>Samuel Diamond, Rank 3</head>
 <att>Cha 2   Int 2   Wis 4</att>
-Private Investigator 2 (5XP)
-Investigation (x2)
-Advocacy (x2)
-Fighting† (guns)
-Sparker 2 (6XP)
-✓ Glimmersense (x2) 3
-Glimmer Lore (x2)
-Composure
-Skills 1: Suasion (Detective), Tact, Lock Picking, Fire Starting, Wilderness Survival
+<fld>Private Investigator 2 (5XP)</fld>
+<skl>Investigation (x2)</skl>
+<skl>Advocacy (x2)</skl>
+<skl>Fighting† (guns)</skl>
+<fld>Sparker 2 (6XP)</fld>
+<skl>✓ Glimmersense (x2) 3</skl>
+<skl>Glimmer Lore (x2)</skl>
+<skl>Composure</skl>
+<skl>Skills 1: Suasion (Detective), Tact, Lock Picking, Fire Starting, Wilderness Survival</skl>
 <act>Mental Atk / Req: 2, +2</act>
 <act>Psych Atk / Req: 3, +2</act>
 <act>Shoot: 4, +2 (unfr, x 2)</act>
@@ -53,14 +54,14 @@ Wicked deeds and hanging
 
 export const BEAUFORD_FRONT = `<head>Beauford T. Winkums, Rnk 3</head>
 <att>Cha 2   Int 3   Wis 1</att>
-Snakeoil Salesman 3 (5XP)
-Rhetoric (Salesman) (x2)
-Finesse (x2, Rhetoric)
-✓ Rationalization 4
-Medicineshow Occultist 2 (6XP)
-✓ Glimmer Lore (x2) 3
-Medicinals (x2)
-Composure (x2)
+<fld>Snakeoil Salesman 3 (5XP)</fld>
+<skl>Rhetoric (Salesman) (x2)</skl>
+<skl>Finesse (x2, Rhetoric)</skl>
+<skl>✓ Rationalization 4</skl>
+<fld>Medicineshow Occultist 2 (6XP)</fld>
+<skl>✓ Glimmer Lore (x2) 3</skl>
+<skl>Medicinals (x2)</skl>
+<skl>Composure (x2)</skl>
 <head>Resources</head>
 <res>Money +Min</res>, <res>Liquid Courage +Maj</res>
 <act>Mental Atk / Req: 5, 1d</act>
@@ -79,9 +80,9 @@ Dice token: Farkas, uses 20`;
 export const DEVREUX_FRONT = `<head>Mistress Devreux</head>
 Saloon Proprietor, Rank 3
 <att>Cha 3   Int 1   Wis 3</att>
-Skills 3: Savvy, Profession (Saloon Keeper), Streetwise
-Skills 2: Musician, Composure, Gambling, Etiquette, Bargaining, Tact
-Skills 1: Suasion (Charm)
+<skl>Skills 3: Savvy, Profession (Saloon Keeper), Streetwise</skl>
+<skl>Skills 2: Musician, Composure, Gambling, Etiquette, Bargaining, Tact</skl>
+<skl>Skills 1: Suasion (Charm)</skl>
 <head>Motivations</head>
 <mot>Keep the Peace +Sig (0)</mot>
 <mot>Self-Preservation +Sig (0)</mot>

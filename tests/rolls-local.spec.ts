@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320
+// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320, R326, R327, R329
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
@@ -97,6 +97,47 @@ test('an Attack aims at its own Defend', async ({ page }) => {
   await expect(page.locator(`${DPOOL} .rollinfo .vs`)).toHaveText('vs Sam 4 (+0)');
   await page.locator(`${DPOOL} .roller .roll`).click();
   await expect(page.locator('#tape .strip .receipt').first()).toContainText('vs Sam (psych 4)');
+});
+
+/** The middle of a run of text on a card's front: the `nth` match of `re` in the line that matches `line`. */
+async function textAt(page: Page, card: string, line: RegExp, re: RegExp) {
+  return page.evaluate(([card, line, re]) => {
+    const div = [...document.querySelector(`.obj.card[data-rid="${card}"] .front > .text`)!.children]
+      .find(l => new RegExp(line).test(l.textContent ?? ''))!;
+    const m = new RegExp(re).exec(div.textContent ?? '')!, walk = document.createTreeWalker(div, NodeFilter.SHOW_TEXT), r = document.createRange();
+    let seen = 0;
+    for (let n = walk.nextNode() as Text | null; n; n = walk.nextNode() as Text | null) {
+      if (m.index < seen + n.length) { r.setStart(n, m.index - seen); r.setEnd(n, m.index - seen + m[0].length); break; }
+      seen += n.length;
+    }
+    const b = r.getBoundingClientRect();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  }, [card, line.source, re.source] as const);
+}
+
+test('pointing at the opposing number', async ({ page }) => {
+  // R326, R329: Devreux's Attack as a Skill roll, dragged onto the 4 of Sam's psych Defend: a line and
+  // the box while dragging, then aimed at psych 4 with no chooser; R327: onto Sam's Investigation, Level + Cha.
+  await page.locator(`.obj.card[data-rid="${DEVREUX}"] .actdie`).first().click();
+  await typed(page, 'Skill');
+  const base = await at(page, `${DPOOL} .rollinfo .base`, 8, 6), four = await textAt(page, SAM, /^Defend/, /4/);
+  await page.mouse.move(base.x, base.y);
+  await page.mouse.down();
+  await page.mouse.move(base.x + 8, base.y + 8, { steps: 2 });
+  await page.mouse.move(four.x, four.y, { steps: 10 });
+  await expect(page.locator('#aimline line')).toHaveCount(1);
+  await expect(page.locator('#aimbox')).toBeVisible();
+  const box = (await page.locator('#aimbox').boundingBox())!;
+  expect(box.width).toBeLessThan(40);
+  await page.mouse.up();
+  await expect(page.locator('#aimbox')).toHaveCount(0);
+  await expect(page.locator('#defchoice')).toHaveCount(0);
+  await expect(page.locator(`${DPOOL} .rollinfo .vs`)).toHaveAttribute('title', /^Sam: psych 4,/);
+  const skill = await textAt(page, SAM, /^Investigation/, /Investigation/);
+  await dragFromTo(page, base.x, base.y, skill.x, skill.y, 15);
+  await expect(page.locator(`${DPOOL} .rollinfo .vs`)).toHaveAttribute('title', /^Sam: Investigation 2 \+ Cha 2,/);
+  await page.locator(`${DPOOL} .roller .roll`).click();
+  await expect(page.locator('#tape .strip .receipt').first()).toContainText('vs Sam (Investigation 2 + Cha 2');
 });
 
 test('a player cannot aim at someone hidden from them', async ({ page }) => {

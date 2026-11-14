@@ -108,3 +108,14 @@ test('the roll type', () => {
   assert.deepEqual([defendBase(atk, def), defendBase(typed(atk, 'psych'), def), defendBase(typed(atk, 'phys'), def),
     defendBase({ ...typed(atk, 'infer'), defend: 'psych' }, def)], [6, 5, 0, 5]);
 });
+
+test('aimed at what was pointed at', () => {
+  // R326, R328: a pointed aim holds its name; the next aim without one drops it; shown() takes the base from it.
+  const g = scene();
+  const r = aimed(withAction(dock(null, BEAUFORD), 'Infer'), SAM, 'mental', { act: 'Shoot' });
+  assert.deepEqual(intentOf(r).against, { act: 'Shoot' });
+  assert.equal(shown(g, r).vs!.words, 'Shoot 4');
+  const again = aimed(r, SAM, 'psych');
+  assert.equal(again.against, undefined);
+  assert.equal(shown(g, again).vs!.words, undefined);
+});

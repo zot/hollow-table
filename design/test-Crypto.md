@@ -44,3 +44,14 @@ made from the name is the views' (test-Table); big batches travel whole, chunked
 **Inject:** src/net/envelope.ts:put
 @alarm-hash: 5ced6dbc0972dece
 **Pulled:** 2026-11-12 — rang: the batch carrying `script` on a sticky passed
+
+## Test: an intent says what it points at by name, and nothing else
+**Purpose:** R326: an intent's `against` is one of `{def: mental|psych}`, `{act}`, `{fld}`, `{skl}` by name; anything else drops the intent whole
+**Input:** intents with no `against`, the four shapes, and `{def: physical}`, `{act: 4}`, an extra `base`, an unknown key, a string, null
+**Expected:** the first five pass; the rest are dropped
+**Refs:** crc-Envelope.md
+**Code:** src/net/envelope.test.ts
+**Alarm:** 4
+**Fire alarm:** let `against` be anything (`v => true || …`); red: `{"def":"physical"}` passes
+**Inject:** src/net/envelope.ts:against
+**Pulled:** 2026-11-14 — 2026-11-14 — rang: "an intent says what it points at by name" failed at {"def":"physical"}; restored clean

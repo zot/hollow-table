@@ -1,8 +1,8 @@
-// CRC: crc-MarkReader.md | R205, R258, R261, R267
+// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R327
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
-import type { MarkName } from '../text/marks.ts';
+import { parse, plain, type Line, type MarkName } from '../text/marks.ts';
 
 export type Action = { label: string; base: number; yellows: number; bonus: number };
 export type Reading = { name: string; sign: 1 | -1 | null; level: string | null };
@@ -77,14 +77,18 @@ export function defend(text: string): Defend | null {
   return null;
 }
 
-// R207: a plain line matching a mark's grammar is offered that mark's pen.
-/** The mark a plain line fits, given the heading it sits under, or null. */
-export function offer(line: string, heading: string | null = null): MarkName | null {
+// R207, R323, R324: a plain line matching a mark's grammar is offered that mark's pen: a Field by
+// its Level and XP, a Skill by a `Skills N:` line or by sitting under a Field.
+/** The mark a plain line fits, given the heading it sits under and whether it sits under a Field, or null. */
+export function offer(line: string, heading: string | null = null, underField = false): MarkName | null {
+  if (SKILLS.test(line)) return 'skl';
+  if (field(line)) return 'fld';
   if (action(line)) return 'act';
   if (ATT_LINE.test(line)) return 'att';
   const r = influence(line);
   if (r?.level && r.sign === 1 && heading && /^\s*resources\b/i.test(heading)) return 'res';
   if (r?.level && heading && /^\s*motivations?\b/i.test(heading)) return 'mot';
+  if (underField && line.trim()) return 'skl';
   return null;
 }
 
@@ -157,4 +161,96 @@ const ATT_LINE = new RegExp(`^\\s*(?:[A-Z][a-z]{2}\\s*[+${MINUS}]?\\d+\\s*){2,}$
 /** The attributes an `<att>` mark's text names, by name. */
 export function attributes(text: string): Record<string, number> {
   return Object.fromEntries([...text.matchAll(ATT)].map(m => [m[1]!, signed(m[2]!)]));
+}
+
+// R323: a Field, `Name N (nXP)`: its Level N (Bill, 11-14). A ✓ marks a Skill, never a Field.
+const FIELD = /^\s*([^✓\s].*?)\s+(\d+)\s*\(\s*\d+\s*XP\s*\)\s*$/i;
+/** A Field's name and Level from a `<fld>` mark's text (or a plain line of that shape), or null. */
+export function field(text: string): { name: string; level: number } | null {
+  const m = FIELD.exec(text);
+  return m ? { name: m[1]!.trim(), level: Number(m[2]) } : null;
+}
+
+// R324: `Skills N: a, b (c), d`: each Skill, split at commas outside parentheses, at Level N.
+const SKILLS = /^\s*Skills\s+(\d+)\s*:/i;
+/** A `Skills N:` line's Level and each Skill with its start and end in the text; null for any other line. */
+export function skillsLine(text: string): { level: number; skills: { name: string; start: number; end: number }[] } | null {
+  const m = SKILLS.exec(text);
+  if (!m) return null;
+  const skills: { name: string; start: number; end: number }[] = [];
+  let depth = 0, from = m[0].length;
+  const take = (to: number) => {
+    const raw = text.slice(from, to), lead = raw.length - raw.trimStart().length, name = raw.trim();
+    if (name) skills.push({ name, start: from + lead, end: from + lead + name.length });
+  };
+  for (let i = from; i < text.length; i++) {
+    const c = text[i];
+    if (c === '(') depth++;
+    else if (c === ')') depth = Math.max(0, depth - 1);
+    else if (c === ',' && !depth) { take(i); from = i + 1; }
+  }
+  take(text.length);
+  return { level: Number(m[1]), skills };
+}
+
+/** A Field Skill line's name: its ✓, its XP-cost note (`(x2)`, `(x2, Rhetoric)`) and any written Level after it set aside. */
+const skillName = (text: string) => text.replace(/^\s*✓\s*/, '').replace(/\s+\d+\s*$/, '').replace(/\s*\(x\d+[^)]*\)/gi, '').trim();
+
+// R326, R327: what a drop can point at on a card, by name, so a roll carries names and never numbers
+// (R100) and the GM's page looks the number up on its own copy.
+export type Against = { def: 'mental' | 'psych' } | { act: string } | { fld: string } | { skl: string };
+/** One thing on a card's front a drop can point at: where it is, what it is, its base and its words. */
+export type Point = { line: number; start: number; end: number; against: Against; base: number; words: string };
+
+/** Everything on a card's front a drop can point at: Defend numbers, actions' Bases, Fields and Skills (Level plus Cha). */
+export function points(front: string): Point[] {
+  const lines: Line[] = parse(front), out: Point[] = [];
+  let cha = 0;
+  for (const l of lines) for (const r of l) if (typeof r !== 'string' && r.mark === 'att') cha = attributes(r.text).Cha ?? cha;
+  const plus = (level: number) => ` ${level} + Cha ${cha}`;
+  let fieldLevel: number | null = null;
+  lines.forEach((l, line) => {
+    let at = 0, onlySkills = true, sawField = false;
+    for (const r of l) {
+      const len = (typeof r === 'string' ? r : r.text).length;
+      if (typeof r === 'string') { if (r.trim()) onlySkills = false; at += len; continue; }
+      const t = r.text;
+      if (r.mark === 'def') {
+        const d = defend(t), colon = t.indexOf(':') + 1, nums = [...t.slice(colon).matchAll(/\d+/g)];
+        if (d) nums.forEach((n, k) => {
+          const before = t.slice(0, colon + n.index!);
+          const which = /mental\s*$/i.test(before) ? 'mental' : /psych\s*$/i.test(before) ? 'psych' : k === 0 ? 'mental' : 'psych';
+          const start = at + colon + n.index!;
+          out.push({ line, start, end: start + n[0].length, against: { def: which }, base: d[which],
+            words: nums.length === 1 ? `Defend ${d[which]}` : `${which} ${d[which]}` });
+        });
+      } else if (r.mark === 'act') {
+        const a = action(t), colon = t.indexOf(':') + 1, b = a && /[+\-−–]?\d+/.exec(t.slice(colon));
+        if (a && b) out.push({ line, start: at + colon + b.index, end: at + colon + b.index + b[0].length,
+          against: { act: a.label }, base: a.base, words: `${a.label} ${a.base}` });
+      } else if (r.mark === 'fld') {
+        const f = field(t);
+        if (f) { out.push({ line, start: at, end: at + len, against: { fld: f.name }, base: f.level + cha, words: f.name + plus(f.level) }); fieldLevel = f.level; sawField = true; }
+      } else if (r.mark === 'skl') {
+        const many = skillsLine(t);
+        if (many) {
+          for (const k of many.skills) out.push({ line, start: at + k.start, end: at + k.end, against: { skl: k.name }, base: many.level + cha, words: k.name + plus(many.level) });
+          fieldLevel = null;
+        } else if (fieldLevel !== null) {
+          const level = fieldLevel + (/^\s*✓/.test(t) ? 1 : 0), name = skillName(t);
+          if (name) out.push({ line, start: at, end: at + len, against: { skl: name }, base: level + cha, words: name + plus(level) });
+        }
+      } else onlySkills = false;
+      at += len;
+    }
+    // A Field's Skills run on while lines hold only Skills; anything else ends them.
+    if (!sawField && !onlySkills && plain(l).trim()) fieldLevel = null;
+  });
+  return out;
+}
+
+/** The point on a card's front that a roll's `against` names, or null when it names nothing there. */
+export function pointed(front: string, against: Against): Point | null {
+  const key = JSON.stringify(against);
+  return points(front).find(p => JSON.stringify(p.against) === key) ?? null;
 }

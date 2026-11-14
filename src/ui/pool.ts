@@ -273,7 +273,7 @@ function chip(doc: Document, i: Item, w: PoolWith): HTMLElement {
   return b;
 }
 
-// R236: a stack of discs in its colour; open, its members beside it, each with its name.
+// R236: a stack of discs in its color; open, its members beside it, each with its name.
 function pile(doc: Document, p: Exclude<Unit, Item>, open: Set<string>, w: PoolWith): HTMLElement {
   const first = (p.members[0] as Item | undefined)?.oid ?? '';
   const d = el(doc, 'div', `pile ${p.sign > 0 ? 'pos' : 'neg'}${open.has(first) ? ' open' : ''}`);
@@ -336,7 +336,7 @@ function drawer(box: HTMLElement, c: Character, cards: Influence[], w: PoolWith,
   box.querySelector('.tools')!.replaceChildren(...tools);
 }
 
-// R230, R238: a small white card with a band in its sign's colour, name and Level in handwriting; a
+// R230, R238: a small white card with a band in its sign's color, name and Level in handwriting; a
 // drawer its viewer can't read shows striped backs.
 function card(doc: Document, k: Influence, visible: boolean, w: PoolWith): HTMLElement {
   const rid = ridOf(k.oid);

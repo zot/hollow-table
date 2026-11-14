@@ -54,3 +54,11 @@ test('hostile envelopes are dropped', () => {
   }
   assert.ok(check(JSON.stringify(make('sync', 'a', {}))), 'a JSON string is read too');
 });
+
+test('an intent says what it points at by name, and nothing else', () => {
+  // R326: `against` is one of four named shapes; anything else drops the intent whole.
+  const intent = (against?: unknown) => make('intent', 'tab-a', { n: 1, pool: '00000002', action: 'Infer', vs: '00000001', defend: 'mental',
+    hand: { yellows: 0, bonus: 0 }, type: 'infer', ...(against !== undefined && { against }) });
+  for (const ok of [undefined, { def: 'psych' }, { act: 'Shoot' }, { fld: 'Sparker' }, { skl: 'Investigation' }]) assert.ok(check(intent(ok)), JSON.stringify(ok));
+  for (const bad of [{ def: 'physical' }, { act: 4 }, { skl: 'Tact', base: 9 }, { bogus: 'x' }, 'Shoot', null]) assert.equal(check(intent(bad)), null, JSON.stringify(bad));
+});

@@ -31,7 +31,7 @@ The GM's browser holds the game; players join with an invite link.
   `rolls.md` (rolls resolve there), `games.md` (a player's page holds a copy).
 - **Every control is a thing at the table.** `table.md` (*Feel*) states it; `rolls.md` (Roll, the
   CRIT punch, action dice), `games.md` (the Ledger page), `ownership.md` ("You are") and
-  `influence.md` (signed red chips) apply it. The invariant: no web chrome, nothing told by colour
+  `influence.md` (signed red chips) apply it. The invariant: no web chrome, nothing told by color
   alone, and every shift-click reachable by touch.
 - **The game versus your seat.** `games.md` defines the two tiers; every spec that adds state says
   which tier it's in.

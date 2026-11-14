@@ -21,7 +21,7 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - Clicking a pool's empty space adds a loose +1 (shift-click: −1). Clicking a +1 makes it a 2, then
   4, 6 and so on; shift-clicking a 2 makes it a +1; shift-clicking a +1 removes it. Clicking a +1
   rider does nothing; shift-clicking it removes it.
-- **Roll Up:** three chips of one value and colour in a slot become the next Level, chaining
+- **Roll Up:** three chips of one value and color in a slot become the next Level, chaining
   (4, 4, then three 2s make 6). A chip carrying a +1 counts at its face value, and its +1 is spent
   on the Roll Up. Lowering can complete a Roll Up too.
 
@@ -35,9 +35,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   another pool's drawer, it moves to that character. A card is deleted only on purpose: in the
   drawer's **kill box**, or by shift-clicking it at Min (Bill, 11-12).
 - **A card in a drawer is a small white card** (Bill, 11-12) with a band down its left edge in its
-  sign's colour, its name and Level in handwriting, and a resource-made card's glyph before its
+  sign's color, its name and Level in handwriting, and a resource-made card's glyph before its
   name. Cards wrap in the tray, so long names stack one to a row.
-- The drawer's tools are **tiles**: a dashed + and − in their sign's colour to write a new card, the
+- The drawer's tools are **tiles**: a dashed + and − in their sign's color to write a new card, the
   **used pile** as a tile with its count, and the **kill box** as a hatched tile.
 - **A new card is written as "Influence" with its name selected**, so typing names it. It goes
   last in its drawer (Bill, 11-12).
@@ -52,7 +52,7 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - A drawer its viewer may not read shows its cards face-down, as striped red backs that keep their
   number and size.
 - **Roll Up groups cards and doesn't merge them.** Three equal cards form a **pile** showing the
-  value they act as, drawn as a stack of discs in its colour. Click the pile to open or close it;
+  value they act as, drawn as a stack of discs in its color. Click the pile to open or close it;
   an open pile lists its members beside it, each chip with its name, and a member dragged out
   breaks the pile.
 - **A Roll Up pops:** a chip or pile it makes grows in from half again its size with a white ring,

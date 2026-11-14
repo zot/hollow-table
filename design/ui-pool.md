@@ -48,6 +48,6 @@ slide aside, and the tray grows a row if it must.
 ```
 When a drawer grows, any piece the mat now covers slides just clear below it (R241).
 
-- A pile shows as a stack of discs in its colour; open, its members are listed beside it, each with
+- A pile shows as a stack of discs in its color; open, its members are listed beside it, each with
   its name.
 - Refs: crc-PoolView.md, crc-Drag.md

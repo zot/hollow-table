@@ -80,8 +80,8 @@ export type Text = { kind: 'text'; oid: Oid; place: Place; text: Marked; pin?: P
 export type Image = { kind: 'image'; oid: Oid; place: Place; blob: string; w: number; h: number; pin?: Pin };
 
 export const DICE = ['W', 'G', 'R', 'B', 'Y'] as const;
-export type DieColour = (typeof DICE)[number];
-export type Die = { c: DieColour; v: number; added: boolean; dropped: boolean };
+export type DieColor = (typeof DICE)[number];
+export type Die = { c: DieColor; v: number; added: boolean; dropped: boolean };
 export type Crit = { max: number; dbl: number; chosen: 'max' | 'dbl'; locked: boolean };
 
 // R319: what a roll is: `?` for not saying, plain Skill use, Create Influence, the three Attacks, and

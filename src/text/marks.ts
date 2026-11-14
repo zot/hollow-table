@@ -6,7 +6,8 @@
 import type { Marked } from '../model/records.ts';
 
 // R209: `<bias>`, `<aff>` and `<inj>` are not marks; they are how a Damage slot's entry is drawn.
-export const MARKS = ['act', 'res', 'mot', 'att', 'inf', 'def', 'head'] as const;
+// R322: the closed set of marks; `fld` and `skl` mark Fields and Skills (Bill, 11-14).
+export const MARKS = ['act', 'res', 'mot', 'att', 'inf', 'def', 'fld', 'skl', 'head'] as const;
 export type MarkName = (typeof MARKS)[number];
 
 export type MarkRun = { mark: MarkName; text: string };

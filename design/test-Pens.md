@@ -121,3 +121,14 @@ marks each entry, the commas and spaces left plain
 **Fire alarm:** In entries, keep the Resource sign rule for Motivations: the negative entry stops the split
 **Inject:** src/ui/pens.ts:entries
 **Pulled:** 2026-11-12 — rang: the negative entry stopped the split; the whole line became one Motivation
+
+## Test: the Field and Skill pens offered
+**Purpose:** R207, R323, R324: a Field line is offered the Field pen; a plain line under a Field or its Skills, the Skill pen; the same line under a heading, nothing
+**Input:** a Field, a Skill, a plain Skill line, a heading, a plain line under it, and a plain Field line
+**Expected:** `skl` for the plain line under the Skill, null under the heading, `fld` for the Field line
+**Refs:** crc-Pens.md, crc-MarkReader.md
+**Code:** src/ui/pens.test.ts
+**Alarm:** 10
+**Fire alarm:** make `underField` always false; red: the plain line under the Skill is offered nothing
+**Inject:** src/ui/pens.ts:underField
+**Pulled:** 2026-11-14 — 2026-11-14 — rang: "the Field and Skill pens offered" failed (nothing offered under the Skill); restored clean

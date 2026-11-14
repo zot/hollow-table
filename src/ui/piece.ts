@@ -404,6 +404,12 @@ function dry(e: HTMLElement, c: Character): void {
 /** Glyphs before the front's `<res>` and `<mot>` marks (R258); left alone while the front is being written in. */
 function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
   const doc = text.ownerDocument, using = w.inUse(c.oid);
+  // R331: a Field's Skills indent under it, a ✓ hanging in the margin so the names align.
+  const indents = skillIndents(c.front);
+  [...text.children].forEach((line, k) => {
+    line.classList.toggle('sklpad', indents.has(k));
+    line.classList.toggle('sklhang', indents.get(k) === 'hang');
+  });
   // R77: the action in use gets its highlighter swish, matched by label, so it survives edits.
   for (const span of text.querySelectorAll<HTMLElement>('span.act')) span.classList.toggle('inuse', !!using && readAction(span.textContent ?? '')?.label === using);
   if (doc.activeElement && text.contains(doc.activeElement)) return;
@@ -440,6 +446,28 @@ function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
       rest.before(die(alt));
     }
   }
+}
+
+// R331: every Skill line under a Field is indented ('pad'), and one with a ✓ hangs it in the margin
+// ('hang'); a `Skills N:` line, or a Skill with no Field above, stays flush.
+/** The front's Field Skill lines that indent, by line index. */
+export function skillIndents(front: string): Map<number, 'pad' | 'hang'> {
+  const out = new Map<number, 'pad' | 'hang'>();
+  let group: { line: number; check: boolean }[] = [], inField = false;
+  const close = () => {
+    for (const g of group) out.set(g.line, g.check ? 'hang' : 'pad');
+    group = [];
+    inField = false;
+  };
+  parse(front).forEach((runs, line) => {
+    const marked = runs.filter(r => typeof r !== 'string' || r.trim()) as (string | { mark: string; text: string })[];
+    const only = marked.length === 1 && typeof marked[0] !== 'string' ? marked[0] : null;
+    if (only?.mark === 'fld') { close(); inField = true; return; }
+    if (inField && only?.mark === 'skl' && !/^\s*Skills\s+\d+\s*:/i.test(only.text)) { group.push({ line, check: /^\s*✓/.test(only.text) }); return; }
+    close();
+  });
+  close();
+  return out;
 }
 
 /** Where `needle` starts after a `/` at or past `from` in the element's text: its text node and offset. */

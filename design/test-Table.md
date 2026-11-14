@@ -111,3 +111,14 @@ pool's labels selects as text but the build stamp
   the desktop lands where it's dropped
 **Refs:** crc-PieceView.md, crc-TableView.md
 **Code:** `tests/card.spec.ts`
+
+## Test: pointing at the opposing number
+**Purpose:** R326, R327, R329: in the browser, a drag from the Base over a number on the target's card draws the line and a box round just that number; the drop aims at it with no chooser; a drag onto a Skill aims at its Level plus Cha, and the receipt names it
+**Input:** the GM's page; Devreux's Attack typed Skill, dragged onto the 4 of Sam's `psych 4`, held, then let go; then onto Investigation, and rolled
+**Expected:** `#aimline` drawn, `#aimbox` visible and under 40 px wide, gone after the drop; no chooser; the vs title `Sam: psych 4,…`; then `Sam: Investigation 2 + Cha 2,…` and the receipt `vs Sam (Investigation 2 + Cha 2…`
+**Refs:** crc-RollRow.md
+**Code:** tests/rolls-local.spec.ts
+**Alarm:** 5
+**Fire alarm:** make `caretIn` find nothing (return null); red: no box, and the drop falls back to the chooser
+**Inject:** src/ui/rollrow.ts:caretIn
+**Pulled:** 2026-11-14 — 2026-11-14 — rang: chromium "pointing at the opposing number" failed at the box's toBeVisible; restored and rebuilt clean

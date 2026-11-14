@@ -91,3 +91,14 @@ Red picked by hand
 **Fire alarm:** let `typed` keep the opponent when turning to `?`; red: the `?` roll stays aimed at Devreux
 **Inject:** src/ui/rollrow.ts:typed
 **Pulled:** 2026-11-13 — 2026-11-13 — rang: "the roll type" failed (the ? roll stayed aimed); restored clean
+
+## Test: aimed at what was pointed at
+**Purpose:** R326, R328: an aim keeps what was pointed at by name and the intent carries it; the next aim without one drops it; the row's numbers take the base from it
+**Input:** Beauford's Infer aimed at Sam with `{act: Shoot}`, then aimed again with no point
+**Expected:** intent `against` `{act: Shoot}`, shown words `Shoot 4`; then no `against` and no words
+**Refs:** crc-RollRow.md
+**Code:** src/ui/rollrow.test.ts
+**Alarm:** 8
+**Fire alarm:** let `aimed` keep an earlier `against` (spread `r` without dropping it); red: the second aim still reads Shoot 4
+**Inject:** src/ui/rollrow.ts:aimed
+**Pulled:** 2026-11-14 — 2026-11-14 — rang: "aimed at what was pointed at" failed (the second aim kept {act: Shoot}); restored clean

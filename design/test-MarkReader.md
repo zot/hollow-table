@@ -86,3 +86,21 @@ name with no Level
 **Fire alarm:** Offer the Attributes pen for one pair: `Wis 4` alone, and "Rank 3", are offered it
 **Inject:** src/rules/readmarks.ts:offer
 **Pulled:** 2026-11-12 — rang: `Wis 4` alone was offered the Attributes pen
+
+## Test: Fields, Skills and their pens
+**Purpose:** R323, R324: a Field by its Level and XP (a ✓ or a Rank is no Field); a `Skills N:` line split at commas outside parentheses; R207: the Field and Skill pens offered, a plain line only under a Field
+**Input:** `Private Investigator 2 (5XP)`, `✓ Glimmersense (x2) 3`, `Saloon Proprietor, Rank 3`, `Skills 2: Profession (Saloon Keeper, Bar), Tact`; offers for a Field, a Skills line, and Composure with and without a Field above
+**Expected:** {Private Investigator, 2}; null; null; two Skills; `fld`, `skl`, null, `skl`
+**Refs:** crc-MarkReader.md
+**Code:** src/rules/readmarks.test.ts
+
+## Test: what a drop can point at
+**Purpose:** R326, R327: every Defend number, action Base, Field and Skill on a card, where it is in its line, its base (a Field or Skill: Level plus Cha) and its words; a Field's Skills end at anything else; a ✓ is one Level higher; an XP note is no part of a name
+**Input:** Sam's front with its Fields and Skills marked, a Skill under a heading, a heading straight after a Field's Skill, and Beauford's `Rhetoric (Salesman) (x2)` and `Finesse (x2, Rhetoric)`
+**Expected:** the list in order with bases 4, 4, 4, 4, 5, 3, 3, 4, 2, 4; nothing for the Skill under the heading; `Rhetoric (Salesman) 3 + Cha 1`, `Finesse 3 + Cha 1`
+**Refs:** crc-MarkReader.md
+**Code:** src/rules/readmarks.test.ts
+**Alarm:** 7
+**Fire alarm:** never end a Field's Skills (drop the `fieldLevel = null` reset after a line with anything else); red: the Skill under the heading gets a Level and can be pointed at
+**Inject:** src/rules/readmarks.ts:points
+**Pulled:** 2026-11-14 — 2026-11-14 — rang: "what a drop can point at" failed (a Skill after a heading got a Level), once the test put a heading straight after a Field's Skill; before that it did not ring, a Skills line had already ended the Field; restored clean

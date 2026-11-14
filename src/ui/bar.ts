@@ -57,7 +57,7 @@ export class BarView {
     file.hidden = true;
     file.addEventListener('change', () => { w.images([...(file.files ?? [])]); file.value = ''; });
     image.addEventListener('click', () => file.click());
-    // R18, R304: chips 2, 4, 6 and +1 of each colour, in two rows.
+    // R18, R304: chips 2, 4, 6 and +1 of each color, in two rows.
     const chips = el('div', 'supplychips', '', 'Influence chips: drag one out');
     for (const sign of [1, -1] as const) for (const points of [2, 4, 6, 1]) {
       const c = el('div', `supply chip ${sign > 0 ? 'pos' : 'neg'}${points === 1 ? ' one' : ''}`, chipFace({ sign, points }));

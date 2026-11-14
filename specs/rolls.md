@@ -25,7 +25,7 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
 - Yellows: click adds, shift-click removes. Bonus: click raises, shift-click lowers (it shows −n
   below zero).
 - **The roll row's look** (Bill, 11-12, as the mockup): it docks between the pool's header and its
-  slots, a dark walnut strip as wide as the drawer. The dice are blank, 24 px, in their colours
+  slots, a dark walnut strip as wide as the drawer. The dice are blank, 24 px, in their colors
   (White `#f6f6f2`, Green `#6aa84f`, Red `#cc4125`, Blue `#3d85c6`, Yellow `#f1c232`); Roll is a blue
   key at the right. With no Yellows a dashed yellow ghost die holds their place; a bonus of 0 shows
   a faint "+0". The parts you click light faintly under the pointer. In the pool's header the
@@ -75,7 +75,25 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   Skill"; fists can oppose fists, but a gun is "generally against nothing"). When a relevant Skill
   opposes, the GM adjusts the roll by hand. The type travels with the roll; an Attack's
   kind shows in the receipt's `vs` line (*vs Sam (physical 0)*).
-- Their total is Defend + Main + Edge + Bias + Affliction + Injury + **Stagger**. **The Difference picks the White row**,
+- **Pointing at the opposing number** (Bill, 11-13: "the GM could point at the 6 or the 5 to remove
+  all doubt"): the drag can end on a number on the target's card, and that number is the
+  opposition's base. It can be a **Defend number** (the 2 or the 4 in `Defend: mental 2 / psych 4`,
+  the 6 or the 5 in `6 / 5`, a single Defend's one number) or an **action's Base** (the 4 in `Shoot:
+  4, +2`, for Skill against Skill). A number pointed at wins over the chooser and over an Attack's own
+  Defend; an Attack's type still picks the Damage column. The `vs` line names it: *vs Sam (Shoot
+  4)*, *vs Sam (psych 4)*. It holds until the next aim.
+- **Pointing at a Field or a Skill** (Bill, 11-14): the drag can end on a `<fld>` line, or on one
+  Skill of a `<skl>` line (one Skill of several in a `Skills N:` line), and the opposition's base is
+  its Level (*Card text* in `table.md`) plus the target's **Cha** (Bill: "Let's always use Cha for
+  now"; choosing the attribute is `.carves/prototype.md` part 35.2). Only marked Fields and Skills
+  can be pointed at. The `vs` line reads *vs Sam (Investigation 2 + Cha 2)*.
+- **A drop anywhere else on the target** (Bill, 11-14) — its pool, its card away from a number, or a
+  card turned to its back — keeps the rule above: an Attack at its own Defend, other rolls through
+  the chooser when the Defend has two numbers.
+- **While dragging, a line runs from the action to the pointer** (Bill, 11-13), and the dashed amber
+  box goes round the number, Field or Skill the drop would pick (Bill, 11-13: "show it around the attribute, skill,
+  or number"), or round the pool when there's no number under the pointer.
+- Their total is Defend (or what was pointed at) + Main + Edge + Bias + Affliction + Injury + **Stagger**. **The Difference picks the White row**,
   live on either side's pool changes, until the roller picks a row by hand (held until they point
   again).
 - The current opponent is marked (an amber ring round their pool, ⌖ by their name). Clicking `vs`
@@ -149,7 +167,7 @@ this section and the book disagree, the book wins and this section is wrong.
   4*; a failed Attack reads like any Failure. Each page
   leaves out what it may not know. The title can be edited. An error or a lost roll prints on your
   tape as a short red note with the time.
-- **Receipt dice are dice**: 28 px, with their numbers, in their colours. An exploded Yellow has a
+- **Receipt dice are dice**: 28 px, with their numbers, in their colors. An exploded Yellow has a
   dashed edge; a die removed on a Failure is faded with a stroke through it. They tumble in one after
   another. Each die's title names it (*Yellow, exploded*). The receipt is cream paper, about 300 px,
   in PT Mono, with a torn zigzag bottom.

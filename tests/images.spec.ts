@@ -6,18 +6,18 @@ import { gmTable, hook, join } from './page.ts';
 
 const NOBODY = 'Nobody at the table has sent this image yet (the page that has it may be closed); trying again';
 
-/** A small PNG of one colour, drawn by the page. */
-const png = (page: Page, colour: string) => page.evaluate(async colour => {
+/** A small PNG of one color, drawn by the page. */
+const png = (page: Page, color: string) => page.evaluate(async color => {
   const c = document.createElement('canvas');
   c.width = 24; c.height = 16;
   const g = c.getContext('2d')!;
-  g.fillStyle = colour; g.fillRect(0, 0, 24, 16);
+  g.fillStyle = color; g.fillRect(0, 0, 24, 16);
   return c.toDataURL('image/png').split(',')[1]!;
-}, colour).then(b64 => ({ name: `${colour}.png`, mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') }));
+}, color).then(b64 => ({ name: `${color}.png`, mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') }));
 
 /** The image supply's file picker, given a file. */
-async function addImage(page: Page, colour: string) {
-  await page.locator('#bar input[type=file]').first().setInputFiles(await png(page, colour));
+async function addImage(page: Page, color: string) {
+  await page.locator('#bar input[type=file]').first().setInputFiles(await png(page, color));
 }
 
 const hashes = (page: Page) => hook(page, h => h.store.game.all().filter(([, r]: [string, any]) => r.kind === 'image').map(([, r]: [string, any]) => r.blob).sort());

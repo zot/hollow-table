@@ -220,7 +220,7 @@ var Game = class {
 };
 
 // src/text/marks.ts
-var MARKS = ["act", "res", "mot", "att", "inf", "def", "head"];
+var MARKS = ["act", "res", "mot", "att", "inf", "def", "fld", "skl", "head"];
 var TAG = new RegExp(`<(${MARKS.join("|")})>`, "g");
 function parseLine(src) {
   const runs = [];
@@ -423,12 +423,15 @@ function defend(text) {
   }
   return null;
 }
-function offer(line, heading2 = null) {
+function offer(line, heading2 = null, underField2 = false) {
+  if (SKILLS.test(line)) return "skl";
+  if (field(line)) return "fld";
   if (action(line)) return "act";
   if (ATT_LINE.test(line)) return "att";
   const r = influence(line);
   if (r?.level && r.sign === 1 && heading2 && /^\s*resources\b/i.test(heading2)) return "res";
   if (r?.level && heading2 && /^\s*motivations?\b/i.test(heading2)) return "mot";
+  if (underField2 && line.trim()) return "skl";
   return null;
 }
 var LEVELS = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
@@ -473,6 +476,102 @@ var ATT_LINE = new RegExp(`^\\s*(?:[A-Z][a-z]{2}\\s*[+${MINUS}]?\\d+\\s*){2,}$`)
 function attributes(text) {
   return Object.fromEntries([...text.matchAll(ATT)].map((m) => [m[1], signed(m[2])]));
 }
+var FIELD = /^\s*([^✓\s].*?)\s+(\d+)\s*\(\s*\d+\s*XP\s*\)\s*$/i;
+function field(text) {
+  const m = FIELD.exec(text);
+  return m ? { name: m[1].trim(), level: Number(m[2]) } : null;
+}
+var SKILLS = /^\s*Skills\s+(\d+)\s*:/i;
+function skillsLine(text) {
+  const m = SKILLS.exec(text);
+  if (!m) return null;
+  const skills = [];
+  let depth = 0, from = m[0].length;
+  const take2 = (to) => {
+    const raw = text.slice(from, to), lead = raw.length - raw.trimStart().length, name2 = raw.trim();
+    if (name2) skills.push({ name: name2, start: from + lead, end: from + lead + name2.length });
+  };
+  for (let i = from; i < text.length; i++) {
+    const c = text[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if (c === "," && !depth) {
+      take2(i);
+      from = i + 1;
+    }
+  }
+  take2(text.length);
+  return { level: Number(m[1]), skills };
+}
+var skillName = (text) => text.replace(/^\s*✓\s*/, "").replace(/\s+\d+\s*$/, "").replace(/\s*\(x\d+[^)]*\)/gi, "").trim();
+function points2(front) {
+  const lines = parse(front), out = [];
+  let cha = 0;
+  for (const l of lines) for (const r of l) if (typeof r !== "string" && r.mark === "att") cha = attributes(r.text).Cha ?? cha;
+  const plus = (level) => ` ${level} + Cha ${cha}`;
+  let fieldLevel = null;
+  lines.forEach((l, line) => {
+    let at3 = 0, onlySkills = true, sawField = false;
+    for (const r of l) {
+      const len = (typeof r === "string" ? r : r.text).length;
+      if (typeof r === "string") {
+        if (r.trim()) onlySkills = false;
+        at3 += len;
+        continue;
+      }
+      const t = r.text;
+      if (r.mark === "def") {
+        const d = defend(t), colon = t.indexOf(":") + 1, nums = [...t.slice(colon).matchAll(/\d+/g)];
+        if (d) nums.forEach((n, k) => {
+          const before2 = t.slice(0, colon + n.index);
+          const which = /mental\s*$/i.test(before2) ? "mental" : /psych\s*$/i.test(before2) ? "psych" : k === 0 ? "mental" : "psych";
+          const start = at3 + colon + n.index;
+          out.push({
+            line,
+            start,
+            end: start + n[0].length,
+            against: { def: which },
+            base: d[which],
+            words: nums.length === 1 ? `Defend ${d[which]}` : `${which} ${d[which]}`
+          });
+        });
+      } else if (r.mark === "act") {
+        const a = action(t), colon = t.indexOf(":") + 1, b = a && /[+\-−–]?\d+/.exec(t.slice(colon));
+        if (a && b) out.push({
+          line,
+          start: at3 + colon + b.index,
+          end: at3 + colon + b.index + b[0].length,
+          against: { act: a.label },
+          base: a.base,
+          words: `${a.label} ${a.base}`
+        });
+      } else if (r.mark === "fld") {
+        const f = field(t);
+        if (f) {
+          out.push({ line, start: at3, end: at3 + len, against: { fld: f.name }, base: f.level + cha, words: f.name + plus(f.level) });
+          fieldLevel = f.level;
+          sawField = true;
+        }
+      } else if (r.mark === "skl") {
+        const many = skillsLine(t);
+        if (many) {
+          for (const k of many.skills) out.push({ line, start: at3 + k.start, end: at3 + k.end, against: { skl: k.name }, base: many.level + cha, words: k.name + plus(many.level) });
+          fieldLevel = null;
+        } else if (fieldLevel !== null) {
+          const level = fieldLevel + (/^\s*✓/.test(t) ? 1 : 0), name2 = skillName(t);
+          if (name2) out.push({ line, start: at3, end: at3 + len, against: { skl: name2 }, base: level + cha, words: name2 + plus(level) });
+        }
+      } else onlySkills = false;
+      at3 += len;
+    }
+    if (!sawField && !onlySkills && plain(l).trim()) fieldLevel = null;
+  });
+  return out;
+}
+function pointed(front, against) {
+  const key = JSON.stringify(against);
+  return points2(front).find((p) => JSON.stringify(p.against) === key) ?? null;
+}
 
 // src/rules/influence.ts
 var LEVELS2 = [
@@ -498,9 +597,9 @@ function raiseCard(card2) {
 function lowerCard(card2) {
   return { ...card2, points: Math.max(MIN, card2.points - STEP) };
 }
-function levelName(points2) {
-  if (points2 < MIN) return String(points2);
-  return LEVELS2[Math.floor(points2 / STEP) - 1]?.word ?? String(points2);
+function levelName(points3) {
+  if (points3 < MIN) return String(points3);
+  return LEVELS2[Math.floor(points3 / STEP) - 1]?.word ?? String(points3);
 }
 var ROW_LEVELS = { mild: 1, min: 1, sig: 2, maj: 3 };
 function rowLevels(row2) {
@@ -924,6 +1023,8 @@ var PENS = [
   { mark: "att", word: "Attributes" },
   { mark: "inf", word: "Influence" },
   { mark: "def", word: "Defend" },
+  { mark: "fld", word: "Field" },
+  { mark: "skl", word: "Skill" },
   { mark: "head", word: "Heading" }
 ];
 function before(a, b) {
@@ -990,7 +1091,15 @@ function offered(lines, line) {
   const l = lines[line];
   if (!l || l.some((r) => typeof r !== "string")) return null;
   const text = plain(l).trim();
-  return text ? offer(text, heading(lines, line)) : null;
+  return text ? offer(text, heading(lines, line), underField(lines, line)) : null;
+}
+function underField(lines, line) {
+  for (let k = line - 1; k >= 0; k--) {
+    const marks2 = lines[k].filter((r) => typeof r !== "string" && !!r.text.trim());
+    if (marks2.some((r) => r.mark === "fld")) return true;
+    if (marks2.some((r) => r.mark !== "skl")) return false;
+  }
+  return false;
 }
 function places(count, k, at3, step) {
   let y = 0;
@@ -1483,6 +1592,11 @@ function dry(e, c) {
 }
 function frontGlyphs(text, c, w) {
   const doc = text.ownerDocument, using = w.inUse(c.oid);
+  const indents = skillIndents(c.front);
+  [...text.children].forEach((line, k) => {
+    line.classList.toggle("sklpad", indents.has(k));
+    line.classList.toggle("sklhang", indents.get(k) === "hang");
+  });
   for (const span of text.querySelectorAll("span.act")) span.classList.toggle("inuse", !!using && action(span.textContent ?? "")?.label === using);
   if (doc.activeElement && text.contains(doc.activeElement)) return;
   for (const g of text.querySelectorAll(".glyph, .actdie")) g.remove();
@@ -1519,6 +1633,31 @@ function frontGlyphs(text, c, w) {
       rest.before(die3(alt));
     }
   }
+}
+function skillIndents(front) {
+  const out = /* @__PURE__ */ new Map();
+  let group = [], inField = false;
+  const close = () => {
+    for (const g of group) out.set(g.line, g.check ? "hang" : "pad");
+    group = [];
+    inField = false;
+  };
+  parse(front).forEach((runs, line) => {
+    const marked2 = runs.filter((r) => typeof r !== "string" || r.trim());
+    const only = marked2.length === 1 && typeof marked2[0] !== "string" ? marked2[0] : null;
+    if (only?.mark === "fld") {
+      close();
+      inField = true;
+      return;
+    }
+    if (inField && only?.mark === "skl" && !/^\s*Skills\s+\d+\s*:/i.test(only.text)) {
+      group.push({ line, check: /^\s*✓/.test(only.text) });
+      return;
+    }
+    close();
+  });
+  close();
+  return out;
 }
 function atText(el3, needle, from) {
   const whole = el3.textContent ?? "", slash = whole.indexOf("/", from);
@@ -1657,7 +1796,12 @@ var BODIES = {
       defend: oneOf("mental", "psych"),
       hand: fields({ yellows: int(-LIMITS.dice, LIMITS.dice), bonus: int(-1e3, 1e3) })
     },
-    { row: str(32), type: oneOf(...ROLL_TYPES), alt: name }
+    { row: str(32), type: oneOf(...ROLL_TYPES), alt: name, against: (v) => [
+      fields({ def: oneOf("mental", "psych") }),
+      fields({ act: name }),
+      fields({ fld: name }),
+      fields({ skl: name })
+    ].some((f) => f(v)) }
   ),
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf("max", "dbl"), lock: bool }),
@@ -2773,12 +2917,16 @@ function resolve2(game, intent, rng, at3) {
   const mine = pools(character2.oid, items), sum2 = act ? total2(act.base, mine) : null;
   const type = intent.type ?? "?";
   const kind = isAttack(type) ? type : intent.defend;
-  let opp, against;
+  let opp, against, point = null;
   if (intent.vs && sum2) {
     opp = game.get(ridOf(intent.vs));
     if (opp?.kind !== "character") return { refused: "That opponent is not on the table." };
     const def = marks(parse(opp.front), "def").map((m) => defend(m.text)).find((d) => d);
-    const base2 = kind === "phys" || !def ? 0 : def[kind];
+    point = intent.against ? pointed(opp.front, intent.against) : null;
+    let base2;
+    if (point) base2 = point.base;
+    else if (kind === "phys" || !def) base2 = 0;
+    else base2 = def[kind];
     against = opposition(base2, pools(opp.oid, items)).total;
   }
   const diff = against === void 0 || !sum2 ? void 0 : sum2.total - against;
@@ -2803,7 +2951,10 @@ function resolve2(game, intent, rng, at3) {
     ...r.crit && { crit: r.crit },
     ...attack
   };
-  const vsFull = opp && `${opp.name} (${kind === "phys" ? "physical" : kind} ${against}), Difference ${signed2(diff)}`;
+  let opposed;
+  if (point) opposed = point.words + (against !== point.base ? ` \u2192 ${against}` : "");
+  else opposed = `${kind === "phys" ? "physical" : kind} ${against}`;
+  const vsFull = opp && `${opp.name} (${opposed}), Difference ${signed2(diff)}`;
   const owner = character2.owner === GM ? { name: GM, gm: true } : { name: character2.owner, gm: false };
   const seesOpp = !opp || canSee(owner, opp);
   const numbers = sum2 && act ? { influence: sum2.total, base: act.base } : {};
@@ -3691,19 +3842,19 @@ var schnorr = /* @__PURE__ */ freeze({
   verifyAsync: verifySchnorrAsync
 });
 var precompute = () => {
-  const points2 = [];
+  const points3 = [];
   let p = G;
   let b = p;
   for (let w = 0; w < 33; w++) {
     b = p;
-    points2.push(b);
+    points3.push(b);
     for (let i = 1; i < 128; i++) {
       b = b.add(p);
-      points2.push(b);
+      points3.push(b);
     }
     p = b.double();
   }
-  return points2;
+  return points3;
 };
 var Gpows = void 0;
 var ctneg = (cnd, p) => {
@@ -7775,8 +7926,8 @@ function handStep(r, what, by) {
 function picked(r, key) {
   return { ...r, row: key, byHand: true };
 }
-function aimed(r, opponent, defend2) {
-  return { ...r, opponent, defend: defend2, row: null, byHand: false };
+function aimed(r, opponent, defend2, against) {
+  return { ...r, opponent, defend: defend2, row: null, byHand: false, against };
 }
 function unaimed(r) {
   return { ...r, opponent: null, ...!r.byHand && { row: null } };
@@ -7795,7 +7946,8 @@ function intentOf(r) {
     hand: r.hand,
     ...row2,
     type: r.type ?? "?",
-    ...r.alt && { alt: r.alt }
+    ...r.alt && { alt: r.alt },
+    ...r.against && r.opponent && { against: r.against }
   };
 }
 function rollsFor(viewer, c) {
@@ -7815,8 +7967,13 @@ function shown(game, r) {
   const out = { label: r.alt ?? act.label, base: act.base, total: sum2.total, parts: sum2.parts, yellows: dice.yellows, bonus: dice.bonus, row: row2 };
   const opp = r.opponent ? game.get(ridOf(r.opponent)) : void 0;
   if (opp?.kind !== "character") return out;
-  const against = opposition(defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum2.total - against;
-  return { ...out, row: r.byHand ? row2 : row(diff), vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c), opp) } };
+  const point = r.against ? pointed(opp.front, r.against) : null;
+  const against = opposition(point ? point.base : defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum2.total - against;
+  return {
+    ...out,
+    row: r.byHand ? row2 : row(diff),
+    vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c), opp), ...point && { words: point.words } }
+  };
 }
 var ownerWord = (c) => c.owner === GM ? "GM" : c.owner === OPEN ? "open" : c.owner;
 var TYPE_WORDS = {
@@ -7984,7 +8141,7 @@ var RollRowView = class {
         n.textContent = ` ${s.vs.total < 0 ? `\u2212${-s.vs.total}` : s.vs.total} (${SIGN(s.vs.diff)})`;
         vs.append(n);
       }
-      vs.title = shows ? `${s.vs.name}: ${r.defend} Defend, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
+      vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
       gesture(vs, { click: () => step(unaimed(r)) });
       this.#info.append(vs);
     }
@@ -7993,32 +8150,62 @@ var RollRowView = class {
   }
   // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
   // the pointing hand holds; let go to aim, through the Defend chooser when they have two.
+  // R326, R327, R329: a line runs from the press to the pointer, and the box goes round the number,
+  // Field or Skill under it on the target's card front; a drop there aims at it, with no chooser.
   #aim(r, down, move) {
     const doc = this.#row.ownerDocument, body = doc.body;
     const under = (e) => {
       for (const el3 of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
-        const rid2 = el3.closest?.(".pool, .obj.card")?.dataset.rid;
-        if (rid2) return rid2.slice(2);
+        const hit = el3.closest?.(".pool, .obj.card");
+        const rid2 = hit?.dataset.rid;
+        if (!rid2) continue;
+        const oid = rid2.slice(2), text = hit.matches(".obj.card:not(.flipped)") ? hit.querySelector(".front > .text") : null;
+        const c = this.#w.game.get(ridOf(oid));
+        const at3 = text && c?.kind === "character" ? caretIn(text, e) : null;
+        const point = at3 ? points2(c.front).find((p) => p.line === at3.line && p.start <= at3.offset && at3.offset <= p.end) : void 0;
+        return point ? { oid, point, text } : { oid };
       }
       return null;
     };
+    const box2 = doc.createElement("div"), svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg"), line = doc.createElementNS(svg.namespaceURI, "line");
+    box2.id = "aimbox";
+    box2.hidden = true;
+    svg.id = "aimline";
+    line.setAttribute("x1", String(down.clientX));
+    line.setAttribute("y1", String(down.clientY));
+    svg.append(line);
+    body.append(svg, box2);
     let lit;
-    const light = (oid) => {
+    const light = (e) => {
+      line.setAttribute("x2", String(e.clientX));
+      line.setAttribute("y2", String(e.clientY));
+      const t = under(e), oid = t && t.oid !== r.pool ? t.oid : null;
       lit?.classList.remove("aimed");
-      lit = oid && oid !== r.pool ? this.#w.pool(oid) : void 0;
-      lit?.classList.add("aimed");
+      lit = void 0;
+      box2.hidden = true;
+      if (!oid) return;
+      const rect = t.point ? rangeOf(t.text, t.point)?.getBoundingClientRect() : void 0;
+      if (rect) {
+        Object.assign(box2.style, { left: `${rect.left - 3}px`, top: `${rect.top - 2}px`, width: `${rect.width + 6}px`, height: `${rect.height + 4}px` });
+        box2.hidden = false;
+      } else {
+        lit = this.#w.pool(oid);
+        lit?.classList.add("aimed");
+      }
     };
     body.classList.add("tapping", "dragging");
     doc.getSelection()?.removeAllRanges();
-    const onMove = (ev) => light(under(ev));
+    const onMove = (ev) => light(ev);
     const onUp = (ev) => {
       const e = ev;
       if (e.pointerId !== down.pointerId) return;
       doc.removeEventListener("pointermove", onMove);
       doc.removeEventListener("pointerup", onUp);
       body.classList.remove("tapping", "dragging");
-      light(null);
-      const oid = under(e), opp = oid && oid !== r.pool ? this.#w.game.get(ridOf(oid)) : void 0;
+      lit?.classList.remove("aimed");
+      box2.remove();
+      svg.remove();
+      const t = under(e), opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) : void 0;
       if (opp?.kind !== "character") return;
       const viewer = this.#w.viewer;
       if (!viewer?.gm && !canSee(viewer, opp)) {
@@ -8029,8 +8216,14 @@ var RollRowView = class {
         this.#note("Say what this roll is first.", e);
         return;
       }
+      const byType = r.type === "psych" ? "psych" : "mental";
+      if (t.point) {
+        const a = t.point.against;
+        this.#set(aimed(r, opp.oid, "def" in a ? a.def : byType, a));
+        return;
+      }
       if (isAttack(r.type)) {
-        this.#set(aimed(r, opp.oid, r.type === "psych" ? "psych" : "mental"));
+        this.#set(aimed(r, opp.oid, byType));
         return;
       }
       const def = defendOf(opp);
@@ -8124,6 +8317,37 @@ var RollRowView = class {
     this.#menu.hidden = false;
   }
 };
+function caretIn(text, e) {
+  const doc = text.ownerDocument;
+  const pos = doc.caretPositionFromPoint?.(e.clientX, e.clientY);
+  const range = pos ? null : doc.caretRangeFromPoint?.(e.clientX, e.clientY);
+  const node = pos?.offsetNode ?? range?.startContainer, offset = pos?.offset ?? range?.startOffset;
+  if (!node || offset === void 0 || !text.contains(node)) return null;
+  const lines = [...text.children], line = lines.findIndex((l) => l.contains(node));
+  if (line < 0) return null;
+  const upTo = doc.createRange();
+  upTo.setStart(lines[line], 0);
+  upTo.setEnd(node, offset);
+  return { line, offset: upTo.toString().length };
+}
+function rangeOf(text, p) {
+  const div = text.children[p.line];
+  if (!div) return null;
+  const doc = text.ownerDocument, walk = doc.createTreeWalker(div, NodeFilter.SHOW_TEXT), range = doc.createRange();
+  let seen3 = 0, started = false;
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    if (!started && p.start <= seen3 + n.length) {
+      range.setStart(n, p.start - seen3);
+      started = true;
+    }
+    if (started && p.end <= seen3 + n.length) {
+      range.setEnd(n, p.end - seen3);
+      return range;
+    }
+    seen3 += n.length;
+  }
+  return null;
+}
 
 // src/ui/tape.ts
 var EMPTY = { receipts: [] };
@@ -8907,9 +9131,9 @@ var BarView = class {
     });
     image2.addEventListener("click", () => file.click());
     const chips = el3("div", "supplychips", "", "Influence chips: drag one out");
-    for (const sign2 of [1, -1]) for (const points2 of [2, 4, 6, 1]) {
-      const c = el3("div", `supply chip ${sign2 > 0 ? "pos" : "neg"}${points2 === 1 ? " one" : ""}`, chipFace({ sign: sign2, points: points2 }));
-      take2(c, { sign: sign2, points: points2 });
+    for (const sign2 of [1, -1]) for (const points3 of [2, 4, 6, 1]) {
+      const c = el3("div", `supply chip ${sign2 > 0 ? "pos" : "neg"}${points3 === 1 ? " one" : ""}`, chipFace({ sign: sign2, points: points3 }));
+      take2(c, { sign: sign2, points: points3 });
       chips.append(c);
     }
     this.folks = el3("div", "folks");
@@ -9249,8 +9473,8 @@ function newText(oid, at3) {
 function newHowTo(oid, at3) {
   return { kind: "reference", oid, place: place2(at3, CARD.w, CARD.h), which: "howto" };
 }
-function newChip(oid, sign2, points2, at3) {
-  return { kind: "chip", oid, where: { table: place2(at3, CHIP, CHIP) }, n: 0, sign: sign2, points: points2, rider: false };
+function newChip(oid, sign2, points3, at3) {
+  return { kind: "chip", oid, where: { table: place2(at3, CHIP, CHIP) }, n: 0, sign: sign2, points: points3, rider: false };
 }
 
 // src/store/blobs.ts
@@ -9388,15 +9612,15 @@ function character(oid, owner, name2, x, front, b) {
 }
 var SAM_FRONT = `<head>Samuel Diamond, Rank 3</head>
 <att>Cha 2   Int 2   Wis 4</att>
-Private Investigator 2 (5XP)
-Investigation (x2)
-Advocacy (x2)
-Fighting\u2020 (guns)
-Sparker 2 (6XP)
-\u2713 Glimmersense (x2) 3
-Glimmer Lore (x2)
-Composure
-Skills 1: Suasion (Detective), Tact, Lock Picking, Fire Starting, Wilderness Survival
+<fld>Private Investigator 2 (5XP)</fld>
+<skl>Investigation (x2)</skl>
+<skl>Advocacy (x2)</skl>
+<skl>Fighting\u2020 (guns)</skl>
+<fld>Sparker 2 (6XP)</fld>
+<skl>\u2713 Glimmersense (x2) 3</skl>
+<skl>Glimmer Lore (x2)</skl>
+<skl>Composure</skl>
+<skl>Skills 1: Suasion (Detective), Tact, Lock Picking, Fire Starting, Wilderness Survival</skl>
 <act>Mental Atk / Req: 2, +2</act>
 <act>Psych Atk / Req: 3, +2</act>
 <act>Shoot: 4, +2 (unfr, x 2)</act>
@@ -9411,14 +9635,14 @@ Wicked deeds and hanging
 <res>Ammo +Sig</res>`;
 var BEAUFORD_FRONT = `<head>Beauford T. Winkums, Rnk 3</head>
 <att>Cha 2   Int 3   Wis 1</att>
-Snakeoil Salesman 3 (5XP)
-Rhetoric (Salesman) (x2)
-Finesse (x2, Rhetoric)
-\u2713 Rationalization 4
-Medicineshow Occultist 2 (6XP)
-\u2713 Glimmer Lore (x2) 3
-Medicinals (x2)
-Composure (x2)
+<fld>Snakeoil Salesman 3 (5XP)</fld>
+<skl>Rhetoric (Salesman) (x2)</skl>
+<skl>Finesse (x2, Rhetoric)</skl>
+<skl>\u2713 Rationalization 4</skl>
+<fld>Medicineshow Occultist 2 (6XP)</fld>
+<skl>\u2713 Glimmer Lore (x2) 3</skl>
+<skl>Medicinals (x2)</skl>
+<skl>Composure (x2)</skl>
 <head>Resources</head>
 <res>Money +Min</res>, <res>Liquid Courage +Maj</res>
 <act>Mental Atk / Req: 5, 1d</act>
@@ -9436,9 +9660,9 @@ Dice token: Farkas, uses 20`;
 var DEVREUX_FRONT = `<head>Mistress Devreux</head>
 Saloon Proprietor, Rank 3
 <att>Cha 3   Int 1   Wis 3</att>
-Skills 3: Savvy, Profession (Saloon Keeper), Streetwise
-Skills 2: Musician, Composure, Gambling, Etiquette, Bargaining, Tact
-Skills 1: Suasion (Charm)
+<skl>Skills 3: Savvy, Profession (Saloon Keeper), Streetwise</skl>
+<skl>Skills 2: Musician, Composure, Gambling, Etiquette, Bargaining, Tact</skl>
+<skl>Skills 1: Suasion (Charm)</skl>
 <head>Motivations</head>
 <mot>Keep the Peace +Sig (0)</mot>
 <mot>Self-Preservation +Sig (0)</mot>
@@ -9466,7 +9690,7 @@ Q1: What is the doll?
 A1: *super* important to Trudy.
 
 Next session: first day in town, late at night at the hotel`;
-var infl = (oid, name2, points2, n) => {
+var infl = (oid, name2, points3, n) => {
   const src = `${DEVREUX}:${name2}`;
   return {
     kind: "influence",
@@ -9476,10 +9700,10 @@ var infl = (oid, name2, points2, n) => {
     n,
     name: name2,
     sign: 1,
-    points: points2,
+    points: points3,
     used: false,
     crit: false,
-    tap: { ledger: { [src]: points2 / 2 }, current: src },
+    tap: { ledger: { [src]: points3 / 2 }, current: src },
     mot: true
   };
 };

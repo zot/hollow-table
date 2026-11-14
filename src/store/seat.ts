@@ -3,6 +3,7 @@
 // checkpointed, exported or sent. Every read and write survives a blocked or empty storage.
 
 import type { Die, Oid, Rid, RollType } from '../model/records.ts';
+import type { Against } from '../rules/readmarks.ts';
 import { ridOf } from '../model/records.ts';
 import type { KeyValue } from './gamestore.ts';
 
@@ -16,6 +17,8 @@ export type Roller = {
   type?: RollType;
   /** R316: the alternative of a `/` label whose die was clicked. */
   alt?: string;
+  /** R326, R327: what was pointed at on the opponent's card, by name; absent, Defend (R328). */
+  against?: Against;
 };
 
 export type Seat = {

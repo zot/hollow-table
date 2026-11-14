@@ -1,5 +1,5 @@
 # MarkReader
-**Requirements:** R54, R74, R83, R207, R258, R261, R267
+**Requirements:** R54, R74, R83, R207, R258, R261, R267, R322-324, R326, R327
 
 Reads the game inside marks, and only there. Each grammar is also used to *offer* a pen for a plain
 line that fits it.
@@ -30,6 +30,17 @@ line that fits it.
 - spend(text, by): the same Influence text with its Level moved by `by` Levels (*Money +Maj* to
   *+Sig*), keeping everything else as written. Levels are words up to Exquisite, then
   points; levelsOf and levelWord convert.
+
+- field(text) (R323): a `<fld>` mark's `Name N (nXP)`: its name and Level.
+- skills(lines) (R324): each `<skl>` mark's Skills with their Levels: a Field Skill at the nearest
+  `<fld>` above's Level, one higher with a ✓; a `Skills N:` line's Skills (split at commas outside
+  parentheses) at N.
+- offer(line, heading, underField) (R207, R323, R324): also `fld` for a plain `Name N (nXP)` line,
+  and `skl` for a `Skills N:` line or a plain line under a Field.
+- points(front) (R326, R327): everything on a card's front a drop can point at, each with its line,
+  its start and end in that line's text, what it is by name (`{def: 'mental'|'psych'}`, `{act:
+  label}`, `{fld: name}`, `{skl: name}`), its base, and its words for the `vs` line: a Defend
+  number, an action's Base, a Field or one Skill (Level plus the card's Cha).
 
 ## Collaborators
 - MarkedText: supplies the marks.
