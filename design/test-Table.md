@@ -156,3 +156,23 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/piece.ts:checkPress
 **Pulled:** 2026-11-15 — 2026-11-15 — rang in Chromium and Firefox at card.spec.ts:133: the press at rest checked Investigation in the record; restored clean
 
+## Test: a Conviction under Biases
+**Purpose:** R341: a Conviction draws on a line under Biases, its kind, glyph, name, Level and points over its top, the name on a blank of its own (the column is too narrow for one line); no Burden, no line; a column with one never collapses; R342: points and name are written in place, and written away it is gone
+**Input:** the GM's page; Sam given `lasting.bias` `{name: 'Cheats win', points: 7, spent: 0}`; flipped; the points written `5`; then points and name written away
+**Expected:** the line reads `Conviction`, `Cheats win`, `Maj`, `7`, `/12`, with one glyph; the name over 100 px wide; the Burden line hidden; the Biases column not `empty`; at 5 points `Sig` and `/6` and the record's points 5; written away, the record has no `lasting` and the line hides
+**Refs:** crc-PieceView.md, ui-card.md
+**Code:** `tests/card.spec.ts`
+**Alarm:** 9
+**Fire alarm:** in the column's emptiness, forget the Conviction; red: the Biases column is `empty`
+**Inject:** src/ui/piece.ts:damage
+**Pulled:** 2026-11-15 — rang again after the simplifier pass (isLasting) in Chromium and Firefox at card.spec.ts:162, the Biases column `empty`; restored clean *Earlier —* 2026-11-15 — rang in Chromium and Firefox at card.spec.ts:162: the Biases column was `empty` (first rang at the width check, since a collapsed column squeezes the name; the empty check now comes first); restored clean
+## Test: a Conviction's name has a blank of its own
+**Purpose:** R341: the column is too narrow for kind, name, Level and points on one line, so the name takes its own blank below
+**Input:** Sam's back with a Conviction, flipped
+**Expected:** the name over 100 px wide
+**Refs:** crc-PieceView.md, ui-card.md
+**Code:** `tests/card.spec.ts`
+**Alarm:** 10
+**Fire alarm:** put the line back on one row (no wrap, the name `flex: 1`); red: the name is 0 px wide
+**Inject:** src/ui/theme.css:.lastline
+**Pulled:** 2026-11-15 — rang in Chromium and Firefox at card.spec.ts:163: on one row the name was 80 and 78 px, under 100; restored clean

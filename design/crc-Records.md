@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -20,12 +20,16 @@ record crosses the wire, the database and an export file unchanged.
   Affliction Pools*), named as their pool slots. Level rows:
   `mild | min | sig | maj`.
 - CardBack: `{damage: {bias, affliction, injury: {mild, min, sig, maj: DamageSlot}}, absorb: {bias,
-  affliction, injury: number}, notes: Marked}`. `absorb` is no longer read: a column's absorb is worked out from the card's attributes (R264); the
+  affliction, injury: number}, notes: Marked, lasting?: {bias?, affliction?: Lasting}}`. `absorb` is no longer read: a column's absorb is worked out from the card's attributes (R264); the
   field stays so old games load.
 - DamageSlot: `{name: string, boxes: boolean[], spent: number[]}`. `name` is the entry, plain (its
   column makes it a Bias, Affliction or Injury, R209); the boxes are the extra Slots of Hollow Folks,
   *Absorbing Damage*, drawn as on Samuel Diamond's card, *A Ghoulish Problem*; `spent[0]` is the Levels tapped from the slot
   and `spent[k]` from its k-th box, until End recharges them.
+- Lasting (R341, R343): a Conviction (`lasting.bias`) or a Burden (`lasting.affliction`), `{name,
+  points, spent, naming?}`: its name, the overflow points it has absorbed, the Levels tapped until
+  End, and while new the attacker's name it waits for (`{by, id}`, as DamageSlot.naming). Optional,
+  so old games load; a back without one has no `lasting`.
 - Influence: `{kind: 'influence', oid, home: oid, where: Where, n, name, sign, points, used, crit,
   tap?: {ledger: {[source]: number}, current: source}, damage?: Damage, mot?: true}`. `damage` marks a card
   tapped from a Damage Resource: an Influence of that kind (R211); `mot` one tapped from a
@@ -55,7 +59,8 @@ record crosses the wire, the database and an export file unchanged.
 - DamageSlot.naming (R312): `{by, id}` while the Slot waits for the attacker's name: the attacking
   character's name, and the receipt it came from.
 - Receipt.attack (R308): `{target, name, from, kind, result, taken?, waiting?}` (`from` the attacking character's name), the Attack a receipt can
-  give; `waiting` lists the Slots waiting for names, as `{damage, row}`.
+  give; `waiting` lists the Slots waiting for names, as `{damage, row}`, where `row` is `lasting` for a new
+  Conviction or Burden (R340).
 
 ## Does
 - isPiece(rid), oidOf(rid), ridOf(oid): key helpers.

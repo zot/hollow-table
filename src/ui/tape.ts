@@ -1,10 +1,11 @@
-// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R111, R112, R113, R317, R282, R283, R308, R313
+// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R111, R112, R113, R317, R282, R283, R308, R313, R340
 // The paper tape from the register: this page's receipts, never sent (R111). It lies under the
 // pieces and rises for a new roll or a press; rolled up it leaves a sliver; dragged, it tears off
 // the whole roll as a torn-roll piece. The decisions are pure (retitled, torn, mayChoose).
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Damage, type Oid, type Place, type Receipt, type RowName, type Tape, type TornRoll } from '../model/records.ts';
+import { ridOf, type Damage, type Oid, type Place, type NameRow, type Receipt, type RowName, type Tape, type TornRoll } from '../model/records.ts';
+import { OVERFLOW } from '../rules/absorb.ts';
 import type { Viewer } from '../rules/visibility.ts';
 import type { PointerLike } from './gesture.ts';
 import { receiptEl } from './receipt.ts';
@@ -33,9 +34,9 @@ export function mayName(viewer: Viewer, r: Receipt): boolean {
 
 const ROW_WORDS: Record<RowName, string> = { mild: 'Mild', min: 'Minor', sig: 'Significant', maj: 'Major' };
 const KIND_WORDS: Record<Damage, string> = { bias: 'Bias', affliction: 'Affliction', injury: 'Injury' };
-/** "Name Devreux's Minor Bias" (R313). */
-export function nameWords(target: string, damage: Damage, row: RowName): string {
-  return `Name ${target}'s ${ROW_WORDS[row]} ${KIND_WORDS[damage]}`;
+/** "Name Devreux's Minor Bias" (R313), or "Name Devreux's Conviction" (R340). */
+export function nameWords(target: string, damage: Damage, row: NameRow): string {
+  return row === 'lasting' ? `Name ${target}'s ${OVERFLOW[damage]}` : `Name ${target}'s ${ROW_WORDS[row]} ${KIND_WORDS[damage]}`;
 }
 
 // R97: the rolling character's owner, or the GM, may switch a CRIT until it is locked.
@@ -54,7 +55,7 @@ export type TapeWith = {
   owner: (oid: Oid) => string | undefined;
   take: (r: Receipt) => void;
   /** R313: a waiting Slot named (Rolls.name). */
-  name: (id: string, damage: Damage, row: RowName, text: string) => void;
+  name: (id: string, damage: Damage, row: NameRow, text: string) => void;
   /** A new oid, screen to table coordinates, and carrying a torn roll off (Drag). */
   mint: () => Oid;
   toWorld: (clientX: number, clientY: number) => { x: number; y: number };

@@ -2,8 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
-import { pages } from '../rules/absorb.ts';
+import { damageSlots, ridOf, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
+import { pages, waitsIn } from '../rules/absorb.ts';
 import { Rolls, choose, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
 import { ADV } from '../rules/odds.ts';
 import type { Die } from '../model/records.ts';
@@ -183,10 +183,10 @@ test('taking an Attack, and naming it', async () => {
   const [w] = taken.waiting!;
   t.page('dana').rolls.name(r.id, w!.damage, w!.row, 'Suspicious');
   await t.room.settle();
-  assert.equal(sam().back.damage[w!.damage][w!.row].name, '', "not Dana's to name");
+  assert.equal(waitsIn(sam(), w!.damage, w!.row)!.name, '', "not Dana's to name");
   t.page('ann').rolls.name(r.id, w!.damage, w!.row, 'Suspicious');
   await t.room.settle();
-  const named = sam().back.damage[w!.damage][w!.row];
+  const named = waitsIn(sam(), w!.damage, w!.row)!;
   assert.deepEqual([named.name, named.naming], ['Suspicious', undefined]);
   for (const tab of ['gm', 'dana', 'ann']) {
     assert.ok(!t.tape(tab).find(x => x.id === r.id)!.attack!.waiting?.some(x => x.row === w!.row), tab);
@@ -205,9 +205,9 @@ test('a kept roll survives a reload', async () => {
   const [first] = pages(sam(), 'mental', a.result);
   await page().take(r.id, first!);
   const w = (game.get('tape') as Tape).receipts[0]!.attack!.waiting![0]!;
-  assert.ok(sam().back.damage[w.damage][w.row].naming, 'taken by a fresh page');
+  assert.ok(waitsIn(sam(), w.damage, w.row)!.naming, 'taken by a fresh page');
   await page().name(r.id, w.damage, w.row, 'Suspicious');
-  assert.equal(sam().back.damage[w.damage][w.row].name, 'Suspicious', 'named by another fresh page');
+  assert.equal(waitsIn(sam(), w.damage, w.row)!.name, 'Suspicious', 'named by another fresh page');
 });
 
 test('private rolls and gaps', async () => {
@@ -333,4 +333,25 @@ test('pointing at the opposition', () => {
   // A Mental Attack pointed at Psych Defend is opposed by it (the pointing wins), and still an Attack.
   const atk = resolve(game, { ...infer(SAM), pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Mental Atk', type: 'mental', against: { def: 'psych' }, n: 2 }, faces(5, 5, 5), 1000);
   assert.ok(!('refused' in atk) && atk.full.vs!.startsWith('Sam (psych 4 → 10)') && atk.full.attack?.kind === 'mental');
+});
+
+test('an overflow waits for its Conviction\'s name', async () => {
+  // R339, R340: with every Bias Slot full, the Attack's Result starts Sam's Conviction, which waits on
+  // the receipt for the attacker's name like a Slot, and the name goes into it.
+  const game = scene(), { clock } = fakeClock(), sealer = await Sealer.make();
+  const page = new Rolls({ game, sealer, clock, rng: faces(5, 5, 5, 5, 5, 5), link: null, session: memoryStorage(), gm: true });
+  const sam = () => game.get(ridOf(SAM)) as Character;
+  const full = damageSlots((d, r) => ({ ...sam().back.damage[d][r], ...(d === 'bias' && { name: 'shaken', boxes: [true, true, true] }) }));
+  game.change(w => w.put(ridOf(SAM), { ...sam(), back: { ...sam().back, damage: full } }));
+  assert.equal(page.roll({ pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Mental Atk', type: 'mental', vs: SAM,
+    defend: 'mental', hand: { yellows: 0, bonus: 0 } }), null);
+  const r = (game.get('tape') as Tape).receipts[0]!, [only, ...rest] = pages(sam(), 'mental', r.attack!.result);
+  assert.deepEqual([rest.length, only!.overflow > 0], [0, true]);
+  await page.take(r.id, only!);
+  const a = (game.get('tape') as Tape).receipts[0]!.attack!;
+  assert.deepEqual(a.waiting, [{ damage: 'bias', row: 'lasting' }]);
+  assert.equal(sam().back.lasting?.bias?.points, only!.overflow);
+  await page.name(r.id, 'bias', 'lasting', 'Cheats win');
+  assert.deepEqual(sam().back.lasting?.bias, { name: 'Cheats win', points: only!.overflow, spent: 0 });
+  assert.equal((game.get('tape') as Tape).receipts[0]!.attack!.waiting, undefined);
 });

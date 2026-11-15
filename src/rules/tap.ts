@@ -1,4 +1,4 @@
-// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262
+// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262, R343
 // Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source
 // so every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
 // Resources*), and NPCs' Motivations (Bunkum, *Mental Resources*). Pure: returns the records to
@@ -7,9 +7,10 @@
 // A source is `<character oid>:<rest>`: a `<res>` mark's name on the front (its Level is written in
 // the text), `<damage>/<row>` for a named Damage slot, or `<damage>/<row>#<k>` for its k-th checked
 // box. A Damage slot or box is worth its row's Levels, less what its `spent` holds, and makes a card
-// of its kind named after the slot.
+// of its kind named after the slot. `<damage>/lasting` is the column's Conviction or Burden (R343).
 
-import { DAMAGE, ROWS, damageSlots, type Character, type Damage, type Influence, type Oid, type RowName, type Sign, type Where } from '../model/records.ts';
+import { DAMAGE, LASTING, ROWS, damageSlots, type Character, type Damage, type Influence, type LastingColumn, type Oid, type RowName, type Sign, type Where } from '../model/records.ts';
+import { lastingLevels } from './absorb.ts';
 import { marks, parse, serialize, setMark } from '../text/marks.ts';
 import { adjust, influence, levelsOf, motiveLeft, spend, unadjusted } from './readmarks.ts';
 import type { Viewer } from './visibility.ts';
@@ -41,10 +42,21 @@ function inFront(char: Character, name: string): Source | null {
 
 const DAMAGE_SOURCE = new RegExp(`^(${DAMAGE.join('|')})/(${ROWS.join('|')})(?:#(\\d+))?$`);
 
+const LASTING_SOURCE = new RegExp(`^(${LASTING.join('|')})/lasting$`);
+
+// R343: a named Conviction or Burden, worth its Levels less what it has spent, makes a card of its column.
+function inLasting(char: Character, rest: string): Source | null {
+  const m = LASTING_SOURCE.exec(rest), damage = m?.[1] as LastingColumn | undefined, l = damage && char.back.lasting?.[damage];
+  if (!l?.name) return null;
+  const spend = (n: number): Character =>
+    ({ ...char, back: { ...char.back, lasting: { ...char.back.lasting, [damage!]: { ...l, spent: l.spent + n } } } });
+  return { char, name: l.name, sign: -1, left: lastingLevels(l.points) - l.spent, damage, spend };
+}
+
 // R61, R210: a named slot, or one of its checked boxes, named after the slot.
 function inBack(char: Character, rest: string): Source | null {
   const m = DAMAGE_SOURCE.exec(rest);
-  if (!m) return null;
+  if (!m) return inLasting(char, rest);
   const damage = m[1] as Damage, row = m[2] as RowName, k = m[3] ? Number(m[3]) : 0;
   const slot = char.back.damage[damage][row];
   if (!slot.name || (k > 0 && !slot.boxes[k - 1])) return null;
@@ -133,10 +145,12 @@ export function kill(chars: Lookup, card: Influence): Character[] {
   return [...out.values()];
 }
 
-// R117: End recharges Biases, Afflictions and Injuries.
-/** End: every Damage slot's and box's spent Levels come back. */
+// R117: End recharges Biases, Afflictions and Injuries; R343: and Convictions and Burdens.
+/** End: every Damage slot's and box's spent Levels come back, and a Conviction's or Burden's. */
 export function recharge(char: Character): Character {
-  return { ...char, back: { ...char.back, damage: damageSlots((d, r) => ({ ...char.back.damage[d][r], spent: [] })) } };
+  const damage = damageSlots((d, r) => ({ ...char.back.damage[d][r], spent: [] })), was = char.back.lasting;
+  const lasting = was && Object.fromEntries(Object.entries(was).map(([d, l]) => [d, { ...l, spent: 0 }]));
+  return { ...char, back: { ...char.back, damage, ...(lasting && { lasting }) } };
 }
 
 // R262: Motivations recharge at the end of every scene.

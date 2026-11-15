@@ -4,6 +4,7 @@ var OPEN = "open";
 var SLOTS = ["bonus", "main", "edge", "stagger", "bias", "affliction", "injury"];
 var ROWS = ["mild", "min", "sig", "maj"];
 var DAMAGE = ["bias", "affliction", "injury"];
+var LASTING = ["bias", "affliction"];
 function damageSlots(f) {
   const column2 = (d) => Object.fromEntries(ROWS.map((r) => [r, f(d, r)]));
   return Object.fromEntries(DAMAGE.map((d) => [d, column2(d)]));
@@ -44,14 +45,17 @@ var sign = oneOf(1, -1);
 var points = int(0, 1e3);
 var where = (v) => v === "drawer" || v === "used" || fields({ slot: isOid, name: oneOf(...SLOTS) })(v) || fields({ table: place })(v);
 var marked = str(CAPS.text);
+var naming = fields({ by: str(CAPS.name), id: str(CAPS.id) });
 var slot = fields(
   { name: str(CAPS.name), boxes: list(bool, 20), spent: list(int(0, 100), 21) },
-  { naming: fields({ by: str(CAPS.name), id: str(CAPS.id) }) }
+  { naming }
 );
 var column = fields(Object.fromEntries(ROWS.map((r) => [r, slot])));
 var damage = fields(Object.fromEntries(DAMAGE.map((d) => [d, column])));
 var absorb = fields(Object.fromEntries(DAMAGE.map((d) => [d, int(0, 100)])));
-var back = fields({ damage, absorb, notes: marked });
+var lastingOne = fields({ name: str(CAPS.name), points: int(0, 1e4), spent: int(0, 100) }, { naming });
+var lasting = fields({}, Object.fromEntries(LASTING.map((d) => [d, lastingOne])));
+var back = fields({ damage, absorb, notes: marked }, { lasting });
 var die = fields({ c: oneOf(...DICE), v: int(1, 6), added: bool, dropped: bool });
 var receipt = fields(
   {
@@ -75,7 +79,7 @@ var receipt = fields(
     priv: bool,
     attack: fields(
       { target: isOid, name: str(CAPS.name), from: str(CAPS.name), kind: oneOf(...ATTACKS), result: int(0, 1e4) },
-      { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS) }), 20) }
+      { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS, "lasting") }), 20) }
     )
   }
 );
@@ -636,7 +640,20 @@ function columnRoom(char, d) {
 // src/rules/absorb.ts
 var SIZE = { mild: 2, min: 2, sig: 4, maj: 6 };
 var COLUMN_OF = { phys: "injury", mental: "bias", psych: "affliction" };
-var OVERFLOW = { phys: "Condition", mental: "Conviction", psych: "Burden" };
+var OVERFLOW = { bias: "Conviction", affliction: "Burden", injury: "Condition" };
+var isLasting = (d) => LASTING.includes(d);
+var TOPS = [2, 6, 12, 20, 30];
+function lastingLevels(points3) {
+  if (points3 <= 0) return 0;
+  const k = TOPS.findIndex((t) => points3 <= t);
+  return k < 0 ? TOPS.length : k + 1;
+}
+function lastingTop(points3) {
+  return TOPS[Math.max(lastingLevels(points3), 1) - 1];
+}
+function waitsIn(char, d, row2) {
+  return row2 !== "lasting" ? char.back.damage[d][row2] : isLasting(d) ? char.back.lasting?.[d] : void 0;
+}
 var none = () => ({ mild: 0, min: 0, sig: 0, maj: 0 });
 function boxCount(char, d, row2) {
   const s = char.back.damage[d][row2], room2 = columnRoom(char, d);
@@ -692,10 +709,16 @@ function fill(char, kind, page, by) {
     }
     column2[row2] = next2;
   }
-  const line = page.overflow > 0 ? `${OVERFLOW[kind]}: ${page.overflow} from ${by.name}'s Attack` : "";
-  const notes = line ? char.back.notes ? `${char.back.notes}
-${line}` : line : char.back.notes;
-  return { ...char, back: { ...char.back, notes, damage: { ...char.back.damage, [d]: column2 } } };
+  const back3 = { ...char.back, damage: { ...char.back.damage, [d]: column2 } };
+  if (page.overflow <= 0) return { ...char, back: back3 };
+  if (isLasting(d)) {
+    const was = char.back.lasting?.[d];
+    const now2 = was ? { ...was, points: was.points + page.overflow } : { name: "", points: page.overflow, spent: 0, naming: { by: by.name, id: by.id } };
+    return { ...char, back: { ...back3, lasting: { ...char.back.lasting, [d]: now2 } } };
+  }
+  const line = `${OVERFLOW[d]}: ${page.overflow} from ${by.name}'s Attack`;
+  return { ...char, back: { ...back3, notes: char.back.notes ? `${char.back.notes}
+${line}` : line } };
 }
 function mildEnds(char) {
   const damage3 = { ...char.back.damage };
@@ -851,9 +874,16 @@ function inFront(char, name2) {
   return null;
 }
 var DAMAGE_SOURCE = new RegExp(`^(${DAMAGE.join("|")})/(${ROWS.join("|")})(?:#(\\d+))?$`);
+var LASTING_SOURCE = new RegExp(`^(${LASTING.join("|")})/lasting$`);
+function inLasting(char, rest) {
+  const m = LASTING_SOURCE.exec(rest), damage3 = m?.[1], l = damage3 && char.back.lasting?.[damage3];
+  if (!l?.name) return null;
+  const spend2 = (n) => ({ ...char, back: { ...char.back, lasting: { ...char.back.lasting, [damage3]: { ...l, spent: l.spent + n } } } });
+  return { char, name: l.name, sign: -1, left: lastingLevels(l.points) - l.spent, damage: damage3, spend: spend2 };
+}
 function inBack(char, rest) {
   const m = DAMAGE_SOURCE.exec(rest);
-  if (!m) return null;
+  if (!m) return inLasting(char, rest);
   const damage3 = m[1], row2 = m[2], k = m[3] ? Number(m[3]) : 0;
   const slot2 = char.back.damage[damage3][row2];
   if (!slot2.name || k > 0 && !slot2.boxes[k - 1]) return null;
@@ -929,7 +959,9 @@ function kill(chars, card2) {
   return [...out.values()];
 }
 function recharge(char) {
-  return { ...char, back: { ...char.back, damage: damageSlots((d, r) => ({ ...char.back.damage[d][r], spent: [] })) } };
+  const damage3 = damageSlots((d, r) => ({ ...char.back.damage[d][r], spent: [] })), was = char.back.lasting;
+  const lasting2 = was && Object.fromEntries(Object.entries(was).map(([d, l]) => [d, { ...l, spent: 0 }]));
+  return { ...char, back: { ...char.back, damage: damage3, ...lasting2 && { lasting: lasting2 } } };
 }
 
 // src/ui/gesture.ts
@@ -1500,6 +1532,7 @@ function damage2(box2, c, w) {
         line.append(boxes, el(doc, "span", "lvl", LEVEL2[row2]), name2, el(doc, "span", "spent"));
         col.append(line);
       }
+      if (isLasting(d)) col.append(lastLine(doc, d, put2));
       box2.append(col);
     }
   }
@@ -1508,7 +1541,7 @@ function damage2(box2, c, w) {
   const order = frontOrder(DAMAGE.find((d) => opened.has(`${c.oid}:${d}`)) ?? null);
   for (const col of box2.children) {
     const d = col.dataset.damage, slots2 = c.back.damage[d], room2 = columnRoom(c, d), absorb2 = room2?.absorb ?? 0;
-    const empty2 = !ROWS.some((r) => filled(slots2[r])) && !absorb2;
+    const empty2 = !ROWS.some((r) => filled(slots2[r])) && !absorb2 && !(isLasting(d) && c.back.lasting?.[d]);
     col.classList.toggle("empty", empty2);
     col.classList.toggle("open", opened.has(`${c.oid}:${d}`));
     col.style.order = String(order.indexOf(d));
@@ -1550,7 +1583,51 @@ function damage2(box2, c, w) {
       });
     }
   }
+  for (const line of box2.querySelectorAll(".lastline")) {
+    const d = line.dataset.damage;
+    showLasting(line, c.back.lasting?.[d], preview?.back.lasting?.[d], `${c.oid}:${d}/lasting`, w);
+  }
   takeStrip(box2, c, w);
+}
+function editLasting(ch, d, s) {
+  const was = ch.back.lasting?.[d] ?? { name: "", points: 0, spent: 0 }, now2 = { ...was, ...s };
+  const { [d]: _, ...others } = ch.back.lasting ?? {};
+  const keep = now2.name || now2.points > 0 || now2.naming;
+  const lasting2 = keep ? { ...others, [d]: now2 } : others;
+  const { lasting: __, ...back3 } = ch.back;
+  return { ...ch, back: Object.keys(lasting2).length ? { ...back3, lasting: lasting2 } : back3 };
+}
+function lastLine(doc, d, put2) {
+  const line = el(doc, "div", "lastline");
+  line.dataset.damage = d;
+  const name2 = el(doc, "span", `name ${COLUMN[d].mark}`), pts = el(doc, "span", "pts");
+  for (const e of [name2, pts]) {
+    e.contentEditable = "true";
+    e.spellcheck = false;
+  }
+  name2.addEventListener("input", () => put2((ch) => editLasting(ch, d, { name: name2.textContent ?? "" })));
+  pts.addEventListener("input", () => put2((ch) => editLasting(ch, d, { points: Math.min(Number((pts.textContent ?? "").replace(/\D/g, "")) || 0, 1e4) })));
+  line.append(el(doc, "span", "kind", OVERFLOW[d]), name2, el(doc, "span", "lvl"), pts, el(doc, "span", "top"), el(doc, "span", "spent"));
+  return line;
+}
+function showLasting(line, l, after, source2, w) {
+  const doc = line.ownerDocument, shown3 = after ?? l, pencil = !!after && after !== l;
+  line.hidden = !shown3;
+  line.classList.toggle("fill", pencil);
+  if (!shown3) return;
+  const name2 = line.querySelector(".name"), pts = line.querySelector(".pts");
+  if (doc.activeElement !== name2 && name2.textContent !== shown3.name) name2.textContent = shown3.name;
+  if (doc.activeElement !== pts && pts.textContent !== String(shown3.points)) pts.textContent = String(shown3.points);
+  name2.classList.toggle("waiting", !!shown3.naming);
+  if (shown3.naming) name2.dataset.by = `${shown3.naming.by} names it`;
+  else delete name2.dataset.by;
+  line.querySelector(".lvl").textContent = LEVELS2[lastingLevels(shown3.points) - 1]?.word ?? "";
+  line.querySelector(".top").textContent = `/${lastingTop(shown3.points)}`;
+  line.querySelector(".spent").textContent = l?.spent ? `\u2212${l.spent}` : "";
+  const want = l?.name ? source2 : "", g = line.querySelector(".glyph");
+  if ((g?.dataset.source ?? "") === want) return;
+  g?.remove();
+  if (want) name2.before(glyph(doc, want, w));
 }
 function takeStrip(box2, c, w) {
   const doc = box2.ownerDocument, t = w.taking(), mine = t?.oid === c.oid ? t : null;
@@ -1583,7 +1660,7 @@ function takeStrip(box2, c, w) {
     button("Cancel", "cancel", "Back out: nothing changes", () => w.cancelTake())
   );
   strip.replaceChildren(head, pager);
-  if (page.overflow) strip.append(el(doc, "div", "over", `${page.overflow} left over: a ${OVERFLOW[mine.kind]}`));
+  if (page.overflow) strip.append(el(doc, "div", "over", `${page.overflow} left over: a ${OVERFLOW[COLUMN_OF[mine.kind]]}`));
 }
 function glyph(doc, source2, w) {
   const g = el(doc, "span", "glyph");
@@ -1838,9 +1915,9 @@ var BODIES = {
   ),
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf("max", "dbl"), lock: bool }),
-  // R314: a take names a page, a count per row; a name is for one waiting Slot.
+  // R314: a take names a page, a count per row; a name is for one waiting Slot (R340: or a Conviction or Burden).
   take: fields({ id: str(CAPS.id), page: fields({ use: fields(Object.fromEntries(ROWS.map((r) => [r, int(0, 20)]))), overflow: int(0, 1e4) }) }),
-  name: fields({ id: str(CAPS.id), damage: oneOf(...DAMAGE), row: oneOf(...ROWS), name }),
+  name: fields({ id: str(CAPS.id), damage: oneOf(...DAMAGE), row: oneOf(...ROWS, "lasting"), name }),
   refuse: fields({ why: why2 }, { n: seq }),
   claim: fields({ name, why: whyOrNull })
 };
@@ -3195,9 +3272,10 @@ var Rolls = class {
       if (r.attack) k[key] = { ...r, attack: f(r.attack) };
     }
   }
-  // Seq: seq-take.md#1.4.1, seq-take.md#1.4.2, seq-take.md#1.4.3, seq-take.md#1.5 | R308, R312, R314
+  // Seq: seq-take.md#1.4.1, seq-take.md#1.4.2, seq-take.md#1.4.3, seq-take.md#1.5 | R308, R312, R314, R340
   // The target's owner or the GM takes an Attack: refused unless it is untaken and the page is one of
-  // the GM's own pages for it; then filled, marked taken, its named Slots waiting for names.
+  // the GM's own pages for it; then filled, marked taken, its named Slots (and a new Conviction or
+  // Burden) waiting for names.
   #take(body, from) {
     const { game } = this.#w, k = this.#kept(body.id), a = k?.full.attack;
     if (!k || !a || a.taken) return this.#work;
@@ -3206,26 +3284,25 @@ var Rolls = class {
     if (from && c.owner !== this.#w.whoIs?.(from)) return this.#work;
     if (!pages(c, a.kind, a.result).some((p) => same2(p, body.page))) return this.#work;
     const next2 = fill(c, a.kind, body.page, { name: by.name, id: body.id }), d = COLUMN_OF[a.kind];
-    const waiting = ROWS.filter((r) => next2.back.damage[d][r].naming?.id === body.id && !c.back.damage[d][r].naming).map((row2) => ({ damage: d, row: row2 }));
+    const named2 = (ch, r) => waitsIn(ch, d, r)?.naming?.id === body.id;
+    const waiting = [...ROWS, "lasting"].filter((r) => named2(next2, r) && !named2(c, r)).map((row2) => ({ damage: d, row: row2 }));
     game.change((w) => w.put(ridOf(c.oid), next2));
     this.#attack(k, (x) => ({ ...x, taken: true, ...waiting.length && { waiting } }));
     return this.#resend(k);
   }
-  // Seq: seq-take.md#2.1, seq-take.md#2.2, seq-take.md#2.3 | R313, R314
-  // The attacking character's owner or the GM names a Slot this Attack left waiting.
+  // Seq: seq-take.md#2.1, seq-take.md#2.2, seq-take.md#2.3 | R313, R314, R340
+  // The attacking character's owner or the GM names a Slot (or a Conviction or Burden) this Attack left waiting.
   #name(body, from) {
     const { game } = this.#w, k = this.#kept(body.id), a = k?.full.attack, text = body.name.trim();
     if (!k || !a || !text || !a.waiting?.some((x) => x.damage === body.damage && x.row === body.row)) return this.#work;
     const by = game.get(ridOf(k.character)), c = game.get(ridOf(a.target));
     if (by?.kind !== "character" || c?.kind !== "character") return this.#work;
     if (from && by.owner !== this.#w.whoIs?.(from)) return this.#work;
-    const slot2 = c.back.damage[body.damage][body.row];
-    if (slot2.naming?.id !== body.id) return this.#work;
+    const slot2 = waitsIn(c, body.damage, body.row);
+    if (slot2?.naming?.id !== body.id) return this.#work;
     const { naming: _, ...named2 } = { ...slot2, name: text };
-    game.change((w) => w.put(ridOf(c.oid), { ...c, back: { ...c.back, damage: {
-      ...c.back.damage,
-      [body.damage]: { ...c.back.damage[body.damage], [body.row]: named2 }
-    } } }));
+    const back3 = body.row === "lasting" ? { ...c.back, lasting: { ...c.back.lasting, [body.damage]: named2 } } : { ...c.back, damage: { ...c.back.damage, [body.damage]: { ...c.back.damage[body.damage], [body.row]: named2 } } };
+    game.change((w) => w.put(ridOf(c.oid), { ...c, back: back3 }));
     this.#attack(k, (x) => {
       const rest = x.waiting.filter((w) => w.damage !== body.damage || w.row !== body.row);
       const { waiting: __, ...left2 } = x;
@@ -8399,7 +8476,7 @@ function mayName(viewer, r) {
 var ROW_WORDS = { mild: "Mild", min: "Minor", sig: "Significant", maj: "Major" };
 var KIND_WORDS = { bias: "Bias", affliction: "Affliction", injury: "Injury" };
 function nameWords(target, damage3, row2) {
-  return `Name ${target}'s ${ROW_WORDS[row2]} ${KIND_WORDS[damage3]}`;
+  return row2 === "lasting" ? `Name ${target}'s ${OVERFLOW[damage3]}` : `Name ${target}'s ${ROW_WORDS[row2]} ${KIND_WORDS[damage3]}`;
 }
 function mayChoose(viewer, r) {
   return !!r.crit && !r.crit.locked && !!viewer && (viewer.gm || r.by === viewer.name);

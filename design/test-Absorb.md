@@ -43,7 +43,7 @@
 **Pulled:** 2026-11-13 — 2026-11-13 — rang: "absorb comes off first" failed; restored clean
 
 ## Test: overflow
-**Purpose:** nothing covers it: every free Slot fills and the rest is a Condition, Conviction or Burden in the Notes (R311)
+**Purpose:** nothing covers it: every free Slot fills, and a physical Attack's rest is a Condition in the Notes (R339)
 **Input:** a back with only one Min Injury Slot free; a physical Result of 5
 **Expected:** one page: Min, overflow 3; filling it makes the Min Slot wait for a name and adds "Condition: 3 from Beauford's Attack" to the Notes
 **Refs:** crc-Absorb.md
@@ -70,3 +70,24 @@
 **Fire alarm:** in mildEnds, clear the name but keep the boxes; red: the Mild Bias keeps its checked box
 **Inject:** src/rules/absorb.ts:mildEnds
 **Pulled:** 2026-11-15 — 2026-11-15 — rang: "Mild Damage ends" failed, the Mild Bias kept its checked box; restored clean
+
+## Test: overflow makes a Conviction, and more grows it
+**Purpose:** R339, R340: a mental overflow starts the Biases' Conviction, waiting for the attacker's name, not a Note; more overflow adds its points and keeps its name; a psychological one is a Burden beside it
+**Input:** Sam with every Bias Slot used; a mental Result of 3; then, named `Cheats win` with 1 spent, a mental Result of 4; then every Affliction Slot used and a psychological Result of 2
+**Expected:** `lasting.bias` `{name: '', points: 3, spent: 0, naming: {by: 'Beauford', id: 'r9'}}` and the Notes unchanged; then `{name: 'Cheats win', points: 7, spent: 1}`; then both `bias` and `affliction`, the Burden at 2 points
+**Refs:** crc-Absorb.md
+**Code:** `src/rules/absorb.test.ts`
+**Alarm:** 6
+**Fire alarm:** in fill, drop the Conviction branch so every overflow is a Note; red: no `lasting` after the first overflow
+**Inject:** src/rules/absorb.ts:fill
+**Pulled:** 2026-11-15 — rang again after the simplifier pass (isLasting): "overflow makes a Conviction, and more grows it" failed; restored clean *Earlier —* 2026-11-15 — rang: "overflow makes a Conviction, and more grows it" failed, no `lasting` after the first overflow; restored clean
+## Test: a Conviction's Level follows its points
+**Purpose:** R341: Hollow Folks' ladder for Convictions and Burdens: Min to 2 points, Sig to 6, Maj to 12, Ext to 20, Exq beyond; the top of each Level
+**Input:** points 0, 1, 2, 3, 6, 7, 12, 13, 20, 21, 30, 45
+**Expected:** Levels 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5; tops 2, 2, 2, 6, 6, 12, 12, 20, 20, 30, 30, 30
+**Refs:** crc-Absorb.md
+**Code:** `src/rules/absorb.test.ts`
+**Alarm:** 7
+**Fire alarm:** use the Influence ladder (2 points a Level, tops 2, 4, 6, 8, 10) for TOPS; red: 3 points reads Sig but 6 reads Maj
+**Inject:** src/rules/absorb.ts:lastingLevels
+**Pulled:** 2026-11-15 — rang: "a Conviction's Level follows its points" failed on the Influence ladder; restored clean

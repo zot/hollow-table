@@ -179,3 +179,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** in resolve, call pointed without the action's attribute; red: Shoot reads `Investigation 2 + Cha 2 → 10`
 **Inject:** src/net/rolls.ts:resolve
 **Pulled:** 2026-11-15 — 2026-11-15 — rang: "pointing at the opposition" failed, Shoot read `Sam (Investigation 2 + Cha 2 → 10)`; restored clean
+
+## Test: an overflow waits for its Conviction's name
+**Purpose:** R339, R340: with every Bias Slot full, a taken Attack starts Sam's Conviction, the receipt lists it as waiting, and the name goes into it
+**Input:** the GM's page alone; Sam's Bias Slots all named and boxed; Beauford's Mental Attack at Sam, taken by its one page; then named `Cheats win`
+**Expected:** the one page has overflow; `waiting` is `[{damage: 'bias', row: 'lasting'}]` and the Conviction holds the overflow; named, `{name: 'Cheats win', points, spent: 0}` with no `naming`, and nothing waits
+**Refs:** crc-Rolls.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 15
+**Fire alarm:** in take, look for waiting names in the rows only (drop `lasting`); red: `waiting` is undefined
+**Inject:** src/net/rolls.ts:#take
+**Pulled:** 2026-11-15 — rang: "an overflow waits for its Conviction's name" failed, `waiting` undefined; restored clean

@@ -33,4 +33,6 @@ test('who takes an Attack, and who names it', () => {
   const waiting = { ...r, attack: { ...r.attack, taken: true, waiting: [{ damage: 'bias' as const, row: 'min' as const }] } };
   assert.deepEqual([mayName(ann, waiting), mayName(dana, waiting), mayName(gm, waiting), mayName(ann, r)], [true, false, true, false]);
   assert.equal(nameWords('Sam', 'bias', 'min'), "Name Sam's Minor Bias");
+  assert.equal(nameWords('Sam', 'bias', 'lasting'), "Name Sam's Conviction");   // R340
+  assert.equal(nameWords('Sam', 'affliction', 'lasting'), "Name Sam's Burden");
 });

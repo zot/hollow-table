@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R311, R312, R316, R318
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -7,13 +7,13 @@ import type { Game } from '../model/game.ts';
 import {
   DAMAGE, ROWS, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
-  type AttackKind,
+  type AttackKind, type Lasting, type LastingColumn,
 } from '../model/records.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { action as readAction, influence } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
-import { columnRoom } from '../rules/influence.ts';
-import { OVERFLOW, fill, type Page } from '../rules/absorb.ts';
+import { LEVELS, columnRoom } from '../rules/influence.ts';
+import { COLUMN_OF, OVERFLOW, fill, isLasting, lastingLevels, lastingTop, type Page } from '../rules/absorb.ts';
 import { parse, read, render, serialize, type Line, type MarkRun } from '../text/marks.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 import { caretAt, tray } from './pens.ts';
@@ -300,6 +300,7 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
         line.append(boxes, el(doc, 'span', 'lvl', LEVEL[row]), name, el(doc, 'span', 'spent'));
         col.append(line);
       }
+      if (isLasting(d)) col.append(lastLine(doc, d, put));
       box.append(col);
     }
   }
@@ -309,7 +310,7 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
   const order = frontOrder(DAMAGE.find(d => opened.has(`${c.oid}:${d}`)) ?? null);
   for (const col of box.children as unknown as HTMLElement[]) {
     const d = col.dataset.damage as Damage, slots = c.back.damage[d], room = columnRoom(c, d), absorb = room?.absorb ?? 0;
-    const empty = !ROWS.some(r => filled(slots[r])) && !absorb;
+    const empty = !ROWS.some(r => filled(slots[r])) && !absorb && !(isLasting(d) && c.back.lasting?.[d]);
     col.classList.toggle('empty', empty);
     col.classList.toggle('open', opened.has(`${c.oid}:${d}`));
     col.style.order = String(order.indexOf(d));
@@ -350,7 +351,56 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
       });
     }
   }
+  for (const line of box.querySelectorAll<HTMLElement>('.lastline')) {
+    const d = line.dataset.damage as LastingColumn;
+    showLasting(line, c.back.lasting?.[d], preview?.back.lasting?.[d], `${c.oid}:${d}/lasting`, w);
+  }
   takeStrip(box, c, w);
+}
+
+// R341: a Conviction under Biases, a Burden under Afflictions: its word, tap glyph, name, Level, and
+// points over its top. R342: name and points are written in place; with neither (and no name
+// waited for) it is gone.
+/** The character with column `d`'s Conviction or Burden changed by `s`, removed once it is blank. */
+export function editLasting(ch: Character, d: LastingColumn, s: Partial<Lasting>): Character {
+  const was = ch.back.lasting?.[d] ?? { name: '', points: 0, spent: 0 }, now = { ...was, ...s };
+  const { [d]: _, ...others } = ch.back.lasting ?? {};
+  const keep = now.name || now.points > 0 || now.naming;
+  const lasting = keep ? { ...others, [d]: now } : others;
+  const { lasting: __, ...back } = ch.back;
+  return { ...ch, back: Object.keys(lasting).length ? { ...back, lasting } : back };
+}
+
+function lastLine(doc: Document, d: LastingColumn, put: (fn: (ch: Character) => Character) => void): HTMLElement {
+  const line = el(doc, 'div', 'lastline');
+  line.dataset.damage = d;
+  const name = el(doc, 'span', `name ${COLUMN[d].mark}`), pts = el(doc, 'span', 'pts');
+  for (const e of [name, pts]) { e.contentEditable = 'true'; e.spellcheck = false; }
+  name.addEventListener('input', () => put(ch => editLasting(ch, d, { name: name.textContent ?? '' })));
+  pts.addEventListener('input', () => put(ch => editLasting(ch, d, { points: Math.min(Number((pts.textContent ?? '').replace(/\D/g, '')) || 0, 10_000) })));
+  line.append(el(doc, 'span', 'kind', OVERFLOW[d]), name, el(doc, 'span', 'lvl'), pts, el(doc, 'span', 'top'), el(doc, 'span', 'spent'));
+  return line;
+}
+
+// R339: while an Attack is taken, the Conviction or Burden it would start or grow is pencilled.
+function showLasting(line: HTMLElement, l: Lasting | undefined, after: Lasting | undefined, source: string, w: PieceWith): void {
+  const doc = line.ownerDocument, shown = after ?? l, pencil = !!after && after !== l;
+  line.hidden = !shown;
+  line.classList.toggle('fill', pencil);
+  if (!shown) return;
+  const name = line.querySelector<HTMLElement>('.name')!, pts = line.querySelector<HTMLElement>('.pts')!;
+  if (doc.activeElement !== name && name.textContent !== shown.name) name.textContent = shown.name;
+  if (doc.activeElement !== pts && pts.textContent !== String(shown.points)) pts.textContent = String(shown.points);
+  name.classList.toggle('waiting', !!shown.naming);
+  if (shown.naming) name.dataset.by = `${shown.naming.by} names it`; else delete name.dataset.by;
+  line.querySelector('.lvl')!.textContent = LEVELS[lastingLevels(shown.points) - 1]?.word ?? '';
+  line.querySelector('.top')!.textContent = `/${lastingTop(shown.points)}`;
+  line.querySelector('.spent')!.textContent = l?.spent ? `−${l.spent}` : '';
+  // R343: a named one is tapped like its column's Damage.
+  const want = l?.name ? source : '', g = line.querySelector<HTMLElement>('.glyph');
+  if ((g?.dataset.source ?? '') === want) return;
+  g?.remove();
+  if (want) name.before(glyph(doc, want, w));
 }
 
 // R309–R311: the strip under the columns while an Attack is taken: its pages, Take and Cancel, and
@@ -376,7 +426,7 @@ function takeStrip(box: HTMLElement, c: Character, w: PieceWith): void {
     button('Take', 'take', 'Fill these Slots', () => w.takePage()),
     button('Cancel', 'cancel', 'Back out: nothing changes', () => w.cancelTake()));
   strip.replaceChildren(head, pager);
-  if (page.overflow) strip.append(el(doc, 'div', 'over', `${page.overflow} left over: a ${OVERFLOW[mine.kind]}`));
+  if (page.overflow) strip.append(el(doc, 'div', 'over', `${page.overflow} left over: a ${OVERFLOW[COLUMN_OF[mine.kind]]}`));
 }
 
 // ---- R54: tap glyphs, before each Resource and each named Damage slot, and for each checked box ----

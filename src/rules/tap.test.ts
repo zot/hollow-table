@@ -183,3 +183,20 @@ test('who may tap', () => {
   assert.equal(mayTap(other, sam, 'bias/sig'), true, 'Damage: anyone (R212)');
   assert.equal(mayTap(gm, sam, 'Nothing'), false, 'no such source');
 });
+
+// R343: a named Conviction taps into a Bias card worth its Levels, and End recharges it.
+test('tapping a Conviction', () => {
+  const t = table(), sam = () => t.chars.get(SAM)!;
+  t.chars.set(SAM, { ...sam(), back: { ...sam().back, lasting: { bias: { name: 'Cheats win', points: 7, spent: 0 } } } });
+  assert.equal(left(sam(), 'bias/lasting'), 3, 'Maj: 3 Levels');
+  const card = t.take(tap(t.look, `${SAM}:bias/lasting`, where, 'c1'))!;
+  assert.deepEqual([card.name, card.damage, card.sign], ['Cheats win', 'bias', -1]);
+  assert.equal(sam().back.lasting!.bias!.spent, 1);
+  assert.equal(left(sam(), 'bias/lasting'), 2);
+  assert.equal(recharge(sam()).back.lasting!.bias!.spent, 0);
+  // Unnamed, or a Burden the card doesn't have, is no source.
+  t.chars.set(SAM, { ...sam(), back: { ...sam().back, lasting: { bias: { name: '', points: 7, spent: 0 } } } });
+  assert.equal(tap(t.look, `${SAM}:bias/lasting`, where, 'c2'), null);
+  assert.equal(tap(t.look, `${SAM}:affliction/lasting`, where, 'c2'), null);
+  assert.equal(tap(t.look, `${SAM}:injury/lasting`, where, 'c2'), null);
+});

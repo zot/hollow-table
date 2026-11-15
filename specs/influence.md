@@ -60,7 +60,7 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 ## Tapping Resources
 
-- A small card **glyph** sits before each `<res>` Resource, each `<mot>` Motivation, each named Damage slot, and each checked
+- A small card **glyph** sits before each `<res>` Resource, each `<mot>` Motivation, each named Damage slot, each Conviction and Burden, and each checked
   Slot box (see *Character card* and *Card text* in `table.md`). The text stays handwriting; the
   table reads only the `Name +Level` inside a `<res>` mark. A Damage slot's Level is its row's.
 - **The glyph is a tiny card** (Bill, 11-12): white, an ink border and a hard offset shadow, yellow
@@ -82,6 +82,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   tapped from a Bias is a Bias Influence. It goes only into a Bias slot (dropped in any other slot,
   it goes home to its drawer), and only Biases feed it. Likewise Afflictions and Injuries. A `<res>`
   Resource can't feed a Damage card, nor a Damage Resource a card made from a `<res>`.
+- **A Conviction taps like a Bias, and a Burden like an Affliction** (Bunkum, *Mental Resources*:
+  "Biases and Convictions create Bias Influences"), worth its Level: Min 1, Sig 2, Maj 3, Ext 4,
+  Exq 5.
 - **Anyone may tap any character's Damage Resources** into Influences for the current action; the
   GM decides what applies. Biases, Afflictions and Injuries may all apply to one action (Bill, 11-12).
 - **Only your own Resources** (Bill, 11-12: "you definitely cannot use other people's Resources"):
@@ -101,7 +104,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - Killing an unused tap refunds it. A tap may wait loose on the table, the one exception to "never
   lost".
 - **Biases, Afflictions and Injuries** recharge each Conflict (Bill, 11-15: a table ruling; the book
-  recovers Biases and Afflictions at the end of the Event, and End stands in for it). Mild and Min
+  recovers Biases and Afflictions at the end of the Event, and End stands in for it), and so do
+  Convictions and Burdens (Bunkum: tapping them "depletes them temporarily until the end of the
+  Scene"). Mild and Min
   are 1 Level, Sig 2, Maj 3. A slot shows the Levels spent (−2). **A box can't be checked until its slot has a name.**
 
 ## After a roll

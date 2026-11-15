@@ -116,8 +116,17 @@ chip, a torn-off roll of receipts.
 - **A slot's column says what its entry is.** The entry is stored as a plain name (*The mayor can
   pardon criminals*); the table draws it as a `<bias>`, `<aff>` or `<inj>` mark, for its look and
   its tap glyph, so a Damage mark can't appear anywhere but its own column (Bill, 11-12).
+- **A Conviction sits under Biases and a Burden under Afflictions** (Bill, 11-15), on a line below
+  the Maj slot: its name, its Level, and its points toward the next Level, *Conviction  Cheats
+  always win  Sig (5/6)*. A character has at most one of each, and overflow grows it (Bill, 11-15):
+  Hollow Folks (*Convictions and Burdens*) has it start at Min and rise a Level as it fills, Min to
+  2 points, Sig to 6, Maj to 12, Ext to 20, Exq to 30; past 30 it stays Exq. The line shows only
+  while the card has one.
+- **Recovery is by hand.** The books lower a Conviction or Burden by Levels at the end of an Event
+  (Bunkum's Recovery chips, Glimmer's weeks of rest), and the table knows no Event: its points are
+  edited in place, like its name, and one with no name and no points is gone.
 - **An empty column on a card's back collapses** to its name at the top (Bill, 11-11). Empty means
-  nothing written and no box checked.
+  nothing written, no box checked, and no Conviction or Burden.
 - **Clicking a column's name brings it to the front** (Bill, 11-12): it opens, the columns rotate so
   it is the far left one (the others following in turn), and the other empty columns collapse. So
   clicking the second name again and again cycles through all three. A column stays open until

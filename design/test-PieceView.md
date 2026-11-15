@@ -36,3 +36,14 @@ Afflictions; the leaders Biases, Afflictions, Injuries, Biases
 **Fire alarm:** in toggleCheck, drop the skillIndents guard and toggle any `<skl>` line; red: the stray Skill with no Field above (line 0) gets a ✓
 **Inject:** src/ui/piece.ts:toggleCheck
 **Pulled:** 2026-11-15 — 2026-11-15 — rang: "a Field Skill's check toggles" failed at `line 0 is left alone` (the stray Skill got a ✓); restored clean
+
+## Test: editing a Conviction
+**Purpose:** R342: a Conviction's name and points are written in place, lowering the points is Recovery, and written away it is gone, unless it still waits for a name
+**Input:** Sam; a Conviction written `Cheats win` at 7 points; its points lowered to 2; its name and points written away; a Burden at 2 points waiting for Beauford's name, its points written to 0
+**Expected:** `lasting.bias` `{name: 'Cheats win', points: 7, spent: 0}`; then 2 points; then the back has no `lasting`; the waiting Burden stays
+**Refs:** crc-PieceView.md
+**Code:** `src/ui/piece.test.ts`
+**Alarm:** 4
+**Fire alarm:** in editLasting, keep it whatever it holds; red: the blank Conviction is still there
+**Inject:** src/ui/piece.ts:editLasting
+**Pulled:** 2026-11-15 — rang: "editing a Conviction" failed, the blank Conviction stayed; restored clean

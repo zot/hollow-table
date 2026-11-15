@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R69, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337
+**Requirements:** R69, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -46,9 +46,11 @@ know.
 - take(id, page) (R314, seq-take.md#1.4): the target's owner or the GM; on the GM's page, refused
   unless the kept receipt has an untaken Attack, the sender owns the target (or is the GM), and the
   page is one of Absorb.pages on the GM's own records; then Absorb.fill, the receipts marked taken
-  with the named Slots now waiting (`waiting: [{damage, row}]`), and every tape updated as for a CRIT.
+  with the named Slots now waiting (`waiting: [{damage, row}]`, `row: lasting` for a new Conviction
+  or Burden, R340), and every tape updated as for a CRIT.
 - name(id, damage, row, text) (R313, R314, seq-take.md#2): the attacking character's owner or the
-  GM; on the GM's page, refused unless that Slot waits for this receipt's name; then the Slot named,
+  GM; on the GM's page, refused unless that Slot (or Conviction or Burden, R340) waits for this
+  receipt's name; then it is named,
   no longer waiting, and every tape updated.
 - kept (R308, R313): every roll the GM's page makes or answers is kept in its own book (`book.kept`,
   never sent; the newest 200), copied on read and written back whole, so a CRIT, a take or a name

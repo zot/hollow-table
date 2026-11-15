@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, RowName } from '../model/records.ts';
-import { fill, free, mildEnds, pages, same, type Page } from './absorb.ts';
+import { fill, free, lastingLevels, lastingTop, mildEnds, pages, same, waitsIn, type Page } from './absorb.ts';
 import { SAM, scene } from '../store/playtest.ts';
 
 const sam = (): Character => scene().find((r): r is Character => r.kind === 'character' && r.oid === SAM)!;
@@ -43,7 +43,7 @@ test('absorb comes off first', () => {
   assert.deepEqual(pages(c, 'mental', 3).map(show), ['min', 'mild', 'sig', 'maj']);
 });
 
-// R311: nothing covers it: every free Slot fills and the rest goes in the Notes.
+// R339: nothing covers it: every free Slot fills, and a physical Attack's rest (a Condition) goes in the Notes.
 test('overflow', () => {
   let c = sam();
   for (const row of ['mild', 'sig', 'maj'] as RowName[]) c = withSlot(c, 'injury', row, { name: 'hurt' });
@@ -79,4 +79,33 @@ test('Mild Damage ends', () => {
   assert.deepEqual(out.bias.mild, { name: '', boxes: [false, false], spent: [] });
   assert.deepEqual(out.injury.mild, { name: '', boxes: c.back.damage.injury.mild.boxes.map(() => false), spent: [] });
   assert.deepEqual(out.affliction.min, c.back.damage.affliction.min, 'a Min Affliction stays');
+});
+
+// R339, R340: a mental overflow starts a Conviction that waits for the attacker's name; more grows it.
+test('overflow makes a Conviction, and more grows it', () => {
+  let c = sam();
+  for (const row of ['mild', 'sig', 'maj'] as RowName[]) c = withSlot(c, 'bias', row, { name: 'shaken' });
+  c = withSlot(c, 'bias', 'min', { name: 'shaken', boxes: [true, true] });
+  const [only] = pages(c, 'mental', 3);
+  assert.equal(show(only!), ' over 3');
+  const once = fill(c, 'mental', only!, { name: 'Beauford', id: 'r9' });
+  assert.deepEqual(once.back.lasting, { bias: { name: '', points: 3, spent: 0, naming: { by: 'Beauford', id: 'r9' } } });
+  assert.equal(once.back.notes, c.back.notes, 'a Conviction is not a Note');
+  assert.equal(waitsIn(once, 'bias', 'lasting'), once.back.lasting!.bias);
+  const named = { ...once, back: { ...once.back, lasting: { bias: { name: 'Cheats win', points: 3, spent: 1 } } } };
+  const twice = fill(named, 'mental', pages(named, 'mental', 4)[0]!, { name: 'Devreux', id: 'r10' });
+  assert.deepEqual(twice.back.lasting, { bias: { name: 'Cheats win', points: 7, spent: 1 } }, 'grows, its name kept');
+  // A psychological overflow is a Burden, beside it.
+  let p = twice;
+  for (const row of ['mild', 'min', 'sig', 'maj'] as RowName[]) p = withSlot(p, 'affliction', row, { name: 'x', boxes: p.back.damage.affliction[row].boxes.map(() => true) });
+  const burden = fill(p, 'psych', pages(p, 'psych', 2)[0]!, { name: 'Beauford', id: 'r11' });
+  assert.deepEqual(Object.keys(burden.back.lasting!).sort(), ['affliction', 'bias']);
+  assert.equal(burden.back.lasting!.affliction!.points, 2);
+});
+
+// R341: Hollow Folks' ladder: Min to 2, Sig to 6, Maj to 12, Ext to 20, Exq beyond.
+test('a Conviction\'s Level follows its points', () => {
+  const at = [0, 1, 2, 3, 6, 7, 12, 13, 20, 21, 30, 45];
+  assert.deepEqual(at.map(lastingLevels), [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
+  assert.deepEqual(at.map(lastingTop), [2, 2, 2, 6, 6, 12, 12, 20, 20, 30, 30, 30]);
 });

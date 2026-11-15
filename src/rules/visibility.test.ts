@@ -9,9 +9,9 @@ import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 // Devreux's Saloon Gossip, tapped into a card loose on the table: its ledger names the Resource.
 const gossip: Influence = { kind: 'influence', oid: '0000000d', home: DEVREUX, where: { table: { x: 0, y: 0, z: 0, tilt: 0 } },
   n: 0, name: 'Rumour', sign: 1, points: 2, used: false, crit: false, tap: { ledger: { [`${DEVREUX}:Saloon Gossip`]: 1 }, current: `${DEVREUX}:Saloon Gossip` } };
-// Devreux holds a Sig Bias, so its back has a secret too.
+// Devreux holds a Sig Bias and a Conviction (R341), so its back has secrets too.
 const records = [...scene('Dana', 'Ann').map(r => r.kind === 'character' && r.oid === DEVREUX
-  ? { ...r, back: { ...r.back, absorb: { ...r.back.absorb, bias: 2 }, damage: { ...r.back.damage, bias: { ...r.back.damage.bias, sig: { name: 'Mistrusts the law', boxes: [], spent: [1] } } } } }
+  ? { ...r, back: { ...r.back, absorb: { ...r.back.absorb, bias: 2 }, damage: { ...r.back.damage, bias: { ...r.back.damage.bias, sig: { name: 'Mistrusts the law', boxes: [], spent: [1] } } }, lasting: { bias: { name: 'Sheriffs lie', points: 3, spent: 1 } } } }
   : r), gossip];
 const chars = new Map(records.filter((r): r is Character => r.kind === 'character').map(c => [c.oid, c]));
 const look = (oid: string) => chars.get(oid);
@@ -35,7 +35,8 @@ function secrets(r: PieceRecord): string[] {
   if (r.kind === 'character') {
     const pub = new Set(words(r.name));
     const slots = Object.values(r.back.damage).flatMap(c => Object.values(c).map(s => s.name));
-    return words([r.front, r.back.notes, ...slots].join('\n')).filter(w => !pub.has(w));
+    const lasting = Object.values(r.back.lasting ?? {}).map(l => l.name);
+    return words([r.front, r.back.notes, ...slots, ...lasting].join('\n')).filter(w => !pub.has(w));
   }
   return r.kind === 'influence' ? words([r.name, ...Object.keys(r.tap?.ledger ?? {})].join(' ')) : [];
 }
@@ -54,6 +55,7 @@ test('no secret survives redaction', () => {
         const slots = Object.values(shown.back.damage).flatMap(c => Object.values(c));
         assert.ok(slots.every(s => !s.name && !s.spent.length && !s.boxes.some(b => b)), `${v?.name} sees ${r.oid}'s Damage`);
         assert.ok(Object.values(shown.back.absorb).every(n => n === 0), `${v?.name} sees ${r.oid}'s absorb`);
+        assert.equal(shown.back.lasting, undefined, `${v?.name} sees ${r.oid}'s Conviction or Burden`);
       }
       if (v?.gm) assert.deepEqual(redact(r, v, look), r);
     }

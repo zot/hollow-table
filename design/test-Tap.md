@@ -126,3 +126,14 @@ three; Devreux's Money for two players; Sam's named Sig Bias for another player;
 **Fire alarm:** In mayTap, let anyone tap a Resource (drop the owner check): another player taps Sam's Money
 **Inject:** src/rules/tap.ts:mayTap
 **Pulled:** 2026-11-12 — rang: another player could tap Sam's Money
+
+## Test: tapping a Conviction
+**Purpose:** R343: a named Conviction taps into a Bias card named after it, worth its Levels less what it has spent; End recharges it; an unnamed one, or one the card doesn't have, is no source
+**Input:** Sam with `lasting.bias` `{name: 'Cheats win', points: 7, spent: 0}`; a tap from `bias/lasting`; End; then the Conviction unnamed, and taps from `affliction/lasting` and `injury/lasting`
+**Expected:** 3 Levels left (Maj); the card `Cheats win`, `damage: 'bias'`, sign −1; spent 1 and 2 left; recharged, spent 0; the last three taps refused
+**Refs:** crc-Tap.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 10
+**Fire alarm:** in recharge, leave a Conviction's spent as it is; red: spent still 1 after End
+**Inject:** src/rules/tap.ts:recharge
+**Pulled:** 2026-11-15 — rang: "tapping a Conviction" failed, spent 1 after End; restored clean

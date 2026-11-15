@@ -1,5 +1,5 @@
 # Tape
-**Requirements:** R97, R105, R110-114, R279-283, R308, R313, R317
+**Requirements:** R97, R105, R110-114, R279-283, R308, R313, R317, R340
 
 The paper tape from the register: this page's receipts, never sent.
 
@@ -27,7 +27,8 @@ The paper tape from the register: this page's receipts, never sent.
 - take (R308): a receipt with an untaken Attack shows **Take N** on the page of the target's owner
   and the GM's, and hands the receipt to PieceView's pages; taken, it doesn't.
 - name (R313): a receipt whose Attack waits for names shows, on the attacking character's owner's
-  page and the GM's, "Name Devreux's Minor Bias" for each, a line to type in; Enter sends it
+  page and the GM's, "Name Devreux's Minor Bias" (or "Name Devreux's Conviction", R340) for each, a
+  line to type in; Enter sends it
   (Rolls.name).
 - note(text): an error or a lost roll as a short red note with the time (R281).
 - crit(r): both results with the larger chosen; the owner or GM may switch and lock; a lock punches

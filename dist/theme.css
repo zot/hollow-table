@@ -208,6 +208,21 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .slotline .name { border-bottom: 1px solid var(--rule); min-height: 20px; outline: none; white-space: nowrap; overflow: hidden; }
 .slotline .name:empty { background: transparent; }   /* only an entry is drawn as its mark */
 .slotline .spent { font: 11px/1 var(--mono); color: #a33; }
+/* R341: a Conviction under Biases, a Burden under Afflictions: Conviction ▭ Cheats win Sig (5/6). */
+/* Too narrow for one line beside a Slot's: its kind, Level and points, then its name on a blank below. */
+.lastline { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 4px; margin-top: 4px; }
+.lastline[hidden] { display: none; }
+.lastline .kind { flex: 0 0 auto; font-weight: 700; }
+.lastline::before { content: ""; order: 1; flex-basis: 100%; }
+.lastline .glyph { order: 2; }
+.lastline .name { order: 3; flex: 1; min-width: 0; border-bottom: 1px solid var(--rule); min-height: 20px; outline: none; white-space: nowrap; overflow: hidden; }
+.lastline .name:empty { background: transparent; }
+.lastline .lvl { font-weight: 600; text-decoration: underline; }
+.lastline .pts { outline: none; min-width: 1ch; }
+.lastline .pts::before { content: "("; }
+.lastline .top::after { content: ")"; }
+.lastline .spent { font: 11px/1 var(--mono); color: #a33; }
+.lastline.fill :is(.name, .lvl, .pts) { background: repeating-linear-gradient(-45deg, #0000 0 4px, #8886 4px 5px); }
 .box { width: 13px; height: 13px; border: 2px solid var(--ink); background: #fff; padding: 0; cursor: pointer; position: relative; }
 .box.on::after { content: "✕"; position: absolute; inset: -5px 0 0 0; font: 700 14px/1 var(--hand); text-align: center; }
 .notes-hd { font: 700 18px/1.2 var(--hand); margin-top: 8px; }
@@ -583,8 +598,8 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 /* R310, R312: the page being looked at, pencilled on its column: the Slots it would fill. */
 .slotline.fill .name { background: repeating-linear-gradient(-45deg, #0000 0 4px, #8886 4px 5px); }
 .box.pencil::after { content: "✕"; position: absolute; inset: -5px 0 0 0; font: 700 14px/1 var(--hand); text-align: center; color: #9a9a9a; }
-/* R312: a Slot waiting for the attacker's name. */
-.slotline .name.waiting:empty::before { content: attr(data-by); font: 14px var(--hand); color: #8a7458; }
+/* R312: a Slot waiting for the attacker's name (R340: or a new Conviction or Burden). */
+:is(.slotline, .lastline) .name.waiting:empty::before { content: attr(data-by); font: 14px var(--hand); color: #8a7458; }
 
 /* R309–R311: the strip under the columns while an Attack is taken. */
 .takestrip { margin: 6px 0 2px; padding: 4px 8px 6px; border: 1.5px dashed #b08a3c; border-radius: 6px; background: #fff8e6; font: 16px/1.2 var(--hand); }

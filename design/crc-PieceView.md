@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309-312, R316, R318, R331, R332, R334, R335
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -51,10 +51,17 @@ stickies, loose text, images, torn rolls and reference cards.
 
 - taking (R309–R312): for a Take, the target's card turns to its back with the Attack's column at
   the front; a strip under the columns reads ‹ k of n ›, Take and Cancel, and the overflow when there
-  is one ("3 left over: a Conviction"); the page's Slots are marked on the column as they would fill.
+  is one ("3 left over: a Conviction", R339); the page's Slots are marked on the column as they would
+  fill, and a Conviction or Burden it would start or grow is pencilled on its line.
   Take sends Rolls.take; Escape, Cancel or a click elsewhere backs out. A local view state, never
   saved.
 - A Slot waiting for a name draws an empty mark with "Beauford names it" (R312).
+- lasting (R341, R342, R343): under the Biases' and Afflictions' Maj slot, a line for the column's
+  Conviction or Burden while the card has one: "Conviction", its tap glyph (source
+  `<oid>:<damage>/lasting`), its name (written in place, waiting as a Slot's does), its Level word
+  and its points in place over its top, `Sig (5/6)`, the points written in place too, and what it has
+  spent. Writing its name and points away (no name, 0 points, nothing waited for) removes it. A
+  column with one never collapses.
 
 - skillIndents(front) (R331): which front lines are a Field's Skills, and which of those carry a ✓; the view gives them `sklpad` (indented) and `sklhang` (the ✓ hanging in the margin).
 - toggleCheck(lines, line) (R335): the lines with that Field Skill's ✓ written (`✓ ` at the start of its text) or taken out; the same lines when the line isn't one `skillIndents` indents.

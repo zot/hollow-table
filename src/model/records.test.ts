@@ -17,6 +17,11 @@ test('check takes the scene and refuses the malformed', () => {
   const inf = records.find((r): r is Influence => r.kind === 'influence')!;
   assert.ok(check(ridOf(inf.oid), { ...inf, damage: 'injury' }));
   assert.ok(inf.mot && check(ridOf(inf.oid), inf), 'R260: a Motivation card');
+  // R341, R340: a Conviction and a Burden, one waiting for its name; a receipt waiting on one.
+  const lasting = { bias: { name: 'Cheats win', points: 7, spent: 1 }, affliction: { name: '', points: 2, spent: 0, naming: { by: 'Beauford', id: 'r1' } } };
+  assert.ok(check(rid, { ...sam, back: { ...sam.back, lasting } }));
+  const attack = { target: sam.oid, name: 'Sam', from: 'Beauford', kind: 'mental', result: 5, taken: true, waiting: [{ damage: 'bias', row: 'lasting' }] };
+  assert.ok(check(ridOf(roll.oid), { ...roll, receipts: [{ ...roll.receipts[0]!, attack }] }));
   const sticky = records.find(r => r.kind === 'sticky')!;
   assert.ok(check(ridOf(sticky.oid), { ...sticky, big: false }));   // R248
   const { flipped: _gone, ...missing } = sam;
@@ -29,6 +34,8 @@ test('check takes the scene and refuses the malformed', () => {
     [rid, { ...sam, back: { ...sam.back, damage: { ...sam.back.damage, bias: { ...sam.back.damage.bias, sig: { name: '', boxes: [], spent: [-1] } } } } }],
     [rid, { ...sam, back: { ...sam.back, damage: { ...sam.back.damage, stagger: sam.back.damage.bias } } }],
     [rid, { ...sam, back: { ...sam.back, absorb: { ...sam.back.absorb, bias: -1 } } }],
+    [rid, { ...sam, back: { ...sam.back, lasting: { injury: { name: 'x', points: 2, spent: 0 } } } }],
+    [rid, { ...sam, back: { ...sam.back, lasting: { bias: { name: 'x', points: -1, spent: 0 } } } }],
     [ridOf(inf.oid), { ...inf, damage: 'main' }],
     [ridOf(roll.oid), { ...roll, receipts: [{ ...roll.receipts[0]!, dice: [{ c: 'W', v: 7, added: false, dropped: false }] }] }],
     [rid, { ...sam, kind: 'trap' }],

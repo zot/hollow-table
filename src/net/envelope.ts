@@ -53,9 +53,9 @@ const BODIES: Record<Kind, Shape> = {
       fields({ act: name }), fields({ fld: name }), fields({ skl: name })].some(f => f(v)) }),
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf('max', 'dbl'), lock: bool }),
-  // R314: a take names a page, a count per row; a name is for one waiting Slot.
+  // R314: a take names a page, a count per row; a name is for one waiting Slot (R340: or a Conviction or Burden).
   take: fields({ id: str(CAPS.id), page: fields({ use: fields(Object.fromEntries(ROWS.map(r => [r, int(0, 20)]))), overflow: int(0, 10_000) }) }),
-  name: fields({ id: str(CAPS.id), damage: oneOf(...DAMAGE), row: oneOf(...ROWS), name }),
+  name: fields({ id: str(CAPS.id), damage: oneOf(...DAMAGE), row: oneOf(...ROWS, 'lasting'), name }),
   refuse: fields({ why }, { n: seq }),
   claim: fields({ name, why: whyOrNull }),
 };

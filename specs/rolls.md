@@ -213,14 +213,17 @@ attacker names them.
 - **When no set of free Slots covers it, there is one page:** every free Slot fills, and the rest is
   **overflow**. The page says what it makes: a **Condition** for a physical Attack, a **Conviction**
   for a mental one, a **Burden** for a psychological one (Bill, 11-13; Conditions come from the
-  unpublished Hollow physical injury rules). Until the card has a place for those
-  (`carves/damage.md`, Item 6), the overflow is written in the card's Notes: *Conviction: 3 from
-  Beauford's Attack*.
+  unpublished Hollow physical injury rules). Accepting it adds the overflow to the column's
+  Conviction or Burden (see *Character card* in `table.md`), starting one when the card has none,
+  and a new one waits for the attacker's name like a new Slot (Bill, 11-15). A Condition is written
+  in the card's Notes, *Condition: 3 from Beauford's Attack*, until the physical injury rules are
+  published (Bill, 11-15).
 - **Accepting a page fills it:** a box is checked for each boxed Slot it uses, and each named Slot it
   uses waits for a name, drawn as an empty mark in its column with *Beauford names it*. The page
   can be turned back with Escape or a click elsewhere, and nothing has changed.
 - **The attacker names each new named Slot** (Bill: "the attacker gets to name them (unless they're
-  boxes)"), from their own receipt, which now reads *Name Devreux's Minor Bias*. The name goes into
+  boxes)"), and a new Conviction or Burden (Bill, 11-15), from their own receipt, which now reads
+  *Name Devreux's Minor Bias* or *Name Devreux's Conviction*. The name goes into
   the slot through the GM's page, even when the attacker can't see the card. The GM can rename it,
   as with any card text; that is the GM's approval.
 
@@ -230,7 +233,7 @@ attacker names them.
   ▲ ▼ keys, and **End**. The Round runs from 0 to 99; when it changes, the tab drops and comes back
   up with the new number.
 - **End** ends the Conflict. Pressing it raises an orange "End conflict?" tab; press again within 3 s
-  to end it. End resets the Round to 0, recharges Biases, Afflictions and Injuries, clears every Mild
+  to end it. End resets the Round to 0, recharges Damage (Convictions and Burdens too), clears every Mild
   slot (its name and its boxes: Mild Damage "disappears immediately after the Contest", Hollow Folks;
   Bill, 11-15), empties the used piles
   (plain cards go home, tapped cards are spent and gone), clears "used", clears CRIT! Influences,

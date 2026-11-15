@@ -18,10 +18,21 @@ true, false, true, false; false; false
 ## Test: who takes an Attack, and who names it
 **Purpose:** R308: Take shows for the target's owner and the GM until the Attack is taken; R313: the name lines for whoever rolled it and the GM; the line's words
 **Input:** an Attack Ann rolled at Dana's Sam; viewers Dana, Ann, the GM and nobody; then taken with a Min Bias waiting
-**Expected:** Take for Dana and the GM only, none once taken; names for Ann and the GM only, none with nothing waiting; "Name Sam's Minor Bias"
+**Expected:** Take for Dana and the GM only, none once taken; names for Ann and the GM only, none with nothing waiting; "Name Sam's Minor Bias", "Name Sam's Conviction" and "Name Sam's Burden" (R340)
 **Refs:** crc-Tape.md
 **Code:** src/ui/tape.test.ts
 **Alarm:** 2
 **Fire alarm:** let anyone see Take (`mayTake` true for any viewer); red: Ann is offered Take on Dana's Sam
 **Inject:** src/ui/tape.ts:mayTake
 **Pulled:** 2026-11-13 — 2026-11-13 — rang: "who takes an Attack, and who names it" failed (Ann offered Take); restored clean
+
+## Test: the name line for a Conviction or Burden
+**Purpose:** R340: a new Conviction or Burden is named from the receipt with its own words
+**Input:** a waiting `lasting` row on Sam's Biases and Afflictions
+**Expected:** "Name Sam's Conviction" and "Name Sam's Burden"
+**Refs:** crc-Tape.md
+**Code:** src/ui/tape.test.ts
+**Alarm:** 3
+**Fire alarm:** in nameWords, drop the `lasting` case; red: "Name Sam's undefined Bias"
+**Inject:** src/ui/tape.ts:nameWords
+**Pulled:** 2026-11-15 — rang again after the simplifier pass (one OVERFLOW table): "Name Sam's undefined Bias"; restored clean *Earlier —* 2026-11-15 — rang: "who takes an Attack, and who names it" failed with "Name Sam's undefined Bias"; restored clean

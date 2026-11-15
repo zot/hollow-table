@@ -96,6 +96,8 @@
 - **R333:** A heading is drawn in capitals, the text keeping what was typed; the heading on a card's first line, its name, keeps its case.
 - **R334:** While a card's front is written on (pens out), each Field Skill line that is indented and carries no ✓ shows a faint ghost ✓ in its margin, drawn without entering the text; a `Skills N:` line, a Skill with no Field above, and a card at rest show none.
 - **R335:** While writing, a press in an indented Field Skill's margin toggles its ✓: on a ghost it writes `✓ ` at the start of that Skill's text, on a real ✓ it takes it out; the change is saved as typing is, so the Skill's Level follows at once.
+- **R341:** A character's back holds at most one Conviction, on a line under the Biases' Maj slot, and one Burden under the Afflictions': its name, its Level, and its points toward the next Level, *Sig (5/6)*. Its Level follows its points: Min to 2, Sig to 6, Maj to 12, Ext to 20, Exq beyond. The line shows only while the card has one, and it keeps its column from collapsing.
+- **R342:** A Conviction's or Burden's name and points are edited in place, which is how the GM does Recovery; one with no name and no points is gone.
 
 ## Feature: Influence
 **Source:** specs/influence.md
@@ -158,6 +160,7 @@
 - **R238:** A drawer its viewer may not read shows its cards face-down as striped red backs that keep their number and size.
 - **R65:** Plain chips are never marked used.
 - **R66:** A Resource dropped on a used card starts a new card beside it.
+- **R343:** A Conviction taps into a Bias Influence and a Burden into an Affliction Influence, worth its Level (Min 1, Sig 2, Maj 3, Ext 4, Exq 5) less what it has spent; End recharges what it spent.
 
 ## Feature: rolls
 **Source:** specs/rolls.md
@@ -225,7 +228,7 @@
 - **R308:** The receipt of an Attack that succeeded (at cost or not) against a character carries "Take N", N its Result, on the tapes of the target's owner and the GM only, until it is taken.
 - **R309:** Taking it turns the target's card to its back at the Attack's column: Injuries for physical, Biases for mental, Afflictions for psychological.
 - **R310:** The pages are every set of free Slots in that column that covers the Result less the column's absorb with none to spare (dropping any one falls short), each set once, flipped with ‹ k of n ›.
-- **R311:** When no set covers it, the one page fills every free Slot and names the overflow: a Condition (physical), a Conviction (mental) or a Burden (psychological); accepting it writes the overflow into the card's Notes.
+- **~~R311:~~** (Retired T21 — see R339) When no set covers it, the one page fills every free Slot and names the overflow: a Condition (physical), a Conviction (mental) or a Burden (psychological); accepting it writes the overflow into the card's Notes.
 - **R312:** Accepting a page checks a box for each boxed Slot it uses and leaves each named Slot it uses waiting for the attacker's name, shown as "Beauford names it"; Escape or a click elsewhere backs out with nothing changed.
 - **R313:** The attacker's receipt asks for each waiting name ("Name Devreux's Minor Bias"); the name reaches the slot through the GM's page even when the attacker can't see the card, and the GM can rename it.
 - **R314:** (inferred) The GM's page decides a take and a name: it refuses a take from anyone but the target's owner or the GM, a second take of one Attack, or a set that isn't one of its pages, and a name from anyone but the attacking character's owner or the GM.
@@ -248,6 +251,8 @@
 - **R330:** The opponent's total is the opposition's base (Defend, or what was pointed at) + Main + Edge + Bias + Affliction + Injury + Stagger.
 - **R336:** A drag from the Base can end on a `<fld>` line or one Skill of a `<skl>` line, and the opposition's base is its Level plus the target's attribute that the acting action uses (R337), an attribute its card doesn't list counting 0; the `vs` line reads `vs Sam (Investigation 2 + Cha 2)`, or `vs Sam (Fighting 2)` when the action uses none.
 - **R337:** An action line names the attribute its roll uses as an entry in its parentheses, among any others: `(no att)` for none, `(Int)` for Int (`Shoot: 4, +2 (unfr, x2, no att)`); an action naming neither uses Cha.
+- **R339:** When no set covers it, the one page fills every free Slot and names the overflow: a Condition (physical), a Conviction (mental) or a Burden (psychological). Accepting it adds a mental or psychological overflow to the column's Conviction or Burden, starting one that waits for the attacker's name when the card has none; a Condition is written in the card's Notes.
+- **R340:** The attacker's owner, or the GM, names a new Conviction or Burden from the receipt, as for a new Slot: *Name Devreux's Conviction*.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

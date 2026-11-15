@@ -1,5 +1,5 @@
 # Tap
-**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262
+**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262, R343
 
 Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source so
 every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
@@ -13,6 +13,8 @@ Resources*). Pure: returns the records to write.
   - a named Damage slot, `<oid>:<damage>/<row>` (`injury/sig`), or its k-th checked box,
     `<oid>:<damage>/<row>#<k>`. Each is worth `rowLevels(row)` less what its `spent` entry holds
     (crc-Records.md), and makes a card named after the slot.
+  - a named Conviction or Burden, `<oid>:<damage>/lasting` (R343): worth Absorb.lastingLevels of its
+    points less its `spent`, and makes a card of its column's kind named after it.
 - Who may tap (R259): a `<res>` only its character's owner or the GM; Motivations and Damage anyone
   (R212). The rules below never ask who; mayTap does, and the page asks it before a tap starts.
 
@@ -31,7 +33,8 @@ Resources*). Pure: returns the records to write.
 - unfeed(chars, card): a Level back to the current source, never below what it put in, and the card
   never below Min.
 - kill(chars, card): an unused tap's Levels go back to their sources.
-- recharge(character): End restores every Damage slot's and box's spent Levels.
+- recharge(character): End restores every Damage slot's and box's spent Levels, and a Conviction's
+  or Burden's (R343).
 - rechargeMotives(character): the end of a scene removes every Motivation's parentheses (R262).
 
 ## Collaborators

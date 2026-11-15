@@ -1,8 +1,8 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R260, R268, R269, R270, R271, R272, R334, R335
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R260, R268, R269, R270, R271, R272, R334, R335, R341, R342
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
-import { at, dragFromTo, open, rec } from './page.ts';
+import { at, dragFromTo, hook, open, rec } from './page.ts';
 
 const SAM = 'o:00000001', DEVREUX = 'o:00000003', PEACE = 'o:00000004';
 const CARD = `.obj.card[data-rid="${SAM}"]`, DPOOL = `.obj.pool[data-rid="${DEVREUX}"]`, SPOOL = `.obj.pool[data-rid="${SAM}"]`;
@@ -144,3 +144,40 @@ test('ghost checks on a Field Skill', async ({ page }) => {
   expect(await ghost()).toBe('"✓"');
 });
 
+
+test('a Conviction under Biases', async ({ page }) => {
+  // R341: Sam's Conviction draws on its own line under Biases: its glyph, name, Level and points over
+  // its top; he has no Burden, so that line is hidden. R342: its points and name are written in
+  // place, and written away, it is gone.
+  await hook(page, h => {
+    const rid = 'o:00000001', sam = h.store.game.get(rid);
+    h.store.game.change((w: any) => w.put(rid, { ...sam, back: { ...sam.back, lasting: { bias: { name: 'Cheats win', points: 7, spent: 0 } } } }));
+  });
+  await page.locator(`${CARD} .flip`).click();
+  const line = page.locator(`${CARD} .col-bias .lastline`);
+  await expect(line).toBeVisible();
+  await expect(line.locator('.kind')).toHaveText('Conviction');
+  await expect(line.locator('.name')).toHaveText('Cheats win');
+  await expect(line.locator('.glyph')).toHaveCount(1);
+  await expect(page.locator(`${CARD} .col-bias`)).not.toHaveClass(/\bempty\b/);
+  // The column is too narrow for all of it on one line: the name gets a blank of its own.
+  expect((await line.locator('.name').evaluate(e => (e as HTMLElement).offsetWidth))).toBeGreaterThan(100);
+  expect(await line.evaluate(e => e.textContent!.replace(/\s+/g, ' ').trim())).toBe('ConvictionCheats winMaj7/12');
+  await expect(page.locator(`${CARD} .col-affliction .lastline`)).toBeHidden();
+
+  await line.locator('.pts').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('5');
+  await expect(line.locator('.lvl')).toHaveText('Sig');
+  await expect(line.locator('.top')).toHaveText('/6');
+  expect((await rec(page, SAM)).back.lasting.bias.points).toBe(5);
+
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Backspace');
+  await line.locator('.name').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Backspace');
+  await expect.poll(async () => (await rec(page, SAM)).back.lasting).toBeUndefined();
+  await page.locator('body').click({ position: { x: 5, y: 5 } });
+  await expect(line).toBeHidden();
+});

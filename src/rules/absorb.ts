@@ -1,7 +1,7 @@
-// CRC: crc-Absorb.md | Seq: seq-take.md#1.2, seq-take.md#1.4.2 | R309, R310, R311, R312, R315, R338
+// CRC: crc-Absorb.md | Seq: seq-take.md#1.2, seq-take.md#1.4.2 | R309, R310, R312, R315, R338, R339, R340, R341
 // Taking an Attack into a Damage column: Hollow Folks, *Absorbing Damage*, with Bill's rulings of
 // 2026-11-13 (carves/damage.md, Item 4). Pure.
-import { DAMAGE, ROWS, type AttackKind, type Character, type Damage, type DamageSlot, type RowName } from '../model/records.ts';
+import { DAMAGE, LASTING, ROWS, type AttackKind, type Character, type Damage, type DamageSlot, type Lasting, type LastingColumn, type NameRow, type RowName } from '../model/records.ts';
 import { columnRoom } from './influence.ts';
 
 /** What a Slot of each row absorbs. */
@@ -10,8 +10,30 @@ export const SIZE: Record<RowName, number> = { mild: 2, min: 2, sig: 4, maj: 6 }
 // R309: the Attack's kind picks its column.
 export const COLUMN_OF: Record<AttackKind, Damage> = { phys: 'injury', mental: 'bias', psych: 'affliction' };
 
-// R311: what each kind's overflow makes (Bill, 11-13: a Condition, from the unpublished physical rules).
-export const OVERFLOW: Record<AttackKind, string> = { phys: 'Condition', mental: 'Conviction', psych: 'Burden' };
+// R339: what each column's overflow makes (Bill, 11-13: a Condition, from the unpublished physical rules).
+export const OVERFLOW: Record<Damage, string> = { bias: 'Conviction', affliction: 'Burden', injury: 'Condition' };
+// R341: the columns that keep their overflow as a Conviction or Burden.
+export const isLasting = (d: Damage): d is LastingColumn => (LASTING as readonly Damage[]).includes(d);
+
+// R341: Hollow Folks, *Convictions and Burdens*: "They start at Minor and absorb up to 2 points, then
+// rise to Significant, absorbing up to 4 more points, and so on, all the way up to Exquisite".
+const TOPS = [2, 6, 12, 20, 30];
+/** A Conviction's or Burden's Levels for its points: 1 (Min) to 5 (Exq), 0 at 0 points. */
+export function lastingLevels(points: number): number {
+  if (points <= 0) return 0;
+  const k = TOPS.findIndex(t => points <= t);
+  return k < 0 ? TOPS.length : k + 1;
+}
+/** The points that fill its Level: what *Sig (5/6)* shows after the slash. */
+export function lastingTop(points: number): number {
+  return TOPS[Math.max(lastingLevels(points), 1) - 1]!;
+}
+
+// R340: a name waits in a row's named Slot or, for a new one, the column's Conviction or Burden.
+/** What a name for `row` of column `d` goes into; undefined for a column with no such Conviction or Burden. */
+export function waitsIn(char: Character, d: Damage, row: NameRow): DamageSlot | Lasting | undefined {
+  return row !== 'lasting' ? char.back.damage[d][row] : isLasting(d) ? char.back.lasting?.[d] : undefined;
+}
 
 /** A way to absorb an Attack: how many Slots of each row it uses, and what is left over. */
 export type Page = { use: Record<RowName, number>; overflow: number };
@@ -40,7 +62,7 @@ export function free(char: Character, d: Damage): Record<RowName, number> {
 const total = (use: Record<RowName, number>) => ROWS.reduce((a, r) => a + use[r] * SIZE[r], 0);
 const slots = (use: Record<RowName, number>) => ROWS.reduce((a, r) => a + use[r], 0);
 
-// R310: every set of free Slots that covers what the absorb leaves, with none to spare; R311: when
+// R310: every set of free Slots that covers what the absorb leaves, with none to spare; R339: when
 // none covers it, one page using every free Slot, the rest overflow.
 /** The pages for an Attack of `kind` with Result `result` against `char`. */
 export function pages(char: Character, kind: AttackKind, result: number): Page[] {
@@ -69,7 +91,9 @@ export function same(a: Page, b: Page): boolean {
 }
 
 // R312: a row is used in order: its named Slot waits for the attacker's name, then boxes are checked.
-/** The character with the page's Slots used, and its overflow written in the Notes (R311). */
+// R339: a mental or psychological overflow grows the column's Conviction or Burden, starting one that
+// waits for the attacker's name; a physical one (a Condition) is written in the Notes (Bill, 11-15).
+/** The character with the page's Slots used, and its overflow absorbed. */
 export function fill(char: Character, kind: AttackKind, page: Page, by: { name: string; id: string }): Character {
   const d = COLUMN_OF[kind], column = { ...char.back.damage[d] };
   for (const row of ROWS) {
@@ -81,9 +105,16 @@ export function fill(char: Character, kind: AttackKind, page: Page, by: { name: 
     for (let k = 0; k < next.boxes.length && n > 0; k++) if (!next.boxes[k]) { next.boxes[k] = true; n--; }
     column[row] = next;
   }
-  const line = page.overflow > 0 ? `${OVERFLOW[kind]}: ${page.overflow} from ${by.name}'s Attack` : '';
-  const notes = line ? (char.back.notes ? `${char.back.notes}\n${line}` : line) : char.back.notes;
-  return { ...char, back: { ...char.back, notes, damage: { ...char.back.damage, [d]: column } } };
+  const back = { ...char.back, damage: { ...char.back.damage, [d]: column } };
+  if (page.overflow <= 0) return { ...char, back };
+  if (isLasting(d)) {
+    const was = char.back.lasting?.[d];
+    const now: Lasting = was ? { ...was, points: was.points + page.overflow }
+      : { name: '', points: page.overflow, spent: 0, naming: { by: by.name, id: by.id } };
+    return { ...char, back: { ...back, lasting: { ...char.back.lasting, [d]: now } } };
+  }
+  const line = `${OVERFLOW[d]}: ${page.overflow} from ${by.name}'s Attack`;
+  return { ...char, back: { ...back, notes: char.back.notes ? `${char.back.notes}\n${line}` : line } };
 }
 
 // R338: Mild Damage "disappears immediately after the Contest" (Hollow Folks): End empties every Mild

@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -43,9 +43,20 @@ export type DamageSlot = {
   /** R312: waiting for the attacker's name: the attacking character's name and the receipt it came from. */
   naming?: { by: string; id: string };
 };
+// R341, R343: a Conviction (under Biases) or a Burden (under Afflictions): its name, the overflow
+// points it has absorbed, the Levels tapped until End, and while new, the attacker's name it waits for.
+export const LASTING = ['bias', 'affliction'] as const satisfies readonly Damage[];
+export type LastingColumn = (typeof LASTING)[number];
+export type Lasting = { name: string; points: number; spent: number; naming?: { by: string; id: string } };
+/** R340: what a name waits in: a row's named Slot, or the column's Conviction or Burden. */
+export type NameRow = RowName | 'lasting';
+
 // R264: `absorb` is no longer read (a column's absorb is worked out from Wis or Con); it stays so
 // old games load.
-export type CardBack = { damage: Record<Damage, Record<RowName, DamageSlot>>; absorb: Record<Damage, number>; notes: Marked };
+export type CardBack = {
+  damage: Record<Damage, Record<RowName, DamageSlot>>; absorb: Record<Damage, number>; notes: Marked;
+  lasting?: Partial<Record<LastingColumn, Lasting>>;
+};
 
 /** Every Damage slot of a back, each made by `f` from its column and row. */
 export function damageSlots(f: (d: Damage, r: RowName) => DamageSlot): CardBack['damage'] {
@@ -100,7 +111,7 @@ export const isAttack = (t: RollType): t is AttackKind => (ATTACKS as readonly s
  */
 export type Attack = {
   target: Oid; name: string; from: string; kind: AttackKind; result: number; taken?: boolean;
-  waiting?: { damage: Damage; row: RowName }[];
+  waiting?: { damage: Damage; row: NameRow }[];
 };
 export type Receipt = {
   id: string; at: number; title: string; by?: string; dice: Die[];
@@ -186,12 +197,15 @@ const points = int(0, 1000);
 const where: Shape = v => v === 'drawer' || v === 'used'
   || fields({ slot: isOid, name: oneOf(...SLOTS) })(v) || fields({ table: place })(v);
 const marked = str(CAPS.text);
+const naming = fields({ by: str(CAPS.name), id: str(CAPS.id) });
 const slot = fields({ name: str(CAPS.name), boxes: list(bool, 20), spent: list(int(0, 100), 21) },
-  { naming: fields({ by: str(CAPS.name), id: str(CAPS.id) }) });
+  { naming });
 const column = fields(Object.fromEntries(ROWS.map(r => [r, slot])));
 const damage = fields(Object.fromEntries(DAMAGE.map(d => [d, column])));
 const absorb = fields(Object.fromEntries(DAMAGE.map(d => [d, int(0, 100)])));
-const back = fields({ damage, absorb, notes: marked });
+const lastingOne = fields({ name: str(CAPS.name), points: int(0, 10_000), spent: int(0, 100) }, { naming });
+const lasting = fields({}, Object.fromEntries(LASTING.map(d => [d, lastingOne])));
+const back = fields({ damage, absorb, notes: marked }, { lasting });
 const die = fields({ c: oneOf(...DICE), v: int(1, 6), added: bool, dropped: bool }); // R109
 export const receipt = fields(
   { id: str(CAPS.id), at: num(0, 1e15), title: str(CAPS.name), dice: list(die, 200),
@@ -200,7 +214,7 @@ export const receipt = fields(
     crit: fields({ max: int(0, 10_000), dbl: int(0, 10_000), chosen: oneOf('max', 'dbl'), locked: bool }),
     priv: bool,
     attack: fields({ target: isOid, name: str(CAPS.name), from: str(CAPS.name), kind: oneOf(...ATTACKS), result: int(0, 10_000) },
-      { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS) }), 20) }) });
+      { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS, 'lasting') }), 20) }) });
 
 const PIECES: Record<PieceRecord['kind'], Shape> = {
   character: fields({ kind: oneOf('character'), oid: isOid, owner: str(CAPS.name), name: str(CAPS.name), pool: place,

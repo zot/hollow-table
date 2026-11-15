@@ -187,3 +187,4 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T19: R84 retired by R330 (Bill 11-14: a number, Field or Skill pointed at replaces Defend as the opposition's base)
 - [x] O11: Skills pointed at add Cha whatever the roll (R327); which attribute a Field or Skill adds — the acting character's, none (the fist), Int (the brain) — is .carves/prototype.md part 35.2.
 - T20: R327 retired by R336 (2026-11-15 part 35.2: the acting action chooses the attribute, not always Cha)
+- T21: R311 retired by R339 (Item 6: overflow now fills a Conviction or Burden (Bill, 2026-11-15))

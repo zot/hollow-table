@@ -5,11 +5,11 @@
 // tape what its person may know.
 
 import type { Game, Writer } from '../model/game.ts';
-import { GM, KEPT, PLAYER_OIDS, ROWS, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type RowName, type Die, type Influence, type Meta, type Oid, type Receipt, type RollType, type Tape } from '../model/records.ts';
+import { GM, KEPT, PLAYER_OIDS, ROWS, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Receipt, type RollType, type Tape } from '../model/records.ts';
 import { roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
-import { COLUMN_OF, fill, pages, same, type Page } from '../rules/absorb.ts';
+import { COLUMN_OF, fill, pages, same, waitsIn, type Page } from '../rules/absorb.ts';
 import { action as readAction, defend as readDefend, pointed, type Against } from '../rules/readmarks.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import { marks, parse } from '../text/marks.ts';
@@ -208,7 +208,7 @@ export function alternative(label: string, alt: string | undefined): string {
 }
 
 export type TakeMsg = { id: string; page: Page };
-export type NameMsg = { id: string; damage: Damage; row: RowName; name: string };
+export type NameMsg = { id: string; damage: Damage; row: NameRow; name: string };
 
 export type RollsWith = {
   game: Game; sealer: Sealer; clock: Clock; rng: Rng;
@@ -373,9 +373,10 @@ export class Rolls {
     }
   }
 
-  // Seq: seq-take.md#1.4.1, seq-take.md#1.4.2, seq-take.md#1.4.3, seq-take.md#1.5 | R308, R312, R314
+  // Seq: seq-take.md#1.4.1, seq-take.md#1.4.2, seq-take.md#1.4.3, seq-take.md#1.5 | R308, R312, R314, R340
   // The target's owner or the GM takes an Attack: refused unless it is untaken and the page is one of
-  // the GM's own pages for it; then filled, marked taken, its named Slots waiting for names.
+  // the GM's own pages for it; then filled, marked taken, its named Slots (and a new Conviction or
+  // Burden) waiting for names.
   #take(body: TakeMsg, from: Peer | null): Promise<void> {
     const { game } = this.#w, k = this.#kept(body.id), a = k?.full.attack;
     if (!k || !a || a.taken) return this.#work;
@@ -384,26 +385,28 @@ export class Rolls {
     if (from && c.owner !== this.#w.whoIs?.(from)) return this.#work;
     if (!pages(c, a.kind, a.result).some(p => same(p, body.page))) return this.#work;
     const next = fill(c, a.kind, body.page, { name: by.name, id: body.id }), d = COLUMN_OF[a.kind];
-    const waiting = ROWS.filter(r => next.back.damage[d][r].naming?.id === body.id && !c.back.damage[d][r].naming)
-      .map(row => ({ damage: d, row }));
+    const named = (ch: Character, r: NameRow) => waitsIn(ch, d, r)?.naming?.id === body.id;
+    const waiting = [...ROWS, 'lasting' as const].filter(r => named(next, r) && !named(c, r)).map(row => ({ damage: d, row }));
     game.change(w => w.put(ridOf(c.oid), next));
     this.#attack(k, x => ({ ...x, taken: true, ...(waiting.length && { waiting }) }));
     return this.#resend(k);
   }
 
-  // Seq: seq-take.md#2.1, seq-take.md#2.2, seq-take.md#2.3 | R313, R314
-  // The attacking character's owner or the GM names a Slot this Attack left waiting.
+  // Seq: seq-take.md#2.1, seq-take.md#2.2, seq-take.md#2.3 | R313, R314, R340
+  // The attacking character's owner or the GM names a Slot (or a Conviction or Burden) this Attack left waiting.
   #name(body: NameMsg, from: Peer | null): Promise<void> {
     const { game } = this.#w, k = this.#kept(body.id), a = k?.full.attack, text = body.name.trim();
     if (!k || !a || !text || !a.waiting?.some(x => x.damage === body.damage && x.row === body.row)) return this.#work;
     const by = game.get(ridOf(k.character)) as Character | undefined, c = game.get(ridOf(a.target)) as Character | undefined;
     if (by?.kind !== 'character' || c?.kind !== 'character') return this.#work;
     if (from && by.owner !== this.#w.whoIs?.(from)) return this.#work;
-    const slot = c.back.damage[body.damage][body.row];
-    if (slot.naming?.id !== body.id) return this.#work;
+    const slot = waitsIn(c, body.damage, body.row);
+    if (slot?.naming?.id !== body.id) return this.#work;
     const { naming: _, ...named } = { ...slot, name: text };
-    game.change(w => w.put(ridOf(c.oid), { ...c, back: { ...c.back, damage: { ...c.back.damage,
-      [body.damage]: { ...c.back.damage[body.damage], [body.row]: named } } } }));
+    const back = body.row === 'lasting'
+      ? { ...c.back, lasting: { ...c.back.lasting, [body.damage]: named } }
+      : { ...c.back, damage: { ...c.back.damage, [body.damage]: { ...c.back.damage[body.damage], [body.row]: named } } };
+    game.change(w => w.put(ridOf(c.oid), { ...c, back }));
     this.#attack(k, x => {
       const rest = x.waiting!.filter(w => w.damage !== body.damage || w.row !== body.row);
       const { waiting: __, ...left } = x;
@@ -449,7 +452,7 @@ export class Rolls {
   }
 
   /** Name a Slot an Attack left waiting (R313): the GM's page writes it, even on a card the sender can't see. */
-  name(id: string, damage: Damage, row: RowName, name: string): Promise<void> {
+  name(id: string, damage: Damage, row: NameRow, name: string): Promise<void> {
     if (this.#w.gm) return this.#name({ id, damage, row, name }, null);
     if (this.#gmPeer) this.#w.link?.send('name', { id, damage, row, name } satisfies NameMsg, this.#gmPeer.tab);
     return this.#work;

@@ -1,5 +1,5 @@
 # UI: a character card
-**Requirements:** R5, R22-24, R75, R202, R209, R213, R245, R246, R249, R253, R254, R256, R264, R265, R316, R318, R331-335
+**Requirements:** R5, R22-24, R75, R202, R209, R213, R245, R246, R249, R253, R254, R256, R264, R265, R316, R318, R331-335, R341, R342
 
 Front:
 ```
@@ -26,10 +26,14 @@ Back (Injuries empty, so collapsed to its name):
 │ □ □   Min  ______________    Min  ______________      │   │ │
 │ ☑     Sig  ▭ Uncertain ▭     Sig  ______________      │   │ │
 │       Maj  ______________    Maj  ______________      │   │ │
+│ Conviction ▭ Cheats win  Sig (5/6)                    │   │ │
 │ NOTES                                                        │
 │ ____________________________________________________________ │
 └──────────────────────────────────────────────────────────────┘
 ```
+- A Conviction (under Biases) or Burden (under Afflictions) takes a line below Maj only while the
+  card has one (R341): its kind's word, a tap glyph, its name, its Level, and its points over its
+  top; name and points are written in place (R342).
 - A slot's boxes sit in front of its Level word (R213). An entry is drawn as its column's mark
   (`bias`, `aff`, `inj`) with a tap glyph ▭ before it; a checked box adds a glyph after the entry,
   one per checked box.

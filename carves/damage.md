@@ -14,7 +14,7 @@ Opened by Bill, 2026-11-12, after the back gained its Damage columns.
 - [x] ~~**Item 3 — Slots and absorb from Con and Wis.**~~ **LANDED (2026-11-13 — `#6`.)**
 - [x] ~~**Item 4 — taking an Attack.**~~ **LANDED (2026-11-13 — `#7`.)**
 - [x] ~~**Item 5 — Damage that ends.**~~ **LANDED (2026-11-15 — `#8`.)**
-- [ ] **Item 6 — Convictions and Burdens.** **OPEN (#9.)**
+- [x] ~~**Item 6 — Convictions and Burdens.**~~ **LANDED (2026-11-15 — `#9`.)**
 - [ ] **Item 7 — what a card tapped from a Mild slot is worth.** **OPEN (#10.)**
 
 ## Decisions
@@ -119,6 +119,23 @@ and at this table End stands in for that.
 Convictions, Burdens and Conditions (Bill, 2026-11-13: a Condition is the physical one): where
 they sit on the card, and what tapping them makes. In Bunkum,
 Convictions are Resources that create Bias Influences, like Biases (*Bunkum*, Resources).
+
+The book (Hollow Folks, *Convictions and Burdens*): "long-lasting Biases" and "long-lasting
+Afflictions" that "start at Minor and absorb up to 2 points, then rise to Significant, absorbing up
+to 4 more points, and so on, all the way up to Exquisite, for a potential total of 30 points
+absorbed across several Results." Bunkum: tapping them "depletes them temporarily until the end of
+the Scene"; Recovery lowers them by Levels at the end of an Event (Glimmer: a week of rest a Level).
+
+DECIDED (Bill, 2026-11-15): **under their column**: a line under the Maj slot, a Conviction under
+Biases and a Burden under Afflictions, with its name, its Level, and its points toward the next
+Level: *Conviction Cheats always win Sig (5/6)*.
+DECIDED (Bill, 2026-11-15): **it grows**: one per column, and later overflow adds its points and
+raises its Level (Min 2, Sig 6, Maj 12, Ext 20, Exq 30), "absorbed across several Results".
+DECIDED (Bill, 2026-11-15): **the attacker names it**, as a new Damage slot, and the GM can rename it.
+DECIDED (Bill, 2026-11-15): **Conditions stay a Note**: physical overflow is still written in the
+card's Notes until the physical injury rules are published.
+Table's choice (Daneel, 2026-11-15, for Bill's review): the table knows no Event, so Recovery is the
+GM's hand: rewriting the points lowers it, and 0 points with no name removes it.
 
 ## Item 7
 

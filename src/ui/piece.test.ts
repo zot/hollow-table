@@ -1,8 +1,10 @@
 // CRC: crc-PieceView.md | Test: test-PieceView.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { frontOrder, skillIndents, toggleCheck } from './piece.ts';
+import { editLasting, frontOrder, skillIndents, toggleCheck } from './piece.ts';
 import { parse, serialize } from '../text/marks.ts';
+import type { Character } from '../model/records.ts';
+import { SAM, scene } from '../store/playtest.ts';
 
 test('a column brought to the front leads', () => {
   // R253: the rest follow in turn, so bringing the second forward each time cycles through all three.
@@ -35,4 +37,15 @@ test("a Field Skill's check toggles", () => {
   assert.equal(serialize(toggleCheck(checked, 2)), front, 'toggled again, as written');
   assert.equal(at(toggleCheck(lines, 3), 3), '<skl>Rationalization 4</skl>');
   for (const k of [0, 4, 99]) assert.equal(toggleCheck(lines, k), lines, `line ${k} is left alone`);
+});
+
+// R342: a Conviction's name and points are written in place; with neither, and no name waited for, it is gone.
+test('editing a Conviction', () => {
+  const sam = scene().find(r => r.kind === 'character' && r.oid === SAM) as Character;
+  const one = editLasting(sam, 'bias', { name: 'Cheats win', points: 7 });
+  assert.deepEqual(one.back.lasting, { bias: { name: 'Cheats win', points: 7, spent: 0 } });
+  assert.deepEqual(editLasting(one, 'bias', { points: 2 }).back.lasting?.bias?.points, 2, 'Recovery lowers it');
+  assert.equal('lasting' in editLasting(editLasting(one, 'bias', { name: '' }), 'bias', { points: 0 }).back, false, 'blank, it is gone');
+  const waiting = { ...sam, back: { ...sam.back, lasting: { affliction: { name: '', points: 2, spent: 0, naming: { by: 'Beauford', id: 'r1' } } } } };
+  assert.ok(editLasting(waiting, 'affliction', { points: 0 }).back.lasting?.affliction, 'still waiting for its name');
 });
