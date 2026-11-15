@@ -2,7 +2,7 @@
 **Requirements:** R309, R310, R312, R315, R338, R339-341
 
 Taking an Attack into a Damage column, by Hollow Folks' *Absorbing Damage* and Bill's rulings of
-2026-11-13 (`carves/damage.md`, Item 4). Pure (`src/rules/absorb.ts`).
+2026-11-13 (`carves/done/damage.md`, Item 4). Pure (`src/rules/absorb.ts`).
 
 ## Knows
 - SIZE: what a Slot absorbs: Mild 2, Min 2, Sig 4, Maj 6.

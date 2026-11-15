@@ -195,7 +195,7 @@ this section and the book disagree, the book wins and this section is wrong.
 
 ## Taking an Attack
 
-The rules are Hollow Folks, *Absorbing Damage*, with Bill's rulings of 11-13 (`carves/damage.md`,
+The rules are Hollow Folks, *Absorbing Damage*, with Bill's rulings of 11-13 (`carves/done/damage.md`,
 Item 4). As at the table with pencil and paper, the target's owner chooses the Slots and the
 attacker names them.
 
