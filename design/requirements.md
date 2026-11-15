@@ -234,6 +234,7 @@
 - **R284:** The Round runs from 0 to 99; when it changes, its tab drops and comes back up with the new number.
 - **R116:** End needs a second press within 3 s of the first, which raises an orange "End conflict?" tab.
 - **R117:** End checkpoints the game, then resets the Round to 0, recharges Biases, Afflictions and Injuries, empties the used piles (plain cards home, tapped cards gone), and clears used marks.
+- **R338:** End also clears every character's Mild slot in all three Damage columns: its name, its boxes (unchecked, their number kept), what it spent, and any name it waits for. Other Damage stays until the GM erases it.
 - **R316:** Each `<act>` mark, including ones marked later, gets a small die-shaped button before each alternative of its label (split at `/`), the die clicked naming the action with the same numbers and preselecting its type; its text stays editable.
 - **R317:** A receipt reads, in order: the title ("Sam, roll 3") and time; "rolled by …"; the dice; "<action>: Total Influence T (base B)"; "vs <name> (<kind> <total>), Difference ±D"; the row in its words; "Resolution: …" naming the dice ("higher of White 4 and Green 6 + 1"); and the outcome with its Level and its sum ("Success +Maj: 6 + 4", "Success at cost +Sig: 3 + 2", "Failure −Sig: 2 + 5"), except that a successful Attack gives its amount ("Success 10: 6 + 4"); each page leaving out what it may not know. Its title can be edited.
 - **R318:** An action's die is drawn like the roll row's Blue die, small: blank, blue, rounded and shaded.

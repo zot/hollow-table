@@ -1,11 +1,11 @@
 # Register
-**Requirements:** R99, R112, R115, R116, R117, R284
+**Requirements:** R99, R112, R115-117, R284, R338
 
 The cash register: the Round, and End.
 
 ## Does
 - Pure (`src/ui/register.ts`): stepped(meta, ±1), the Round within 0 to 99 (R284); ended(game), End's
-  one change (R117, R99).
+  one change (R117, R99), each character's Mild slots emptied by Absorb.mildEnds (R338).
 - The view (RegisterView): in the bar at its right end, the oak case, the glass window with the Round
   on its tab, ▲ ▼ and End (keys only on the GM's page, whose Round is the table's), the paper roll
   rolling the tape up and down (Tape.toggleUp, R112); the tape hangs under its left edge (R282).
@@ -17,7 +17,7 @@ The cash register: the Round, and End.
   cleared, CRIT! Influences cleared wherever they are.
 
 ## Collaborators
-- Game, GameStore (the checkpoint), Tap, Tape
+- Game, GameStore (the checkpoint), Tap, Absorb (Mild slots at End), Tape
 
 ## Sequences
 - none

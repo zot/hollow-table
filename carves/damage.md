@@ -13,7 +13,7 @@ Opened by Bill, 2026-11-12, after the back gained its Damage columns.
 - [x] ~~**Item 2 — draw and edit the back.**~~ **LANDED (2026-11-13 — `#5`.)** PieceView, with the rest of the views.
 - [x] ~~**Item 3 — Slots and absorb from Con and Wis.**~~ **LANDED (2026-11-13 — `#6`.)**
 - [x] ~~**Item 4 — taking an Attack.**~~ **LANDED (2026-11-13 — `#7`.)**
-- [ ] **Item 5 — Damage that ends.** **OPEN (#8.)**
+- [x] ~~**Item 5 — Damage that ends.**~~ **LANDED (2026-11-15 — `#8`.)**
 - [ ] **Item 6 — Convictions and Burdens.** **OPEN (#9.)**
 - [ ] **Item 7 — what a card tapped from a Mild slot is worth.** **OPEN (#10.)**
 

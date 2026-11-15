@@ -59,3 +59,14 @@
 **Fire alarm:** check boxes before the named Slot (skip setting `naming` when the Slot is free); red: the Min Slot has no `naming` and both boxes are checked
 **Inject:** src/rules/absorb.ts:fill
 **Pulled:** 2026-11-13 — 2026-11-13 — rang: "filling uses a row in order" and "overflow" failed (no naming on the Min Slot); restored clean
+
+## Test: Mild Damage ends
+**Purpose:** R338: mildEnds empties every Mild slot in all three columns, name, boxes (their number kept), spent and naming, and leaves every other row as it was
+**Input:** Sam with a named Mild Bias with one of two boxes checked and 1 spent, a Mild Injury waiting for a name, and a named Min Affliction with a checked box
+**Expected:** each Mild slot `{name: '', boxes: [false, false] (or as many as it had), spent: []}` with no `naming`; the Min Affliction unchanged
+**Refs:** crc-Absorb.md
+**Code:** `src/rules/absorb.test.ts`
+**Alarm:** 5
+**Fire alarm:** in mildEnds, clear the name but keep the boxes; red: the Mild Bias keeps its checked box
+**Inject:** src/rules/absorb.ts:mildEnds
+**Pulled:** 2026-11-15 — 2026-11-15 — rang: "Mild Damage ends" failed, the Mild Bias kept its checked box; restored clean

@@ -1,7 +1,7 @@
-// CRC: crc-Absorb.md | Seq: seq-take.md#1.2, seq-take.md#1.4.2 | R309, R310, R311, R312, R315
+// CRC: crc-Absorb.md | Seq: seq-take.md#1.2, seq-take.md#1.4.2 | R309, R310, R311, R312, R315, R338
 // Taking an Attack into a Damage column: Hollow Folks, *Absorbing Damage*, with Bill's rulings of
 // 2026-11-13 (carves/damage.md, Item 4). Pure.
-import { ROWS, type AttackKind, type Character, type Damage, type DamageSlot, type RowName } from '../model/records.ts';
+import { DAMAGE, ROWS, type AttackKind, type Character, type Damage, type DamageSlot, type RowName } from '../model/records.ts';
 import { columnRoom } from './influence.ts';
 
 /** What a Slot of each row absorbs. */
@@ -84,4 +84,16 @@ export function fill(char: Character, kind: AttackKind, page: Page, by: { name: 
   const line = page.overflow > 0 ? `${OVERFLOW[kind]}: ${page.overflow} from ${by.name}'s Attack` : '';
   const notes = line ? (char.back.notes ? `${char.back.notes}\n${line}` : line) : char.back.notes;
   return { ...char, back: { ...char.back, notes, damage: { ...char.back.damage, [d]: column } } };
+}
+
+// R338: Mild Damage "disappears immediately after the Contest" (Hollow Folks): End empties every Mild
+// slot, its boxes unchecked but kept (Con or Wis sets how many); the rest is the GM's to erase.
+/** The character with every Mild slot emptied, in all three columns. */
+export function mildEnds(char: Character): Character {
+  const damage = { ...char.back.damage };
+  for (const d of DAMAGE) {
+    const mild = damage[d].mild;
+    damage[d] = { ...damage[d], mild: { name: '', boxes: mild.boxes.map(() => false), spent: [] } };
+  }
+  return { ...char, back: { ...char.back, damage } };
 }

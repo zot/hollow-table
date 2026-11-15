@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, RowName } from '../model/records.ts';
-import { fill, free, pages, same, type Page } from './absorb.ts';
+import { fill, free, mildEnds, pages, same, type Page } from './absorb.ts';
 import { SAM, scene } from '../store/playtest.ts';
 
 const sam = (): Character => scene().find((r): r is Character => r.kind === 'character' && r.oid === SAM)!;
@@ -67,4 +67,16 @@ test('filling uses a row in order', () => {
   assert.deepEqual(after.back.damage.affliction, c.back.damage.affliction);
   assert.equal(after.back.notes, c.back.notes);
   assert.ok(same(page, { use: { mild: 0, min: 2, sig: 0, maj: 0 }, overflow: 0 }));
+});
+
+test('Mild Damage ends', () => {
+  // R338: every Mild slot emptied, its boxes kept but unchecked, nothing spent, no name waited for;
+  // every other row as it was.
+  let c = withSlot(sam(), 'bias', 'mild', { name: 'Sore loser', boxes: [true, false], spent: [1] });
+  c = withSlot(c, 'injury', 'mild', { naming: { by: 'Beauford', id: 'r1' } });
+  c = withSlot(c, 'affliction', 'min', { name: 'Shamed', boxes: [true] });
+  const out = mildEnds(c).back.damage;
+  assert.deepEqual(out.bias.mild, { name: '', boxes: [false, false], spent: [] });
+  assert.deepEqual(out.injury.mild, { name: '', boxes: c.back.damage.injury.mild.boxes.map(() => false), spent: [] });
+  assert.deepEqual(out.affliction.min, c.back.damage.affliction.min, 'a Min Affliction stays');
 });

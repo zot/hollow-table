@@ -697,6 +697,14 @@ function fill(char, kind, page, by) {
 ${line}` : line : char.back.notes;
   return { ...char, back: { ...char.back, notes, damage: { ...char.back.damage, [d]: column2 } } };
 }
+function mildEnds(char) {
+  const damage3 = { ...char.back.damage };
+  for (const d of DAMAGE) {
+    const mild = damage3[d].mild;
+    damage3[d] = { ...damage3[d], mild: { name: "", boxes: mild.boxes.map(() => false), spent: [] } };
+  }
+  return { ...char, back: { ...char.back, damage: damage3 } };
+}
 
 // src/rules/yards.ts
 var NUMBERED = /^Graveyard (\d+)$/;
@@ -8532,7 +8540,7 @@ function ended(game) {
       const p = r;
       if (!("kind" in p)) continue;
       if (p.kind === "character") {
-        w.put(rid2, recharge(p));
+        w.put(rid2, mildEnds(recharge(p)));
         continue;
       }
       if (p.kind !== "influence") continue;

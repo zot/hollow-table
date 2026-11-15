@@ -1,9 +1,10 @@
-// CRC: crc-Register.md | R99, R112, R115, R116, R117, R284
+// CRC: crc-Register.md | R99, R112, R115, R116, R117, R284, R338
 // The cash register in the bar: the Round in its glass, ▲ ▼, End, and the tape's paper roll. The
 // decisions are pure (stepped, ended); the view draws the register and asks before End.
 
 import type { Game, Writer } from '../model/game.ts';
 import type { Character, Influence, Meta, PieceRecord } from '../model/records.ts';
+import { mildEnds } from '../rules/absorb.ts';
 import { recharge } from '../rules/tap.ts';
 import type { Viewer } from '../rules/visibility.ts';
 import { gesture } from './gesture.ts';
@@ -28,7 +29,8 @@ export function ended(game: Game): (w: Writer) => void {
     for (const [rid, r] of game.all()) {
       const p = r as PieceRecord;
       if (!('kind' in p)) continue;
-      if (p.kind === 'character') { w.put(rid, recharge(p as Character)); continue; }
+      // R338: and its Mild slots emptied.
+      if (p.kind === 'character') { w.put(rid, mildEnds(recharge(p as Character))); continue; }
       if (p.kind !== 'influence') continue;
       const k = p as Influence;
       if (k.crit || (k.where === 'used' && k.tap)) w.del(rid);

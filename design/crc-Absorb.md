@@ -1,5 +1,5 @@
 # Absorb
-**Requirements:** R309, R310, R311, R312, R315
+**Requirements:** R309-312, R315, R338
 
 Taking an Attack into a Damage column, by Hollow Folks' *Absorbing Damage* and Bill's rulings of
 2026-11-13 (`carves/damage.md`, Item 4). Pure (`src/rules/absorb.ts`).
@@ -23,6 +23,8 @@ Taking an Attack into a Damage column, by Hollow Folks' *Absorbing Damage* and B
 - fill(char, kind, page, by): the character with the page's Slots used, row by row in order: a named
   Slot waits for a name (`naming: {by, id}`, R312), a box is checked. The overflow, if any, is a line
   added to the Notes: `Conviction: 3 from Beauford's Attack` (R311).
+- mildEnds(char) (R338): the character with every Mild slot emptied at End, in all three columns:
+  no name, its boxes unchecked (their number kept), nothing spent, no name waited for.
 - same(a, b): whether two pages use the same Slots (the GM's page checks a take against its own
   pages).
 

@@ -15,7 +15,7 @@ test('the Round runs from 0 to 99', () => {
 });
 
 test('End ends the Conflict', () => {
-  // R117, R99: Round 0, Damage recharged, used piles emptied (plain cards home, taps gone), used
+  // R117, R99, R338: Round 0, Damage recharged, Mild slots emptied, used piles emptied (plain cards home, taps gone), used
   // marks cleared, CRIT! cards gone wherever they are.
   const g = new Game();
   g.load(playtest('Dana', 'Ann'));
@@ -24,7 +24,8 @@ test('End ends the Conflict', () => {
   g.change(w => {
     w.put('meta', { ...(g.get('meta') as Meta), round: 4 });
     const sam = g.get(ridOf(SAM)) as Character;
-    w.put(ridOf(SAM), { ...sam, back: { ...sam.back, damage: { ...sam.back.damage, bias: { ...sam.back.damage.bias, sig: { name: 'Uncertain', boxes: [], spent: [2] } } } } });
+    w.put(ridOf(SAM), { ...sam, back: { ...sam.back, damage: { ...sam.back.damage, bias: { ...sam.back.damage.bias,
+      sig: { name: 'Uncertain', boxes: [], spent: [2] }, mild: { name: 'Sore loser', boxes: [true], spent: [] } } } } });
     w.put(ridOf('000000a1'), card('000000a1', { where: 'used', used: true }));
     w.put(ridOf('000000a2'), card('000000a2', { where: 'used', used: true, tap: { ledger: { x: 1 }, current: 'x' } }));
     w.put(ridOf('000000a3'), card('000000a3', { where: { slot: SAM, name: 'main' }, used: true }));
@@ -34,6 +35,9 @@ test('End ends the Conflict', () => {
   const at = (oid: string) => g.get(ridOf(oid)) as Influence | undefined;
   assert.equal((g.get('meta') as Meta).round, 0);
   assert.deepEqual((g.get(ridOf(SAM)) as Character).back.damage.bias.sig.spent, []);
+  // R338: the Mild slot emptied, the Sig Bias kept.
+  const bias = (g.get(ridOf(SAM)) as Character).back.damage.bias;
+  assert.deepEqual([bias.mild.name, bias.mild.boxes, bias.sig.name], ['', [false], 'Uncertain']);
   assert.deepEqual([at('000000a1')!.where, at('000000a1')!.used], ['drawer', false], 'a plain card goes home');
   assert.equal(at('000000a2'), undefined, 'a tap in the used pile is spent and gone');
   assert.deepEqual([at('000000a3')!.where, at('000000a3')!.used], [{ slot: SAM, name: 'main' }, false], 'used marks cleared');

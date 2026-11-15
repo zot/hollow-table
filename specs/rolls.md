@@ -230,6 +230,8 @@ attacker names them.
   ▲ ▼ keys, and **End**. The Round runs from 0 to 99; when it changes, the tab drops and comes back
   up with the new number.
 - **End** ends the Conflict. Pressing it raises an orange "End conflict?" tab; press again within 3 s
-  to end it. End resets the Round to 0, recharges Biases, Afflictions and Injuries, empties the used piles
+  to end it. End resets the Round to 0, recharges Biases, Afflictions and Injuries, clears every Mild
+  slot (its name and its boxes: Mild Damage "disappears immediately after the Contest", Hollow Folks;
+  Bill, 11-15), empties the used piles
   (plain cards go home, tapped cards are spent and gone), clears "used", clears CRIT! Influences,
   and checkpoints the game first.

@@ -25,3 +25,15 @@ card unused, still in Main; the CRIT! card gone
 **Fire alarm:** In ended, send every used-pile card home (taps too): the spent tap comes back to the drawer
 **Inject:** src/ui/register.ts:ended
 **Pulled:** 2026-11-12 — rang: the spent tap came back to the drawer
+
+## Test: End clears the Mild slots
+**Purpose:** R338: End's one change empties every character's Mild slots
+**Input:** Sam's Mild Bias named, with a box checked, then End
+**Expected:** Sam's Mild Bias has no name and no box checked; his Sig Bias keeps its name
+**Refs:** crc-Register.md, crc-Absorb.md
+**Code:** `src/ui/register.test.ts`
+**Alarm:** 3
+**Fire alarm:** in ended, put the recharged character without mildEnds; red: the Mild Bias keeps its name
+**Inject:** src/ui/register.ts:ended
+**Pulled:** 2026-11-15 — 2026-11-15 — rang: "End ends the Conflict" failed, the Mild Bias kept `Sore loser` and its box; restored clean
+
