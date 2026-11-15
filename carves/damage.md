@@ -15,7 +15,7 @@ Opened by Bill, 2026-11-12, after the back gained its Damage columns.
 - [x] ~~**Item 4 — taking an Attack.**~~ **LANDED (2026-11-13 — `#7`.)**
 - [x] ~~**Item 5 — Damage that ends.**~~ **LANDED (2026-11-15 — `#8`.)**
 - [x] ~~**Item 6 — Convictions and Burdens.**~~ **LANDED (2026-11-15 — `#9`.)**
-- [ ] **Item 7 — what a card tapped from a Mild slot is worth.** **OPEN (#10.)**
+- [x] ~~**Item 7 — what a card tapped from a Mild slot is worth.**~~ **LANDED (2026-11-15 — `#10`.)**
 
 ## Decisions
 
@@ -141,3 +141,14 @@ GM's hand: rewriting the points lowers it, and 0 points with no name removes it.
 
 The open question in `specs/influence.md`: what a card tapped from a Mild slot is worth. The
 proposal there is Min (2), vanishing at End; settling it updates the spec.
+
+The book: "a Mild Slot absorbs 2 points, a Minor Slot absorbs 2", and its example names a Mild
+Injury *Skinned Knuckles -Min*; "A Mild Damage Resource disappears immediately after the
+Contest." So a card tapped from a Mild slot is worth Min, which the table already makes (one Level,
+born at Min). Found 2026-11-15: End deletes tapped cards only from the used piles, so an unrolled one
+tapped from a Mild slot outlived its source.
+
+DECIDED (Bill, 2026-11-15): **a card tapped from a Mild slot vanishes at End**, wherever it is, rolled
+or not.
+DECIDED (Bill, 2026-11-15): **a card fed by Mild and other sources loses only its Mild Levels** at End,
+by its ledger, and keeps what the others gave; with nothing else in it, it goes.

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, Damage, Influence, RowName } from '../model/records.ts';
 import { marks, parse } from '../text/marks.ts';
-import { feed, kill, left, mayTap, recharge, rechargeMotives, tap, unfeed, type Tapped } from './tap.ts';
+import { feed, kill, left, mayTap, mildGone, recharge, rechargeMotives, tap, unfeed, type Tapped } from './tap.ts';
 import { levelName } from './influence.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
@@ -199,4 +199,21 @@ test('tapping a Conviction', () => {
   assert.equal(tap(t.look, `${SAM}:bias/lasting`, where, 'c2'), null);
   assert.equal(tap(t.look, `${SAM}:affliction/lasting`, where, 'c2'), null);
   assert.equal(tap(t.look, `${SAM}:injury/lasting`, where, 'c2'), null);
+});
+
+// R344: at End a card loses what Mild slots (or their boxes) gave it, and goes if that was all.
+test('what Mild gave goes at End', () => {
+  const card = (ledger: Record<string, number>, current: string, points: number): Influence => ({ kind: 'influence', oid: 'c1', home: SAM,
+    where: 'drawer', n: 0, name: 'Sore loser', sign: -1, points, used: false, crit: false, damage: 'bias', tap: { ledger, current } });
+  const mild = `${SAM}:bias/mild`, box = `${SAM}:bias/mild#1`, sig = `${SAM}:bias/sig`;
+  assert.equal(mildGone(card({ [mild]: 1 }, mild, 2)), null);
+  assert.equal(mildGone(card({ [mild]: 1, [box]: 1 }, box, 4)), null, 'a Mild box is Mild too');
+  assert.deepEqual(mildGone(card({ [sig]: 2, [mild]: 1, [box]: 1 }, mild, 8))!.tap, { ledger: { [sig]: 2 }, current: sig });
+  assert.equal(mildGone(card({ [sig]: 2, [mild]: 1, [box]: 1 }, sig, 8))!.points, 4);
+  assert.equal(mildGone(card({ [sig]: 0, [mild]: 1 }, mild, 2)), null, 'nothing left from the rest');
+  const plain = card({ [sig]: 1 }, sig, 2), unfed = { ...plain, tap: undefined };
+  assert.equal(mildGone(plain), plain, 'no Mild: the same card');
+  assert.equal(mildGone(unfed), unfed, 'a plain card');
+  // A Min slot is not Mild, though it's worth the same.
+  assert.equal(mildGone(card({ [`${SAM}:bias/min`]: 1 }, `${SAM}:bias/min`, 2))!.points, 2);
 });

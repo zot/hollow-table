@@ -137,3 +137,14 @@ three; Devreux's Money for two players; Sam's named Sig Bias for another player;
 **Fire alarm:** in recharge, leave a Conviction's spent as it is; red: spent still 1 after End
 **Inject:** src/rules/tap.ts:recharge
 **Pulled:** 2026-11-15 — rang: "tapping a Conviction" failed, spent 1 after End; restored clean
+
+## Test: what Mild gave goes at End
+**Purpose:** R344: at End a tapped card loses the Levels its ledger says a Mild slot or box gave, 2 points each, its ledger and current source left with the rest, and goes when nothing else gave it any; a card with no Mild in it is untouched, and a Min slot is not Mild
+**Input:** Bias cards tapped from: the Mild slot alone; the Mild slot and its box; a Sig Bias (2), the Mild slot and its box, current Mild (8 points); the same, current Sig; a Sig Bias at 0 and the Mild slot; a Sig Bias alone; a plain card; a Min slot alone
+**Expected:** null; null; ledger `{sig: 2}` current Sig; 4 points; null; the same card; the same card; still 2 points
+**Refs:** crc-Tap.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 11
+**Fire alarm:** count only the Mild slot, not its boxes (drop `(?:#\d+)?` from MILD); red: the card from the Mild slot and its box survives
+**Inject:** src/rules/tap.ts:mildGone
+**Pulled:** 2026-11-15 — rang: "what Mild gave goes at End" failed, the card from the Mild slot and its box survived; restored clean

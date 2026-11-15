@@ -15,7 +15,7 @@ test('the Round runs from 0 to 99', () => {
 });
 
 test('End ends the Conflict', () => {
-  // R117, R99, R338: Round 0, Damage recharged, Mild slots emptied, used piles emptied (plain cards home, taps gone), used
+  // R117, R99, R338, R344: Round 0, Damage recharged, Mild slots emptied, used piles emptied (plain cards home, taps gone), used
   // marks cleared, CRIT! cards gone wherever they are.
   const g = new Game();
   g.load(playtest('Dana', 'Ann'));
@@ -30,6 +30,11 @@ test('End ends the Conflict', () => {
     w.put(ridOf('000000a2'), card('000000a2', { where: 'used', used: true, tap: { ledger: { x: 1 }, current: 'x' } }));
     w.put(ridOf('000000a3'), card('000000a3', { where: { slot: SAM, name: 'main' }, used: true }));
     w.put(ridOf('000000a4'), card('000000a4', { where: { slot: SAM, name: 'main' }, crit: true }));
+    // R344: a Mild tap never rolled, on the table; one fed by Mild and a Sig Bias, in a slot.
+    const tapped = (ledger: Record<string, number>, current: string) => ({ tap: { ledger, current }, damage: 'bias' as const, sign: -1 as const });
+    w.put(ridOf('000000a5'), card('000000a5', { where: { table: { x: 0, y: 0, z: 0, tilt: 0 } }, ...tapped({ [`${SAM}:bias/mild`]: 1 }, `${SAM}:bias/mild`) }));
+    w.put(ridOf('000000a6'), card('000000a6', { where: { slot: SAM, name: 'bias' }, points: 6,
+      ...tapped({ [`${SAM}:bias/sig`]: 2, [`${SAM}:bias/mild`]: 1 }, `${SAM}:bias/mild`) }));
   });
   g.change(ended(g));
   const at = (oid: string) => g.get(ridOf(oid)) as Influence | undefined;
@@ -42,4 +47,8 @@ test('End ends the Conflict', () => {
   assert.equal(at('000000a2'), undefined, 'a tap in the used pile is spent and gone');
   assert.deepEqual([at('000000a3')!.where, at('000000a3')!.used], [{ slot: SAM, name: 'main' }, false], 'used marks cleared');
   assert.equal(at('000000a4'), undefined, 'CRIT! cleared');
+  assert.equal(at('000000a5'), undefined, 'a Mild tap goes, rolled or not');
+  const mixed = at('000000a6')!;
+  assert.deepEqual([mixed.points, mixed.tap, mixed.where], [4, { ledger: { [`${SAM}:bias/sig`]: 2 }, current: `${SAM}:bias/sig` }, { slot: SAM, name: 'bias' }],
+    'a mixed card keeps what the Sig Bias gave');
 });

@@ -1,11 +1,11 @@
-// CRC: crc-Register.md | R99, R112, R115, R116, R117, R284, R338
+// CRC: crc-Register.md | R99, R112, R115, R116, R117, R284, R338, R344
 // The cash register in the bar: the Round in its glass, ▲ ▼, End, and the tape's paper roll. The
 // decisions are pure (stepped, ended); the view draws the register and asks before End.
 
 import type { Game, Writer } from '../model/game.ts';
 import type { Character, Influence, Meta, PieceRecord } from '../model/records.ts';
 import { mildEnds } from '../rules/absorb.ts';
-import { recharge } from '../rules/tap.ts';
+import { mildGone, recharge } from '../rules/tap.ts';
 import type { Viewer } from '../rules/visibility.ts';
 import { gesture } from './gesture.ts';
 
@@ -21,7 +21,8 @@ export function stepped(meta: Meta, by: 1 | -1): Meta {
 
 // R117, R99: End ends the Conflict: the Round to 0, Biases, Afflictions and Injuries recharged, the
 // used piles emptied (plain cards home, tapped cards spent and gone), used marks cleared, and CRIT!
-// Influences cleared wherever they are. The checkpoint comes first, outside this change.
+// Influences cleared wherever they are; R344: cards tapped from Mild slots lose those Levels. The
+// checkpoint comes first, outside this change.
 export function ended(game: Game): (w: Writer) => void {
   return w => {
     const meta = game.get('meta') as Meta;
@@ -32,10 +33,13 @@ export function ended(game: Game): (w: Writer) => void {
       // R338: and its Mild slots emptied.
       if (p.kind === 'character') { w.put(rid, mildEnds(recharge(p as Character))); continue; }
       if (p.kind !== 'influence') continue;
-      const k = p as Influence;
-      if (k.crit || (k.where === 'used' && k.tap)) w.del(rid);
+      const was = p as Influence;
+      if (was.crit || (was.where === 'used' && was.tap)) { w.del(rid); continue; }
+      // R344: and what was tapped from a Mild slot goes with it.
+      const k = mildGone(was);
+      if (!k) w.del(rid);
       else if (k.where === 'used') w.put(rid, { ...k, where: 'drawer', used: false });
-      else if (k.used) w.put(rid, { ...k, used: false });
+      else if (k.used || k !== was) w.put(rid, { ...k, used: false });
     }
   };
 }

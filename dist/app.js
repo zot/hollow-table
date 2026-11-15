@@ -963,6 +963,15 @@ function recharge(char) {
   const lasting2 = was && Object.fromEntries(Object.entries(was).map(([d, l]) => [d, { ...l, spent: 0 }]));
   return { ...char, back: { ...char.back, damage: damage3, ...lasting2 && { lasting: lasting2 } } };
 }
+var MILD = new RegExp(`:(${DAMAGE.join("|")})/mild(?:#\\d+)?$`);
+function mildGone(card2) {
+  const ledger = card2.tap?.ledger ?? {}, sum2 = (es) => es.reduce((a, [, n]) => a + n, 0);
+  const all2 = Object.entries(ledger), rest = all2.filter(([s]) => !MILD.test(s)), lost = sum2(all2) - sum2(rest);
+  if (!lost) return card2;
+  if (sum2(rest) <= 0) return null;
+  const keep = Object.fromEntries(rest), current = card2.tap.current in keep ? card2.tap.current : rest[0][0];
+  return { ...card2, points: Math.max(MIN, card2.points - STEP * lost), tap: { ledger: keep, current } };
+}
 
 // src/ui/gesture.ts
 var LONG_MS = 500;
@@ -8621,10 +8630,15 @@ function ended(game) {
         continue;
       }
       if (p.kind !== "influence") continue;
-      const k = p;
-      if (k.crit || k.where === "used" && k.tap) w.del(rid2);
+      const was = p;
+      if (was.crit || was.where === "used" && was.tap) {
+        w.del(rid2);
+        continue;
+      }
+      const k = mildGone(was);
+      if (!k) w.del(rid2);
       else if (k.where === "used") w.put(rid2, { ...k, where: "drawer", used: false });
-      else if (k.used) w.put(rid2, { ...k, used: false });
+      else if (k.used || k !== was) w.put(rid2, { ...k, used: false });
     }
   };
 }

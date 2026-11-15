@@ -108,6 +108,11 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   Convictions and Burdens (Bunkum: tapping them "depletes them temporarily until the end of the
   Scene"). Mild and Min
   are 1 Level, Sig 2, Maj 3. A slot shows the Levels spent (−2). **A box can't be checked until its slot has a name.**
+- **A card tapped from a Mild slot is worth Min** (Hollow Folks: "a Mild Slot absorbs 2 points", as a
+  Minor one does, and its example names a Mild Injury *Skinned Knuckles −Min*), and **it goes at End**
+  with its slot, rolled or not: a Mild Damage Resource "disappears immediately after the Contest"
+  (Bill, 11-15). A card fed by a Mild slot and other sources loses only the Levels its Mild slot gave
+  and keeps the rest (Bill, 11-15).
 
 ## After a roll
 
@@ -117,7 +122,3 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   Clicking one there puts it back for the next roll. Plain chips are untouched.
 - A Resource dropped on a used card starts a **new** card beside it; the pool's strongest-applies
   display enforces non-stacking.
-
-## Open
-
-- What a card tapped from a **Mild** slot is worth. Proposal: Min (2), vanishing at End.

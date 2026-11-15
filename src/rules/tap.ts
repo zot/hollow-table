@@ -1,4 +1,4 @@
-// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262, R343
+// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262, R343, R344
 // Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source
 // so every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
 // Resources*), and NPCs' Motivations (Bunkum, *Mental Resources*). Pure: returns the records to
@@ -151,6 +151,20 @@ export function recharge(char: Character): Character {
   const damage = damageSlots((d, r) => ({ ...char.back.damage[d][r], spent: [] })), was = char.back.lasting;
   const lasting = was && Object.fromEntries(Object.entries(was).map(([d, l]) => [d, { ...l, spent: 0 }]));
   return { ...char, back: { ...char.back, damage, ...(lasting && { lasting }) } };
+}
+
+// R344: a Mild Damage Resource "disappears immediately after the Contest" (Hollow Folks), and what was
+// tapped from it with it (Bill, 11-15): a card loses the Levels Mild slots gave it, and goes when
+// nothing else gave it any.
+const MILD = new RegExp(`:(${DAMAGE.join('|')})/mild(?:#\\d+)?$`);
+/** End for a tapped card: without what Mild slots gave it; null if they gave it everything. */
+export function mildGone(card: Influence): Influence | null {
+  const ledger = card.tap?.ledger ?? {}, sum = (es: [string, number][]) => es.reduce((a, [, n]) => a + n, 0);
+  const all = Object.entries(ledger), rest = all.filter(([s]) => !MILD.test(s)), lost = sum(all) - sum(rest);
+  if (!lost) return card;
+  if (sum(rest) <= 0) return null;
+  const keep = Object.fromEntries(rest), current = card.tap!.current in keep ? card.tap!.current : rest[0]![0];
+  return { ...card, points: Math.max(MIN, card.points - STEP * lost), tap: { ledger: keep, current } };
 }
 
 // R262: Motivations recharge at the end of every scene.

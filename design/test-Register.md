@@ -37,3 +37,13 @@ card unused, still in Main; the CRIT! card gone
 **Inject:** src/ui/register.ts:ended
 **Pulled:** 2026-11-15 — 2026-11-15 — rang: "End ends the Conflict" failed, the Mild Bias kept `Sore loser` and its box; restored clean
 
+## Test: End takes what Mild gave
+**Purpose:** R344: End applies Tap.mildGone to every tapped card it doesn't already delete: an unrolled Mild tap goes from the table, a mixed one keeps what its other source gave
+**Input:** Sam's Mild Bias tapped into a card left on the table, never rolled; a card in his Bias slot fed 2 Levels by his Sig Bias and 1 by his Mild Bias, current Mild, 6 points; then End
+**Expected:** the first card gone; the second at 4 points, ledger `{sig: 2}`, current Sig, still in the slot
+**Refs:** crc-Register.md
+**Code:** `src/ui/register.test.ts`
+**Alarm:** 4
+**Fire alarm:** in ended, leave tapped cards outside the used piles alone (skip mildGone); red: the unrolled Mild tap is still on the table
+**Inject:** src/ui/register.ts:ended
+**Pulled:** 2026-11-15 — rang: "End ends the Conflict" failed, the unrolled Mild tap stayed on the table; restored clean

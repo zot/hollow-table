@@ -235,6 +235,6 @@ attacker names them.
 - **End** ends the Conflict. Pressing it raises an orange "End conflict?" tab; press again within 3 s
   to end it. End resets the Round to 0, recharges Damage (Convictions and Burdens too), clears every Mild
   slot (its name and its boxes: Mild Damage "disappears immediately after the Contest", Hollow Folks;
-  Bill, 11-15), empties the used piles
+  Bill, 11-15) and the cards tapped from it (see *Tapping Resources* in `influence.md`), empties the used piles
   (plain cards go home, tapped cards are spent and gone), clears "used", clears CRIT! Influences,
   and checkpoints the game first.

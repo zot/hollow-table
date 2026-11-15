@@ -1,5 +1,5 @@
 # Tap
-**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262, R343
+**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262, R343, R344
 
 Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source so
 every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
@@ -35,6 +35,10 @@ Resources*). Pure: returns the records to write.
 - kill(chars, card): an unused tap's Levels go back to their sources.
 - recharge(character): End restores every Damage slot's and box's spent Levels, and a Conviction's
   or Burden's (R343).
+- mildGone(card) (R344): End for a tapped card: the card less the Levels its ledger says came from
+  a Mild slot or box (`<damage>/mild`, `<damage>/mild#k`), 2 points each and never below Min, its
+  ledger without them and its current source one of the rest; null when Mild sources gave all of
+  it; the card itself when none did.
 - rechargeMotives(character): the end of a scene removes every Motivation's parentheses (R262).
 
 ## Collaborators

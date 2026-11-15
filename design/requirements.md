@@ -161,6 +161,7 @@
 - **R65:** Plain chips are never marked used.
 - **R66:** A Resource dropped on a used card starts a new card beside it.
 - **R343:** A Conviction taps into a Bias Influence and a Burden into an Affliction Influence, worth its Level (Min 1, Sig 2, Maj 3, Ext 4, Exq 5) less what it has spent; End recharges what it spent.
+- **R344:** At End, an Influence card tapped from a Mild slot (or one of its boxes) goes, wherever it is, rolled or not; a card also fed by other sources instead loses the Levels its ledger says Mild sources gave (2 points each, never below Min) and keeps the rest, its ledger and current source left with the others.
 
 ## Feature: rolls
 **Source:** specs/rolls.md
