@@ -48,6 +48,21 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   and fills the Base, Yellows and bonus. **A new action starts the row at White** unless the row is
   aiming at someone (Bill, 11-12). The action in use gets a **highlighter swish** on its line;
   it moves with the choice, survives edits, and clears when the action does.
+- **An action whose label is an Influence suffers it** (Bill, 11-15): `Tricky -Min: 5, 2d` puts a
+  Tricky -Min card in the actor's Main pool while it is the row's action, counted like any card there
+  (Hollow Folks: only the pool's worst negative counts). Its points are the Level's (Min 2, Sig 4).
+  The card is put when the action is chosen, and choosing it again keeps the one card; it is taken
+  away when the row leaves the action (another action, a cleared Base, the row leaving the pool), and
+  the roll uses it up: the GM's page deletes it rather than marking it used, and a successful roll of
+  that action starts the row fresh, so the next roll of it puts the card again. The printed numbers
+  already hold what else the variant changes: Finesse adds its Level as a Success Bonus "but suffer
+  Tricky -Sig on your Action", Mitigated a Level for every two full Finesse Levels (Hollow Folks,
+  *Skills*), so Beauford's Finesse 3 prints `Tricky -Min: 5, 2d` under `Mental Atk / Req: 5, 1d`.
+- **A variant** (Bill, 11-15): an action line whose label is an Influence, right under another
+  action (or under that action's other variants), is that action's variant. It is drawn **indented
+  under its action**, as a Field's Skills are under their Field, and it has **a die per alternative
+  of its action**, each naming its type as that action's own dice do (*Tricky -Min* as Mental Atk, or
+  as Req). The row's header and the receipt name the variant (`Tricky -Min`).
 - The action and opponent show in the **pool's header**, after gather (`Attack 4 → 8`, `vs Sam 4
   (+0)`), and travel with the roll row. Clicking the Base clears the action.
 

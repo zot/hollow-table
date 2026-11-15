@@ -269,7 +269,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   // R347: the Opposition button and the world's tray, in the bar.
   const tray = new TrayView(bar.oppo, { game, viewer });
   rollRow = new RollRowView({
-    game, viewer, tray, roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
+    game, viewer, tray, mint: () => mint()(), roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
     // R320: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
@@ -278,9 +278,10 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     // reading "GM…" meanwhile; why not prints as a note on the tape.
     roll: r => {
       const rolls = rolling(), intent = intentOf(r);
-      if (gm) { const why = rolls.roll(intent, !!r.priv); if (why) rolls.note(why); return; }
+      // R353: a roll that goes through lets the row start fresh after a variant.
+      if (gm) { const why = rolls.roll(intent, !!r.priv); if (why) rolls.note(why); else rollRow!.rolled(); return; }
       rollRow!.waiting(true);
-      void rolls.request(intent).then(why => { rollRow!.waiting(false); if (why) rolls.note(why); });
+      void rolls.request(intent).then(why => { rollRow!.waiting(false); if (why) rolls.note(why); else rollRow!.rolled(); });
     },
   });
   return { table, drag, bar, hands };

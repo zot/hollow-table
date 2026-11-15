@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { action, adjust, attributes, defend, influence, motiveLeft, offer, spend, unadjusted } from './readmarks.ts';
-import { field, pointed, points, skillsLine, type Point } from './readmarks.ts';
+import { field, pointed, points, skillsLine, suffered, variants, type Point } from './readmarks.ts';
+import { BEAUFORD_FRONT } from '../store/playtest.ts';
 
 test('action lines', () => {
   const rows: [string, string, number, number, number][] = [
@@ -132,4 +133,16 @@ test('what a drop can point at', () => {
     [[2, 'Investigation 2'], [4, 'Investigation 2 + Int 2']]);
   assert.deepEqual(points('<att>Cha 1</att>\n<fld>Snakeoil Salesman 3 (5XP)</fld>', 'Int').map(p => [p.base, p.words]), [[3, 'Snakeoil Salesman 3 + Int 0']]);
   assert.deepEqual(points('<def>Defend: 6 / 5</def>').map(p => [p.against, p.words]), [[{ def: 'mental' }, 'mental 6'], [{ def: 'psych' }, 'psych 5']]);
+});
+
+test('an action that suffers an Influence, and its variants', () => {
+  // R352: a label with a sign and a Level is an Influence the action suffers.
+  assert.deepEqual(suffered('Tricky -Min'), { name: 'Tricky', sign: -1, level: 'Min' });
+  assert.deepEqual(suffered('Audience −Sig'), { name: 'Audience', sign: -1, level: 'Sig' });
+  for (const plain of ['Mental Atk / Req', 'Shoot', 'Infer']) assert.equal(suffered(plain), null, plain);
+  // R354, R355: Beauford's Tricky -Min, right under his Mental Atk / Req, varies it; the rest don't.
+  assert.deepEqual(variants(BEAUFORD_FRONT), [{ line: 13, label: 'Tricky -Min', of: 'Mental Atk / Req' }]);
+  // Two under one action both vary it; one after a plain line, or with no action above, doesn't.
+  const front = '<act>Attack: 4, 1d</act>\n<act>Tricky -Min: 4, 2d</act>\n<act>Audience -Sig: 4, 1d</act>\nnotes\n<act>Lucky +Min: 3, 1d</act>';
+  assert.deepEqual(variants(front).map(v => [v.line, v.of]), [[1, 'Attack'], [2, 'Attack']]);
 });

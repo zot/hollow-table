@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -10,7 +10,7 @@ import {
   type AttackKind, type Lasting, type LastingColumn,
 } from '../model/records.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
-import { action as readAction, influence } from '../rules/readmarks.ts';
+import { action as readAction, influence, variants } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
 import { LEVELS, columnRoom } from '../rules/influence.ts';
 import { COLUMN_OF, OVERFLOW, fill, isLasting, lastingLevels, lastingTop, type Page } from '../rules/absorb.ts';
@@ -458,10 +458,12 @@ function dry(e: HTMLElement, c: Character): void {
 function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
   const doc = text.ownerDocument, using = w.inUse(c.oid);
   // R331: a Field's Skills indent under it, a ✓ hanging in the margin so the names align.
-  const indents = skillIndents(c.front);
+  const indents = skillIndents(c.front), vars = new Map(variants(c.front).map(v => [v.line, v]));
   [...text.children].forEach((line, k) => {
     line.classList.toggle('sklpad', indents.has(k));
     line.classList.toggle('sklhang', indents.get(k) === 'hang');
+    // R354: a variant indents under the action it varies.
+    line.classList.toggle('varpad', vars.has(k));
   });
   // R77: the action in use gets its highlighter swish, matched by label, so it survives edits.
   for (const span of text.querySelectorAll<HTMLElement>('span.act')) span.classList.toggle('inuse', !!using && readAction(span.textContent ?? '')?.label === using);
@@ -478,15 +480,23 @@ function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
     const label = readAction(span.textContent ?? '')?.label;
     if (!label) continue;
     const alts = label.split('/').map(a => a.trim()).filter(Boolean);
-    const die = (alt?: string) => {
-      const d = doc.createElement('span'), name = alt ?? label;
+    const die = (alt?: string, title = `Roll this: ${alt ?? label}`) => {
+      const d = doc.createElement('span');
       d.className = 'actdie';
       d.contentEditable = 'false';
-      d.title = `Roll this: ${name}`;
+      d.title = title;
       d.addEventListener('pointerdown', ev => ev.preventDefault());
       gesture(d, { click: () => { if (!w.useAction(c.oid, label, alt)) d.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); } });
       return d;
     };
+    // R355: a variant has a die per alternative of its action, the alternative typing its roll.
+    let line: Element = span;
+    while (line.parentElement && line.parentElement !== text) line = line.parentElement;
+    const v = vars.get([...text.children].indexOf(line));
+    if (v) {
+      for (const alt of v.of.split('/').map(a => a.trim()).filter(Boolean)) span.before(die(alt, `Roll this: ${label} as ${alt}`));
+      continue;
+    }
     if (alts.length < 2) { span.before(die()); continue; }
     span.before(die(alts[0]));
     // Each later alternative: split the text where it starts, after its slash.

@@ -1,5 +1,5 @@
 # MarkReader
-**Requirements:** R54, R74, R83, R207, R258, R261, R267, R322-324, R326, R336, R337
+**Requirements:** R54, R74, R83, R207, R258, R261, R267, R322-324, R326, R336, R337, R352, R354, R355
 
 Reads the game inside marks, and only there. Each grammar is also used to *offer* a pen for a plain
 line that fits it.
@@ -43,6 +43,10 @@ line that fits it.
   label}`, `{fld: name}`, `{skl: name}`), its base, and its words for the `vs` line: a Defend
   number, an action's Base, a Field or one Skill (Level plus the card's `att`, the attribute the acting action uses: `Cha`,
   `Int`, or null for none; one the card doesn't list counts 0).
+- suffered(label) (R352): the Influence an action's label is (`Tricky -Min`: Tricky, −1, Min), or null
+  when the label has no sign and Level.
+- variants(front) (R354, R355): each action line whose label is an Influence, right under another
+  action line or under that action's other variants: its line, its label, and the action it varies.
 
 ## Collaborators
 - MarkedText: supplies the marks.

@@ -126,3 +126,14 @@ name with no Level
 **Fire alarm:** in points, ignore `att` and add the card's Cha as before; red: the none case reads `Investigation 2 + Cha 2`
 **Inject:** src/rules/readmarks.ts:points
 **Pulled:** 2026-11-15 — 2026-11-15 — rang: "what a drop can point at" failed, the none case read base 4 `Investigation 2 + Cha 2`; restored clean
+
+## Test: an action that suffers an Influence, and its variants
+**Purpose:** R352: a label with a sign and a Level is an Influence the action suffers; R354, R355: such an action line right under another action, or under its other variants, varies it, and one with no action above doesn't
+**Input:** `Tricky -Min`, `Audience −Sig`, `Mental Atk / Req`, `Shoot`, `Infer`; Beauford's front; a front with Attack, two Influence actions under it, a plain line, then `Lucky +Min`
+**Expected:** Tricky, −1, Min; Audience, −1, Sig; null for the plain ones; Beauford's one variant, line 13, varying `Mental Atk / Req`; the two under Attack vary it, `Lucky +Min` doesn't
+**Refs:** crc-MarkReader.md
+**Code:** `src/rules/readmarks.test.ts`
+**Alarm:** 10
+**Fire alarm:** let any Influence action be a variant, with or without an action above (drop `of &&`); red: `Lucky +Min` after the plain line is counted
+**Inject:** src/rules/readmarks.ts:variants
+**Pulled:** 2026-11-16 — rang: "an action that suffers an Influence, and its variants" failed, `Lucky +Min` with no action above was counted; restored clean

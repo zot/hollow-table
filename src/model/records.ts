@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R352
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -79,6 +79,8 @@ export type Influence = {
   points: number; used: boolean; crit: boolean; tap?: TapLedger; damage?: Damage;
   /** R260: tapped from a Motivation, a Main Pool Influence. */
   mot?: true;
+  /** R352, R353: put in its actor's Main pool by the action it suffers, for that action's roll only. */
+  once?: true;
 };
 
 // R36, R38: a chip; a loose odd point is `points: 1`, and `rider` is a +1 riding the chip.
@@ -226,7 +228,7 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
     card: place, flipped: bool, gathered: bool, front: marked, back }),
   influence: fields({ kind: oneOf('influence'), oid: isOid, home: isOid, where, n: int(0, CAPS.list), name: str(CAPS.name),
     sign, points, used: bool, crit: bool },
-    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true) }),
+    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true) }),
   chip: fields({ kind: oneOf('chip'), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
   sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin, big: bool }),
   text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin }),

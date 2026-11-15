@@ -376,3 +376,17 @@ test('the world as opposition', () => {
   assert.match(dev.full.outcome, /^Success/);
   assert.equal(dev.full.attack, undefined);
 });
+
+test('a roll uses up the card its action suffered', () => {
+  // R353: the GM's page deletes a `once` card in the roller's pool rather than marking it used; R352:
+  // the Total Influence suffers it; R355: the receipt names the variant.
+  const game = scene(), tricky: Influence = { kind: 'influence', oid: '000000f1', home: BEAUFORD, where: { slot: BEAUFORD, name: 'main' },
+    n: 0, name: 'Tricky', sign: -1, points: 2, used: false, crit: false, once: true };
+  game.change(w => w.put(ridOf(tricky.oid), tricky));
+  const r = resolve(game, { pool: BEAUFORD, action: 'Tricky -Min', alt: 'Mental Atk', type: 'mental', vs: SAM, defend: 'mental',
+    hand: { yellows: 0, bonus: 0 }, n: 1 }, faces(4, 3), 1000);
+  if ('refused' in r) throw new Error(r.refused);
+  assert.deepEqual([r.full.action, r.full.influence, r.full.base], ['Tricky -Min', 3, 5]);
+  game.change(r.apply);
+  assert.equal(game.get(ridOf(tricky.oid)), undefined);
+});

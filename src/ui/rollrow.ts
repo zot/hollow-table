@@ -1,15 +1,17 @@
-// CRC: crc-RollRow.md | R321, R306, R316, R319, R320, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277, R345, R346, R349, R350
+// CRC: crc-RollRow.md | R321, R306, R316, R319, R320, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277, R345, R346, R349, R350, R352, R353, R355
 // The dice you're about to roll, docked on the pool you roll for, in your view only (the Seat).
 // The decisions are pure (dock, action, hand, row, numbers); the view below draws them.
 
-import type { Game } from '../model/game.ts';
-import { GM, OPEN, ROLL_TYPES, WORLD, isAttack, ridOf, type Character, type Oid, type Opponent, type RollType, type World } from '../model/records.ts';
+import type { Game, Writer } from '../model/game.ts';
+import { GM, OPEN, ROLL_TYPES, WORLD, isAttack, ridOf, type Character, type Influence, type Oid, type Opponent, type RollType, type World } from '../model/records.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
-import { action as readAction, defend as readDefend, pointed, points, type Action, type Against, type Defend, type Point } from '../rules/readmarks.ts';
+import { action as readAction, defend as readDefend, levelsOf, pointed, points, suffered, type Action, type Against, type Defend, type Point } from '../rules/readmarks.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import type { Roller } from '../store/seat.ts';
-import { diceOnly, rowWords, type Intent } from '../net/rolls.ts';
+import { alternative, diceOnly, rowWords, type Intent } from '../net/rolls.ts';
+import { STEP } from '../rules/influence.ts';
+import { slotItems } from './actions.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 import { marks, parse } from '../text/marks.ts';
 
@@ -136,8 +138,8 @@ export function shown(game: Game, r: Roller): Shown {
   const row = ADV.find(x => x.key === r.row) ?? rowFor(0);
   if (!act || !mine) return { label: '', base: null, total: null, parts: {}, yellows: Math.max(0, r.hand.yellows), bonus: r.hand.bonus, row };
   const sum = total(act.base, mine), dice = bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, r.hand);
-  // R316: the alternative clicked names the action.
-  const out: Shown = { label: r.alt ?? act.label, base: act.base, total: sum.total, parts: sum.parts, yellows: dice.yellows, bonus: dice.bonus, row };
+  // R316: the alternative clicked names the action; R355: a variant, typed by its action's alternative, names itself.
+  const out: Shown = { label: alternative(act.label, r.alt), base: act.base, total: sum.total, parts: sum.parts, yellows: dice.yellows, bonus: dice.bonus, row };
   // R84, R85: against an opponent, the Difference picks the row unless one was picked by hand.
   // R350: against the world, the tray's number and nothing else, seen only when the owner is the GM.
   if (r.opponent === WORLD) {
@@ -154,6 +156,29 @@ export function shown(game: Game, r: Roller): Shown {
     vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c!), opp), ...(point && { words: point.words }) } };
 }
 
+// R352, R353: the row's action, when its label is an Influence, keeps one `once` card of it in the
+// actor's Main pool: put when the row comes to it (the one there kept), taken away, wherever it lies,
+// when the row leaves it.
+/** The change that leaves the `once` cards as `now`'s action wants them, or null when they already are. */
+export function onceCard(game: Game, was: Roller | null, now: Roller | null, mint: () => Oid): ((w: Writer) => void) | null {
+  const c = now?.action ? game.get(ridOf(now.pool)) as Character | undefined : undefined;
+  const act = c?.kind === 'character' ? actionOf(c, now!.action) : null, inf = act ? suffered(act.label) : null;
+  const want = inf && { home: now!.pool, name: inf.name, sign: inf.sign!, points: STEP * levelsOf(inf) };
+  const cards = game.all().map(([, x]) => x).filter((x): x is Influence =>
+    'kind' in x && x.kind === 'influence' && !!x.once && (x.home === was?.pool || x.home === now?.pool));
+  const keep = want && cards.find(i => i.home === want.home && i.name === want.name && i.sign === want.sign && i.points === want.points
+    && typeof i.where === 'object' && 'slot' in i.where && i.where.slot === want.home && i.where.name === 'main');
+  const gone = cards.filter(i => i !== keep);
+  if (!gone.length && (keep || !want)) return null;
+  return w => {
+    for (const i of gone) w.del(ridOf(i.oid));
+    if (!want || keep) return;
+    const oid = mint();
+    w.put(ridOf(oid), { kind: 'influence', oid, where: { slot: want.home, name: 'main' },
+      n: slotItems(game, want.home, 'main').length, ...want, used: false, crit: false, once: true } satisfies Influence);
+  };
+}
+
 /** The die's word for a character's owner (R142): GM, open, or the player. */
 export const ownerWord = (c: Character) => c.owner === GM ? 'GM' : c.owner === OPEN ? 'open' : c.owner;
 
@@ -167,6 +192,8 @@ export type RollRowWith = {
   keep: (r: Roller | null) => void;
   /** A character's pool mat, to dock in. */
   pool: (oid: Oid) => HTMLElement | undefined;
+  /** R352: new oids, for the card an action suffers. */
+  mint: () => Oid;
   /** Redraws these characters' cards (the swish, R77). */
   redraw: (oids: Oid[]) => void;
   /** Rolls what the row shows: at once on the GM's page; a request from a player's (R100). */
@@ -215,8 +242,19 @@ export class RollRowView {
   #set(r: Roller | null): void {
     const was = this.#w.roller();
     this.#w.keep(r);
+    // R352, R353: the card the row's action suffers follows the row.
+    const card = onceCard(this.#w.game, was, r, this.#w.mint);
+    if (card) this.#w.game.change(card);
     this.#w.redraw([...new Set([was?.pool, r?.pool].filter((x): x is Oid => !!x))]);
     this.render();
+  }
+
+  // R353: a roll that went through used up the card its action suffered, so the row starts fresh.
+  /** After a roll that went through. */
+  rolled(): void {
+    const r = this.#w.roller(), c = r?.action ? this.#w.game.get(ridOf(r.pool)) as Character | undefined : undefined;
+    const act = c?.kind === 'character' ? actionOf(c, r!.action) : null;
+    if (act && suffered(act.label)) this.#set(cleared(r!));
   }
 
   /** A player's roll is waiting on the GM's page (R102). */

@@ -116,7 +116,8 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 ## After a roll
 
-- A roll marks the Influence cards in the rolling character's pool **used** (dimmed, tagged).
+- A roll marks the Influence cards in the rolling character's pool **used** (dimmed, tagged), except a card
+  an action put there for its own roll, which the roll deletes (`rolls.md`, *Actions*).
   Resources can't feed used cards; click and shift-click still strengthen or weaken them.
 - At the character's **next** roll, still-used cards are swept into the drawer's **used pile** first.
   Clicking one there puts it back for the next roll. Plain chips are untouched.

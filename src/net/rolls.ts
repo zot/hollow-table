@@ -1,4 +1,4 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R346, R307, R308, R316, R345, R351
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R346, R307, R308, R316, R345, R351, R353
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
@@ -189,7 +189,9 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
     w.put('meta', { ...meta, rolls: meta.rolls + 1, counts: { ...meta.counts, [character.oid]: n } });
     for (const i of items) {
       if (i.kind === 'influence' && typeof i.where === 'object' && 'slot' in i.where && i.where.slot === character.oid && !i.used) {
-        w.put(ridOf(i.oid), { ...i, used: true });
+        // R353: a card an action put there for its own roll is used up by it.
+        if (i.once) w.del(ridOf(i.oid));
+        else w.put(ridOf(i.oid), { ...i, used: true });
       }
     }
     if (!r.crit) return;

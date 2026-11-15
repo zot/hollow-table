@@ -1,4 +1,4 @@
-// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337
+// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R352, R354, R355
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
@@ -62,6 +62,31 @@ export function influence(text: string): Reading | null {
     return { name, sign: m[2] === '+' ? 1 : -1, level: word ?? w };
   }
   return t ? { name: t, sign: null, level: null } : null;
+}
+
+// R352: an action whose label is an Influence suffers it: `Tricky -Min` is Tricky, −1, Min.
+/** The Influence an action's label is, or null when the label has no sign and Level. */
+export function suffered(label: string): Reading | null {
+  const r = influence(label);
+  return r?.sign && r.level ? r : null;
+}
+
+// R354, R355: an action line whose label is an Influence, right under another action line (or under
+// that action's other variants), is that action's variant.
+export type Variant = { line: number; label: string; of: string };
+/** The front's variants, each with the label of the action it varies. */
+export function variants(front: string): Variant[] {
+  const out: Variant[] = [];
+  let of: string | null = null;
+  parse(front).forEach((runs, line) => {
+    const marked = runs.filter(r => typeof r !== 'string' || r.trim());
+    const only = marked.length === 1 && typeof marked[0] !== 'string' ? marked[0] : null;
+    const act = only?.mark === 'act' ? action(only.text) : null;
+    if (!act) { of = null; return; }
+    if (of && suffered(act.label)) out.push({ line, label: act.label, of });
+    else of = act.label;
+  });
+  return out;
 }
 
 const N = '(\\d+)';

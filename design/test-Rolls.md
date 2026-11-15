@@ -201,3 +201,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** drop the refusal of an unaimed roll with an action; red: the unaimed Infer rolls
 **Inject:** src/net/rolls.ts:resolve
 **Pulled:** 2026-11-15 — rang: "the world as opposition" failed, the unaimed Infer rolled; restored clean
+
+## Test: a roll uses up the card its action suffered
+**Purpose:** R353: the GM's page deletes a `once` card in the roller's pool instead of marking it used; R352: the Total Influence suffers it; R355: the receipt names the variant
+**Input:** a Tricky -Min `once` card in Beauford's Main; Beauford's Tricky -Min as Mental Atk at Sam
+**Expected:** the receipt's action `Tricky -Min`, Total Influence 3 on Base 5; after the roll the card is gone
+**Refs:** crc-Rolls.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 17
+**Fire alarm:** mark a `once` card used like any other; red: the card is still there
+**Inject:** src/net/rolls.ts:resolve
+**Pulled:** 2026-11-16 — rang: "a roll uses up the card its action suffered" failed, the card was still there; restored clean

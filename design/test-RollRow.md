@@ -124,3 +124,14 @@ Red picked by hand
 **Fire alarm:** in waits, let an unaimed action roll (`return null` in place of the aim check); red: Infer no longer waits
 **Inject:** src/ui/rollrow.ts:waits
 **Pulled:** 2026-11-15 — rang: "the world as opposition" failed, the unaimed Infer no longer waited; restored clean
+
+## Test: a variant suffers its Influence as a card in Main
+**Purpose:** R352: the row's action, when its label is an Influence, puts one `once` card of it in the actor's Main pool, and choosing it again keeps that one; R355: the header names the variant, its type from the alternative, its total less the card; R353: leaving it takes the card away
+**Input:** Beauford docked; Mental Atk; Tricky -Min as Mental Atk; again; the Base cleared
+**Expected:** no change for Mental Atk; a card Tricky, −1, 2 points, in Beauford's Main, `once`; no change when chosen again; label `Tricky -Min`, type mental, total 2 below Mental Atk's before the card; the card gone after the Base is cleared
+**Refs:** crc-RollRow.md
+**Code:** `src/ui/rollrow.test.ts`
+**Alarm:** 11
+**Fire alarm:** never keep the card there (`gone` is every `once` card); red: choosing it again is a change
+**Inject:** src/ui/rollrow.ts:onceCard
+**Pulled:** 2026-11-16 — rang: "a variant suffers its Influence as a card in Main" failed, choosing it again was a change; restored clean

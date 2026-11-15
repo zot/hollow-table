@@ -198,3 +198,25 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** drop the `?` refusal for the world in the aim's drop; red: the note is the blank tray's reminder instead
 **Inject:** src/ui/rollrow.ts:#aim
 **Pulled:** 2026-11-15 — rang (Chromium): "the world as opposition" failed at the `?` drop, the blank tray's reminder in place of "Say what this roll is first."; restored clean
+
+## Test: a Finesse variant suffers its Tricky
+**Purpose:** R352–R355 on the GM's page: Beauford's Tricky -Min indents under Mental Atk / Req with a die per alternative; choosing it puts one Tricky card in his Main, the header naming it, typed Mental Atk; again keeps one; a cleared Base takes it away; chosen again, aimed at Sam and rolled, the receipt names it, the card is gone and the row starts fresh
+**Input:** Beauford's card; the variant's first die, twice; the Base; the die again; a drag to Sam; Roll
+**Expected:** `varpad`; two dice titled "Roll this: Tricky -Min as Mental Atk" and "… as Req"; one `once` Tricky (−1, 2 points, Beauford's Main); `Tricky -Min` in the header, Mental Atk on the tag; still one; none; one; `vs Sam`; the receipt says Tricky -Min, no `once` card, no Base in the header
+**Refs:** crc-PieceView.md, crc-RollRow.md, crc-Rolls.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 13
+**Fire alarm:** don't indent variants (drop the `varpad` toggle); red: the Tricky line has no `varpad`
+**Inject:** src/ui/piece.ts:frontGlyphs
+**Pulled:** 2026-11-16 — rang (Chromium): "a Finesse variant suffers its Tricky" failed, the Tricky line had no `varpad`; restored clean
+
+## Test: the row starts fresh after a variant's roll
+**Purpose:** R353: a roll that goes through, of an action that suffers an Influence, starts the row fresh, so its next roll puts the card again
+**Input:** Beauford's Tricky -Min aimed at Sam and rolled
+**Expected:** no Base in Beauford's header afterwards
+**Refs:** crc-RollRow.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 14
+**Fire alarm:** make `rolled` do nothing; red: the header still holds Tricky -Min
+**Inject:** src/ui/rollrow.ts:rolled
+**Pulled:** 2026-11-16 — rang (Chromium): "a Finesse variant suffers its Tricky" failed at the end, the header still held a Base; restored clean

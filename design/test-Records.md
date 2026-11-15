@@ -43,3 +43,15 @@ faulty record is refused
 **Inject:** src/model/records.ts:SINGLETONS
 @alarm-hash: e84454f531d7d8b4
 **Pulled:** 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
+
+## Test: a card an action suffers
+**Purpose:** R352: an Influence may carry `once: true`, and nothing else in that field
+**Input:** Beauford's Tricky card with `once: true`, and with `once: false`
+**Expected:** the first passes, the second is refused
+**Refs:** crc-Records.md
+**Code:** `src/model/records.test.ts`
+**Alarm:** 4
+**Fire alarm:** leave `once` out of the Influence's fields; red: the `once` card is refused
+**Inject:** src/model/records.ts:PIECES
+@alarm-hash: 8f6cabccd94f4eba
+**Pulled:** 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean

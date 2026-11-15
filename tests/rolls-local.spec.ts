@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320, R326, R327, R329, R345, R346, R347, R349, R350, R351
+// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320, R326, R327, R329, R345, R346, R347, R349, R350, R351, R352, R353, R354, R355
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
@@ -249,4 +249,35 @@ test('the world as opposition', async ({ page }) => {
   // R351: the receipt names the world and its number.
   await roll.click();
   await expect(page.locator('#tape .strip .receipt').first()).toContainText('vs the world (9), Difference −5');
+});
+
+test('a Finesse variant suffers its Tricky', async ({ page }) => {
+  const BEAU = 'o:00000002', BPOOL = `.obj.pool[data-rid="${BEAU}"]`, card = page.locator(`.obj.card[data-rid="${BEAU}"]`);
+  const once = async () => (await kinds(page, 'influence')).map(([, r]) => r).filter(r => r.once);
+  // R354: Tricky -Min indents under Mental Atk / Req; R355: a die per alternative of that action.
+  const tricky = card.locator('.front .text > div', { hasText: 'Tricky -Min' });
+  await expect(tricky).toHaveClass(/\bvarpad\b/);
+  await expect(tricky.locator('.actdie')).toHaveCount(2);
+  await expect(tricky.locator('.actdie').first()).toHaveAttribute('title', 'Roll this: Tricky -Min as Mental Atk');
+  await expect(tricky.locator('.actdie').nth(1)).toHaveAttribute('title', 'Roll this: Tricky -Min as Req');
+  // R352: choosing it puts one Tricky -Min card in Beauford's Main; the row names the variant, typed Mental Atk.
+  await tricky.locator('.actdie').first().click();
+  await expect(page.locator(`${BPOOL} .rollinfo .base`)).toContainText('Tricky -Min');
+  await expect(page.locator(`${BPOOL} .roller .rtype`)).toHaveText('Mental Atk');
+  await expect.poll(once).toEqual([expect.objectContaining({ name: 'Tricky', sign: -1, points: 2, home: '00000002', where: { slot: '00000002', name: 'main' } })]);
+  await tricky.locator('.actdie').first().click();
+  expect(await once()).toHaveLength(1);
+  // R353: a cleared Base takes it away.
+  await page.locator(`${BPOOL} .rollinfo .base`).click();
+  await expect.poll(once).toEqual([]);
+  // Chosen again and aimed at Sam, the roll uses it up and the row starts fresh.
+  await tricky.locator('.actdie').first().click();
+  await expect.poll(once).toHaveLength(1);
+  const base = await at(page, `${BPOOL} .rollinfo .base`, 8, 6), sam = await at(page, `${SPOOL} .slots`, 60, 30);
+  await dragFromTo(page, base.x, base.y, sam.x, sam.y, 15);
+  await expect(page.locator(`${BPOOL} .rollinfo .vs`)).toContainText('vs Sam');
+  await page.locator(`${BPOOL} .roller .roll`).click();
+  await expect(page.locator('#tape .strip .receipt').first()).toContainText('Tricky -Min');
+  await expect.poll(once).toEqual([]);
+  await expect(page.locator(`${BPOOL} .rollinfo .base`)).toHaveCount(0);
 });

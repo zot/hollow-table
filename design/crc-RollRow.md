@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R349, R350
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R349, R350, R352, R353, R355
 
 The dice you're about to roll, docked on the pool you roll for, in your view only (Seat).
 
@@ -72,6 +72,14 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   is first") and while the tray is blank (the GM: "Put the world's number in the tray first"; a
   player: "The GM hasn't given the world a number yet"). Aimed at the world, Tray.mark() wears the
   `targeted` ring in place of a pool.
+
+- An action that suffers an Influence (R352, R353): onceCard(game, was, now, mint) is the change that
+  keeps the actor's Main pool holding the one `once` card the row's action suffers
+  (MarkReader.suffered; points 2 a Level): put when the row comes to it (reused when there), taken
+  away, wherever it lies, when the row leaves it; #set applies it.
+  rolled(r): after a roll that went through, a row whose action suffers an Influence starts fresh
+  (cleared), its card used up on the GM's page. The header names the action by Rolls.alternative,
+  so a variant typed by its action's alternative reads as itself (R355).
 
 ## Collaborators
 - Odds, Pool, MarkReader, Visibility, Rolls, Seat, PoolView, Gesture, Tray

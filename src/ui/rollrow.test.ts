@@ -2,10 +2,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { WORLD, ridOf, type Character } from '../model/records.ts';
+import { WORLD, ridOf, type Character, type Influence } from '../model/records.ts';
 import { row as rowFor } from '../rules/odds.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
-import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase, waits } from './rollrow.ts';
+import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase, waits, onceCard } from './rollrow.ts';
 
 const scene = () => { const g = new Game(); g.load(playtest('Dana', 'Ann')); return g; };
 
@@ -146,4 +146,22 @@ test('the world as opposition', () => {
   game.change(w => w.put('world', { set: true, total: s.total! + 6 }));
   assert.equal(shown(game, atWorld).row.key, rowFor(-6).key);
   assert.equal(shown(game, picked(atWorld, 'green')).row.key, 'green', 'unless picked by hand');
+});
+
+test('a variant suffers its Influence as a card in Main', () => {
+  // R352: Beauford's Tricky -Min, typed by Mental Atk, puts one Tricky -Min card (2 points) in his Main.
+  const game = scene(), ids = ['000000f1', '000000f2'], mint = () => ids.shift()!;
+  const plain = withAction(dock(null, BEAUFORD), 'Mental Atk / Req', 'Mental Atk'), tricky = withAction(plain, 'Tricky -Min', 'Mental Atk');
+  assert.equal(onceCard(game, null, plain, mint), null, 'a plain action suffers nothing');
+  const before = shown(game, plain).total!;
+  game.change(onceCard(game, plain, tricky, mint)!);
+  const card = game.get(ridOf('000000f1')) as Influence;
+  assert.deepEqual([card.name, card.sign, card.points, card.where, card.once, card.home], ['Tricky', -1, 2, { slot: BEAUFORD, name: 'main' }, true, BEAUFORD]);
+  assert.equal(onceCard(game, tricky, tricky, mint), null, 'choosing it again keeps the one card');
+  // R355: the row names the variant and is typed by the alternative; its total suffers the 2.
+  const s = shown(game, tricky);
+  assert.deepEqual([s.label, tricky.type, s.total], ['Tricky -Min', 'mental', before - 2]);
+  // R353: leaving it, by another action or a cleared Base, takes the card away.
+  game.change(onceCard(game, tricky, cleared(tricky), mint)!);
+  assert.equal(game.get(ridOf('000000f1')), undefined);
 });

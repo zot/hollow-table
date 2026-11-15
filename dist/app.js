@@ -110,7 +110,7 @@ var PIECES = {
       used: bool,
       crit: bool
     },
-    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true) }
+    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true) }
   ),
   chip: fields({ kind: oneOf("chip"), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
   sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin, big: bool }),
@@ -415,6 +415,26 @@ function influence(text) {
     return { name: name2, sign: m[2] === "+" ? 1 : -1, level: word ?? w };
   }
   return t ? { name: t, sign: null, level: null } : null;
+}
+function suffered(label) {
+  const r = influence(label);
+  return r?.sign && r.level ? r : null;
+}
+function variants(front) {
+  const out = [];
+  let of = null;
+  parse(front).forEach((runs, line) => {
+    const marked2 = runs.filter((r) => typeof r !== "string" || r.trim());
+    const only = marked2.length === 1 && typeof marked2[0] !== "string" ? marked2[0] : null;
+    const act = only?.mark === "act" ? action(only.text) : null;
+    if (!act) {
+      of = null;
+      return;
+    }
+    if (of && suffered(act.label)) out.push({ line, label: act.label, of });
+    else of = act.label;
+  });
+  return out;
 }
 var N = "(\\d+)";
 var DEF_ONE = new RegExp(`^${N}$`);
@@ -1695,10 +1715,11 @@ function dry(e, c) {
 }
 function frontGlyphs(text, c, w) {
   const doc = text.ownerDocument, using = w.inUse(c.oid);
-  const indents = skillIndents(c.front);
+  const indents = skillIndents(c.front), vars = new Map(variants(c.front).map((v) => [v.line, v]));
   [...text.children].forEach((line, k) => {
     line.classList.toggle("sklpad", indents.has(k));
     line.classList.toggle("sklhang", indents.get(k) === "hang");
+    line.classList.toggle("varpad", vars.has(k));
   });
   for (const span of text.querySelectorAll("span.act")) span.classList.toggle("inuse", !!using && action(span.textContent ?? "")?.label === using);
   if (doc.activeElement && text.contains(doc.activeElement)) return;
@@ -1711,17 +1732,24 @@ function frontGlyphs(text, c, w) {
     const label = action(span.textContent ?? "")?.label;
     if (!label) continue;
     const alts = label.split("/").map((a) => a.trim()).filter(Boolean);
-    const die3 = (alt) => {
-      const d = doc.createElement("span"), name2 = alt ?? label;
+    const die3 = (alt, title = `Roll this: ${alt ?? label}`) => {
+      const d = doc.createElement("span");
       d.className = "actdie";
       d.contentEditable = "false";
-      d.title = `Roll this: ${name2}`;
+      d.title = title;
       d.addEventListener("pointerdown", (ev) => ev.preventDefault());
       gesture(d, { click: () => {
         if (!w.useAction(c.oid, label, alt)) d.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
       } });
       return d;
     };
+    let line = span;
+    while (line.parentElement && line.parentElement !== text) line = line.parentElement;
+    const v = vars.get([...text.children].indexOf(line));
+    if (v) {
+      for (const alt of v.of.split("/").map((a) => a.trim()).filter(Boolean)) span.before(die3(alt, `Roll this: ${label} as ${alt}`));
+      continue;
+    }
     if (alts.length < 2) {
       span.before(die3());
       continue;
@@ -3100,7 +3128,8 @@ function resolve2(game, intent, rng, at3) {
     w.put("meta", { ...meta, rolls: meta.rolls + 1, counts: { ...meta.counts, [character2.oid]: n } });
     for (const i of items) {
       if (i.kind === "influence" && typeof i.where === "object" && "slot" in i.where && i.where.slot === character2.oid && !i.used) {
-        w.put(ridOf(i.oid), { ...i, used: true });
+        if (i.once) w.del(ridOf(i.oid));
+        else w.put(ridOf(i.oid), { ...i, used: true });
       }
     }
     if (!r.crit) return;
@@ -8104,6 +8133,172 @@ var TrayView = class {
   }
 };
 
+// src/ui/actions.ts
+function minter(game, gm, rng = Math.random) {
+  const used = new Set(game.all().map(([rid2]) => rid2).filter(isPiece).map(oidOf));
+  let top = 0;
+  for (const o of used) {
+    const n = parseInt(o, 16);
+    if (n < PLAYER_OIDS) top = Math.max(top, n);
+  }
+  return () => {
+    let oid;
+    do {
+      oid = (gm ? ++top : PLAYER_OIDS + Math.floor(rng() * (4294967295 - PLAYER_OIDS))).toString(16).padStart(8, "0");
+    } while (used.has(oid));
+    used.add(oid);
+    return oid;
+  };
+}
+var lookup = (game) => (oid) => game.get(ridOf(oid));
+var item = (game, rid2) => {
+  const r = game.get(rid2);
+  return r && "kind" in r && (r.kind === "chip" || r.kind === "influence") ? r : void 0;
+};
+var inSlot2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && i.where.name === slot2;
+function slotItems(game, owner, slot2) {
+  return game.all().map(([rid2]) => item(game, rid2)).filter((i) => !!i && inSlot2(i, owner, slot2));
+}
+function settle(w, items, mint2) {
+  const plan = rollUp(items, mint2);
+  const gone = new Set(plan.remove);
+  for (const i of items) if (!gone.has(i.oid)) w.put(ridOf(i.oid), i);
+  for (const oid of plan.remove) w.del(ridOf(oid));
+  for (const c of plan.add) w.put(ridOf(c.oid), c);
+}
+function withItem(game, owner, slot2, changed, gone) {
+  const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
+  return changed ? [...rest, changed] : rest;
+}
+function toSlot(game, rid2, owner, slot2, mint2) {
+  const i = item(game, rid2);
+  if (!i || !accepts(slot2, i)) return null;
+  const home = i.kind === "influence" && i.mot ? { home: owner } : {};
+  const moved = { ...i, ...home, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
+  return (w) => {
+    settle(w, withItem(game, owner, slot2, moved), mint2);
+  };
+}
+function drawerCards(game, owner) {
+  return game.all().map(([, r]) => r).filter((r) => "kind" in r && r.kind === "influence" && r.home === owner && r.where === "drawer").sort((a, b) => a.n - b.n);
+}
+function toDrawer(game, rid2, owner, at3) {
+  const i = item(game, rid2);
+  if (!i || i.kind !== "influence") return null;
+  const order = drawerCards(game, owner).filter((k) => ridOf(k.oid) !== rid2);
+  const card2 = { ...i, home: owner, where: "drawer", used: false };
+  order.splice(at3 === void 0 ? order.length : Math.max(0, Math.min(at3, order.length)), 0, card2);
+  return (w) => order.forEach((k, n) => {
+    if (k === card2 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
+  });
+}
+function toTable(game, rid2, at3) {
+  const i = item(game, rid2);
+  if (!i) return null;
+  if (i.kind === "influence" && !i.tap) return toDrawer(game, rid2, i.home);
+  return (w) => w.put(rid2, { ...i, where: { table: at3 } });
+}
+function killCard(game, rid2) {
+  const i = item(game, rid2);
+  if (!i || i.kind !== "influence") return null;
+  const refunds = kill(lookup(game), i);
+  return (w) => {
+    w.del(rid2);
+    for (const c of refunds) w.put(ridOf(c.oid), c);
+  };
+}
+function vanish(game, rid2) {
+  const i = item(game, rid2);
+  return i?.kind === "chip" ? (w) => w.del(rid2) : null;
+}
+function chipClick(game, rid2, shift, mint2) {
+  const c = item(game, rid2);
+  if (c?.kind !== "chip") return null;
+  const next2 = shift ? lowerChip(c) : raiseChip(c);
+  if (typeof c.where !== "object" || !("slot" in c.where)) {
+    return (w) => {
+      if (next2) w.put(rid2, next2);
+      else w.del(rid2);
+    };
+  }
+  const { slot: owner, name: name2 } = c.where;
+  return (w) => {
+    if (!next2) w.del(rid2);
+    settle(w, withItem(game, owner, name2, next2, next2 ? void 0 : c.oid), mint2);
+  };
+}
+function riderClick(game, rid2, shift) {
+  const c = item(game, rid2);
+  if (c?.kind !== "chip" || !c.rider || !shift) return null;
+  return (w) => w.put(rid2, { ...c, rider: false });
+}
+function addLoose(game, owner, slot2, shift, mint2) {
+  const chip2 = {
+    kind: "chip",
+    oid: mint2(),
+    where: { slot: owner, name: slot2 },
+    n: slotItems(game, owner, slot2).length,
+    sign: shift ? -1 : 1,
+    points: 1,
+    rider: false
+  };
+  return (w) => w.put(ridOf(chip2.oid), chip2);
+}
+function cardClick(game, rid2, shift, mint2) {
+  const c = item(game, rid2);
+  if (c?.kind !== "influence") return null;
+  if (shift && c.points <= MIN) return killCard(game, rid2);
+  if (c.tap) {
+    const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
+    return t ? apply2(t, c) : null;
+  }
+  const next2 = shift ? lowerCard(c) : raiseCard(c);
+  return next2.points === c.points ? null : (w) => w.put(rid2, next2);
+}
+function writeCard(game, owner, sign2, name2, mint2) {
+  const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
+  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
+  return (w) => w.put(ridOf(card2.oid), card2);
+}
+function restoreUsed(game, rid2) {
+  const c = item(game, rid2);
+  return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid2, { ...c, where: "drawer", used: false }) : null;
+}
+function apply2(t, old) {
+  return (w) => {
+    if (old && t.card.oid !== old.oid) w.put(ridOf(old.oid), old);
+    w.put(ridOf(t.card.oid), t.card);
+    for (const c of t.changed) w.put(ridOf(c.oid), c);
+  };
+}
+function tapOut(game, src, where2, mint2) {
+  const t = tap(lookup(game), src, where2, mint2());
+  return t ? apply2(t) : null;
+}
+function mergeTap(game, fromRid, intoRid, mint2) {
+  const from = item(game, fromRid), into = item(game, intoRid);
+  if (fromRid === intoRid || from?.kind !== "influence" || into?.kind !== "influence" || !from.tap || !into.tap || from.used) return null;
+  const chars = /* @__PURE__ */ new Map();
+  const now2 = (oid) => chars.get(oid) ?? lookup(game)(oid);
+  for (const c of kill(now2, from)) chars.set(c.oid, c);
+  let card2 = into, fed = false;
+  for (const [src, n] of Object.entries(from.tap.ledger)) {
+    for (let k = 0; k < n; k++) {
+      const t = feed(now2, card2, src, mint2());
+      if (!t || t.card.oid !== into.oid) return null;
+      card2 = t.card;
+      fed = true;
+      for (const c of t.changed) chars.set(c.oid, c);
+    }
+  }
+  if (!fed) return null;
+  return (w) => {
+    w.del(fromRid);
+    w.put(intoRid, card2);
+    for (const c of chars.values()) w.put(ridOf(c.oid), c);
+  };
+}
+
 // src/ui/rollrow.ts
 function fresh(pool) {
   return { pool, action: "", opponent: null, defend: "mental", row: null, byHand: false, hand: { yellows: 1, bonus: 0 }, dice: [] };
@@ -8197,7 +8392,7 @@ function shown(game, r) {
   const row2 = ADV.find((x) => x.key === r.row) ?? row(0);
   if (!act || !mine) return { label: "", base: null, total: null, parts: {}, yellows: Math.max(0, r.hand.yellows), bonus: r.hand.bonus, row: row2 };
   const sum2 = total2(act.base, mine), dice = bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, r.hand);
-  const out = { label: r.alt ?? act.label, base: act.base, total: sum2.total, parts: sum2.parts, yellows: dice.yellows, bonus: dice.bonus, row: row2 };
+  const out = { label: alternative(act.label, r.alt), base: act.base, total: sum2.total, parts: sum2.parts, yellows: dice.yellows, bonus: dice.bonus, row: row2 };
   if (r.opponent === WORLD) {
     const against2 = game.get("world")?.total ?? 0, diff2 = sum2.total - against2;
     return { ...out, row: r.byHand ? row2 : row(diff2), vs: { oid: WORLD, name: "the world", total: against2, diff: diff2, sees: !!ownerAsViewer(c)?.gm } };
@@ -8210,6 +8405,30 @@ function shown(game, r) {
     ...out,
     row: r.byHand ? row2 : row(diff),
     vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c), opp), ...point && { words: point.words } }
+  };
+}
+function onceCard(game, was, now2, mint2) {
+  const c = now2?.action ? game.get(ridOf(now2.pool)) : void 0;
+  const act = c?.kind === "character" ? actionOf(c, now2.action) : null, inf = act ? suffered(act.label) : null;
+  const want = inf && { home: now2.pool, name: inf.name, sign: inf.sign, points: STEP * levelsOf(inf) };
+  const cards = game.all().map(([, x]) => x).filter((x) => "kind" in x && x.kind === "influence" && !!x.once && (x.home === was?.pool || x.home === now2?.pool));
+  const keep = want && cards.find((i) => i.home === want.home && i.name === want.name && i.sign === want.sign && i.points === want.points && typeof i.where === "object" && "slot" in i.where && i.where.slot === want.home && i.where.name === "main");
+  const gone = cards.filter((i) => i !== keep);
+  if (!gone.length && (keep || !want)) return null;
+  return (w) => {
+    for (const i of gone) w.del(ridOf(i.oid));
+    if (!want || keep) return;
+    const oid = mint2();
+    w.put(ridOf(oid), {
+      kind: "influence",
+      oid,
+      where: { slot: want.home, name: "main" },
+      n: slotItems(game, want.home, "main").length,
+      ...want,
+      used: false,
+      crit: false,
+      once: true
+    });
   };
 }
 var ownerWord = (c) => c.owner === GM ? "GM" : c.owner === OPEN ? "open" : c.owner;
@@ -8251,8 +8470,17 @@ var RollRowView = class {
   #set(r) {
     const was = this.#w.roller();
     this.#w.keep(r);
+    const card2 = onceCard(this.#w.game, was, r, this.#w.mint);
+    if (card2) this.#w.game.change(card2);
     this.#w.redraw([...new Set([was?.pool, r?.pool].filter((x) => !!x))]);
     this.render();
+  }
+  // R353: a roll that went through used up the card its action suffered, so the row starts fresh.
+  /** After a roll that went through. */
+  rolled() {
+    const r = this.#w.roller(), c = r?.action ? this.#w.game.get(ridOf(r.pool)) : void 0;
+    const act = c?.kind === "character" ? actionOf(c, r.action) : null;
+    if (act && suffered(act.label)) this.#set(cleared(r));
   }
   /** A player's roll is waiting on the GM's page (R102). */
   waiting(on) {
@@ -8853,172 +9081,6 @@ var RegisterView = class {
     return this.#el.getBoundingClientRect().left;
   }
 };
-
-// src/ui/actions.ts
-function minter(game, gm, rng = Math.random) {
-  const used = new Set(game.all().map(([rid2]) => rid2).filter(isPiece).map(oidOf));
-  let top = 0;
-  for (const o of used) {
-    const n = parseInt(o, 16);
-    if (n < PLAYER_OIDS) top = Math.max(top, n);
-  }
-  return () => {
-    let oid;
-    do {
-      oid = (gm ? ++top : PLAYER_OIDS + Math.floor(rng() * (4294967295 - PLAYER_OIDS))).toString(16).padStart(8, "0");
-    } while (used.has(oid));
-    used.add(oid);
-    return oid;
-  };
-}
-var lookup = (game) => (oid) => game.get(ridOf(oid));
-var item = (game, rid2) => {
-  const r = game.get(rid2);
-  return r && "kind" in r && (r.kind === "chip" || r.kind === "influence") ? r : void 0;
-};
-var inSlot2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && i.where.name === slot2;
-function slotItems(game, owner, slot2) {
-  return game.all().map(([rid2]) => item(game, rid2)).filter((i) => !!i && inSlot2(i, owner, slot2));
-}
-function settle(w, items, mint2) {
-  const plan = rollUp(items, mint2);
-  const gone = new Set(plan.remove);
-  for (const i of items) if (!gone.has(i.oid)) w.put(ridOf(i.oid), i);
-  for (const oid of plan.remove) w.del(ridOf(oid));
-  for (const c of plan.add) w.put(ridOf(c.oid), c);
-}
-function withItem(game, owner, slot2, changed, gone) {
-  const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
-  return changed ? [...rest, changed] : rest;
-}
-function toSlot(game, rid2, owner, slot2, mint2) {
-  const i = item(game, rid2);
-  if (!i || !accepts(slot2, i)) return null;
-  const home = i.kind === "influence" && i.mot ? { home: owner } : {};
-  const moved = { ...i, ...home, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
-  return (w) => {
-    settle(w, withItem(game, owner, slot2, moved), mint2);
-  };
-}
-function drawerCards(game, owner) {
-  return game.all().map(([, r]) => r).filter((r) => "kind" in r && r.kind === "influence" && r.home === owner && r.where === "drawer").sort((a, b) => a.n - b.n);
-}
-function toDrawer(game, rid2, owner, at3) {
-  const i = item(game, rid2);
-  if (!i || i.kind !== "influence") return null;
-  const order = drawerCards(game, owner).filter((k) => ridOf(k.oid) !== rid2);
-  const card2 = { ...i, home: owner, where: "drawer", used: false };
-  order.splice(at3 === void 0 ? order.length : Math.max(0, Math.min(at3, order.length)), 0, card2);
-  return (w) => order.forEach((k, n) => {
-    if (k === card2 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
-  });
-}
-function toTable(game, rid2, at3) {
-  const i = item(game, rid2);
-  if (!i) return null;
-  if (i.kind === "influence" && !i.tap) return toDrawer(game, rid2, i.home);
-  return (w) => w.put(rid2, { ...i, where: { table: at3 } });
-}
-function killCard(game, rid2) {
-  const i = item(game, rid2);
-  if (!i || i.kind !== "influence") return null;
-  const refunds = kill(lookup(game), i);
-  return (w) => {
-    w.del(rid2);
-    for (const c of refunds) w.put(ridOf(c.oid), c);
-  };
-}
-function vanish(game, rid2) {
-  const i = item(game, rid2);
-  return i?.kind === "chip" ? (w) => w.del(rid2) : null;
-}
-function chipClick(game, rid2, shift, mint2) {
-  const c = item(game, rid2);
-  if (c?.kind !== "chip") return null;
-  const next2 = shift ? lowerChip(c) : raiseChip(c);
-  if (typeof c.where !== "object" || !("slot" in c.where)) {
-    return (w) => {
-      if (next2) w.put(rid2, next2);
-      else w.del(rid2);
-    };
-  }
-  const { slot: owner, name: name2 } = c.where;
-  return (w) => {
-    if (!next2) w.del(rid2);
-    settle(w, withItem(game, owner, name2, next2, next2 ? void 0 : c.oid), mint2);
-  };
-}
-function riderClick(game, rid2, shift) {
-  const c = item(game, rid2);
-  if (c?.kind !== "chip" || !c.rider || !shift) return null;
-  return (w) => w.put(rid2, { ...c, rider: false });
-}
-function addLoose(game, owner, slot2, shift, mint2) {
-  const chip2 = {
-    kind: "chip",
-    oid: mint2(),
-    where: { slot: owner, name: slot2 },
-    n: slotItems(game, owner, slot2).length,
-    sign: shift ? -1 : 1,
-    points: 1,
-    rider: false
-  };
-  return (w) => w.put(ridOf(chip2.oid), chip2);
-}
-function cardClick(game, rid2, shift, mint2) {
-  const c = item(game, rid2);
-  if (c?.kind !== "influence") return null;
-  if (shift && c.points <= MIN) return killCard(game, rid2);
-  if (c.tap) {
-    const t = shift ? unfeed(lookup(game), c) : feed(lookup(game), c, void 0, mint2());
-    return t ? apply2(t, c) : null;
-  }
-  const next2 = shift ? lowerCard(c) : raiseCard(c);
-  return next2.points === c.points ? null : (w) => w.put(rid2, next2);
-}
-function writeCard(game, owner, sign2, name2, mint2) {
-  const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
-  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
-  return (w) => w.put(ridOf(card2.oid), card2);
-}
-function restoreUsed(game, rid2) {
-  const c = item(game, rid2);
-  return c?.kind === "influence" && c.where === "used" ? (w) => w.put(rid2, { ...c, where: "drawer", used: false }) : null;
-}
-function apply2(t, old) {
-  return (w) => {
-    if (old && t.card.oid !== old.oid) w.put(ridOf(old.oid), old);
-    w.put(ridOf(t.card.oid), t.card);
-    for (const c of t.changed) w.put(ridOf(c.oid), c);
-  };
-}
-function tapOut(game, src, where2, mint2) {
-  const t = tap(lookup(game), src, where2, mint2());
-  return t ? apply2(t) : null;
-}
-function mergeTap(game, fromRid, intoRid, mint2) {
-  const from = item(game, fromRid), into = item(game, intoRid);
-  if (fromRid === intoRid || from?.kind !== "influence" || into?.kind !== "influence" || !from.tap || !into.tap || from.used) return null;
-  const chars = /* @__PURE__ */ new Map();
-  const now2 = (oid) => chars.get(oid) ?? lookup(game)(oid);
-  for (const c of kill(now2, from)) chars.set(c.oid, c);
-  let card2 = into, fed = false;
-  for (const [src, n] of Object.entries(from.tap.ledger)) {
-    for (let k = 0; k < n; k++) {
-      const t = feed(now2, card2, src, mint2());
-      if (!t || t.card.oid !== into.oid) return null;
-      card2 = t.card;
-      fed = true;
-      for (const c of t.changed) chars.set(c.oid, c);
-    }
-  }
-  if (!fed) return null;
-  return (w) => {
-    w.del(fromRid);
-    w.put(intoRid, card2);
-    for (const c of chars.values()) w.put(ridOf(c.oid), c);
-  };
-}
 
 // src/ui/pool.ts
 var MAT_W = 430;
@@ -11663,6 +11725,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     game,
     viewer,
     tray: tray2,
+    mint: () => mint2()(),
     roller: () => seat.roller,
     keep: (r) => keep({ ...seat, roller: r }),
     // R320: the type last chosen for an action on a card, in this viewer's seat.
@@ -11677,12 +11740,14 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       if (gm) {
         const why3 = rolls.roll(intent, !!r.priv);
         if (why3) rolls.note(why3);
+        else rollRow.rolled();
         return;
       }
       rollRow.waiting(true);
       void rolls.request(intent).then((why3) => {
         rollRow.waiting(false);
         if (why3) rolls.note(why3);
+        else rollRow.rolled();
       });
     }
   });
