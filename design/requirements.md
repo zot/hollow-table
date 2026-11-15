@@ -94,6 +94,8 @@
 - **R331:** A Field's Skill lines are indented under it, a ✓ hanging in the margin before its Skill's name so the names align; a `Skills N:` line, or a Skill with no Field above, stays flush.
 - **R332:** A `<fld>` Field is drawn bold, at rest and while written on, to tell it from its Skills.
 - **R333:** A heading is drawn in capitals, the text keeping what was typed; the heading on a card's first line, its name, keeps its case.
+- **R334:** While a card's front is written on (pens out), each Field Skill line that is indented and carries no ✓ shows a faint ghost ✓ in its margin, drawn without entering the text; a `Skills N:` line, a Skill with no Field above, and a card at rest show none.
+- **R335:** While writing, a press in an indented Field Skill's margin toggles its ✓: on a ghost it writes `✓ ` at the start of that Skill's text, on a real ✓ it takes it out; the change is saved as typing is, so the Skill's Level follows at once.
 
 ## Feature: Influence
 **Source:** specs/influence.md

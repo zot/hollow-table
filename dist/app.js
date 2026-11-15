@@ -1344,7 +1344,9 @@ function make(doc, r, w) {
     case "character": {
       const flipper = el(doc, "div", "flipper");
       const front = el(doc, "div", "face front"), back3 = el(doc, "div", "face back");
-      front.append(writable(doc, "text", r.front, (s) => change(w, rid2, (c) => ({ ...c, front: s }))));
+      const text = writable(doc, "text", r.front, (s) => change(w, rid2, (c) => ({ ...c, front: s })));
+      front.append(text);
+      e.addEventListener("pointerdown", (ev) => checkPress(ev, text), true);
       back3.append(
         el(doc, "div", "damage"),
         el(doc, "div", "notes-hd", "Notes"),
@@ -1658,6 +1660,25 @@ function skillIndents(front) {
   });
   close();
   return out;
+}
+function toggleCheck(lines, line) {
+  if (!skillIndents(serialize(lines)).has(line)) return lines;
+  const runs = lines[line], k = runs.findIndex((r2) => typeof r2 !== "string" && r2.mark === "skl"), r = runs[k];
+  const text = /^\s*✓/.test(r.text) ? r.text.replace(/^(\s*)✓\s*/, "$1") : r.text.replace(/^(\s*)/, "$1\u2713 ");
+  return lines.map((l, i) => i === line ? l.map((x, j) => j === k ? { ...r, text } : x) : l);
+}
+function checkPress(ev, t) {
+  if (t.ownerDocument.activeElement !== t) return;
+  const line = ev.target.closest("div");
+  if (line?.parentElement !== t || !line.classList.contains("sklpad")) return;
+  const box2 = line.getBoundingClientRect(), scale = box2.width / line.offsetWidth || 1;
+  if (ev.clientX >= box2.left + parseFloat(getComputedStyle(line).paddingLeft) * scale) return;
+  const k = [...t.children].indexOf(line), lines = read(t), out = toggleCheck(lines, k);
+  if (out === lines) return;
+  ev.preventDefault();
+  render(out, t);
+  t.dispatchEvent(new Event("input", { bubbles: true }));
+  caretAt(t, k);
 }
 function atText(el3, needle, from) {
   const whole = el3.textContent ?? "", slash = whole.indexOf("/", from);

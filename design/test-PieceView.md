@@ -25,3 +25,14 @@ Afflictions; the leaders Biases, Afflictions, Injuries, Biases
 **Fire alarm:** let Skills with no Field above group too (drop the `inField &&` guard); red: the stray Skill before any Field is indented
 **Inject:** src/ui/piece.ts:skillIndents
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: "a Field's Skills line up as printed" failed (the stray Skill before any Field got 'pad'); restored clean. Re-pulled after the rule became always-indent (Bill 11-14); the earlier record guarded the old ✓-only rule *Earlier —* 2026-11-14 — 2026-11-14 — rang: "a Field's Skills line up as printed" failed (Investigation indented); restored clean
+
+## Test: a Field Skill's check toggles
+**Purpose:** R335: toggleCheck writes `✓ ` at the start of an indented Field Skill's text and takes a ✓ out again; a `Skills N:` line, a Skill with no Field above, and a line that isn't there are left alone
+**Input:** a stray Skill, Private Investigator with Investigation and ✓ Rationalization, a `Skills 1: Tact` line under the Field
+**Expected:** Investigation becomes `<skl>✓ Investigation (x2)</skl>`, toggled again it is as written; Rationalization loses its ✓; the stray Skill, the Skills line and line 99 return the same lines
+**Refs:** crc-PieceView.md
+**Code:** `src/ui/piece.test.ts`
+**Alarm:** 3
+**Fire alarm:** in toggleCheck, drop the skillIndents guard and toggle any `<skl>` line; red: the stray Skill with no Field above (line 0) gets a ✓
+**Inject:** src/ui/piece.ts:toggleCheck
+**Pulled:** 2026-11-15 — 2026-11-15 — rang: "a Field Skill's check toggles" failed at `line 0 is left alone` (the stray Skill got a ✓); restored clean

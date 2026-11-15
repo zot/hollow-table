@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309-312, R316, R318, R331, R332
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309-312, R316, R318, R331, R332, R334, R335
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -57,6 +57,8 @@ stickies, loose text, images, torn rolls and reference cards.
 - A Slot waiting for a name draws an empty mark with "Beauford names it" (R312).
 
 - skillIndents(front) (R331): which front lines are a Field's Skills, and which of those carry a ✓; the view gives them `sklpad` (indented) and `sklhang` (the ✓ hanging in the margin).
+- toggleCheck(lines, line) (R335): the lines with that Field Skill's ✓ written (`✓ ` at the start of its text) or taken out; the same lines when the line isn't one `skillIndents` indents.
+- The ghost ✓ (R334) is CSS on a `sklpad` line without `sklhang`, shown only while the card is written on; a press in an indented Skill's margin while the front holds the caret toggles its ✓ through toggleCheck and saves through the front's own `input`, as a pen does (R335).
 
 ## Collaborators
 - Absorb: the pages and what they fill

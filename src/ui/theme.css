@@ -610,5 +610,9 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 /* R331: a Field's Skills indent under it, a ✓ hanging in the margin so the names align. */
 .front .text > .sklpad { padding-left: 1.05em; }
 .front .text > .sklhang { text-indent: -1.05em; }
+/* R334: while written on, a faint ghost ✓ in the margin before each unchecked Field Skill; it is not
+   text, so nothing reads it back. A press there writes the ✓ (R335). */
+.obj:has([contenteditable]:focus, .pens:focus-within) .front .text > .sklpad:not(.sklhang)::before {
+  content: '✓'; display: inline-block; width: 1.05em; margin-left: -1.05em; opacity: .3; }
 /* R332: a Field is bold, at rest and while written on, to tell it from its Skills. */
 .front .text .fld { font-weight: 700; }

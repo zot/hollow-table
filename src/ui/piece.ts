@@ -14,9 +14,9 @@ import { action as readAction, influence } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
 import { columnRoom } from '../rules/influence.ts';
 import { OVERFLOW, fill, type Page } from '../rules/absorb.ts';
-import { parse, read, render, serialize } from '../text/marks.ts';
+import { parse, read, render, serialize, type Line, type MarkRun } from '../text/marks.ts';
 import { gesture, type PointerLike } from './gesture.ts';
-import { tray } from './pens.ts';
+import { caretAt, tray } from './pens.ts';
 import { receiptEl } from './receipt.ts';
 
 /** What a piece's view needs from the page. */
@@ -153,7 +153,10 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
     case 'character': {
       const flipper = el(doc, 'div', 'flipper');
       const front = el(doc, 'div', 'face front'), back = el(doc, 'div', 'face back');
-      front.append(writable(doc, 'text', r.front, s => change<Character>(w, rid, c => ({ ...c, front: s }))));
+      const text = writable(doc, 'text', r.front, s => change<Character>(w, rid, c => ({ ...c, front: s })));
+      front.append(text);
+      // R335: in capture, beside the listener above that keeps a press while writing from the piece.
+      e.addEventListener('pointerdown', ev => checkPress(ev, text), true);
       back.append(el(doc, 'div', 'damage'), el(doc, 'div', 'notes-hd', 'Notes'),
         ruled(doc, writable(doc, 'notes', r.back.notes, s => change<Character>(w, rid, c => ({ ...c, back: { ...c.back, notes: s } })))));
       flipper.append(front, back);
@@ -468,6 +471,32 @@ export function skillIndents(front: string): Map<number, 'pad' | 'hang'> {
   });
   close();
   return out;
+}
+
+// R335: a Field Skill's ✓ written at the start of its text, or taken out; only on a line skillIndents indents.
+/** The lines with that line's Field Skill check toggled; the same lines when it isn't an indented Skill. */
+export function toggleCheck(lines: Line[], line: number): Line[] {
+  if (!skillIndents(serialize(lines)).has(line)) return lines;
+  const runs = lines[line]!, k = runs.findIndex(r => typeof r !== 'string' && r.mark === 'skl'), r = runs[k] as MarkRun;
+  const text = /^\s*✓/.test(r.text) ? r.text.replace(/^(\s*)✓\s*/, '$1') : r.text.replace(/^(\s*)/, '$1✓ ');
+  return lines.map((l, i) => i === line ? l.map((x, j) => j === k ? { ...r, text } : x) : l);
+}
+
+// R335: while the front holds the caret, a press in an indented Skill's margin, where the ghost or the
+// hanging ✓ sits, toggles its check and saves through the front's own input, as a pen does.
+function checkPress(ev: PointerEvent, t: HTMLElement): void {
+  if (t.ownerDocument.activeElement !== t) return;
+  const line = (ev.target as Element).closest('div');
+  if (line?.parentElement !== t || !line.classList.contains('sklpad')) return;
+  // Rects are in screen pixels, zoomed with the table; the margin is the line's left padding.
+  const box = line.getBoundingClientRect(), scale = box.width / line.offsetWidth || 1;
+  if (ev.clientX >= box.left + parseFloat(getComputedStyle(line).paddingLeft) * scale) return;
+  const k = [...t.children].indexOf(line), lines = read(t), out = toggleCheck(lines, k);
+  if (out === lines) return;
+  ev.preventDefault();
+  render(out, t);
+  t.dispatchEvent(new Event('input', { bubbles: true }));
+  caretAt(t, k);
 }
 
 /** Where `needle` starts after a `/` at or past `from` in the element's text: its text node and offset. */

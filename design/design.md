@@ -79,7 +79,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Rolls.md → `src/net/rolls.ts`
 - [x] crc-Yards.md → `src/rules/yards.ts`
 - [x] crc-TableView.md → `src/ui/table.ts`
-- [ ] crc-PieceView.md → `src/ui/piece.ts`
+- [x] crc-PieceView.md → `src/ui/piece.ts`
 - [ ] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
 - [x] crc-Gesture.md → `src/ui/gesture.ts`
 - [x] crc-Drag.md → `src/ui/drag.ts`
@@ -110,7 +110,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] manifest-ui.md → `src/ui/theme.css`, `src/index.html`
 - [ ] ui-table.md → `src/ui/table.ts`, `src/ui/bar.ts`
 - [ ] ui-pool.md → `src/ui/pool.ts`
-- [ ] ui-card.md → `src/ui/piece.ts`
+- [x] ui-card.md → `src/ui/piece.ts`
 - [ ] ui-register.md → `src/ui/register.ts`, `src/ui/tape.ts`
 - [ ] ui-ledger.md → `src/ui/ledger.ts`
 

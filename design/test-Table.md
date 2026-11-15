@@ -122,3 +122,37 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** make `caretIn` find nothing (return null); red: no box, and the drop falls back to the chooser
 **Inject:** src/ui/rollrow.ts:caretIn
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: chromium "pointing at the opposing number" failed at the box's toBeVisible; restored and rebuilt clean
+
+## Test: ghost checks on a Field Skill
+**Purpose:** R334, R335: in the browser, a ghost ✓ shows before an unchecked Field Skill only while the card is written on; a press in its margin writes the ✓ into the text and saves it, a press on the real ✓ takes it out, and a press on the Skill's name changes nothing
+**Input:** the GM's page; Sam's card at rest; then the caret in its front; a press in Investigation's margin; a click on the name; a press in the margin again
+**Expected:** at rest the Investigation line's `::before` has no content; writing, it is `"✓"`; after the press the record's front holds `✓ Investigation` and the line hangs (`sklhang`); the click on the name leaves it checked; the second press takes the ✓ out of the record
+**Refs:** crc-PieceView.md, ui-card.md
+**Code:** `tests/card.spec.ts`
+**Alarm:** 6
+**Fire alarm:** drop the pens-out guard from the ghost's CSS selector, so it shows at rest; red: the at-rest `::before` content is `"✓"`
+**Inject:** src/ui/theme.css
+**Pulled:** 2026-11-15 — 2026-11-15 — rang in Chromium and Firefox: the at-rest `::before` content was `"✓"`, expected `none`; restored clean
+
+## Test: a press on a Skill's name is not a check
+**Purpose:** R335: only the margin toggles; a press on the Skill's name places the caret as usual
+**Input:** as above, the click on Investigation's name after it is checked
+**Expected:** the record's front still holds `✓ Investigation`
+**Refs:** crc-PieceView.md
+**Code:** `tests/card.spec.ts`
+**Alarm:** 7
+**Fire alarm:** in the front's press handler, drop the margin test so any press on an indented Skill toggles; red: the click on the name takes the ✓ out
+**Inject:** src/ui/piece.ts:checkPress
+**Pulled:** 2026-11-15 — 2026-11-15 — rang in Chromium and Firefox at card.spec.ts:138: the click on the name took the ✓ out of the record; restored clean
+
+## Test: a press at rest is not a check
+**Purpose:** R335: the margin toggles only while the card is written on; at rest, where no ghost shows, a press there just starts the writing
+**Input:** the GM's page; a press in Investigation's margin on Sam's card at rest, before anything else
+**Expected:** the record's front still holds `<skl>Investigation (x2)</skl>`
+**Refs:** crc-PieceView.md
+**Code:** `tests/card.spec.ts`
+**Alarm:** 8
+**Fire alarm:** in checkPress, drop the guard that the front already holds the caret; red: the press at rest checks Investigation
+**Inject:** src/ui/piece.ts:checkPress
+**Pulled:** 2026-11-15 — 2026-11-15 — rang in Chromium and Firefox at card.spec.ts:133: the press at rest checked Investigation in the record; restored clean
+

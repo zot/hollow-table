@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R260, R268, R269, R270, R271, R272
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R260, R268, R269, R270, R271, R272, R334, R335
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -119,3 +119,28 @@ test('zoom, a first visit fitted, and an image dropped from the desktop', async 
   expect(Math.abs(img.x - 600)).toBeLessThan(40);
   expect(Math.abs(img.y - 500)).toBeLessThan(40);
 });
+
+test('ghost checks on a Field Skill', async ({ page }) => {
+  // R334: a ghost ✓ before an unchecked Field Skill only while the card is written on; R335: a press in
+  // its margin writes the ✓ and saves it, a press on the name is no check, and the margin takes it out.
+  const line = page.locator(`${CARD} .front > .text > div`, { hasText: /^✓?\s*Investigation/ });
+  const ghost = () => line.evaluate(e => getComputedStyle(e, '::before').content);
+  const front = async () => (await rec(page, SAM)).front as string;
+  expect(await ghost()).toBe('none');
+  const margin = async () => { const b = (await line.boundingBox())!; await page.mouse.click(b.x + 4, b.y + b.height / 2); };
+  // Alarm 8: at rest there is no ghost, and a press in the margin only starts the writing.
+  await margin();
+  expect(await front()).toContain('<skl>Investigation (x2)</skl>');
+  await line.click({ position: { x: 60, y: 6 } });
+  expect(await ghost()).toBe('"✓"');
+  await margin();
+  await expect.poll(front).toContain('<skl>✓ Investigation (x2)</skl>');
+  await expect(line).toHaveClass(/\bsklhang\b/);
+  // Alarm 7: a click on the name places the caret, nothing more.
+  await line.click({ position: { x: 60, y: 6 } });
+  expect(await front()).toContain('<skl>✓ Investigation (x2)</skl>');
+  await margin();
+  await expect.poll(front).toContain('<skl>Investigation (x2)</skl>');
+  expect(await ghost()).toBe('"✓"');
+});
+

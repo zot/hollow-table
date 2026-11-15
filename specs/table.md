@@ -175,6 +175,11 @@ italic or underline.
   always indent Field Skills, instead of based on whether they have a check mark -- that seems more
   intuitive and simpler too"): a ✓ hangs in the margin before its Skill's name, so a checked Skill's
   name lines up with the rest. A `Skills N:` line is not under a Field and stays flush.
+- **Ghost checks while writing** (Bill, 11-14: "That way the user doesn't have to look up the check
+  mark on the web in order to type it"): while a card is written on, pens out, a faint ✓ sits in the
+  margin before each unchecked Field Skill, never on a `Skills N:` line. Clicking a ghost writes the ✓
+  into that Skill's text; clicking a real ✓ while writing takes it out, so the Levels read from it
+  change at once. At rest the ghosts are gone and the card reads as printed.
 - **A marked card looks printed** (Bill, 11-12). A mark's highlight shows only while its paper is
   being written on, pens out, so you can see what is marked; at rest a card reads as the printed one
   does, with its glyphs and dice as the cues, and the one highlighter swish on it is the action in

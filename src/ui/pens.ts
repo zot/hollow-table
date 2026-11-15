@@ -131,7 +131,7 @@ function selection(t: HTMLElement): [Pos, Pos] | null {
 }
 
 /** The caret back at the end of a line, in the writing area. */
-function caretAt(t: HTMLElement, line: number): void {
+export function caretAt(t: HTMLElement, line: number): void {
   const doc = t.ownerDocument, div = t.children[line] ?? t.lastElementChild;
   t.focus();
   if (!div) return;
