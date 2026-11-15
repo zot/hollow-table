@@ -1,11 +1,11 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R306, R307, R308, R316
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R346, R307, R308, R316, R345, R351
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
 // tape what its person may know.
 
 import type { Game, Writer } from '../model/game.ts';
-import { GM, KEPT, PLAYER_OIDS, ROWS, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Receipt, type RollType, type Tape } from '../model/records.ts';
+import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opponent, type Receipt, type RollType, type Tape, type World } from '../model/records.ts';
 import { roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
@@ -24,7 +24,7 @@ export const MANY = 20;
 
 /** What a player's Roll asks for: names only (R100). */
 export type Intent = {
-  n: number; pool: Oid; action: string; vs: Oid | null; defend: 'mental' | 'psych';
+  n: number; pool: Oid; action: string; vs: Opponent | null; defend: 'mental' | 'psych';
   hand: { yellows: number; bonus: number }; row?: string;
   /** R319: what the roll is; absent from an older page, which counts as `?`. */
   type?: RollType;
@@ -123,9 +123,17 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
   const mine = pools(character.oid, items), sum = act ? total(act.base, mine) : null;
 
   const type = intent.type ?? '?';
+  // R345, R346: a roll with an action says what it is and is aimed; the GM's page holds to it.
+  if (act && type === '?') return { refused: 'Say what this roll is first.' };
+  if (act && !intent.vs) return { refused: 'Aim it first.' };
   const kind = isAttack(type) ? type : intent.defend;
-  let opp: Character | undefined, against: number | undefined, point: ReturnType<typeof pointed> = null;
-  if (intent.vs && sum) {
+  let opp: Character | undefined, world: World | undefined, against: number | undefined, point: ReturnType<typeof pointed> = null;
+  if (intent.vs === WORLD && sum) {
+    // R351: the world's number in the GM's own tray, nothing added; refused while it is blank.
+    world = game.get('world') as World | undefined;
+    if (!world?.set) return { refused: 'The world has no number yet.' };
+    against = world.total;
+  } else if (intent.vs && sum) {
     opp = game.get(ridOf(intent.vs)) as Character | undefined;
     if (opp?.kind !== 'character') return { refused: 'That opponent is not on the table.' };
     const def = marks(parse(opp.front), 'def').map(m => readDefend(m.text)).find(d => d);
@@ -149,7 +157,8 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
   // R278: each character's rolls are numbered on their own.
   const meta = game.get('meta') as Meta, n = (meta.counts?.[character.oid] ?? 0) + 1;
   const by = character.owner === GM ? 'GM' : character.owner, outcome = r.crit ? 'success' : r.outcome;
-  // R308: an Attack that succeeds against a character gives its target the Result to absorb.
+  // R308: an Attack that succeeds against a character gives its target the Result to absorb; R351: the
+  // world has nothing to take it.
   const attack = isAttack(type) && opp && outcome !== 'failure'
     ? { attack: { target: opp.oid, name: opp.name, from: character.name, kind: type, result: r.result } } : {};
   const id = `roll-${character.oid}-${n}`;
@@ -161,16 +170,19 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
   // R307: an Attack's kind in the `vs` line.
   // R326, R336: what was pointed at names itself: (Shoot 4), (Investigation 2 + Cha 2), and its total when pools move it.
   let opposed: string;
-  if (point) opposed = point.words + (against !== point.base ? ` → ${against}` : '');
+  if (world) opposed = String(against);
+  else if (point) opposed = point.words + (against !== point.base ? ` → ${against}` : '');
   else opposed = `${kind === 'phys' ? 'physical' : kind} ${against}`;
-  const vsFull = opp && `${opp.name} (${opposed}), Difference ${signed(diff!)}`;
+  // R351: the world reads "the world (4)", its number seen only where the owner is the GM.
+  const vsName = world ? 'the world' : opp?.name;
+  const vsFull = vsName && `${vsName} (${opposed}), Difference ${signed(diff!)}`;
   const owner: Viewer = character.owner === GM ? { name: GM, gm: true } : { name: character.owner, gm: false };
-  const seesOpp = !opp || canSee(owner, opp);
+  const seesOpp = world ? owner.gm : !opp || canSee(owner, opp);
   const numbers = sum && act ? { influence: sum.total, base: act.base } : {};
   const full: Receipt = { ...base, ...numbers, row: rowWords(row), ...(vsFull && { vs: vsFull }) };
   const roller: Receipt = { ...base, ...numbers, row: seesOpp ? rowWords(row) : diceOnly(row),
-    ...(opp && { vs: seesOpp ? vsFull : opp.name }) };
-  const table: Receipt = { ...base, ...(opp && { vs: opp.name }) };
+    ...(vsName && { vs: seesOpp ? vsFull : vsName }) };
+  const table: Receipt = { ...base, ...(vsName && { vs: vsName }) };
 
   // Seq: seq-roll.md#1.5 | R98: the roll marks the pool's cards used; a CRIT adds or strengthens CRIT!.
   const apply = (w: Writer) => {

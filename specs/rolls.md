@@ -70,7 +70,10 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   takes it**. Aiming one goes straight at that Defend, with no chooser: a Mental Attack against
   Mental Defend, a Psych Attack against Psych Defend, and a Phys Attack against 0. **A roll typed *?*
   can't be aimed** (Bill, 11-13): aiming it is refused with a note, "Say what this roll is first",
-  gone after about two seconds; it can still be rolled at nobody (for now: #13 gives every roll an opposition, the world included). A physical
+  gone after about two seconds, and that holds for the world too. Since a roll with an action waits
+  until it is aimed (*The world as opposition*), a *?* roll with an action can't be rolled until its
+  type is chosen (Bill, 11-15: "a '?' can't aim -- the player needs to choose the action before
+  aiming it"). A physical
   Attack rolls against 0 (Bill: "Physical is generally zero, unless there happens to be a relevant
   Skill"; fists can oppose fists, but a gun is "generally against nothing"). When a relevant Skill
   opposes, the GM adjusts the roll by hand. The type travels with the roll; an Attack's
@@ -113,6 +116,39 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   viewer. If the owner can't see the opponent, the row shows `vs Devreux` and the White setting as
   dice only ("Red", "White − 1"), never the range, and the White menu is locked ("set by the GM").
   The GM's hover still shows the Difference. The GM's own NPC against a PC shows the numbers.
+
+## The world as opposition
+
+Every roll with an action has an opposition: another character, or the world (Bill, 11-13: "every
+roll should have a target"). The book sets a roll with no one against it at a Total Influence:
+"against a Total Influence of 2", "against Opposition 0" (Hollow Folks, *Creating Resources* and *Skill
+Resources*).
+
+- **A roll with an action waits until it is aimed** (Bill, 11-15), at a character or at the world:
+  until then Roll can't be pressed, and its title says to aim first. Plain dice with no action
+  still roll as set. The GM's page refuses an unaimed roll with an action, and one whose type is *?*.
+- **The brass tray** (Bill, 11-13: "an 'Opposition' button in the Hollow bar that slides out an
+  attached card ... Maybe a brass tray looking thing?"): the bar's **Opposition** button slides a
+  brass tray out under the bar, and clicking it again slides it back. The tray holds **one number,
+  the world's Total Influence** (Bill, 11-15), which only the GM types; a blank tray means the world
+  has no number. Nothing adds to it: the world has no pools.
+- **The number is the GM's alone** (Bill, 11-15): it never reaches a player's page. A player's tray
+  says only whether the GM has set it ("set by the GM", or blank). A player's row aimed at the world
+  is like one aimed at a hidden character: `vs the world` and the White setting as dice only, the
+  menu locked ("set by the GM"). A roll for the GM's own character shows the numbers.
+- **Aiming at the world** (Bill, 11-15): the drag from the Base ends **on open table or on the tray**.
+  While the pointer is over either, the dashed amber box goes round the tray (round the Opposition
+  button while the tray is in). **A blank tray refuses** it with a note at the pointer, gone after
+  about two seconds: "Put the world's number in the tray first" for the GM, "The GM hasn't given the
+  world a number yet" for a player (Bill, 11-15: "If it's blank, you can't aim at the world (a
+  message should pop up with a reminder)").
+- **Aimed at the world**, the header reads `vs the world 4 (+2)` (the numbers as the owner may see
+  them), the tray (or its button) wears the amber ring, and clicking `vs` stops aiming. The number is
+  live until the roll, as pools are: the GM changing it moves the White row unless a row was picked
+  by hand.
+- **On the receipt**, the `vs` line reads *vs the world (4), Difference +2* for the GM, and *vs the
+  world* where the numbers are hidden. **An Attack at the world** rolls like any other, with nothing
+  to take its Damage: there is no Take on its receipt.
 
 ## Rolling
 

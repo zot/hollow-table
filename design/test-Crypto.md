@@ -55,3 +55,15 @@ made from the name is the views' (test-Table); big batches travel whole, chunked
 **Fire alarm:** let `against` be anything (`v => true || …`); red: `{"def":"physical"}` passes
 **Inject:** src/net/envelope.ts:against
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: "an intent says what it points at by name" failed at {"def":"physical"}; restored clean
+
+## Test: an intent may aim at the world
+**Purpose:** R349: `intent.vs` is an oid, `world`, or null, and nothing else
+**Input:** intents with `vs` an oid, `world`, null; `World`, `the world`, `worlds`, 4, the empty string
+**Expected:** the first three pass; the rest drop the intent
+**Refs:** crc-Envelope.md
+**Code:** `src/net/envelope.test.ts`
+**Alarm:** 5
+**Fire alarm:** let `vs` be any string; red: `World` and `worlds` pass
+**Inject:** src/net/envelope.ts:opponent
+@alarm-hash: ce07a21a02ba1cec
+**Pulled:** 2026-11-15 — rang: "an intent may aim at the world" failed, any string passed; restored clean

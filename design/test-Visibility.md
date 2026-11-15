@@ -39,3 +39,14 @@ the GM's view is unchanged
 **Inject:** src/rules/visibility.ts:blankBack
 @alarm-hash: 8f35cb09e2d6ee2b
 **Pulled:** 2026-11-15 — rang: "no secret survives redaction" failed, a hidden back kept `Sheriffs lie`; restored clean
+
+## Test: the world's number is the GM's alone
+**Purpose:** R348: anyone but the GM gets `{set, total: 0}`; the GM's view differs, so it is sealed for the GM's tabs only
+**Input:** the world `{set: true, total: 4}`, redacted for Dana, for nobody, and for the GM
+**Expected:** `{set: true, total: 0}` twice; the GM's unchanged; differs for the GM, not for Dana
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 4
+**Fire alarm:** drop the world's redaction; red: Dana's view keeps 4
+**Inject:** src/rules/visibility.ts:redact
+**Pulled:** 2026-11-15 — rang: "the world's number is the GM's alone" failed, Dana's view kept 4; restored clean

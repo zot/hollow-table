@@ -62,3 +62,11 @@ test('an intent says what it points at by name, and nothing else', () => {
   for (const ok of [undefined, { def: 'psych' }, { act: 'Shoot' }, { fld: 'Sparker' }, { skl: 'Investigation' }]) assert.ok(check(intent(ok)), JSON.stringify(ok));
   for (const bad of [{ def: 'physical' }, { act: 4 }, { skl: 'Tact', base: 9 }, { bogus: 'x' }, 'Shoot', null]) assert.equal(check(intent(bad)), null, JSON.stringify(bad));
 });
+
+test('an intent may aim at the world', () => {
+  // R349: `vs` is an oid, the world, or nobody; nothing else.
+  const intent = (vs: unknown) => make('intent', 'tab-a', { n: 1, pool: '00000002', action: 'Infer', vs, defend: 'mental',
+    hand: { yellows: 0, bonus: 0 }, type: 'infer' });
+  for (const ok of ['00000001', 'world', null]) assert.ok(check(intent(ok)), JSON.stringify(ok));
+  for (const bad of ['World', 'the world', 'worlds', 4, '']) assert.equal(check(intent(bad)), null, JSON.stringify(bad));
+});

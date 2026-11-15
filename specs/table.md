@@ -73,6 +73,8 @@ The bar runs along the top. It holds:
 - **Supplies**: a character, a sticky note, loose text, an image, the "How to play the table"
   reference card, and chips (2, 4, 6 and +1 in each color). Drag one onto the table to take one;
   dropped back on the bar, nothing is made.
+- The **Opposition** button and the brass tray it slides out, the world's number (see `rolls.md`,
+  *The world as opposition*).
 - The people at the table (see `network.md`).
 - The cash register, the Ledger and Boot Hill, at the right end.
 
@@ -82,7 +84,8 @@ wordmark, with the version under it and the date under that (Bill, 11-13: a rele
 built locally just "dev"). They are the one thing in the bar you can select, to copy into a bug
 report; the paper supplies, a character as a little stack of white card, a note as a yellow square,
 "Aa" for loose text, and an image; the chips, 2, 4, 6 and +1 in each color, in a grid of two rows
-(the +1 smaller); the people; "You are" (the GM's); then the register, the Ledger and Boot Hill.
+(the +1 smaller); the Opposition button, a small brass plate; the people; "You are" (the GM's); then
+the register, the Ledger and Boot Hill.
 - **Taking a supply**: the piece is made and in your hand the moment you press, its middle under the
   pointer. Loose text starts as "Write here". The image supply opens a file picker; the image lands
   in the middle of the view, several a step apart.

@@ -81,3 +81,13 @@ test('what stays public', () => {
   const rec: Rec = { round: 2, rolls: 5 };
   assert.equal(redact(rec, dana, look), rec);
 });
+
+test("the world's number is the GM's alone", () => {
+  // R348: anyone but the GM learns only whether the tray is set.
+  const world: Rec = { set: true, total: 4 };
+  assert.deepEqual(redact(world, { name: 'Dana', gm: false }, () => undefined), { set: true, total: 0 });
+  assert.deepEqual(redact(world, null, () => undefined), { set: true, total: 0 });
+  assert.deepEqual(redact(world, { name: 'GM', gm: true }, () => undefined), world);
+  assert.ok(differs(world, { name: 'GM', gm: true }, () => undefined), "sealed for the GM's tabs");
+  assert.ok(!differs(world, { name: 'Dana', gm: false }, () => undefined));
+});

@@ -1,12 +1,12 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
 record crosses the wire, the database and an export file unchanged.
 
 ## Knows
-- Rid: a record's key. `o:<oid>` for a piece; `yards`, `meta`, `book`, `tape` for the singletons.
+- Rid: a record's key. `o:<oid>` for a piece; `yards`, `meta`, `world`, `book`, `tape` for the singletons.
 - Oid: 8 hex characters, unique within a game. Player-made characters number from 100000 up so they
   can't collide with the GM's.
 - Place: `{x, y, z, tilt}` on the table.
@@ -49,6 +49,9 @@ record crosses the wire, the database and an export file unchanged.
   records buried together (a character with its cards, a sticky).
 - Meta: `{round, rolls, counts?: {[character oid]: number}}`; `counts` numbers each character's rolls
   (R278).
+- World (R347, R348): `{set, total}`, the world's Total Influence in the brass tray; `set` false is a
+  blank tray, and no record is the same. `WORLD` (`'world'`) is also the opponent a roll aims at the
+  world with, never an oid (an oid is eight hex digits). Written only by the GM's page.
 - Book (the GM's page only, never sent): `{claims: {name: browser id}, gv, tomb: {rid: gv}, hillGv?}`:
   the table's version, the version each piece was deleted at (at most 3,000), and the version Boot
   Hill last changed at.

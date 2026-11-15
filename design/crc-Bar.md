@@ -1,12 +1,13 @@
 # Bar
-**Requirements:** R9, R18, R20, R287, R288, R304, R305, R19, R34, R35
+**Requirements:** R9, R18, R20, R287, R288, R304, R305, R19, R34, R35, R347
 
 The bar along the top: the wordmark, supplies, the people at the table, and the furniture at the
 right end.
 
 ## Does
 - BarView (`src/ui/bar.ts`) draws the wordmark with the version and date, the paper supplies, the image supply (a
-  hidden file input), the chip grid, and the slots for the people and "You are"; the register,
+  hidden file input), the chip grid, the slot for the Opposition button and its tray (`oppo`, filled
+  by TrayView, crc-Tray.md), and the slots for the people and "You are"; the register,
   Ledger and Boot Hill append themselves after.
 - Supplies (`src/rules/supplies.ts`, pure): newCharacter (its maker's, its pool above its card,
   gathered, a blank card template), newSticky, newText ("Write here"), newHowTo, newChip, each with
@@ -14,7 +15,7 @@ right end.
   on the bar it is never made, R19), and carries it: a character by its pool (moved clear of the bar
   after the drop, its card sliding with it, R35), a chip as an item, the rest as pieces.
 - look (R304): a walnut-dark strip 92 px high: the wordmark and its version and date (selectable), the
-  paper supplies, the chips in a 4 × 2 grid (+1 smaller), the people, "You are", then the register,
+  paper supplies, the chips in a 4 × 2 grid (+1 smaller), the Opposition button, the people, "You are", then the register,
   the Ledger and Boot Hill at the right end.
 - take (R287): a supply is made and lifted at the press, its middle under the pointer (Drag); loose
   text starts "Write here"; the image supply opens a file picker, the image landing in the middle of

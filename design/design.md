@@ -90,6 +90,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] crc-BootHillView.md → `src/ui/boothill.ts`
 - [ ] crc-Ledger.md → `src/ui/ledger.ts`
 - [x] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
+- [x] crc-Tray.md → `src/ui/tray.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
 - [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`
 - [ ] crc-Theme.md → `src/ui/theme.css`
@@ -123,6 +124,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-PieceView.md → `src/ui/piece.test.ts`
 - [x] test-RollRow.md → `src/ui/rollrow.test.ts`
 - [x] test-Tape.md → `src/ui/tape.test.ts`
+- [x] test-Tray.md → `src/ui/tray.test.ts`
 - [x] test-Register.md → `src/ui/register.test.ts`
 - [x] test-Supplies.md → `src/rules/supplies.test.ts`
 - [x] test-Folks.md → `src/ui/folks.test.ts`
@@ -188,3 +190,4 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] O11: Skills pointed at add Cha whatever the roll (R327); which attribute a Field or Skill adds — the acting character's, none (the fist), Int (the brain) — is .carves/prototype.md part 35.2.
 - T20: R327 retired by R336 (2026-11-15 part 35.2: the acting action chooses the attribute, not always Cha)
 - T21: R311 retired by R339 (Item 6: overflow now fills a Conviction or Burden (Bill, 2026-11-15))
+- T22: R306 retired by R346 (a ? roll can't be aimed at the world either; nothing rolls at nobody (#16))

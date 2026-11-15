@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, load, prune, save, seatKey, type Seat } from './seat.ts';
 import { memoryStorage } from './fakes.ts';
-import { ridOf } from '../model/records.ts';
+import { ridOf, WORLD } from '../model/records.ts';
 import { BEAUFORD, DEVREUX, SAM } from './playtest.ts';
 
 test('the seat on its own', () => {
@@ -40,6 +40,9 @@ test('the seat on its own', () => {
   // Only the opponent gone: the roller stays, aimed at nobody.
   const aimed = prune(gm, rid => rid !== ridOf(SAM), 1);
   assert.deepEqual([aimed.roller?.pool, aimed.roller?.opponent], [DEVREUX, null]);
+  // R350: the world is always there to aim at.
+  const world = prune({ ...gm, roller: { ...gm.roller!, opponent: WORLD } }, rid => rid === ridOf(DEVREUX), 1);
+  assert.equal(world.roller?.opponent, WORLD);
 });
 
 test('a first visit has no view', () => {

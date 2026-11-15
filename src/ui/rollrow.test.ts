@@ -2,9 +2,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Character } from '../model/records.ts';
+import { WORLD, ridOf, type Character } from '../model/records.ts';
+import { row as rowFor } from '../rules/odds.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
-import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase } from './rollrow.ts';
+import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase, waits } from './rollrow.ts';
 
 const scene = () => { const g = new Game(); g.load(playtest('Dana', 'Ann')); return g; };
 
@@ -123,4 +124,26 @@ test('aimed at what was pointed at', () => {
   g.change(w => w.put(ridOf(BEAUFORD), { ...b, front: `${b.front}\n<act>Shoot: 3, +1 (no att)</act>\n<act>Recall: 3, +1 (Int)</act>` }));
   const at = (action: string) => shown(g, aimed(withAction(dock(null, BEAUFORD), action), SAM, 'mental', { skl: 'Investigation' })).vs!.words;
   assert.deepEqual(['Infer', 'Shoot', 'Recall'].map(at), ['Investigation 2 + Cha 2', 'Investigation 2', 'Investigation 2 + Int 2']);
+});
+
+test('the world as opposition', () => {
+  // R345, R346: a roll with an action waits until it is aimed; a `?` one can't be; plain dice don't wait.
+  const r = dock(null, SAM), infer = withAction(r, 'Infer'), atWorld = aimed(infer, WORLD, 'mental');
+  assert.equal(waits(r), null, 'plain dice roll as set');
+  assert.match(waits(infer)!, /^Aim it first/);
+  assert.equal(waits(atWorld), null);
+  assert.match(waits(typed(infer, '?'))!, /^Say what this roll is/);
+  assert.equal(typed(atWorld, '?').opponent, null, 'turning to ? stops aiming at the world too');
+  assert.equal(intentOf(atWorld).vs, WORLD);
+  // R350: the tray's number and nothing else; only the GM's own character sees it.
+  const game = scene();
+  game.change(w => w.put('world', { set: true, total: 3 }));
+  const s = shown(game, atWorld);
+  assert.deepEqual(s.vs && [s.vs.oid, s.vs.name, s.vs.total, s.vs.diff, s.vs.sees], [WORLD, 'the world', 3, s.total! - 3, false]);
+  const dev = shown(game, aimed(typed(withAction(dock(null, DEVREUX), 'Attack'), 'phys'), WORLD, 'mental'));
+  assert.equal(dev.vs?.sees, true, "Devreux is the GM's");
+  // Live until the roll: the GM changing the number moves the row.
+  game.change(w => w.put('world', { set: true, total: s.total! + 6 }));
+  assert.equal(shown(game, atWorld).row.key, rowFor(-6).key);
+  assert.equal(shown(game, picked(atWorld, 'green')).row.key, 'green', 'unless picked by hand');
 });

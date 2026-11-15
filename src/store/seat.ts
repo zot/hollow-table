@@ -2,14 +2,14 @@
 // Your seat at the table: how you're looking, kept per game and per viewer in localStorage, never
 // checkpointed, exported or sent. Every read and write survives a blocked or empty storage.
 
-import type { Die, Oid, Rid, RollType } from '../model/records.ts';
+import type { Die, Oid, Opponent, Rid, RollType } from '../model/records.ts';
 import type { Against } from '../rules/readmarks.ts';
-import { ridOf } from '../model/records.ts';
+import { WORLD, ridOf } from '../model/records.ts';
 import type { KeyValue } from './gamestore.ts';
 
 /** The docked roll row. */
 export type Roller = {
-  pool: Oid; action: string; opponent: Oid | null; defend: 'mental' | 'psych'; row: string | null;
+  pool: Oid; action: string; opponent: Opponent | null; defend: 'mental' | 'psych'; row: string | null;
   byHand: boolean; hand: { yellows: number; bonus: number }; dice: Die[];
   /** R104, R275: the GM's private switch. */
   priv?: boolean;
@@ -76,7 +76,8 @@ export function prune(seat: Seat, exists: (rid: Rid) => boolean, yards: number):
   let roller: Roller | null = null;
   if (seat.roller && here(seat.roller.pool)) {
     const { opponent } = seat.roller;
-    roller = { ...seat.roller, opponent: opponent && here(opponent) ? opponent : null };
+    // R350: the world is always there to aim at.
+    roller = { ...seat.roller, opponent: opponent && (opponent === WORLD || here(opponent)) ? opponent : null };
   }
   return {
     ...seat, roller,

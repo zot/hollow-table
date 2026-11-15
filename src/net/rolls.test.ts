@@ -2,9 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { damageSlots, ridOf, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
+import { WORLD, damageSlots, ridOf, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
 import { pages, waitsIn } from '../rules/absorb.ts';
-import { Rolls, choose, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
+import { Rolls, choose, diceOnly, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
 import { ADV } from '../rules/odds.ts';
 import type { Die } from '../model/records.ts';
 import { FakeRoom } from './fakeroom.ts';
@@ -19,7 +19,7 @@ function faces(...vs: number[]) {
   return Object.assign(rng, { push: (...more: number[]) => { q.push(...more); } });
 }
 const infer = (vs: string | null = DEVREUX): Omit<Intent, 'n'> =>
-  ({ pool: SAM, action: 'Infer', vs, defend: 'mental', hand: { yellows: 0, bonus: 0 } });
+  ({ pool: SAM, action: 'Infer', type: 'infer', vs, defend: 'mental', hand: { yellows: 0, bonus: 0 } });
 
 /** The playtest, with a +6 chip and one of Sam's cards in his Main. */
 function scene() {
@@ -53,7 +53,7 @@ test('resolve', () => {
   assert.equal(red.full.resolution, 'lower of White 4 and Red 2');
   assert.equal(red.full.title, 'Sam, roll 2');
   // R278: Devreux rolling in between doesn't move Sam's count.
-  const dev = resolve(game, { pool: DEVREUX, action: 'Attack', vs: null, defend: 'mental', hand: { yellows: 0, bonus: 0 }, n: 4 }, faces(4, 3), 1000);
+  const dev = resolve(game, { pool: DEVREUX, action: '', vs: null, defend: 'mental', hand: { yellows: 0, bonus: 0 }, n: 4 }, faces(4, 3), 1000);
   if ('refused' in dev) throw new Error(dev.refused);
   assert.equal(dev.full.title, 'Devreux, roll 1');
   game.change(dev.apply);
@@ -98,7 +98,7 @@ test('a roll at the table', async () => {
 
   assert.equal(await ask(t, infer()), null);
   const intent = t.room.log.find(m => m.kind === 'intent')!.body as Record<string, unknown>;
-  assert.deepEqual(Object.keys(intent).sort(), ['action', 'defend', 'hand', 'n', 'pool', 'vs'], 'names, never numbers');
+  assert.deepEqual(Object.keys(intent).sort(), ['action', 'defend', 'hand', 'n', 'pool', 'type', 'vs'], 'names, never numbers');
   const [mine] = t.tape('dana'), [annSees] = t.tape('ann'), [gmSees] = t.tape('gm');
   assert.deepEqual([mine!.influence, mine!.vs, mine!.row, mine!.ok], [10, 'Devreux', 'White + 1', true]);
   assert.deepEqual([annSees!.influence, annSees!.row, annSees!.vs, annSees!.by], [undefined, undefined, 'Devreux', 'Dana']);
@@ -213,7 +213,7 @@ test('a kept roll survives a reload', async () => {
 test('private rolls and gaps', async () => {
   const t = await table();
   const gm = t.page('gm').rolls;
-  const devreux = { pool: DEVREUX, action: 'Attack', vs: null, defend: 'mental' as const, hand: { yellows: 0, bonus: 0 } };
+  const devreux = { pool: DEVREUX, action: '', vs: null, defend: 'mental' as const, hand: { yellows: 0, bonus: 0 } };
 
   assert.equal(gm.roll(devreux, true), null);
   await t.room.settle();
@@ -255,7 +255,7 @@ test('a receipt in the book\'s words', () => {
 });
 
 test('an Attack', () => {
-  // R306: a Mental Attack goes at Mental Defend, a Phys Attack at 0, whatever the intent's defend says;
+  // R346: a Mental Attack goes at Mental Defend, a Phys Attack at 0, whatever the intent's defend says;
   // R307: its kind in the vs line; R308: a success gives the target its Result; R316: the alternative clicked.
   const game = scene();
   const atk = (type: Intent['type'], defend: Intent['defend']) =>
@@ -271,9 +271,8 @@ test('an Attack', () => {
     assert.deepEqual(r.attack && { ...r.attack, result: 0 }, { target: DEVREUX, name: 'Devreux', from: 'Sam', kind: 'mental', result: 0 });
   }
   assert.match(mental.full.outcome, /^Success( at cost)? \d+$/);
-  // A `?` roll is no Attack.
-  const unsaid = atk('?', 'mental');
-  assert.ok(!('refused' in unsaid) && unsaid.full.attack === undefined && unsaid.full.action === 'Mental Atk');
+  // R346: a `?` roll with an action doesn't roll at all.
+  assert.deepEqual(atk('?', 'mental'), { refused: 'Say what this roll is first.' });
 });
 
 test('a roll with no action, and a note', () => {
@@ -354,4 +353,26 @@ test('an overflow waits for its Conviction\'s name', async () => {
   await page.name(r.id, 'bias', 'lasting', 'Cheats win');
   assert.deepEqual(sam().back.lasting?.bias, { name: 'Cheats win', points: only!.overflow, spent: 0 });
   assert.equal((game.get('tape') as Tape).receipts[0]!.attack!.waiting, undefined);
+});
+
+test('the world as opposition', () => {
+  // R345: a roll with an action and no aim is refused on the GM's page.
+  const game = scene();
+  assert.deepEqual(resolve(game, { ...infer(null), n: 1 }, faces(4, 3), 1000), { refused: 'Aim it first.' });
+  // R351: a blank tray refuses; the world is the tray's number and nothing else.
+  assert.deepEqual(resolve(game, { ...infer(WORLD), n: 1 }, faces(4, 3), 1000), { refused: 'The world has no number yet.' });
+  game.change(w => w.put('world', { set: true, total: 4 }));
+  const r = resolve(game, { ...infer(WORLD), n: 1 }, faces(4, 3), 1000);
+  if ('refused' in r) throw new Error(r.refused);
+  assert.equal(r.full.vs, 'the world (4), Difference +6');
+  assert.equal(r.full.row, '+5 to +6 Advantage: Green');
+  // Sam is Dana's: the number is the GM's alone, so her receipt has the dice only.
+  assert.deepEqual([r.roller.vs, r.roller.row, r.table.vs], ['the world', diceOnly(ADV.find(x => x.key === 'green')!), 'the world']);
+  // The GM's own character sees it; an Attack at the world has nothing to take its Damage.
+  const dev = resolve(game, { pool: DEVREUX, action: 'Attack', type: 'phys', vs: WORLD, defend: 'mental', hand: { yellows: 0, bonus: 0 }, n: 2 },
+    faces(6, 5), 1000);
+  if ('refused' in dev) throw new Error(dev.refused);
+  assert.match(dev.roller.vs!, /^the world \(4\), Difference /);
+  assert.match(dev.full.outcome, /^Success/);
+  assert.equal(dev.full.attack, undefined);
 });

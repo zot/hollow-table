@@ -176,3 +176,25 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** put the line back on one row (no wrap, the name `flex: 1`); red: the name is 0 px wide
 **Inject:** src/ui/theme.css:.lastline
 **Pulled:** 2026-11-15 — rang in Chromium and Firefox at card.spec.ts:163: on one row the name was 80 and 78 px, under 100; restored clean
+
+## Test: the world as opposition
+**Purpose:** R345–R347, R349–R351 on the GM's page: Roll waits for a type and an aim; open table is the world; a blank tray refuses with the GM's reminder; the Opposition button slides the tray out and the GM types the number; aimed, its numbers, the ring and Roll free; the number is live; `vs` stops aiming; a drop on the tray aims; the tray in, the ring is on its button; the receipt names the world
+**Input:** Devreux's die, then its Attack, `?`; as Skill; dragged to open table with the tray blank; 3 typed in the tray; dragged again; 9 typed; `vs` clicked; dragged to the tray; the tray slid in; Roll
+**Expected:** Roll enabled for plain dice, then disabled "Say what this roll is", then "Aim it first"; the GM's reminder and no `vs`; the record `{set: true, total: 3}`; `vs the world 3 (+1)`, the tray ringed, Roll enabled; `vs the world 9 (−5)` and a Red die; Roll disabled and no ring; aimed again; the button ringed; the receipt "vs the world (9), Difference −5"
+**Refs:** crc-RollRow.md, crc-Tray.md, crc-Rolls.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 11
+**Fire alarm:** stop open table counting as the world (drop the `#table` and `#world` test in the aim's `under`); red: no note at all at the first drop on open table (the `?` one)
+**Inject:** src/ui/rollrow.ts:#aim
+**Pulled:** 2026-11-15 — rang (Chromium): "the world as opposition" failed at the first drop on open table, no note at all; restored clean
+
+## Test: a `?` roll can't aim at the world
+**Purpose:** R346: dragging a `?` roll to open table is refused with "Say what this roll is first.", before the tray is even asked
+**Input:** Devreux's Attack at `?`, dragged to open table
+**Expected:** the note "Say what this roll is first."
+**Refs:** crc-RollRow.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 12
+**Fire alarm:** drop the `?` refusal for the world in the aim's drop; red: the note is the blank tray's reminder instead
+**Inject:** src/ui/rollrow.ts:#aim
+**Pulled:** 2026-11-15 — rang (Chromium): "the world as opposition" failed at the `?` drop, the blank tray's reminder in place of "Say what this roll is first."; restored clean

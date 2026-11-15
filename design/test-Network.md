@@ -113,3 +113,14 @@ by the drop
 **Expected:** the GM and Dana see each other live
 **Refs:** crc-Wire.md
 **Code:** `tests/relays.spec.ts`
+
+## Test: the world at the table: its number stays on the GM's page
+**Purpose:** R348, R349, R351 over the wire: a player's page holds whether the world is set and never its number; the player's reminder while blank; the player's row and receipt without the number; the GM's receipt with it
+**Input:** the GM's table and Dana, Sam given to Dana; Dana drags Sam's Infer to open table; the GM sets the world at 5; Dana opens the tray, aims at the world and rolls
+**Expected:** "The GM hasn't given the world a number yet."; Dana's record `{set: true, total: 0}`; her tray "set by the GM", no field; `vs the world`, the White locked; her receipt "vs the world" with no Difference; the GM's "vs the world (5), Difference"
+**Refs:** crc-Visibility.md, crc-Tray.md, crc-Rolls.md, crc-Authority.md
+**Code:** `tests/rolls.spec.ts`
+**Alarm:** 6
+**Fire alarm:** drop the world's redaction; red: Dana's page holds 5
+**Inject:** src/rules/visibility.ts:redact
+**Pulled:** 2026-11-15 — rang (Chromium): "the world at the table" failed, Dana's page held 5; restored clean

@@ -1,10 +1,10 @@
-// CRC: crc-Envelope.md | R109, R177, R296, R299, R306, R314, R319, R326
+// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R349
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
 
 import {
-  CAPS, DAMAGE, ROLL_TYPES, ROWS, SLOTS, bool, check as checkRecord, dict, fields, int, isOid, list, num, oneOf, receipt, str, type Shape,
+  CAPS, DAMAGE, ROLL_TYPES, ROWS, SLOTS, WORLD, bool, check as checkRecord, dict, fields, int, isOid, list, num, oneOf, receipt, str, type Shape,
 } from '../model/records.ts';
 
 export const VERSION = 1;
@@ -18,7 +18,8 @@ export type Envelope<B = unknown> = { v: typeof VERSION; kind: Kind; tab: string
 
 const tab = str(CAPS.id), name = str(CAPS.name), why = str(LIMITS.why);
 const seq = int(0, Number.MAX_SAFE_INTEGER), coord = num(-CAPS.coord, CAPS.coord);
-const oidOrNull: Shape = v => v === null || isOid(v);
+// R349: a roll aims at a character's oid, at the world, or (plain dice) at nobody.
+const opponent: Shape = v => v === null || v === WORLD || isOid(v);
 // R296: a claim's why is null when the page now holds its name.
 const whyOrNull: Shape = v => v === null || why(v);
 const box = fields({ iv: str(24), data: str(LIMITS.box) });
@@ -47,7 +48,7 @@ const BODIES: Record<Kind, Shape> = {
   // A player's change, sealed to the GM's page.
   edit: fields({ box }),
   move: fields({ s: seq, items: list(fields({ rid: str(CAPS.id), x: coord, y: coord, z: int(0, CAPS.coord) }, { part: str(CAPS.id), aim }), LIMITS.moveItems) }, { drop: bool }),
-  intent: fields({ n: seq, pool: isOid, action: name, vs: oidOrNull, defend: oneOf('mental', 'psych'),
+  intent: fields({ n: seq, pool: isOid, action: name, vs: opponent, defend: oneOf('mental', 'psych'),
     hand: fields({ yellows: int(-LIMITS.dice, LIMITS.dice), bonus: int(-1000, 1000) }) },
     { row: str(32), type: oneOf(...ROLL_TYPES), alt: name, against: v => [fields({ def: oneOf('mental', 'psych') }),
       fields({ act: name }), fields({ fld: name }), fields({ skl: name })].some(f => f(v)) }),

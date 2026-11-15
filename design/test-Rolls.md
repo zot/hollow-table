@@ -93,7 +93,7 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Pulled:** 2026-11-12 — rang: Sam with no action was refused, "has no action"
 
 ## Test: an Attack
-**Purpose:** R306: an Attack goes at its own Defend (a Phys Attack at 0) whatever the intent's `defend` says; R307: its kind in the `vs` line; R308: a success carries the Attack on all three receipts; R316: the clicked alternative names the action; a `?` roll is no Attack
+**Purpose:** R346: an Attack goes at its own Defend (a Phys Attack at 0) whatever the intent's `defend` says; R307: its kind in the `vs` line; R308: a success carries the Attack on all three receipts; R316: the clicked alternative names the action; a `?` roll is no Attack
 **Input:** Sam's `Mental Atk / Req` at Devreux, typed mental with `defend: psych`, typed phys, and typed `?`
 **Expected:** `vs Devreux (mental N)` and `vs Devreux (physical M)` with M < N; action `Mental Atk`; `attack` {target Devreux, kind mental} on full, roller and table; the `?` roll has none
 **Refs:** crc-Rolls.md
@@ -190,3 +190,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** in take, look for waiting names in the rows only (drop `lasting`); red: `waiting` is undefined
 **Inject:** src/net/rolls.ts:#take
 **Pulled:** 2026-11-15 — rang: "an overflow waits for its Conviction's name" failed, `waiting` undefined; restored clean
+
+## Test: the world as opposition
+**Purpose:** R345: the GM's page refuses an unaimed roll with an action; R351: a blank tray refuses, the world is the tray's number and nothing else, its number on the GM's receipt and for the GM's own character only, and an Attack at the world carries nothing to take
+**Input:** the playtest scene with Sam's +6 chip and Hunch; Sam's Infer unaimed; at the world, blank; the world set at 4; Devreux's Phys Attack at the world, White 6
+**Expected:** "Aim it first."; "The world has no number yet."; the GM's `vs` "the world (4), Difference +6", row Green; Dana's `vs` "the world", row as dice only, the table's "the world"; Devreux's own `vs` with the number; a Success with no `attack`
+**Refs:** crc-Rolls.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 16
+**Fire alarm:** drop the refusal of an unaimed roll with an action; red: the unaimed Infer rolls
+**Inject:** src/net/rolls.ts:resolve
+**Pulled:** 2026-11-15 — rang: "the world as opposition" failed, the unaimed Infer rolled; restored clean

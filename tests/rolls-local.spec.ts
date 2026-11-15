@@ -1,8 +1,8 @@
-// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320, R326, R327, R329
+// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320, R326, R327, R329, R345, R346, R347, R349, R350, R351
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, dragFromTo, dragVia, kinds, open, rec } from './page.ts';
+import { at, barMiddle, dragFromTo, dragVia, kinds, open, openTable, rec } from './page.ts';
 
 const SAM = 'o:00000001', DEVREUX = 'o:00000003';
 const SPOOL = `.obj.pool[data-rid="${SAM}"]`, DPOOL = `.obj.pool[data-rid="${DEVREUX}"]`;
@@ -24,7 +24,7 @@ async function typed(page: Page, words: string) {
 }
 
 async function aimed(page: Page) {
-  // R320, R306: Devreux's plain Attack doesn't say what it is, so it starts at ? and can't be aimed;
+  // R320, R346: Devreux's plain Attack doesn't say what it is, so it starts at ? and can't be aimed;
   // as a Skill roll it can, through the Defend chooser.
   await page.locator(`.obj.card[data-rid="${DEVREUX}"] .actdie`).first().click();
   await expect(page.locator(`${DPOOL} .roller .rtype`)).toHaveText('?');
@@ -88,7 +88,7 @@ test('aiming, and the Difference as pools change', async ({ page }) => {
 });
 
 test('an Attack aims at its own Defend', async ({ page }) => {
-  // R306: a Psych Attack goes straight at Psych Defend (Sam's 4), with no chooser; R307: its kind on the receipt.
+  // R346: a Psych Attack goes straight at Psych Defend (Sam's 4), with no chooser; R307: its kind on the receipt.
   await page.locator(`.obj.card[data-rid="${DEVREUX}"] .actdie`).first().click();
   await typed(page, 'Psych Attack');
   const base = await at(page, `${DPOOL} .rollinfo .base`, 8, 6), sam = await at(page, `${SPOOL} .slots`, 60, 30);
@@ -196,4 +196,57 @@ test('the tape, and the register', async ({ page }) => {
   await page.locator('.register .key.end').click();
   await expect.poll(async () => (await rec(page, 'meta')).round).toBe(0);
   await expect(page.locator('.register .rtab')).toHaveText('0');
+});
+
+test('the world as opposition', async ({ page }) => {
+  // R345, R346: an action waits: first to say what it is, then to be aimed; plain dice never wait.
+  const roll = page.locator(`${DPOOL} .roller .roll`), vs = page.locator(`${DPOOL} .rollinfo .vs`);
+  await page.locator(`${DPOOL} .die-own`).click();
+  await expect(roll).toBeEnabled();
+  await page.locator(`.obj.card[data-rid="${DEVREUX}"] .actdie`).first().click();
+  await expect(roll).toBeDisabled();
+  await expect(roll).toHaveAttribute('title', /^Say what this roll is/);
+  // R346: a `?` roll can't aim at the world either.
+  const base = await at(page, `${DPOOL} .rollinfo .base`, 8, 6), table = await openTable(page);
+  await dragFromTo(page, base.x, base.y, table.x, table.y, 15);
+  await expect(page.locator('#defchoice')).toHaveText('Say what this roll is first.');
+  await page.keyboard.press('Escape');
+  await typed(page, 'Skill');
+  await expect(roll).toHaveAttribute('title', /^Aim it first/);
+  // R349: open table is the world, but not while the tray is blank: a reminder at the pointer.
+  await dragFromTo(page, base.x, base.y, table.x, table.y, 15);
+  await expect(page.locator('#defchoice')).toHaveText("Put the world's number in the tray first.");
+  await expect(vs).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  // R347: the Opposition button slides the tray out; the GM types the world's number.
+  const tray = page.locator('#bar .oppotray'), field = tray.locator('input.total');
+  await expect(tray).toBeHidden();
+  await page.locator('#bar .oppobtn').click();
+  await expect(tray).toBeVisible();
+  await expect(tray).toContainText('The world');
+  await field.fill('3');
+  await field.press('Enter');
+  expect(await rec(page, 'world')).toEqual({ set: true, total: 3 });
+  // R350: aimed at the world: its numbers (Devreux is the GM's), the ring on the tray, Roll free.
+  await dragFromTo(page, base.x, base.y, table.x, table.y, 15);
+  await expect(vs).toHaveText('vs the world 3 (+1)');
+  await expect(tray).toHaveClass(/\btargeted\b/);
+  await expect(roll).toBeEnabled();
+  // Live until the roll: a new number moves the White row.
+  await field.fill('9');
+  await field.press('Enter');
+  await expect(vs).toHaveText('vs the world 9 (−5)');
+  await expect(page.locator(`${DPOOL} .roller .white .rrdie.R`)).toHaveCount(1);
+  // Clicking vs stops aiming; a drop on the tray aims again, and the tray in, the ring is on its button.
+  await vs.click();
+  await expect(roll).toBeDisabled();
+  await expect(tray).not.toHaveClass(/\btargeted\b/);
+  const onTray = await at(page, '#bar .oppotray', 20, 20);
+  await dragFromTo(page, base.x, base.y, onTray.x, onTray.y, 15);
+  await expect(vs).toHaveText('vs the world 9 (−5)');
+  await page.locator('#bar .oppobtn').click();
+  await expect(page.locator('#bar .oppobtn')).toHaveClass(/\btargeted\b/);
+  // R351: the receipt names the world and its number.
+  await roll.click();
+  await expect(page.locator('#tape .strip .receipt').first()).toContainText('vs the world (9), Difference −5');
 });

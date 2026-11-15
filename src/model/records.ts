@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -134,7 +134,12 @@ export type Graveyard = { name: string; named: boolean; items: Burial[] };
 export type Yards = { yards: Graveyard[] };
 // R278: `counts` numbers each character's rolls on their own.
 export type Meta = { round: number; rolls: number; counts?: Record<Oid, number> };
-/** The GM's page only, never sent. */
+// R347, R348: the world's Total Influence in the brass tray; `set` false (or no record) is a blank
+// tray. Written only by the GM's page; a player's page gets `{set, total: 0}` (Visibility).
+export type World = { set: boolean; total: number };
+/** The opponent a roll aimed at the world names, in place of an oid (an oid is eight hex digits). */
+export const WORLD = 'world';
+export type Opponent = Oid | typeof WORLD;
 /**
  * The GM's page only, never sent: who holds which name, the table's version, the version each piece
  * was deleted at (at most TOMBS), and the version Boot Hill last changed at.
@@ -155,7 +160,7 @@ export const TOMBS = 3000;
 /** Each page's own, never sent (R111). */
 export type Tape = { receipts: Receipt[] };
 
-export type Rec = PieceRecord | Yards | Meta | Book | Tape;
+export type Rec = PieceRecord | Yards | Meta | World | Book | Tape;
 
 // Player-made characters number from here up, so they can't collide with the GM's.
 export const PLAYER_OIDS = 0x100000;
@@ -237,6 +242,7 @@ const SINGLETONS: Record<string, Shape> = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool,
     items: list(fields({ name: str(CAPS.name), records: list(piece) })) }), 100) }),
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000) }),
+  world: fields({ set: bool, total: int(-1000, 1000) }),
   book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     { hillGv: int(0, Number.MAX_SAFE_INTEGER),
       kept: list(fields({ character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },

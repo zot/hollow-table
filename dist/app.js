@@ -13,6 +13,7 @@ var DICE = ["W", "G", "R", "B", "Y"];
 var ROLL_TYPES = ["?", "skill", "influence", "phys", "mental", "psych", "infer", "impress", "request"];
 var ATTACKS = ["phys", "mental", "psych"];
 var isAttack = (t) => ATTACKS.includes(t);
+var WORLD = "world";
 var KEPT = 200;
 var TOMBS = 3e3;
 var PLAYER_OIDS = 1048576;
@@ -133,6 +134,7 @@ var SINGLETONS = {
     items: list(fields({ name: str(CAPS.name), records: list(piece) }))
   }), 100) }),
   meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4) }),
+  world: fields({ set: bool, total: int(-1e3, 1e3) }),
   book: fields(
     { claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     {
@@ -840,6 +842,7 @@ function redactPiece(r, viewer, chars) {
 function redact(record, viewer, chars) {
   if ("kind" in record) return redactPiece(record, viewer, chars);
   if ("yards" in record) return redactYards(record, viewer, chars);
+  if ("set" in record && !viewer?.gm) return { set: record.set, total: 0 };
   return record;
 }
 function redactYards(y, viewer, chars) {
@@ -1878,7 +1881,7 @@ var name = str(CAPS.name);
 var why2 = str(LIMITS.why);
 var seq = int(0, Number.MAX_SAFE_INTEGER);
 var coord2 = num(-CAPS.coord, CAPS.coord);
-var oidOrNull = (v) => v === null || isOid(v);
+var opponent = (v) => v === null || v === WORLD || isOid(v);
 var whyOrNull = (v) => v === null || why2(v);
 var box = fields({ iv: str(24), data: str(LIMITS.box) });
 var slotName = oneOf(...SLOTS);
@@ -1911,7 +1914,7 @@ var BODIES = {
       n: seq,
       pool: isOid,
       action: name,
-      vs: oidOrNull,
+      vs: opponent,
       defend: oneOf("mental", "psych"),
       hand: fields({ yellows: int(-LIMITS.dice, LIMITS.dice), bonus: int(-1e3, 1e3) })
     },
@@ -3035,9 +3038,15 @@ function resolve2(game, intent, rng, at3) {
   const items = game.all().map(([, r2]) => r2).filter((r2) => "kind" in r2 && (r2.kind === "chip" || r2.kind === "influence"));
   const mine = pools(character2.oid, items), sum2 = act ? total2(act.base, mine) : null;
   const type = intent.type ?? "?";
+  if (act && type === "?") return { refused: "Say what this roll is first." };
+  if (act && !intent.vs) return { refused: "Aim it first." };
   const kind = isAttack(type) ? type : intent.defend;
-  let opp, against, point = null;
-  if (intent.vs && sum2) {
+  let opp, world, against, point = null;
+  if (intent.vs === WORLD && sum2) {
+    world = game.get("world");
+    if (!world?.set) return { refused: "The world has no number yet." };
+    against = world.total;
+  } else if (intent.vs && sum2) {
     opp = game.get(ridOf(intent.vs));
     if (opp?.kind !== "character") return { refused: "That opponent is not on the table." };
     const def = marks(parse(opp.front), "def").map((m) => defend(m.text)).find((d) => d);
@@ -3071,20 +3080,22 @@ function resolve2(game, intent, rng, at3) {
     ...attack
   };
   let opposed;
-  if (point) opposed = point.words + (against !== point.base ? ` \u2192 ${against}` : "");
+  if (world) opposed = String(against);
+  else if (point) opposed = point.words + (against !== point.base ? ` \u2192 ${against}` : "");
   else opposed = `${kind === "phys" ? "physical" : kind} ${against}`;
-  const vsFull = opp && `${opp.name} (${opposed}), Difference ${signed2(diff)}`;
+  const vsName = world ? "the world" : opp?.name;
+  const vsFull = vsName && `${vsName} (${opposed}), Difference ${signed2(diff)}`;
   const owner = character2.owner === GM ? { name: GM, gm: true } : { name: character2.owner, gm: false };
-  const seesOpp = !opp || canSee(owner, opp);
+  const seesOpp = world ? owner.gm : !opp || canSee(owner, opp);
   const numbers = sum2 && act ? { influence: sum2.total, base: act.base } : {};
   const full = { ...base, ...numbers, row: rowWords(row2), ...vsFull && { vs: vsFull } };
   const roller = {
     ...base,
     ...numbers,
     row: seesOpp ? rowWords(row2) : diceOnly(row2),
-    ...opp && { vs: seesOpp ? vsFull : opp.name }
+    ...vsName && { vs: seesOpp ? vsFull : vsName }
   };
-  const table = { ...base, ...opp && { vs: opp.name } };
+  const table = { ...base, ...vsName && { vs: vsName } };
   const apply3 = (w) => {
     w.put("meta", { ...meta, rolls: meta.rolls + 1, counts: { ...meta.counts, [character2.oid]: n } });
     for (const i of items) {
@@ -7995,6 +8006,104 @@ var Wire = class {
   }
 };
 
+// src/ui/tray.ts
+function worldFrom(text) {
+  const t = text.trim().replace(/^−/, "-");
+  if (!t) return { set: false, total: 0 };
+  return /^[-+]?\d{1,3}$/.test(t) ? { set: true, total: Number(t) } : null;
+}
+var TrayView = class {
+  #w;
+  #button;
+  #tray;
+  #value;
+  #open = false;
+  #ringed = false;
+  constructor(slot2, w) {
+    this.#w = w;
+    const doc = slot2.ownerDocument, gm = !!w.viewer?.gm;
+    this.#button = doc.createElement("button");
+    this.#button.className = "oppobtn";
+    this.#button.textContent = "Opposition";
+    this.#button.title = "The world as opposition: click to slide its tray out or back";
+    this.#button.addEventListener("click", () => {
+      this.#open = !this.#open;
+      this.render();
+    });
+    this.#tray = doc.createElement("div");
+    this.#tray.className = "oppotray";
+    const label = doc.createElement("span");
+    label.className = "who";
+    label.textContent = "The world";
+    if (gm) {
+      const field2 = doc.createElement("input");
+      field2.inputMode = "numeric";
+      field2.className = "total";
+      field2.title = "The world's Total Influence: what a roll aimed at open table or this tray is against. Blank: no number.";
+      field2.addEventListener("change", () => this.#commit(field2));
+      field2.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") field2.blur();
+        if (e.key === "Escape") {
+          this.#show(field2);
+          field2.blur();
+        }
+      });
+      this.#value = field2;
+    } else {
+      this.#value = doc.createElement("span");
+      this.#value.className = "total";
+    }
+    this.#tray.append(label, this.#value);
+    slot2.replaceChildren(this.#button, this.#tray);
+    w.game.listen(() => this.render());
+    this.render();
+  }
+  // R349, R350: the world's mark: the tray while it is out, else its button.
+  /** The element that stands for the world while aiming and aimed. */
+  mark() {
+    return this.#open ? this.#tray : this.#button;
+  }
+  /** R350: whether the roll row is aimed at the world; the ring goes on the mark. */
+  ring(on) {
+    this.#ringed = on;
+    this.#paint();
+  }
+  render() {
+    this.#tray.hidden = !this.#open;
+    this.#button.classList.toggle("open", this.#open);
+    if (this.#value instanceof HTMLInputElement) {
+      if (this.#value.ownerDocument.activeElement !== this.#value) this.#show(this.#value);
+    } else {
+      const set = !!this.#world()?.set;
+      this.#value.textContent = set ? "set by the GM" : "";
+      this.#tray.title = set ? "The GM has set the world's number" : "The GM hasn't given the world a number yet";
+    }
+    this.#paint();
+  }
+  #world() {
+    return this.#w.game.get("world");
+  }
+  #show(field2) {
+    const w = this.#world();
+    field2.value = w?.set ? String(w.total) : "";
+  }
+  #commit(field2) {
+    const next2 = worldFrom(field2.value), was = this.#world();
+    if (!next2) {
+      this.#show(field2);
+      return;
+    }
+    if (was?.set === next2.set && (was.total === next2.total || !next2.set)) {
+      this.#show(field2);
+      return;
+    }
+    this.#w.game.change((x) => x.put("world", next2));
+  }
+  #paint() {
+    for (const el3 of [this.#button, this.#tray]) el3.classList.toggle("targeted", this.#ringed && el3 === this.mark());
+  }
+};
+
 // src/ui/rollrow.ts
 function fresh(pool) {
   return { pool, action: "", opponent: null, defend: "mental", row: null, byHand: false, hand: { yellows: 1, bonus: 0 }, dice: [] };
@@ -8045,11 +8154,16 @@ function handStep(r, what, by) {
 function picked(r, key) {
   return { ...r, row: key, byHand: true };
 }
-function aimed(r, opponent, defend2, against) {
-  return { ...r, opponent, defend: defend2, row: null, byHand: false, against };
+function aimed(r, opponent2, defend2, against) {
+  return { ...r, opponent: opponent2, defend: defend2, row: null, byHand: false, against };
 }
 function unaimed(r) {
   return { ...r, opponent: null, ...!r.byHand && { row: null } };
+}
+function waits(r) {
+  if (!r.action) return null;
+  if ((r.type ?? "?") === "?") return "Say what this roll is, then aim it: drag from the action to a character, or to open table for the world";
+  return r.opponent ? null : "Aim it first: drag from the action to a character, or to open table for the world";
 }
 function defendOf(c) {
   return marks(parse(c.front), "def").map((m) => defend(m.text)).find((d) => d) ?? null;
@@ -8084,6 +8198,10 @@ function shown(game, r) {
   if (!act || !mine) return { label: "", base: null, total: null, parts: {}, yellows: Math.max(0, r.hand.yellows), bonus: r.hand.bonus, row: row2 };
   const sum2 = total2(act.base, mine), dice = bonus({ yellows: act.yellows, bonus: act.bonus }, mine.bonus, r.hand);
   const out = { label: r.alt ?? act.label, base: act.base, total: sum2.total, parts: sum2.parts, yellows: dice.yellows, bonus: dice.bonus, row: row2 };
+  if (r.opponent === WORLD) {
+    const against2 = game.get("world")?.total ?? 0, diff2 = sum2.total - against2;
+    return { ...out, row: r.byHand ? row2 : row(diff2), vs: { oid: WORLD, name: "the world", total: against2, diff: diff2, sees: !!ownerAsViewer(c)?.gm } };
+  }
   const opp = r.opponent ? game.get(ridOf(r.opponent)) : void 0;
   if (opp?.kind !== "character") return out;
   const point = r.against ? pointed(opp.front, r.against, act.att) : null;
@@ -8230,11 +8348,12 @@ var RollRowView = class {
       gesture(p, { click: () => step({ ...r, priv: !r.priv }) });
       parts.push(p);
     }
-    const roll3 = doc.createElement("button");
+    const roll3 = doc.createElement("button"), why3 = waits(r);
     roll3.className = "roll";
     roll3.textContent = this.#waiting ? "GM\u2026" : "Roll";
-    roll3.disabled = this.#waiting;
+    roll3.disabled = this.#waiting || !!why3;
     if (this.#waiting) roll3.title = "Waiting for the GM's page to roll";
+    else if (why3) roll3.title = why3;
     gesture(roll3, { click: () => {
       if (!this.#waiting) this.#w.roll(r);
     } });
@@ -8260,12 +8379,14 @@ var RollRowView = class {
         n.textContent = ` ${s.vs.total < 0 ? `\u2212${-s.vs.total}` : s.vs.total} (${SIGN(s.vs.diff)})`;
         vs.append(n);
       }
-      vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
+      if (s.vs.oid === WORLD) vs.title = shows ? `The world: the GM's number in the tray, ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : "Only the GM knows the world's number. Click to stop aiming.";
+      else vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
       gesture(vs, { click: () => step(unaimed(r)) });
       this.#info.append(vs);
     }
     for (const p of doc.querySelectorAll(".pool.targeted")) p.classList.remove("targeted");
-    if (s.vs) this.#w.pool(s.vs.oid)?.classList.add("targeted");
+    if (s.vs && s.vs.oid !== WORLD) this.#w.pool(s.vs.oid)?.classList.add("targeted");
+    this.#w.tray.ring(s.vs?.oid === WORLD);
   }
   // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
   // the pointing hand holds; let go to aim, through the Defend chooser when they have two.
@@ -8274,7 +8395,9 @@ var RollRowView = class {
   #aim(r, down, move) {
     const doc = this.#row.ownerDocument, body = doc.body;
     const under = (e) => {
-      for (const el3 of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
+      const els = doc.elementsFromPoint?.(e.clientX, e.clientY) ?? [], top = els[0];
+      if (top && (top.closest?.(".oppo") || top.id === "table" || top.id === "world")) return { oid: WORLD };
+      for (const el3 of els) {
         const hit = el3.closest?.(".pool, .obj.card");
         const rid2 = hit?.dataset.rid;
         if (!rid2) continue;
@@ -8303,7 +8426,7 @@ var RollRowView = class {
       lit = void 0;
       box2.hidden = true;
       if (!oid) return;
-      const rect = t.point ? rangeOf(t.text, t.point)?.getBoundingClientRect() : void 0;
+      const rect = oid === WORLD ? this.#w.tray.mark()?.getBoundingClientRect() : t.point ? rangeOf(t.text, t.point)?.getBoundingClientRect() : void 0;
       if (rect) {
         Object.assign(box2.style, { left: `${rect.left - 3}px`, top: `${rect.top - 2}px`, width: `${rect.width + 6}px`, height: `${rect.height + 4}px` });
         box2.hidden = false;
@@ -8324,9 +8447,21 @@ var RollRowView = class {
       lit?.classList.remove("aimed");
       box2.remove();
       svg.remove();
-      const t = under(e), opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) : void 0;
+      const t = under(e), viewer = this.#w.viewer;
+      if (t?.oid === WORLD) {
+        if ((r.type ?? "?") === "?") {
+          this.#note("Say what this roll is first.", e);
+          return;
+        }
+        if (!this.#w.game.get("world")?.set) {
+          this.#note(viewer?.gm ? "Put the world's number in the tray first." : "The GM hasn't given the world a number yet.", e);
+          return;
+        }
+        this.#set(aimed(r, WORLD, "mental"));
+        return;
+      }
+      const opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) : void 0;
       if (opp?.kind !== "character") return;
-      const viewer = this.#w.viewer;
       if (!viewer?.gm && !canSee(viewer, opp)) {
         this.#note(`Only the GM can aim at ${opp.name}.`, e);
         return;
@@ -9219,6 +9354,8 @@ var PAPER = [
   ["howto", "supply howto", "how to play", 'The "How to play the table" card']
 ];
 var BarView = class {
+  /** R347: where the Opposition button and its tray go (TrayView). */
+  oppo;
   /** Where the people's tags go (Presence). */
   folks;
   /** Where the GM's "You are" goes. */
@@ -9260,9 +9397,10 @@ var BarView = class {
       take2(c, { sign: sign2, points: points3 });
       chips.append(c);
     }
+    this.oppo = el3("div", "oppo");
     this.folks = el3("div", "folks");
     this.youAre = el3("div", "youare");
-    bar.replaceChildren(mark2, ...papers, image2, file, chips, this.folks, this.youAre);
+    bar.replaceChildren(mark2, ...papers, image2, file, chips, this.oppo, this.folks, this.youAre);
   }
 };
 
@@ -10107,8 +10245,8 @@ function prune(seat, exists, yards) {
   const owner = (s) => here2(s.slice(0, s.indexOf(":")));
   let roller = null;
   if (seat.roller && here2(seat.roller.pool)) {
-    const { opponent } = seat.roller;
-    roller = { ...seat.roller, opponent: opponent && here2(opponent) ? opponent : null };
+    const { opponent: opponent2 } = seat.roller;
+    roller = { ...seat.roller, opponent: opponent2 && (opponent2 === WORLD || here2(opponent2)) ? opponent2 : null };
   }
   return {
     ...seat,
@@ -11520,9 +11658,11 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
   hang();
   addEventListener("resize", hang);
   void document.fonts?.ready.then(hang);
+  const tray2 = new TrayView(bar.oppo, { game, viewer });
   rollRow = new RollRowView({
     game,
     viewer,
+    tray: tray2,
     roller: () => seat.roller,
     keep: (r) => keep({ ...seat, roller: r }),
     // R320: the type last chosen for an action on a card, in this viewer's seat.

@@ -31,3 +31,15 @@ faulty record is refused
 **Inject:** src/model/records.ts:lasting
 @alarm-hash: c4be4d9e9a96710f
 **Pulled:** 2026-11-15 — rang: "check takes the scene and refuses the malformed" failed, the `injury` Conviction passed; restored clean
+
+## Test: the world's record
+**Purpose:** R347: `world` is a singleton of a set flag and a whole number; anything else is refused whole
+**Input:** `{set: true, total: 4}`, `{set: false, total: 0}`; a string flag, a fraction, a missing field, an extra field
+**Expected:** the first two pass; the rest are refused
+**Refs:** crc-Records.md
+**Code:** `src/model/records.test.ts`
+**Alarm:** 3
+**Fire alarm:** leave `world` out of the singletons; red: the good records are refused
+**Inject:** src/model/records.ts:SINGLETONS
+@alarm-hash: e84454f531d7d8b4
+**Pulled:** 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean

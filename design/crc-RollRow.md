@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R349, R350
 
 The dice you're about to roll, docked on the pool you roll for, in your view only (Seat).
 
@@ -37,8 +37,8 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   (the three Attacks), `infer`, `impress` or `request`; typeOf(label) preselects it from the label's
   words, else the seat's remembered type for that action on that card, else `?`. The tag on the row
   opens the list; a choice is remembered in the seat.
-- An Attack aims straight at its Defend (R306): Mental at Mental, Psych at Psych, Phys at 0, with no
-  chooser; a `?` roll's aim at a character is refused ("Say what this roll is first", gone after
+- An Attack aims straight at its Defend (R346): Mental at Mental, Psych at Psych, Phys at 0, with no
+  chooser; a `?` roll's aim at a character or at the world is refused ("Say what this roll is first", gone after
   about 2 s). The type goes in the intent, and an Attack's kind in the receipt's `vs` (R307).
 - row(): the White row from the Difference (Odds), live as pools change, unless picked by hand in
   the Difference menu (held until the next aim).
@@ -48,7 +48,7 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   character's owner: if they can't see the opponent, `vs` name and the White setting as dice only,
   and the menu locked ("set by the GM"); the GM's hover still shows the Difference.
 - roll(): intentOf(r) names the character, action, opponent, Defend kind, hand, and the row only when
-  picked (by hand, or set with nobody aimed at), never numbers (R100). On the GM's page Rolls.roll,
+  picked (by hand, or set with no action and so nobody aimed at), never numbers (R100). On the GM's page Rolls.roll,
   private when switched; on a player's, Rolls.request, Roll reading "GM…" while waiting (R102); why
   not goes to Rolls.note (R281).
 
@@ -61,8 +61,20 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   text by its Range's rectangles, or round the pool; an overlay line (`#aimline`, SVG) runs from the
   action in the header to the pointer. Neither touches the card's text.
 
+- The world (R345, R349, R350): `opponent` may be `WORLD`. waits(r) is whether Roll waits: an action
+  and no opponent, or an action typed `?`; Roll is then disabled, its title saying to aim first (or
+  to say what the roll is). shown() against the world: its total the tray's number (Records' World,
+  no pools), named "the world", seen only when the rolling character's owner is the GM, so a
+  player's character gets dice only, locked, as against a hidden character (R88). A drag from the
+  Base over open table (the topmost element under the pointer is `#table` or its layer `#world`
+  itself) or over the tray is over the world: the dashed box goes round Tray.mark() (the tray, or
+  its button while the tray is in); a drop there aims at WORLD, refused for `?` ("Say what this roll
+  is first") and while the tray is blank (the GM: "Put the world's number in the tray first"; a
+  player: "The GM hasn't given the world a number yet"). Aimed at the world, Tray.mark() wears the
+  `targeted` ring in place of a pool.
+
 ## Collaborators
-- Odds, Pool, MarkReader, Visibility, Rolls, Seat, PoolView, Gesture
+- Odds, Pool, MarkReader, Visibility, Rolls, Seat, PoolView, Gesture, Tray
 
 ## Sequences
 - seq-roll.md

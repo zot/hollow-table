@@ -1,4 +1,4 @@
-// CRC: crc-Bar.md | R9, R18, R19, R20, R287, R304, R305
+// CRC: crc-Bar.md | R9, R18, R19, R20, R287, R304, R305, R347
 // The bar along the top: the wordmark and build stamp, the supplies, the chips, and room for the
 // people and "You are"; the register, the Ledger and Boot Hill append themselves at its right end.
 
@@ -25,6 +25,8 @@ const PAPER: [Supply, string, string, string][] = [
 ];
 
 export class BarView {
+  /** R347: where the Opposition button and its tray go (TrayView). */
+  readonly oppo: HTMLElement;
   /** Where the people's tags go (Presence). */
   readonly folks: HTMLElement;
   /** Where the GM's "You are" goes. */
@@ -64,8 +66,9 @@ export class BarView {
       take(c, { sign, points });
       chips.append(c);
     }
+    this.oppo = el('div', 'oppo');
     this.folks = el('div', 'folks');
     this.youAre = el('div', 'youare');
-    bar.replaceChildren(mark, ...papers, image, file, chips, this.folks, this.youAre);
+    bar.replaceChildren(mark, ...papers, image, file, chips, this.oppo, this.folks, this.youAre);
   }
 }

@@ -45,3 +45,14 @@ kept view comes back, and a partial one is filled in
 **Fire alarm:** In fresh, start with a view at 0, 0, zoom 1 (as before): a first visit is never fitted
 **Inject:** src/store/seat.ts:fresh
 **Pulled:** 2026-11-12 — rang: fresh() had a view at 0, 0, zoom 1, so a first visit was never fitted
+
+## Test: a seat aimed at the world survives a restore
+**Purpose:** R350: prune keeps a roll row aimed at the world, which is never a record on the table
+**Input:** the GM's seat with its roller aimed at `world`, everything present
+**Expected:** the restored roller is still aimed at `world`
+**Refs:** crc-Seat.md
+**Code:** `src/store/seat.test.ts`
+**Alarm:** 4
+**Fire alarm:** prune the world like a vanished character (drop the `WORLD` clause); red: the opponent is null
+**Inject:** src/store/seat.ts:prune
+**Pulled:** 2026-11-15 — rang after the test was tightened (it first passed silent: its `exists` said yes to `o:world` too): "the seat on its own" failed, the opponent null; restored clean

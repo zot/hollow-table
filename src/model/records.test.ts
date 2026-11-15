@@ -47,3 +47,11 @@ test('check takes the scene and refuses the malformed', () => {
   ];
   faults.forEach(([k, v], i) => assert.equal(check(k, v), false, `fault ${i}`));
 });
+
+test("the world's record", () => {
+  // R347: a set flag and a whole number; anything else is refused whole.
+  assert.ok(check('world', { set: true, total: 4 }));
+  assert.ok(check('world', { set: false, total: 0 }));
+  for (const bad of [{ set: 'yes', total: 4 }, { set: true, total: 1.5 }, { set: true }, { total: 4 }, { set: true, total: 4, secret: 1 }])
+    assert.ok(!check('world', bad), JSON.stringify(bad));
+});

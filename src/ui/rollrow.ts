@@ -1,9 +1,9 @@
-// CRC: crc-RollRow.md | R321, R306, R316, R319, R320, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277
+// CRC: crc-RollRow.md | R321, R306, R316, R319, R320, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277, R345, R346, R349, R350
 // The dice you're about to roll, docked on the pool you roll for, in your view only (the Seat).
 // The decisions are pure (dock, action, hand, row, numbers); the view below draws them.
 
 import type { Game } from '../model/game.ts';
-import { GM, OPEN, ROLL_TYPES, isAttack, ridOf, type Character, type Oid, type RollType } from '../model/records.ts';
+import { GM, OPEN, ROLL_TYPES, WORLD, isAttack, ridOf, type Character, type Oid, type Opponent, type RollType, type World } from '../model/records.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
 import { action as readAction, defend as readDefend, pointed, points, type Action, type Against, type Defend, type Point } from '../rules/readmarks.ts';
@@ -51,12 +51,12 @@ export function withAction(r: Roller, label: string, alt?: string, remembered?: 
     ...(!r.opponent && { row: null, byHand: false }), ...(type === '?' && r.opponent && { opponent: null }) };
 }
 
-// R319: the type tag; a roll turned to `?` stops aiming (R306).
+// R319: the type tag; a roll turned to `?` stops aiming (R346).
 export function typed(r: Roller, type: RollType): Roller {
   return { ...r, type, ...(type === '?' && { opponent: null }) };
 }
 
-/** The Defend an Attack goes at (R306): its own kind, a Phys Attack at none; other rolls as aimed. */
+/** The Defend an Attack goes at (R346): its own kind, a Phys Attack at none; other rolls as aimed. */
 export function defendBase(r: Roller, def: Defend | null): number {
   if (r.type === 'phys' || !def) return 0;
   return def[r.type === 'mental' || r.type === 'psych' ? r.type : r.defend];
@@ -79,11 +79,19 @@ export function picked(r: Roller, key: string): Roller {
 
 // R83, R85: aiming at someone picks the row from the Difference again; stopping keeps a picked row.
 // R326–R328: what was pointed at holds until the next aim; a drop on no number aims as before.
-export function aimed(r: Roller, opponent: Oid, defend: 'mental' | 'psych', against?: Against): Roller {
+export function aimed(r: Roller, opponent: Opponent, defend: 'mental' | 'psych', against?: Against): Roller {
   return { ...r, opponent, defend, row: null, byHand: false, against };
 }
 export function unaimed(r: Roller): Roller {
   return { ...r, opponent: null, ...(!r.byHand && { row: null }) };
+}
+
+// R345, R346: a roll with an action waits until it is aimed, and a `?` one can't be; plain dice don't wait.
+/** Why Roll waits, or null when it can be pressed. */
+export function waits(r: Roller): string | null {
+  if (!r.action) return null;
+  if ((r.type ?? '?') === '?') return 'Say what this roll is, then aim it: drag from the action to a character, or to open table for the world';
+  return r.opponent ? null : 'Aim it first: drag from the action to a character, or to open table for the world';
 }
 
 /** A character's Defend from its `<def>` mark, or null. */
@@ -115,7 +123,7 @@ export type Shown = {
   label: string; base: number | null; total: number | null; parts: Record<string, number>;
   yellows: number; bonus: number; row: Row;
   /** R84, R86, R88: the opponent, their total and the Difference; whether the rolling character's owner sees them. */
-  vs?: { oid: Oid; name: string; total: number; diff: number; sees: boolean; words?: string };
+  vs?: { oid: Opponent; name: string; total: number; diff: number; sees: boolean; words?: string };
 };
 
 // R79, R80, R81, R82: what the row shows: the action's Base and Total Influence, the Yellows and
@@ -131,6 +139,11 @@ export function shown(game: Game, r: Roller): Shown {
   // R316: the alternative clicked names the action.
   const out: Shown = { label: r.alt ?? act.label, base: act.base, total: sum.total, parts: sum.parts, yellows: dice.yellows, bonus: dice.bonus, row };
   // R84, R85: against an opponent, the Difference picks the row unless one was picked by hand.
+  // R350: against the world, the tray's number and nothing else, seen only when the owner is the GM.
+  if (r.opponent === WORLD) {
+    const against = (game.get('world') as World | undefined)?.total ?? 0, diff = sum.total - against;
+    return { ...out, row: r.byHand ? row : rowFor(diff), vs: { oid: WORLD, name: 'the world', total: against, diff, sees: !!ownerAsViewer(c!)?.gm } };
+  }
   const opp = r.opponent ? game.get(ridOf(r.opponent)) as Character | undefined : undefined;
   if (opp?.kind !== 'character') return out;
   // R326, R336, R330: a number, Field or Skill pointed at is the base; else Defend as before (R328).
@@ -158,6 +171,8 @@ export type RollRowWith = {
   redraw: (oids: Oid[]) => void;
   /** Rolls what the row shows: at once on the GM's page; a request from a player's (R100). */
   roll: (r: Roller) => void;
+  /** R349, R350: the world's mark in the bar (the tray, or its button while the tray is in), and its ring. */
+  tray: { mark(): HTMLElement | undefined; ring(on: boolean): void };
   /** R320: the type last chosen for an action on a card, and keeping a new choice. */
   remembered: (oid: Oid, label: string) => RollType | undefined;
   remember: (oid: Oid, label: string, type: RollType) => void;
@@ -294,11 +309,13 @@ export class RollRowView {
       parts.push(p);
     }
     // R102: while a player's roll waits on the GM's page, Roll reads "GM…".
-    const roll = doc.createElement('button');
+    // R345: a roll with an action waits until it is aimed.
+    const roll = doc.createElement('button'), why = waits(r);
     roll.className = 'roll';
     roll.textContent = this.#waiting ? 'GM…' : 'Roll';
-    roll.disabled = this.#waiting;
+    roll.disabled = this.#waiting || !!why;
     if (this.#waiting) roll.title = "Waiting for the GM's page to roll";
+    else if (why) roll.title = why;
     gesture(roll, { click: () => { if (!this.#waiting) this.#w.roll(r); } });
     parts.push(roll);
     this.#row.replaceChildren(...parts);
@@ -320,14 +337,18 @@ export class RollRowView {
       vs.className = 'vs';
       vs.append(`vs ${s.vs.name}`);
       if (s.vs.sees) { const n = doc.createElement('b'); n.textContent = ` ${s.vs.total < 0 ? `−${-s.vs.total}` : s.vs.total} (${SIGN(s.vs.diff)})`; vs.append(n); }
-      vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.`
+      if (s.vs.oid === WORLD) vs.title = shows ? `The world: the GM's number in the tray, ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.`
+        : "Only the GM knows the world's number. Click to stop aiming.";
+      else vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.`
         : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
       gesture(vs, { click: () => step(unaimed(r)) });
       this.#info.append(vs);
     }
     // R86: the current opponent's pool is ringed, with ⌖ by their name.
+    // R350: aimed at the world, its mark in the bar wears the ring.
     for (const p of doc.querySelectorAll('.pool.targeted')) p.classList.remove('targeted');
-    if (s.vs) this.#w.pool(s.vs.oid)?.classList.add('targeted');
+    if (s.vs && s.vs.oid !== WORLD) this.#w.pool(s.vs.oid)?.classList.add('targeted');
+    this.#w.tray.ring(s.vs?.oid === WORLD);
   }
 
   // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
@@ -336,8 +357,11 @@ export class RollRowView {
   // Field or Skill under it on the target's card front; a drop there aims at it, with no chooser.
   #aim(r: Roller, down: PointerLike, move: PointerLike): void {
     const doc = this.#row.ownerDocument, body = doc.body;
-    const under = (e: PointerLike): { oid: Oid; point?: Point; text?: HTMLElement } | null => {
-      for (const el of doc.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
+    const under = (e: PointerLike): { oid: Opponent; point?: Point; text?: HTMLElement } | null => {
+      const els = doc.elementsFromPoint?.(e.clientX, e.clientY) ?? [], top = els[0] as HTMLElement | undefined;
+      // R349: the tray, or open table (nothing but the table and its layer under the pointer), is the world.
+      if (top && (top.closest?.('.oppo') || top.id === 'table' || top.id === 'world')) return { oid: WORLD };
+      for (const el of els) {
         const hit = (el as HTMLElement).closest?.<HTMLElement>('.pool, .obj.card');
         const rid = hit?.dataset.rid;
         if (!rid) continue;
@@ -366,7 +390,8 @@ export class RollRowView {
       lit = undefined;
       box.hidden = true;
       if (!oid) return;
-      const rect = t!.point ? rangeOf(t!.text!, t!.point)?.getBoundingClientRect() : undefined;
+      const rect = oid === WORLD ? this.#w.tray.mark()?.getBoundingClientRect()
+        : t!.point ? rangeOf(t!.text!, t!.point)?.getBoundingClientRect() : undefined;
       if (rect) {
         Object.assign(box.style, { left: `${rect.left - 3}px`, top: `${rect.top - 2}px`, width: `${rect.width + 6}px`, height: `${rect.height + 4}px` });
         box.hidden = false;
@@ -387,11 +412,21 @@ export class RollRowView {
       lit?.classList.remove('aimed');
       box.remove();
       svg.remove();
-      const t = under(e), opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) as Character | undefined : undefined;
+      const t = under(e), viewer = this.#w.viewer;
+      // R349: at the world: not a `?` roll, and not while the tray is blank.
+      if (t?.oid === WORLD) {
+        if ((r.type ?? '?') === '?') { this.#note('Say what this roll is first.', e); return; }
+        if (!(this.#w.game.get('world') as World | undefined)?.set) {
+          this.#note(viewer?.gm ? "Put the world's number in the tray first." : "The GM hasn't given the world a number yet.", e);
+          return;
+        }
+        this.#set(aimed(r, WORLD, 'mental'));
+        return;
+      }
+      const opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) as Character | undefined : undefined;
       if (opp?.kind !== 'character') return;
-      const viewer = this.#w.viewer;
       if (!viewer?.gm && !canSee(viewer, opp)) { this.#note(`Only the GM can aim at ${opp.name}.`, e); return; }
-      // R306: a roll that doesn't say what it is can't be aimed; an Attack goes at its own Defend.
+      // R346: a roll that doesn't say what it is can't be aimed; an Attack goes at its own Defend.
       if ((r.type ?? '?') === '?') { this.#note('Say what this roll is first.', e); return; }
       // R326, R336: pointed at, it is the opposition; a Defend number also sets the Defend kind.
       const byType = r.type === 'psych' ? 'psych' : 'mental';

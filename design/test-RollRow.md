@@ -82,7 +82,7 @@ Red picked by hand
 **Pulled:** 2026-11-12 — rang: the Difference row Red went along with the request
 
 ## Test: the roll type
-**Purpose:** R320: a label's words preselect the type, a label that doesn't say starts at the remembered type, else `?`; R316: the alternative clicked names the roll and picks its type, and goes in the intent; R306: turning a roll to `?` stops aiming, and an Attack goes at its own Defend, a Phys Attack at 0
+**Purpose:** R320: a label's words preselect the type, a label that doesn't say starts at the remembered type, else `?`; R316: the alternative clicked names the roll and picks its type, and goes in the intent; R346: turning a roll to `?` stops aiming, and an Attack goes at its own Defend, a Phys Attack at 0
 **Input:** labels Mental Atk, Psych Atk, Phys Attack, Physical Atk, Req, Request, Infer, Impress, Create Influence, Shoot, Attack; Shoot with and without a remembered `phys`; Infer with a remembered `skill`; `Mental Atk / Req` by its Req die; an aimed Mental Attack turned to `?`, psych, phys and infer, against Defend 6 / 5
 **Expected:** the types in order (Shoot and Attack null); `?` then `phys`; `infer`; `request` with `alt: 'Req'`; opponent null; Defend bases 6, 5, 0, 5
 **Refs:** crc-RollRow.md, crc-Seat.md
@@ -113,3 +113,14 @@ Red picked by hand
 **Fire alarm:** in shown, call pointed without the action's attribute; red: Shoot reads `Investigation 2 + Cha 2`
 **Inject:** src/ui/rollrow.ts:shown
 **Pulled:** 2026-11-15 — 2026-11-15 — rang: "aimed at what was pointed at" failed, Shoot and Recall both read `Investigation 2 + Cha 2`; restored clean
+
+## Test: the world as opposition
+**Purpose:** R345, R346: a roll with an action waits until aimed, a `?` one can't be, plain dice don't wait; R350: against the world, the tray's number and nothing else, seen only by the GM's own character, live until the roll unless a row was picked by hand
+**Input:** Sam docked; Sam's Infer; aimed at the world; turned to `?`; the world at 3, then Sam's total + 6; Devreux's Attack as a Phys Attack at the world
+**Expected:** plain dice don't wait; Infer waits "Aim it first"; aimed, it doesn't; `?` waits "Say what this roll is" and stops aiming; the intent's `vs` is `world`; vs `the world`, 3, Sam's total − 3, unseen; Devreux's seen; the row then reads the −6 row, a picked Green holds
+**Refs:** crc-RollRow.md, crc-Tray.md
+**Code:** `src/ui/rollrow.test.ts`
+**Alarm:** 10
+**Fire alarm:** in waits, let an unaimed action roll (`return null` in place of the aim check); red: Infer no longer waits
+**Inject:** src/ui/rollrow.ts:waits
+**Pulled:** 2026-11-15 — rang: "the world as opposition" failed, the unaimed Infer no longer waited; restored clean

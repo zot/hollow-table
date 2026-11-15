@@ -21,6 +21,7 @@ import { Stamps } from './net/stamps.ts';
 import { Wire } from './net/wire.ts';
 import { mayTap } from './rules/tap.ts';
 import { click, shiftClick } from './rules/ownership.ts';
+import { TrayView } from './ui/tray.ts';
 import { RollRowView, intentOf } from './ui/rollrow.ts';
 import { TapeView } from './ui/tape.ts';
 import { RegisterView } from './ui/register.ts';
@@ -265,8 +266,10 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   hang();
   addEventListener('resize', hang);
   void document.fonts?.ready.then(hang);
+  // R347: the Opposition button and the world's tray, in the bar.
+  const tray = new TrayView(bar.oppo, { game, viewer });
   rollRow = new RollRowView({
-    game, viewer, roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
+    game, viewer, tray, roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
     // R320: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
