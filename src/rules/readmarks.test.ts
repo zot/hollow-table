@@ -17,7 +17,12 @@ test('action lines', () => {
     ['Attack: 1, +0', 'Attack', 1, 0, 0],
     ['Infer: 4, +2', 'Infer', 4, 0, 2],
   ];
-  for (const [text, label, base, yellows, bonus] of rows) assert.deepEqual(action(text), { label, base, yellows, bonus }, text);
+  for (const [text, label, base, yellows, bonus] of rows) assert.deepEqual(action(text), { label, base, yellows, bonus, att: 'Cha' }, text);
+  // R337: the attribute, an entry in the line's parentheses; a word that only holds "int" is no mark.
+  assert.deepEqual([
+    action('Shoot: 4, +2 (unfr, x2, no att)')?.att, action('Expertise: 3, +1 (Int)')?.att,
+    action('Recall: 3 (Accounting, INT), +1')?.att, action('Infer: 4 (Intuition), +2')?.att,
+  ], [null, 'Int', 'Int', 'Cha']);
   for (const text of ['Defend: mental 2 / psych 4', 'Defend: 6 / 5', 'Sparked: 46  Grains: 14', 'Slots: Mild, Min ×3, Sig, Maj']) {
     assert.equal(action(text), null, text);
   }
@@ -97,7 +102,7 @@ test('Fields, Skills and their pens', () => {
 });
 
 test('what a drop can point at', () => {
-  // R326, R327: Defend numbers, an action's Base, Fields and Skills at Level plus Cha (2), each where it is.
+  // R326, R336: Defend numbers, an action's Base, Fields and Skills at Level plus Cha (2), each where it is.
   const lines = MARKED.split('\n'), at = (p: Point) => lines[p.line]!.replace(/<\/?[a-z]+>/g, '').slice(p.start, p.end);
   const ps = points(MARKED);
   assert.deepEqual(ps.map(p => [at(p), p.base, p.words]), [
@@ -121,5 +126,10 @@ test('what a drop can point at', () => {
   assert.deepEqual(points('<att>Cha 1</att>\n<fld>Snakeoil Salesman 3 (5XP)</fld>\n<skl>Rhetoric (Salesman) (x2)</skl>\n<skl>Finesse (x2, Rhetoric)</skl>')
     .map(p => p.words), ['Snakeoil Salesman 3 + Cha 1', 'Rhetoric (Salesman) 3 + Cha 1', 'Finesse 3 + Cha 1'], "a Skill's XP note is not its name");
   assert.equal(pointed(MARKED, { act: 'Fly' }), null);
+  // R336: the attribute the acting action uses: none adds nothing, Int adds the card's Int, and an
+  // attribute the card doesn't list counts 0.
+  assert.deepEqual([pointed(MARKED, { skl: 'Investigation' }, null), pointed(MARKED, { skl: 'Investigation' }, 'Int')].map(p => [p?.base, p?.words]),
+    [[2, 'Investigation 2'], [4, 'Investigation 2 + Int 2']]);
+  assert.deepEqual(points('<att>Cha 1</att>\n<fld>Snakeoil Salesman 3 (5XP)</fld>', 'Int').map(p => [p.base, p.words]), [[3, 'Snakeoil Salesman 3 + Int 0']]);
   assert.deepEqual(points('<def>Defend: 6 / 5</def>').map(p => [p.against, p.words]), [[{ def: 'mental' }, 'mental 6'], [{ def: 'psych' }, 'psych 5']]);
 });

@@ -100,8 +100,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   go.
 - Killing an unused tap refunds it. A tap may wait loose on the table, the one exception to "never
   lost".
-- **Biases, Afflictions and Injuries** recharge each Conflict. Mild and Min are 1 Level, Sig 2, Maj
-  3. A slot shows the Levels spent (−2). **A box can't be checked until its slot has a name.**
+- **Biases, Afflictions and Injuries** recharge each Conflict (Bill, 11-15: a table ruling; the book
+  recovers Biases and Afflictions at the end of the Event, and End stands in for it). Mild and Min
+  are 1 Level, Sig 2, Maj 3. A slot shows the Levels spent (−2). **A box can't be checked until its slot has a name.**
 
 ## After a roll
 

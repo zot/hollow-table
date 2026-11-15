@@ -102,3 +102,14 @@ Red picked by hand
 **Fire alarm:** let `aimed` keep an earlier `against` (spread `r` without dropping it); red: the second aim still reads Shoot 4
 **Inject:** src/ui/rollrow.ts:aimed
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: "aimed at what was pointed at" failed (the second aim kept {act: Shoot}); restored clean
+
+## Test: the row's attribute for a Skill pointed at
+**Purpose:** R336, R337: the roll row's `vs` words for a Skill pointed at follow the action in the row: Cha unmarked, none for `(no att)`, Int for `(Int)`
+**Input:** Beauford's Infer, and added `Shoot: 3, +1 (no att)` and `Recall: 3, +1 (Int)`, each aimed at Sam pointed at `{skl: Investigation}`
+**Expected:** `Investigation 2 + Cha 2`, `Investigation 2`, `Investigation 2 + Int 2`
+**Refs:** crc-RollRow.md
+**Code:** `src/ui/rollrow.test.ts`
+**Alarm:** 9
+**Fire alarm:** in shown, call pointed without the action's attribute; red: Shoot reads `Investigation 2 + Cha 2`
+**Inject:** src/ui/rollrow.ts:shown
+**Pulled:** 2026-11-15 — 2026-11-15 — rang: "aimed at what was pointed at" failed, Shoot and Recall both read `Investigation 2 + Cha 2`; restored clean

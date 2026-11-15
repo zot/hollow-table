@@ -84,9 +84,14 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   4)*, *vs Sam (psych 4)*. It holds until the next aim.
 - **Pointing at a Field or a Skill** (Bill, 11-14): the drag can end on a `<fld>` line, or on one
   Skill of a `<skl>` line (one Skill of several in a `Skills N:` line), and the opposition's base is
-  its Level (*Card text* in `table.md`) plus the target's **Cha** (Bill: "Let's always use Cha for
-  now"; choosing the attribute is `.carves/prototype.md` part 35.2). Only marked Fields and Skills
-  can be pointed at. The `vs` line reads *vs Sam (Investigation 2 + Cha 2)*.
+  its Level (*Card text* in `table.md`) plus the target's attribute **the acting action uses** (Bill,
+  11-14: "the opposition uses the same attribute as the acting character"). Only marked Fields and
+  Skills can be pointed at. The `vs` line reads *vs Sam (Investigation 2 + Cha 2)*, or *vs Sam
+  (Fighting 2)* for an action that uses none. An attribute the target's card doesn't list counts 0.
+- **An action says its attribute in its parentheses** (Bill, 11-15), as words among its other notes,
+  so it types from any keyboard: `(no att)` for none, as Shoot (`Shoot: 4, +2 (unfr, x2, no att)`),
+  and `(Int)` for Int, as a knowledge Skill. An action that says neither uses Cha (Bill, 11-13:
+  "generally Cha but in some cases Int or nothing is used").
 - **A drop anywhere else on the target** (Bill, 11-14) — its pool, its card away from a number, or a
   card turned to its back — keeps the rule above: an Attack at its own Defend, other rolls through
   the chooser when the Defend has two numbers.

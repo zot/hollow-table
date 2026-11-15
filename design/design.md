@@ -84,7 +84,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Gesture.md → `src/ui/gesture.ts`
 - [x] crc-Drag.md → `src/ui/drag.ts`
 - [x] crc-Pens.md → `src/ui/pens.ts`
-- [ ] crc-RollRow.md → `src/ui/rollrow.ts`
+- [x] crc-RollRow.md → `src/ui/rollrow.ts`
 - [ ] crc-Tape.md → `src/ui/tape.ts`, `src/ui/receipt.ts`
 - [ ] crc-Register.md → `src/ui/register.ts`
 - [ ] crc-BootHillView.md → `src/ui/boothill.ts`
@@ -185,4 +185,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] O10: Receipts kept on a tape from before R317 still hold the old outcome words, so they print as "Success 12, Major: 6 + 4"; only new rolls read the new way. Cosmetic; tapes are each page's own.
 - T18: R266 retired by R322 (Bill 11-14: Fields and Skills are marked, <fld> and <skl>)
 - T19: R84 retired by R330 (Bill 11-14: a number, Field or Skill pointed at replaces Defend as the opposition's base)
-- [ ] O11: Skills pointed at add Cha whatever the roll (R327); which attribute a Field or Skill adds — the acting character's, none (the fist), Int (the brain) — is .carves/prototype.md part 35.2.
+- [x] O11: Skills pointed at add Cha whatever the roll (R327); which attribute a Field or Skill adds — the acting character's, none (the fist), Int (the brain) — is .carves/prototype.md part 35.2.
+- T20: R327 retired by R336 (2026-11-15 part 35.2: the acting action chooses the attribute, not always Cha)

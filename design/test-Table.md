@@ -113,7 +113,7 @@ pool's labels selects as text but the build stamp
 **Code:** `tests/card.spec.ts`
 
 ## Test: pointing at the opposing number
-**Purpose:** R326, R327, R329: in the browser, a drag from the Base over a number on the target's card draws the line and a box round just that number; the drop aims at it with no chooser; a drag onto a Skill aims at its Level plus Cha, and the receipt names it
+**Purpose:** R326, R336, R329: in the browser, a drag from the Base over a number on the target's card draws the line and a box round just that number; the drop aims at it with no chooser; a drag onto a Skill aims at its Level plus Cha, and the receipt names it
 **Input:** the GM's page; Devreux's Attack typed Skill, dragged onto the 4 of Sam's `psych 4`, held, then let go; then onto Investigation, and rolled
 **Expected:** `#aimline` drawn, `#aimbox` visible and under 40 px wide, gone after the drop; no chooser; the vs title `Sam: psych 4,…`; then `Sam: Investigation 2 + Cha 2,…` and the receipt `vs Sam (Investigation 2 + Cha 2…`
 **Refs:** crc-RollRow.md

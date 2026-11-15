@@ -133,8 +133,9 @@ export function shown(game: Game, r: Roller): Shown {
   // R84, R85: against an opponent, the Difference picks the row unless one was picked by hand.
   const opp = r.opponent ? game.get(ridOf(r.opponent)) as Character | undefined : undefined;
   if (opp?.kind !== 'character') return out;
-  // R326, R327, R330: a number, Field or Skill pointed at is the base; else Defend as before (R328).
-  const point = r.against ? pointed(opp.front, r.against) : null;
+  // R326, R336, R330: a number, Field or Skill pointed at is the base; else Defend as before (R328).
+  // R337: a Field or Skill adds the target's attribute the action uses.
+  const point = r.against ? pointed(opp.front, r.against, act.att) : null;
   const against = opposition(point ? point.base : defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum.total - against;
   return { ...out, row: r.byHand ? row : rowFor(diff),
     vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c!), opp), ...(point && { words: point.words }) } };
@@ -331,7 +332,7 @@ export class RollRowView {
 
   // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
   // the pointing hand holds; let go to aim, through the Defend chooser when they have two.
-  // R326, R327, R329: a line runs from the press to the pointer, and the box goes round the number,
+  // R326, R336, R329: a line runs from the press to the pointer, and the box goes round the number,
   // Field or Skill under it on the target's card front; a drop there aims at it, with no chooser.
   #aim(r: Roller, down: PointerLike, move: PointerLike): void {
     const doc = this.#row.ownerDocument, body = doc.body;
@@ -392,7 +393,7 @@ export class RollRowView {
       if (!viewer?.gm && !canSee(viewer, opp)) { this.#note(`Only the GM can aim at ${opp.name}.`, e); return; }
       // R306: a roll that doesn't say what it is can't be aimed; an Attack goes at its own Defend.
       if ((r.type ?? '?') === '?') { this.#note('Say what this roll is first.', e); return; }
-      // R326, R327: pointed at, it is the opposition; a Defend number also sets the Defend kind.
+      // R326, R336: pointed at, it is the opposition; a Defend number also sets the Defend kind.
       const byType = r.type === 'psych' ? 'psych' : 'mental';
       if (t!.point) {
         const a = t!.point.against;
@@ -486,7 +487,7 @@ export class RollRowView {
 }
 
 
-// R326, R327: where the pointer is in a card's text: which line (each is a div) and how far into its text.
+// R326, R336: where the pointer is in a card's text: which line (each is a div) and how far into its text.
 function caretIn(text: HTMLElement, e: PointerLike): { line: number; offset: number } | null {
   const doc = text.ownerDocument as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
   const pos = doc.caretPositionFromPoint?.(e.clientX, e.clientY);

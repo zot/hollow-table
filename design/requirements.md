@@ -241,10 +241,12 @@
 - **R320:** The action's label preselects the type when it says (Mental Atk, Psych Atk, Phys or Physical with Atk or Attack, Infer, Impress, Req or Request, Influence); otherwise it starts at ?, unless the viewer's seat remembers a type chosen for that action on that card; clicking the tag changes it.
 - **R321:** The roll row is the dice with no labels: White, Blue, Yellows, bonus, the type tag and Roll; Roll is a key, and the type and the GM's private switch are tags.
 - **R326:** A drag from the Base can end on a number on the target's card, a Defend number or an action's Base, and that number is the opposition's base; it wins over the Defend chooser and an Attack's own Defend, an Attack's type still picking the Damage column; the `vs` line names it (`vs Sam (Shoot 4)`, `vs Sam (psych 4)`), and it holds until the next aim.
-- **R327:** A drag from the Base can end on a `<fld>` line or one Skill of a `<skl>` line, and the opposition's base is its Level plus the target's Cha; the `vs` line reads `vs Sam (Investigation 2 + Cha 2)` (Cha for now: see gap O11, part 35.2 chooses the attribute).
+- **~~R327:~~** (Retired T20 — see R336) A drag from the Base can end on a `<fld>` line or one Skill of a `<skl>` line, and the opposition's base is its Level plus the target's Cha; the `vs` line reads `vs Sam (Investigation 2 + Cha 2)` (Cha for now: see gap O11, part 35.2 chooses the attribute).
 - **R328:** A drop elsewhere on the target (its pool, its card away from a number, Field or Skill, or a card turned to its back) aims as before: an Attack at its own Defend, other rolls through the chooser when the Defend has two numbers.
 - **R329:** While dragging from the Base, a line runs from the action to the pointer, and the dashed amber box goes round the number, Field or Skill the drop would pick, or round the pool when there is none under the pointer.
 - **R330:** The opponent's total is the opposition's base (Defend, or what was pointed at) + Main + Edge + Bias + Affliction + Injury + Stagger.
+- **R336:** A drag from the Base can end on a `<fld>` line or one Skill of a `<skl>` line, and the opposition's base is its Level plus the target's attribute that the acting action uses (R337), an attribute its card doesn't list counting 0; the `vs` line reads `vs Sam (Investigation 2 + Cha 2)`, or `vs Sam (Fighting 2)` when the action uses none.
+- **R337:** An action line names the attribute its roll uses as an entry in its parentheses, among any others: `(no att)` for none, `(Int)` for Int (`Shoot: 4, +2 (unfr, x2, no att)`); an action naming neither uses Cha.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

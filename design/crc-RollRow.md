@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337
 
 The dice you're about to roll, docked on the pool you roll for, in your view only (Seat).
 
@@ -53,7 +53,8 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   not goes to Rolls.note (R281).
 
 - Pointing (R326–R330): the Roller keeps `against`, what was pointed at by name (MarkReader.points),
-  set by a drop on it and cleared by the next aim; shown() and the GM's page take the base from it,
+  set by a drop on it and cleared by the next aim; shown() and the GM's page take the base from it
+  (a Field or Skill adding the target's attribute the row's action names, R337),
   else from Defend as before (R328). While dragging from the Base (#aim): what is under the pointer
   is found by its line (each card line is a `div`) and its offset in that line's text
   (caretRangeFromPoint), matched against points(); an overlay box (`#aimbox`) goes round that run of

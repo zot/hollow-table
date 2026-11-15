@@ -392,7 +392,11 @@ function action(text) {
   if (!label || !parts) return null;
   const b = BASE.exec(parts[0]), d = DICE2.exec(parts[1]);
   if (!b || !d || d[1] === void 0 && d[2] === void 0) return null;
-  return { label, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0 };
+  return { label, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0, att: actionAtt(text.slice(colon + 1)) };
+}
+function actionAtt(text) {
+  const entries3 = [...text.matchAll(/\(([^)]*)\)/g)].flatMap((m) => m[1].split(",").map((e) => e.trim().toLowerCase()));
+  return entries3.includes("no att") ? null : entries3.includes("int") ? "Int" : "Cha";
 }
 var LEVEL_WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
 var LEVEL = `(${LEVEL_WORDS.join("|")}|\\d+)`;
@@ -504,11 +508,11 @@ function skillsLine(text) {
   return { level: Number(m[1]), skills };
 }
 var skillName = (text) => text.replace(/^\s*✓\s*/, "").replace(/\s+\d+\s*$/, "").replace(/\s*\(x\d+[^)]*\)/gi, "").trim();
-function points2(front) {
-  const lines = parse(front), out = [];
-  let cha = 0;
-  for (const l of lines) for (const r of l) if (typeof r !== "string" && r.mark === "att") cha = attributes(r.text).Cha ?? cha;
-  const plus = (level) => ` ${level} + Cha ${cha}`;
+function points2(front, att = "Cha") {
+  const lines = parse(front), out = [], attrs = {};
+  for (const l of lines) for (const r of l) if (typeof r !== "string" && r.mark === "att") Object.assign(attrs, attributes(r.text));
+  const value2 = att ? attrs[att] ?? 0 : 0;
+  const plus = (level) => ` ${level}` + (att ? ` + ${att} ${value2}` : "");
   let fieldLevel = null;
   lines.forEach((l, line) => {
     let at3 = 0, onlySkills = true, sawField = false;
@@ -548,18 +552,18 @@ function points2(front) {
       } else if (r.mark === "fld") {
         const f = field(t);
         if (f) {
-          out.push({ line, start: at3, end: at3 + len, against: { fld: f.name }, base: f.level + cha, words: f.name + plus(f.level) });
+          out.push({ line, start: at3, end: at3 + len, against: { fld: f.name }, base: f.level + value2, words: f.name + plus(f.level) });
           fieldLevel = f.level;
           sawField = true;
         }
       } else if (r.mark === "skl") {
         const many = skillsLine(t);
         if (many) {
-          for (const k of many.skills) out.push({ line, start: at3 + k.start, end: at3 + k.end, against: { skl: k.name }, base: many.level + cha, words: k.name + plus(many.level) });
+          for (const k of many.skills) out.push({ line, start: at3 + k.start, end: at3 + k.end, against: { skl: k.name }, base: many.level + value2, words: k.name + plus(many.level) });
           fieldLevel = null;
         } else if (fieldLevel !== null) {
           const level = fieldLevel + (/^\s*✓/.test(t) ? 1 : 0), name2 = skillName(t);
-          if (name2) out.push({ line, start: at3, end: at3 + len, against: { skl: name2 }, base: level + cha, words: name2 + plus(level) });
+          if (name2) out.push({ line, start: at3, end: at3 + len, against: { skl: name2 }, base: level + value2, words: name2 + plus(level) });
         }
       } else onlySkills = false;
       at3 += len;
@@ -568,9 +572,9 @@ function points2(front) {
   });
   return out;
 }
-function pointed(front, against) {
+function pointed(front, against, att = "Cha") {
   const key = JSON.stringify(against);
-  return points2(front).find((p) => JSON.stringify(p.against) === key) ?? null;
+  return points2(front, att).find((p) => JSON.stringify(p.against) === key) ?? null;
 }
 
 // src/rules/influence.ts
@@ -2943,7 +2947,7 @@ function resolve2(game, intent, rng, at3) {
     opp = game.get(ridOf(intent.vs));
     if (opp?.kind !== "character") return { refused: "That opponent is not on the table." };
     const def = marks(parse(opp.front), "def").map((m) => defend(m.text)).find((d) => d);
-    point = intent.against ? pointed(opp.front, intent.against) : null;
+    point = intent.against ? pointed(opp.front, intent.against, act.att) : null;
     let base2;
     if (point) base2 = point.base;
     else if (kind === "phys" || !def) base2 = 0;
@@ -7988,7 +7992,7 @@ function shown(game, r) {
   const out = { label: r.alt ?? act.label, base: act.base, total: sum2.total, parts: sum2.parts, yellows: dice.yellows, bonus: dice.bonus, row: row2 };
   const opp = r.opponent ? game.get(ridOf(r.opponent)) : void 0;
   if (opp?.kind !== "character") return out;
-  const point = r.against ? pointed(opp.front, r.against) : null;
+  const point = r.against ? pointed(opp.front, r.against, act.att) : null;
   const against = opposition(point ? point.base : defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum2.total - against;
   return {
     ...out,
@@ -8171,7 +8175,7 @@ var RollRowView = class {
   }
   // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
   // the pointing hand holds; let go to aim, through the Defend chooser when they have two.
-  // R326, R327, R329: a line runs from the press to the pointer, and the box goes round the number,
+  // R326, R336, R329: a line runs from the press to the pointer, and the box goes round the number,
   // Field or Skill under it on the target's card front; a drop there aims at it, with no chooser.
   #aim(r, down, move) {
     const doc = this.#row.ownerDocument, body = doc.body;

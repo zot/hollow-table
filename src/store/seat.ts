@@ -17,7 +17,7 @@ export type Roller = {
   type?: RollType;
   /** R316: the alternative of a `/` label whose die was clicked. */
   alt?: string;
-  /** R326, R327: what was pointed at on the opponent's card, by name; absent, Defend (R328). */
+  /** R326, R336: what was pointed at on the opponent's card, by name; absent, Defend (R328). */
   against?: Against;
 };
 

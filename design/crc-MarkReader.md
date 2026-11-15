@@ -1,5 +1,5 @@
 # MarkReader
-**Requirements:** R54, R74, R83, R207, R258, R261, R267, R322-324, R326, R327
+**Requirements:** R54, R74, R83, R207, R258, R261, R267, R322-324, R326, R336, R337
 
 Reads the game inside marks, and only there. Each grammar is also used to *offer* a pen for a plain
 line that fits it.
@@ -15,7 +15,8 @@ line that fits it.
 - The Defend grammar: `N`, `mental N / psych M`, or `N / M` (mental / psych).
 
 ## Does
-- action(text): `{label, base, yellows, bonus}`, or null.
+- action(text): `{label, base, yellows, bonus, att}`, or null; `att` (R337) is the attribute named as an
+  entry in the line's parentheses, `(no att)` null and `(Int)` `Int`, else `Cha`.
 - influence(text): `{name, sign, level}`, or null. Used for `res`, `mot` and `inf`.
 - motiveLeft(text): a Motivation's Levels left: the parenthesis when there is one, else its written
   Level.
@@ -37,10 +38,11 @@ line that fits it.
   parentheses) at N.
 - offer(line, heading, underField) (R207, R323, R324): also `fld` for a plain `Name N (nXP)` line,
   and `skl` for a `Skills N:` line or a plain line under a Field.
-- points(front) (R326, R327): everything on a card's front a drop can point at, each with its line,
+- points(front, att) (R326, R336): everything on a card's front a drop can point at, each with its line,
   its start and end in that line's text, what it is by name (`{def: 'mental'|'psych'}`, `{act:
   label}`, `{fld: name}`, `{skl: name}`), its base, and its words for the `vs` line: a Defend
-  number, an action's Base, a Field or one Skill (Level plus the card's Cha).
+  number, an action's Base, a Field or one Skill (Level plus the card's `att`, the attribute the acting action uses: `Cha`,
+  `Int`, or null for none; one the card doesn't list counts 0).
 
 ## Collaborators
 - MarkedText: supplies the marks.

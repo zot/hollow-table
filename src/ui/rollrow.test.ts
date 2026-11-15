@@ -118,4 +118,9 @@ test('aimed at what was pointed at', () => {
   const again = aimed(r, SAM, 'psych');
   assert.equal(again.against, undefined);
   assert.equal(shown(g, again).vs!.words, undefined);
+  // R336, R337: a Skill pointed at adds the target's attribute the action uses: Cha, none, Int.
+  const b = g.get(ridOf(BEAUFORD)) as Character;
+  g.change(w => w.put(ridOf(BEAUFORD), { ...b, front: `${b.front}\n<act>Shoot: 3, +1 (no att)</act>\n<act>Recall: 3, +1 (Int)</act>` }));
+  const at = (action: string) => shown(g, aimed(withAction(dock(null, BEAUFORD), action), SAM, 'mental', { skl: 'Investigation' })).vs!.words;
+  assert.deepEqual(['Infer', 'Shoot', 'Recall'].map(at), ['Investigation 2 + Cha 2', 'Investigation 2', 'Investigation 2 + Int 2']);
 });

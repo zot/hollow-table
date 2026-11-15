@@ -95,7 +95,7 @@ name with no Level
 **Code:** src/rules/readmarks.test.ts
 
 ## Test: what a drop can point at
-**Purpose:** R326, R327: every Defend number, action Base, Field and Skill on a card, where it is in its line, its base (a Field or Skill: Level plus Cha) and its words; a Field's Skills end at anything else; a ✓ is one Level higher; an XP note is no part of a name
+**Purpose:** R326, R336: every Defend number, action Base, Field and Skill on a card, where it is in its line, its base (a Field or Skill: Level plus the attribute asked for, Cha by default) and its words; a Field's Skills end at anything else; a ✓ is one Level higher; an XP note is no part of a name
 **Input:** Sam's front with its Fields and Skills marked, a Skill under a heading, a heading straight after a Field's Skill, and Beauford's `Rhetoric (Salesman) (x2)` and `Finesse (x2, Rhetoric)`
 **Expected:** the list in order with bases 4, 4, 4, 4, 5, 3, 3, 4, 2, 4; nothing for the Skill under the heading; `Rhetoric (Salesman) 3 + Cha 1`, `Finesse 3 + Cha 1`
 **Refs:** crc-MarkReader.md
@@ -104,3 +104,25 @@ name with no Level
 **Fire alarm:** never end a Field's Skills (drop the `fieldLevel = null` reset after a line with anything else); red: the Skill under the heading gets a Level and can be pointed at
 **Inject:** src/rules/readmarks.ts:points
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: "what a drop can point at" failed (a Skill after a heading got a Level), once the test put a heading straight after a Field's Skill; before that it did not ring, a Skills line had already ended the Field; restored clean
+
+## Test: an action's attribute
+**Purpose:** R337: the attribute an action's roll uses is a whole entry in its parentheses, `no att` for none and `Int` for Int, any case, among other entries; else Cha
+**Input:** `Shoot: 4, +2 (unfr, x2, no att)`, `Expertise: 3, +1 (Int)`, `Recall: 3 (Accounting, INT), +1`, `Infer: 4 (Intuition), +2`, and every plain action in the action test
+**Expected:** null, `Int`, `Int`, `Cha`; the plain actions `Cha`
+**Refs:** crc-MarkReader.md
+**Code:** `src/rules/readmarks.test.ts`
+**Alarm:** 8
+**Fire alarm:** in actionAtt, take an entry that merely contains "int" as Int; red: `Infer: 4 (Intuition), +2` reads Int
+**Inject:** src/rules/readmarks.ts:actionAtt
+**Pulled:** 2026-11-15 — 2026-11-15 — rang: "action lines" failed, `Infer: 4 (Intuition), +2` read Int; restored clean
+
+## Test: the attribute a Field or Skill adds
+**Purpose:** R336: a Field or Skill pointed at adds the target's attribute that was asked for: none adds nothing and says nothing, Int adds the card's Int, an attribute the card doesn't list counts 0
+**Input:** Sam's Investigation pointed at with none and with Int; a card with only Cha, its Field with Int
+**Expected:** base 2 `Investigation 2`; base 4 `Investigation 2 + Int 2`; base 3 `Snakeoil Salesman 3 + Int 0`
+**Refs:** crc-MarkReader.md
+**Code:** `src/rules/readmarks.test.ts`
+**Alarm:** 9
+**Fire alarm:** in points, ignore `att` and add the card's Cha as before; red: the none case reads `Investigation 2 + Cha 2`
+**Inject:** src/rules/readmarks.ts:points
+**Pulled:** 2026-11-15 — 2026-11-15 — rang: "what a drop can point at" failed, the none case read base 4 `Investigation 2 + Cha 2`; restored clean

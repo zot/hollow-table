@@ -30,7 +30,7 @@ export type Intent = {
   type?: RollType;
   /** R316: the alternative of a `/` label that was clicked, which names the action. */
   alt?: string;
-  /** R326, R327: what was pointed at on the opponent's card, by name; the number is looked up here. */
+  /** R326, R336: what was pointed at on the opponent's card, by name; the number is looked up here. */
   against?: Against;
 };
 export type RollMsg = { n: number; receipt: Receipt; sealed: Record<string, Box> };
@@ -129,9 +129,10 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
     opp = game.get(ridOf(intent.vs)) as Character | undefined;
     if (opp?.kind !== 'character') return { refused: 'That opponent is not on the table.' };
     const def = marks(parse(opp.front), 'def').map(m => readDefend(m.text)).find(d => d);
-    // R326, R327, R330: a number, Field or Skill pointed at is the base, looked up on the GM's own copy;
+    // R326, R336, R330: a number, Field or Skill pointed at is the base, looked up on the GM's own copy;
+    // R337: a Field or Skill adds the target's attribute the rolled action uses.
     // else (R328) an Attack goes at its own Defend, a Phys Attack at 0; the GM's page decides, not the intent.
-    point = intent.against ? pointed(opp.front, intent.against) : null;
+    point = intent.against ? pointed(opp.front, intent.against, act!.att) : null;
     let base: number;
     if (point) base = point.base;
     else if (kind === 'phys' || !def) base = 0;
@@ -158,7 +159,7 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
     outcome: outcomeWords(outcome, r.result, isAttack(type)), ...(r.crit && { crit: r.crit }), ...attack,
   };
   // R307: an Attack's kind in the `vs` line.
-  // R326, R327: what was pointed at names itself: (Shoot 4), (Investigation 2 + Cha 2), and its total when pools move it.
+  // R326, R336: what was pointed at names itself: (Shoot 4), (Investigation 2 + Cha 2), and its total when pools move it.
   let opposed: string;
   if (point) opposed = point.words + (against !== point.base ? ` → ${against}` : '');
   else opposed = `${kind === 'phys' ? 'physical' : kind} ${against}`;

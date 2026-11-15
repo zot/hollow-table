@@ -1,10 +1,12 @@
-// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R327
+// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
 import { parse, plain, type Line, type MarkName } from '../text/marks.ts';
 
-export type Action = { label: string; base: number; yellows: number; bonus: number };
+/** The attribute an action's roll uses (R337): Cha, Int, or none. */
+export type Att = 'Cha' | 'Int' | null;
+export type Action = { label: string; base: number; yellows: number; bonus: number; att: Att };
 export type Reading = { name: string; sign: 1 | -1 | null; level: string | null };
 export type Defend = { mental: number; psych: number };
 
@@ -36,7 +38,13 @@ export function action(text: string): Action | null {
   if (!label || !parts) return null;
   const b = BASE.exec(parts[0]), d = DICE.exec(parts[1]);
   if (!b || !d || (d[1] === undefined && d[2] === undefined)) return null;
-  return { label, base: signed(b[1]!), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0 };
+  return { label, base: signed(b[1]!), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0, att: actionAtt(text.slice(colon + 1)) };
+}
+
+// R337: an action names its attribute as an entry in its parentheses, `(no att)` none, `(Int)` Int; else Cha.
+function actionAtt(text: string): Att {
+  const entries = [...text.matchAll(/\(([^)]*)\)/g)].flatMap(m => m[1]!.split(',').map(e => e.trim().toLowerCase()));
+  return entries.includes('no att') ? null : entries.includes('int') ? 'Int' : 'Cha';
 }
 
 export const LEVEL_WORDS = ['Min', 'Sig', 'Maj', 'Ext', 'Exq'] as const;
@@ -196,18 +204,22 @@ export function skillsLine(text: string): { level: number; skills: { name: strin
 /** A Field Skill line's name: its ✓, its XP-cost note (`(x2)`, `(x2, Rhetoric)`) and any written Level after it set aside. */
 const skillName = (text: string) => text.replace(/^\s*✓\s*/, '').replace(/\s+\d+\s*$/, '').replace(/\s*\(x\d+[^)]*\)/gi, '').trim();
 
-// R326, R327: what a drop can point at on a card, by name, so a roll carries names and never numbers
+// R326, R336: what a drop can point at on a card, by name, so a roll carries names and never numbers
 // (R100) and the GM's page looks the number up on its own copy.
 export type Against = { def: 'mental' | 'psych' } | { act: string } | { fld: string } | { skl: string };
 /** One thing on a card's front a drop can point at: where it is, what it is, its base and its words. */
 export type Point = { line: number; start: number; end: number; against: Against; base: number; words: string };
 
-/** Everything on a card's front a drop can point at: Defend numbers, actions' Bases, Fields and Skills (Level plus Cha). */
-export function points(front: string): Point[] {
-  const lines: Line[] = parse(front), out: Point[] = [];
-  let cha = 0;
-  for (const l of lines) for (const r of l) if (typeof r !== 'string' && r.mark === 'att') cha = attributes(r.text).Cha ?? cha;
-  const plus = (level: number) => ` ${level} + Cha ${cha}`;
+/**
+ * Everything on a card's front a drop can point at: Defend numbers, actions' Bases, Fields and Skills
+ * (Level plus the card's `att`, the attribute the acting action uses; none when null, 0 when unlisted).
+ */
+export function points(front: string, att: Att = 'Cha'): Point[] {
+  const lines: Line[] = parse(front), out: Point[] = [], attrs: Record<string, number> = {};
+  for (const l of lines) for (const r of l) if (typeof r !== 'string' && r.mark === 'att') Object.assign(attrs, attributes(r.text));
+  // R336: the attribute the acting action uses, from the target's card.
+  const value = att ? attrs[att] ?? 0 : 0;
+  const plus = (level: number) => ` ${level}` + (att ? ` + ${att} ${value}` : '');
   let fieldLevel: number | null = null;
   lines.forEach((l, line) => {
     let at = 0, onlySkills = true, sawField = false;
@@ -230,15 +242,15 @@ export function points(front: string): Point[] {
           against: { act: a.label }, base: a.base, words: `${a.label} ${a.base}` });
       } else if (r.mark === 'fld') {
         const f = field(t);
-        if (f) { out.push({ line, start: at, end: at + len, against: { fld: f.name }, base: f.level + cha, words: f.name + plus(f.level) }); fieldLevel = f.level; sawField = true; }
+        if (f) { out.push({ line, start: at, end: at + len, against: { fld: f.name }, base: f.level + value, words: f.name + plus(f.level) }); fieldLevel = f.level; sawField = true; }
       } else if (r.mark === 'skl') {
         const many = skillsLine(t);
         if (many) {
-          for (const k of many.skills) out.push({ line, start: at + k.start, end: at + k.end, against: { skl: k.name }, base: many.level + cha, words: k.name + plus(many.level) });
+          for (const k of many.skills) out.push({ line, start: at + k.start, end: at + k.end, against: { skl: k.name }, base: many.level + value, words: k.name + plus(many.level) });
           fieldLevel = null;
         } else if (fieldLevel !== null) {
           const level = fieldLevel + (/^\s*✓/.test(t) ? 1 : 0), name = skillName(t);
-          if (name) out.push({ line, start: at, end: at + len, against: { skl: name }, base: level + cha, words: name + plus(level) });
+          if (name) out.push({ line, start: at, end: at + len, against: { skl: name }, base: level + value, words: name + plus(level) });
         }
       } else onlySkills = false;
       at += len;
@@ -250,7 +262,7 @@ export function points(front: string): Point[] {
 }
 
 /** The point on a card's front that a roll's `against` names, or null when it names nothing there. */
-export function pointed(front: string, against: Against): Point | null {
+export function pointed(front: string, against: Against, att: Att = 'Cha'): Point | null {
   const key = JSON.stringify(against);
-  return points(front).find(p => JSON.stringify(p.against) === key) ?? null;
+  return points(front, att).find(p => JSON.stringify(p.against) === key) ?? null;
 }

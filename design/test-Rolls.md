@@ -159,7 +159,7 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Pulled:** 2026-11-13 — 2026-11-13 — rang: "a CRIT's choice moves an Attack's amount" failed (result stayed 12); restored clean
 
 ## Test: pointing at the opposition
-**Purpose:** R326, R327, R330: the GM's page looks up what was pointed at by name on its own copy (a Defend number, an action's Base, a Skill's Level plus Cha) and names it in `vs`; a name not on the card falls back to Defend (R328); a pointed Attack is still an Attack
+**Purpose:** R326, R336, R330: the GM's page looks up what was pointed at by name on its own copy (a Defend number, an action's Base, a Skill's Level plus Cha) and names it in `vs`; a name not on the card falls back to Defend (R328); a pointed Attack is still an Attack
 **Input:** Beauford's Infer at Sam pointed at `{def: psych}`, `{act: Shoot}`, `{skl: Investigation}`, `{skl: Flying}`; his Mental Attack pointed at `{def: psych}`
 **Expected:** `vs Sam (psych 4 → 10)`, `(Shoot 4 → 10)`, `(Investigation 2 + Cha 2 → 10)`, `(mental 8)`; the Attack `(psych 4 → 10)` with its `attack` still mental
 **Refs:** crc-Rolls.md, crc-MarkReader.md
@@ -168,3 +168,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** ignore the intent's `against` in `resolve` (`point = null`); red: every pointed line reads as Defend
 **Inject:** src/net/rolls.ts:resolve
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: "pointing at the opposition" failed (psych 4 read as Defend); restored clean
+
+## Test: the rolled action's attribute
+**Purpose:** R337: the GM's page adds the target's attribute that the rolled action names to a Skill pointed at
+**Input:** Beauford given `Shoot: 3, +1 (unfr, no att)` and `Recall: 3, +1 (Int)`, each rolled at Sam pointed at `{skl: Investigation}` (Sam has a +6 chip in Main)
+**Expected:** `vs Sam (Investigation 2 → 8)`, `vs Sam (Investigation 2 + Int 2 → 10)`
+**Refs:** crc-Rolls.md, crc-MarkReader.md
+**Code:** src/net/rolls.test.ts
+**Alarm:** 14
+**Fire alarm:** in resolve, call pointed without the action's attribute; red: Shoot reads `Investigation 2 + Cha 2 → 10`
+**Inject:** src/net/rolls.ts:resolve
+**Pulled:** 2026-11-15 — 2026-11-15 — rang: "pointing at the opposition" failed, Shoot read `Sam (Investigation 2 + Cha 2 → 10)`; restored clean

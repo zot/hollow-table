@@ -103,8 +103,16 @@ How Damage leaves: a Mild Damage Resource disappears immediately after the Conte
 Afflictions last one hour per point and all go with sleep; a Temporary Bias or Affliction ends with
 the scene; Injuries last until healed. End already recharges spent Levels (R117).
 
-@undecided: whether End also clears Mild slots, and how much of the rest the table tracks rather
-than leaving to the GM.
+~~@undecided: whether End also clears Mild slots, and how much of the rest the table tracks rather
+than leaving to the GM.~~ Settled below.
+
+DECIDED (Bill, 2026-11-15): **End clears the Mild slots**, name and boxes, in all three columns: End
+ends the Conflict, and the book's Mild Damage "disappears immediately after the Contest". The hours,
+sleep, Temporary Biases and Afflictions, and healing stay the GM's call, erased by hand; the table
+knows no clock, Scene or Event.
+DECIDED (Bill, 2026-11-15): **End keeps recharging Biases, Afflictions and Injuries** (R117), a
+table ruling: the book has Biases and Afflictions "recover their points at the end of the Event",
+and at this table End stands in for that.
 
 ## Item 6
 
