@@ -1,4 +1,4 @@
-// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R370, R185, R348, R371
+// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R371, R377
 // Who may read what, and each record as a given viewer may see it. Pure. The invariant: no page
 // ever holds, in the clear, a secret its person may not read.
 
@@ -38,10 +38,12 @@ export function contribution(i: Chip | Influence, chars: Characters): boolean {
 
 function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRecord | undefined {
   if (r.kind === 'character') return canSee(viewer, r) ? r : { ...r, front: blank(r.front), back: blankBack(r.back) };
-  // R370: the private mat of a pool the viewer can't see never reaches them, not even face-down.
+  // R378: the private mat of a pool the viewer can't see never reaches them, not even face-down.
   if (r.kind === 'chip' || r.kind === 'influence') {
     const pool = poolOf(r, chars);
-    if (pool && !canSee(viewer, pool) && !contribution(r, chars)) return undefined;
+    // R377: Stagger is always seen, whoever put it there.
+    const stagger = typeof r.where === 'object' && 'slot' in r.where && r.where.name === 'stagger';
+    if (pool && !stagger && !canSee(viewer, pool) && !contribution(r, chars)) return undefined;
   }
   if (r.kind === 'influence') {
     const home = chars(r.home);
@@ -54,7 +56,7 @@ function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRe
 }
 
 // R150, R185: the record as that viewer may see it; a burial's records are redacted the same way.
-// R370: nothing at all for a piece of a private mat the viewer may not see.
+// R378: nothing at all for a piece of a private mat the viewer may not see.
 export function redact(record: Rec, viewer: Viewer, chars: Characters): Rec | undefined {
   if ('kind' in record) return redactPiece(record, viewer, chars);
   if ('yards' in record) return redactYards(record, viewer, chars);

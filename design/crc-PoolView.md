@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285, R360, R366, R368, R369
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285, R360, R366, R379, R369, R377
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -56,8 +56,9 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   under the stronger one before it (stronger drawn on top).
 - piles (R236): a stack of discs in their color; open, the members listed beside the disc, each
   with its name, and each a chip like any other (R369): a click raises that member itself.
-- unpiled (R368): a pool its viewer can't see (Visibility.canSee) is drawn as its contributions,
-  never piled; piles are worked out only where the private mat is seen.
+- unpiled (R379): a pool its viewer can't see (Visibility.canSee) is drawn as its contributions,
+  never piled, except its Stagger slot, which is public and piled for everyone (R377); piles are
+  otherwise worked out only where the private mat is seen.
 - pops(before, after) (R237): pure. What pops in a redraw: a chip or card whose points changed, a
   pile that formed; popping is a brief grow
   from 1.5× with a white ring.

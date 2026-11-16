@@ -60,7 +60,7 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   pile. A member is a chip like any other: clicking it raises that chip itself (Bill, 11-16: "raising
   a member-chip of a pile raises that chip itself, and if it's a public chip, the players will all
   see the public chip change").
-- **A pool you can't see isn't piled**: its contributions show as they were put, since Roll Ups
+- **A pool you can't see isn't piled**, except its Stagger, which everyone sees: its contributions show as they were put, since Roll Ups
   happen behind the screen (`ownership.md`).
 - **A Roll Up pops:** a chip or pile it makes grows in from half again its size with a white ring,
   and a card's Level changing pops the same way.

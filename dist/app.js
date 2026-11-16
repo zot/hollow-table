@@ -887,7 +887,8 @@ function redactPiece(r, viewer, chars) {
   if (r.kind === "character") return canSee(viewer, r) ? r : { ...r, front: blank(r.front), back: blankBack(r.back) };
   if (r.kind === "chip" || r.kind === "influence") {
     const pool = poolOf(r, chars);
-    if (pool && !canSee(viewer, pool) && !contribution(r, chars)) return void 0;
+    const stagger = typeof r.where === "object" && "slot" in r.where && r.where.name === "stagger";
+    if (pool && !stagger && !canSee(viewer, pool) && !contribution(r, chars)) return void 0;
   }
   if (r.kind === "influence") {
     const home = chars(r.home);
@@ -9249,7 +9250,7 @@ function drawPool(c, items, old, w) {
   holdingOf.set(e, slotEls.map((slotEl, k) => mine[k].length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
   layout(e);
   const pileUp = canSee(w.viewer, c);
-  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown3, drawn, pileUp));
+  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown3, drawn, pileUp || slotEl.dataset.slot === "stagger"));
   drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown3, drawn);
   for (const k of pops(seen2.get(e), shown3)) pop(drawn.get(k));
   seen2.set(e, shown3);

@@ -41,7 +41,11 @@ The die by the character's name shows GM, open, or the player.
 - **A chip remembers who put it in a pool** (`by`), and a chip moved into a pool from the table takes
   the mover's name. A chip moved into a hidden pool by its own side goes private, leaving the other
   pages. Chips already in pools before this belong to the private mat.
-- **Roll Ups happen behind the screen**: piles are worked out only where the private mat is seen;
+- **Stagger is always seen** (Bill, 11-16: "Stagger should always be visible to everyone. They can
+  tell when the opposition is becoming off-balance and when they use a Rest action to clear it up"):
+  a pool's Stagger slot is public whoever put its chips there, on neither mat, and shows to everyone
+  as its owner sees it, piles included; a card in it from a hidden character face-down with its value.
+- **Roll Ups happen behind the screen**: outside Stagger, piles are worked out only where the private mat is seen;
   a pool you can't see shows its contributions as they were put, never piled (Bill, 11-16: "The
   public view should only show publicly contributed influences and chips and should not do rollup").
 - **The GM sees the private mats**; "You are" shows the table as a player sees it.

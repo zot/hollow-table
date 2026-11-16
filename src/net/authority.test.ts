@@ -153,8 +153,8 @@ test('the private mat on the wire', async () => {
   game.change(w => w.put(CHIP, onTable));
   await room.settle();
   assert.equal(pubPuts('dana', CHIP).length, 1, 'on the table: public');
-  // The GM moves it into Devreux's Stagger: it goes private, a removal and no tomb.
-  game.change(w => w.put(CHIP, { ...onTable, where: { slot: DEVREUX, name: 'stagger' }, by: 'GM' }));
+  // The GM moves it into Devreux's Main: it goes private, a removal and no tomb.
+  game.change(w => w.put(CHIP, { ...onTable, where: { slot: DEVREUX, name: 'main' }, by: 'GM' }));
   await room.settle();
   assert.equal(pubDels('dana', CHIP).length, 1, 'removed from the public part');
   assert.equal(pubPuts('dana', CHIP).length, 1, 'and never put again');
@@ -164,11 +164,11 @@ test('the private mat on the wire', async () => {
   await room.settle();
   assert.equal(pubPuts('ann', CHIP).length, 2);
   // Dana's contribution to Devreux is public.
-  game.change(w => w.put(CHIP, { ...onTable, where: { slot: DEVREUX, name: 'stagger' }, by: 'Dana' }));
+  game.change(w => w.put(CHIP, { ...onTable, where: { slot: DEVREUX, name: 'main' }, by: 'Dana' }));
   await room.settle();
   assert.equal((pubPuts('ann', CHIP).at(-1)!.rec as Chip).by, 'Dana');
   // Ann's own chip on Beauford: sealed to her, never in the public part.
-  const priv: Chip = { ...onTable, oid: '000000c2', where: { slot: BEAUFORD, name: 'stagger' }, by: 'Ann' };
+  const priv: Chip = { ...onTable, oid: '000000c2', where: { slot: BEAUFORD, name: 'main' }, by: 'Ann' };
   game.change(w => w.put(PRIV, priv));
   await room.settle();
   assert.deepEqual([pubPuts('dana', PRIV).length, own('ann', PRIV).length, own('dana', PRIV).length], [0, 1, 0]);

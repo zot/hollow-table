@@ -127,7 +127,7 @@ by the drop
 
 ## Test: two mats: a pool hidden from you shows only what others put in it
 **Purpose:** R358–R361 over the wire: a chip the GM moves into Devreux's pool leaves the players' pages and comes back with it; Dana's contribution there reaches everyone by her name; her own chip on Sam (hers now) stays on her page, sealed over the public removal, leaves Eve's, and survives a reload, while Eve's reload doesn't bring it
-**Input:** the GM's table, Dana and Eve; a chip on the table, into Devreux's Stagger by the GM, back; into Devreux's Stagger by Dana; Sam given to Dana; the chip into Sam's Stagger by Dana; Dana and Eve reload
+**Input:** the GM's table, Dana and Eve; a chip on the table, into Devreux's Main by the GM, back; into Devreux's Main by Dana; Sam given to Dana; the chip into Sam's Stagger by Dana; Dana and Eve reload
 **Expected:** Dana has it, then not, Eve not; Eve has it back; `by` Dana on the GM's and Eve's pages; the GM's has it in Sam's pool, Eve's not, Dana's yes; after reloads Dana's yes, Eve's no
 **Refs:** crc-Copy.md, crc-Authority.md, crc-Visibility.md
 **Code:** `tests/secret.spec.ts`
@@ -137,9 +137,9 @@ by the drop
 **Pulled:** 2026-11-16 — rang (Chromium): "two mats" failed at Dana's own chip on Sam, gone from her page; restored clean
 
 ## Test: a hidden pool's contributions are never piled for players
-**Purpose:** R368: Dana's three −2s on Devreux's Stagger pile on the GM's page and show as put on hers
-**Input:** the GM's table and Dana; three −2 chips by Dana on Devreux's Stagger
-**Expected:** the GM's Stagger shows a −4 pile; Dana's three −2 chips and no pile
+**Purpose:** R379: Dana's three −2s in Devreux's Main pile on the GM's page and show as put on hers
+**Input:** the GM's table and Dana; three −2 chips by Dana in Devreux's Main
+**Expected:** the GM's Main shows a −4 pile; Dana's three −2 chips and no pile
 **Refs:** crc-PoolView.md
 **Code:** `tests/secret.spec.ts`
 **Alarm:** 8
@@ -157,3 +157,14 @@ by the drop
 **Fire alarm:** send only pieces and Boot Hill, not `rows` (the old filter); red: the GM's page never shows Infer
 **Inject:** src/net/copy.ts:#changed
 **Pulled:** 2026-11-16 — rang (Chromium): the GM's page never showed Infer; restored clean
+
+## Test: Stagger is seen, and piled, by everyone
+**Purpose:** R377 over the wire: the GM's three −2s in Devreux's Stagger reach Dana as the GM sees them, a −4 pile; one in his Main doesn't reach her
+**Input:** the GM's table and Dana; three −2 chips by the GM in Devreux's Stagger, one in his Main
+**Expected:** Dana's Stagger shows a −4 pile; her Main has no chip
+**Refs:** crc-PoolView.md, crc-Visibility.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 10
+**Fire alarm:** leave a hidden pool's Stagger unpiled (drop the `stagger` case from `pileUp`); red: Dana's Stagger shows three −2s, no pile
+**Inject:** src/ui/pool.ts:drawPool
+**Pulled:** 2026-11-16 — rang (Chromium): Dana's Stagger had no −4 pile; restored clean

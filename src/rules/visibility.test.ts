@@ -93,9 +93,9 @@ test("the world's number is the GM's alone", () => {
 });
 
 test('two mats: the private one reaches only its owner and the GM', () => {
-  // R358, R370: a chip in a pool is public only when someone other than its character's owner put it
+  // R358, R378: a chip in a pool is public only when someone other than its character's owner put it
   // there; a card, when its home character has another owner. Sam is Dana's, Devreux the GM's.
-  const chip = (slot: string, by?: string): Chip => ({ kind: 'chip', oid: '000000c1', where: { slot, name: 'stagger' }, n: 0, sign: -1, points: 2,
+  const chip = (slot: string, by?: string): Chip => ({ kind: 'chip', oid: '000000c1', where: { slot, name: 'main' }, n: 0, sign: -1, points: 2,
     rider: false, ...(by && { by }) });
   const [nobody, dana, gm] = VIEWERS as [Viewer, Viewer, Viewer], ann: Viewer = { name: 'Ann', gm: false };
   const gmsOwn = chip(DEVREUX, 'GM'), danas = chip(DEVREUX, 'Dana'), old = chip(DEVREUX), onSam = chip(SAM, 'GM'), samsOwn = chip(SAM, 'Dana');
@@ -124,4 +124,12 @@ test("a roll row is the table's, but not one behind the GM's screen", () => {
   const rows: Rec = { rows: { [DEVREUX]: { ...r, priv: true }, [SAM]: { ...r, pool: SAM } } };
   assert.deepEqual(Object.keys((redact(rows, { name: 'Dana', gm: false }, look) as { rows: object }).rows), [SAM]);
   assert.deepEqual(redact(rows, { name: 'GM', gm: true }, look), rows);
+});
+
+test('Stagger is always seen', () => {
+  // R377: the GM's own −2 in Devreux's Stagger reaches Dana; the same chip in his Main doesn't.
+  const chip = (name: 'stagger' | 'main'): Chip => ({ kind: 'chip', oid: '000000c3', where: { slot: DEVREUX, name }, n: 0, sign: -1, points: 2, rider: false, by: 'GM' });
+  const dana: Viewer = { name: 'Dana', gm: false };
+  assert.deepEqual(redact(chip('stagger'), dana, look), chip('stagger'));
+  assert.equal(redact(chip('main'), dana, look), undefined);
 });

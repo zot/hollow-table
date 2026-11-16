@@ -164,8 +164,9 @@
 - **R344:** At End, an Influence card tapped from a Mild slot (or one of its boxes) goes, wherever it is, rolled or not; a card also fed by other sources instead loses the Levels its ledger says Mild sources gave (2 points each, never below Min) and keeps the rest, its ledger and current source left with the others.
 - **R366:** Three chips or cards of one value and color in a slot form a pile acting as the next Level, chaining; chips never merge: each stays as it was put, and the piles are worked out from them each time, the same way every time, so a chip taken out, raised or lowered changes the piles.
 - **R367:** A chip carrying a +1 counts at its face value in a pile; its +1 is not counted while it is there, and stays on the chip.
-- **R368:** A pool its viewer can't see shows the contributions in it as they were put, never piled.
+- **~~R368:~~** (Retired T38 — see R379) A pool its viewer can't see shows the contributions in it as they were put, never piled.
 - **R369:** A member of an open pile is a chip or card like any other: clicking a member chip raises it (shift-click lowers it), the chip itself changing, a contribution on every page.
+- **R379:** A pool its viewer can't see shows the contributions in it as they were put, never piled, except its Stagger slot, which shows piled to everyone.
 
 ## Feature: rolls
 **Source:** specs/rolls.md
@@ -339,7 +340,9 @@
 - **R358:** A contribution is an Influence put in a pool by someone other than its character's owner: a chip whose `by` is not the owner, or a card whose home character has another owner; contributions are the public mat, seen by everyone, a card from a hidden character face-down with its value.
 - **~~R359:~~** (Retired T30 — see R370) Everything else in a pool (what its own side put there, Roll Ups, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats, and the game counts both.
 - **R360:** A chip put in a pool records who put it there (`by`): dropped on a slot or added in one, it takes the acting person's name, and its `by` stays as it is raised or lowered; the GM's page refuses a player's chip whose `by` changes to anyone but the sender.
-- **R370:** Everything else in a pool (what its own side put there, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats; the game counts the whole pool, piled, contributions included, and the public mat is only for watching.
+- **~~R370:~~** (Retired T37 — see R378) Everything else in a pool (what its own side put there, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats; the game counts the whole pool, piled, contributions included, and the public mat is only for watching.
+- **R377:** A pool's Stagger slot is public whoever put its chips there: everything in it reaches every page (a card from a hidden character face-down with its value), and it shows piled, as its owner sees it.
+- **R378:** Everything else in a pool outside its Stagger slot (what its own side put there, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats; the game counts the whole pool, piled, contributions included, and the public mat is only for watching.
 
 ## Feature: the network
 **Source:** specs/network.md

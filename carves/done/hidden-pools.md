@@ -14,7 +14,7 @@ and influences for NPCs, except those contributed by the players."
 - [x] ~~**Item 1 — the two mats on the wire.**~~ **LANDED (2026-11-16 — `#20`.)**
 - [x] ~~**Item 2 — Roll Ups behind the screen.**~~ **LANDED (2026-11-16 — `#21`.)**
 - [x] ~~**Item 3 — the GM aims a player's roll.**~~ **LANDED (2026-11-16 — `#22`.)**
-- [ ] **Item 4 — Stagger is always seen.** **OPEN (#23.)**
+- [x] ~~**Item 4 — Stagger is always seen.**~~ **LANDED (2026-11-16 — `#23`.)**
 
 ## Decisions
 

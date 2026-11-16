@@ -205,3 +205,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T34: R85 retired by R373 (the GM's page sets the White and writes it into the row (#22))
 - T35: R88 retired by R374 (every player's White is locked; numbers follow the viewer (#22))
 - T36: R349 retired by R376 (only the GM aims at the world, so the player's note is gone (#22))
+- T37: R370 retired by R378 (outside the Stagger slot, which everyone sees (#23))
+- T38: R368 retired by R379 (a hidden pool's Stagger shows piled (#23))

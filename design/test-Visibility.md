@@ -52,8 +52,8 @@ the GM's view is unchanged
 **Pulled:** 2026-11-15 — rang: "the world's number is the GM's alone" failed, Dana's view kept 4; restored clean
 
 ## Test: two mats: the private one reaches only its owner and the GM
-**Purpose:** R358, R370: a chip in a pool is a contribution only when someone other than its character's owner put it there, a card when its home has another owner; contributions are public, the private mat absent (not face-down) to anyone but the owner and the GM, in a burial too
-**Input:** chips on Devreux's Stagger by the GM, by Dana, with no `by`; on Sam's by the GM and by Dana (Sam is Dana's); Devreux's card in his own Main, Sam's in Devreux's; a burial of Devreux with the GM's chip
+**Purpose:** R358, R378: a chip in a pool is a contribution only when someone other than its character's owner put it there, a card when its home has another owner; contributions are public, the private mat absent (not face-down) to anyone but the owner and the GM, in a burial too
+**Input:** chips in Devreux's Main by the GM, by Dana, with no `by`; in Sam's by the GM and by Dana (Sam is Dana's); Devreux's card in his own Main, Sam's in Devreux's; a burial of Devreux with the GM's chip
 **Expected:** contributions false, true, false, true, false; the GM's own chip absent for nobody, Dana and Ann, whole for the GM; Dana's and the GM's-on-Sam whole for Ann; Dana's own on Sam absent for Ann, whole for Dana; Devreux's card absent for Dana; Sam's face-down with its points for Ann; the burial holds only the character for Dana
 **Refs:** crc-Visibility.md
 **Code:** `src/rules/visibility.test.ts`
@@ -72,3 +72,14 @@ the GM's view is unchanged
 **Fire alarm:** send private rows to everyone (drop the filter); red: Dana's view holds Devreux's
 **Inject:** src/rules/visibility.ts:redact
 **Pulled:** 2026-11-16 — rang: "a roll row is the table's" failed, Dana's view held Devreux's private row; restored clean
+
+## Test: Stagger is always seen
+**Purpose:** R377: a chip in a Stagger slot reaches every page whoever put it there; the same chip in a private slot doesn't
+**Input:** the GM's −2 in Devreux's Stagger, and in his Main, redacted for Dana
+**Expected:** the Stagger chip whole; the Main chip absent
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 7
+**Fire alarm:** treat Stagger like any private slot (drop the `stagger` exception); red: the Stagger chip is absent
+**Inject:** src/rules/visibility.ts:redactPiece
+**Pulled:** 2026-11-16 — rang: "Stagger is always seen" failed, the Stagger chip absent; restored clean

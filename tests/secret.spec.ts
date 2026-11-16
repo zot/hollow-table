@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R370, R360, R361, R368
+// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377
 // Eve sits at the table owning nothing: no secret word reaches her page in the clear, though she
 // hears the sealed boxes meant for others. Dana sees what she owns, and nothing more.
 import { expect, test, type Page } from '@playwright/test';
@@ -62,8 +62,8 @@ test('two mats: a pool hidden from you shows only what others put in it', async 
   const C = 'o:000000c1', has = async (page: Page) => !!(await recOf(page, C));
   const put = (page: Page, rec: object) => hook(page, new Function('h', `h.store.game.change(w => w.put('${C}', ${JSON.stringify(rec)}))`) as (h: any) => void);
   const onTable = { kind: 'chip', oid: '000000c1', where: { table: { x: 600, y: 600, z: 1, tilt: 0 } }, n: 0, sign: -1, points: 2, rider: false };
-  const inPool = (oid: string, by: string) => ({ ...onTable, where: { slot: oid, name: 'stagger' }, by });
-  // R361: on the table everyone has it; the GM moves it into Devreux's pool and it leaves the players' pages.
+  const inPool = (oid: string, by: string) => ({ ...onTable, where: { slot: oid, name: 'main' }, by });
+  // R361: on the table everyone has it; the GM moves it into Devreux's Main and it leaves the players' pages.
   await put(gm, onTable);
   await expect.poll(() => has(dana), { timeout: 15_000 }).toBe(true);
   await put(gm, inPool('00000003', 'GM'));
@@ -76,7 +76,7 @@ test('two mats: a pool hidden from you shows only what others put in it', async 
   await put(dana, inPool('00000003', 'Dana'));
   await expect.poll(async () => (await recOf(gm, C))?.by, { timeout: 15_000 }).toBe('Dana');
   await expect.poll(async () => (await recOf(eve, C))?.by, { timeout: 15_000 }).toBe('Dana');
-  // R370: Sam given to Dana, her own chip on him is private: it stays on her page, sealed over the
+  // R378: Sam given to Dana, her own chip on him is private: it stays on her page, sealed over the
   // public removal, and leaves Eve's; a reload's catch-up brings it back to her only.
   await hook(gm, new Function('h', `const s = h.store.game.get('${SAM}'); h.store.game.change(w => w.put('${SAM}', { ...s, owner: 'Dana' }));`) as (h: any) => void);
   await expect.poll(async () => (await recOf(dana, SAM)).owner, { timeout: 15_000 }).toBe('Dana');
@@ -93,15 +93,29 @@ test('two mats: a pool hidden from you shows only what others put in it', async 
 });
 
 test("a hidden pool's contributions are never piled for players", async ({ browser }) => {
-  // R368: Dana's three −2s on Devreux's Stagger: piled on the GM's page, as put on hers.
+  // R379: Dana's three −2s in Devreux's Main: piled on the GM's page, as put on hers.
   test.setTimeout(120_000);
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
   for (const oid of ['000000d1', '000000d2', '000000d3']) {
-    await hook(dana, new Function('h', `h.store.game.change(w => w.put('o:${oid}', { kind: 'chip', oid: '${oid}', where: { slot: '00000003', name: 'stagger' }, n: 0, sign: -1, points: 2, rider: false, by: 'Dana' }))`) as (h: any) => void);
+    await hook(dana, new Function('h', `h.store.game.change(w => w.put('o:${oid}', { kind: 'chip', oid: '${oid}', where: { slot: '00000003', name: 'main' }, n: 0, sign: -1, points: 2, rider: false, by: 'Dana' }))`) as (h: any) => void);
   }
-  const stagger = (page: Page) => page.locator(`.obj.pool[data-rid="${DEVREUX}"] .slot-stagger`);
-  await expect(stagger(gm).locator('.pile .disc')).toHaveText('−4', { timeout: 15_000 });
-  await expect(stagger(dana).locator('.chip')).toHaveText(['−2', '−2', '−2'], { timeout: 15_000 });
-  await expect(stagger(dana).locator('.pile')).toHaveCount(0);
+  const main = (page: Page) => page.locator(`.obj.pool[data-rid="${DEVREUX}"] .slot-main`);
+  await expect(main(gm).locator('.pile .disc')).toHaveText('−4', { timeout: 15_000 });
+  await expect(main(dana).locator('.chip')).toHaveText(['−2', '−2', '−2'], { timeout: 15_000 });
+  await expect(main(dana).locator('.pile')).toHaveCount(0);
+});
+
+test('Stagger is seen, and piled, by everyone', async ({ browser }) => {
+  // R377: the GM's three −2s on Devreux's Stagger reach Dana as the GM sees them, a −4 pile; one in
+  // his Main doesn't reach her at all.
+  test.setTimeout(120_000);
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  for (const [oid, slot] of [['000000e1', 'stagger'], ['000000e2', 'stagger'], ['000000e3', 'stagger'], ['000000e4', 'main']]) {
+    await hook(gm, new Function('h', `h.store.game.change(w => w.put('o:${oid}', { kind: 'chip', oid: '${oid}', where: { slot: '00000003', name: '${slot}' }, n: 0, sign: -1, points: 2, rider: false, by: 'GM' }))`) as (h: any) => void);
+  }
+  const pool = (page: Page) => page.locator(`.obj.pool[data-rid="${DEVREUX}"]`);
+  await expect(pool(dana).locator('.slot-stagger .pile .disc')).toHaveText('−4', { timeout: 15_000 });
+  await expect(pool(dana).locator('.slot-main .chip')).toHaveCount(0);
 });

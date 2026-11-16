@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R366, R53, R64, R251, R268, R269, R285, R360, R368
+// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R366, R53, R64, R251, R268, R269, R285, R360, R379, R377
 // A character's pool mat: the seven slots, the drawer of Influence cards with its writers, used pile
 // and kill box, and the header. What a click or a drop does is in actions.ts; this only draws and
 // listens.
@@ -128,9 +128,10 @@ export function drawPool(c: Character, items: Item[], old: HTMLElement | undefin
   // R228, R31: slots open from the left as many as fit, holding ones always; the rest are strips.
   holdingOf.set(e, slotEls.map((slotEl, k) => mine[k]!.length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
   layout(e);
-  // R368: a pool its viewer can't see shows its contributions as put, never piled.
+  // R379: a pool its viewer can't see shows its contributions as put, never piled.
   const pileUp = canSee(w.viewer, c);
-  slotEls.forEach((slotEl, k) => units(slotEl, mine[k]!, w, shown, drawn, pileUp));
+  // R377: Stagger is public, so it piles for everyone, as its owner sees it.
+  slotEls.forEach((slotEl, k) => units(slotEl, mine[k]!, w, shown, drawn, pileUp || slotEl.dataset.slot === 'stagger'));
   drawer(e.querySelector('.drawer')!, c, items.filter(i => i.kind === 'influence' && i.home === c.oid) as Influence[], w, shown, drawn);
   // R237: what a Roll Up made, or whose points changed, pops.
   for (const k of pops(seen.get(e), shown)) pop(drawn.get(k));

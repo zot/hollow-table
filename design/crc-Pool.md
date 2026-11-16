@@ -1,5 +1,5 @@
 # Pool
-**Requirements:** R39, R366, R367, R46, R65, R79, R84, R211, R260, R368
+**Requirements:** R39, R366, R367, R46, R65, R79, R84, R211, R260, R379
 
 What a slot's contents amount to. Pure: given the chips and Influence cards in one slot, it orders
 them, finds Roll Ups, and says what the slot is worth.

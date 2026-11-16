@@ -62,7 +62,7 @@ is tombed
 
 ## Test: the private mat on the wire
 **Purpose:** R361: a piece going private is removed from the public part without a tomb; back out it is public again; a contribution is public; an owner's own chip is sealed to them alone, kept out of a catch-up's public part, and when deleted is taken away from them sealed and tombed
-**Input:** the GM's table (Sam and Devreux the GM's, Beauford Ann's), Dana and Ann listening: a chip on the table, moved into Devreux's Stagger by the GM, back to the table, into Devreux's Stagger by Dana; Ann's own chip on Beauford; a tab joining as Dana; Ann's chip deleted
+**Input:** the GM's table (Sam and Devreux the GM's, Beauford Ann's), Dana and Ann listening: a chip on the table, moved into Devreux's Main by the GM, back to the table, into Devreux's Main by Dana; Ann's own chip on Beauford; a tab joining as Dana; Ann's chip deleted
 **Expected:** Dana gets a public put, then a removal and no second put, no tomb; Ann the put again; the public put says `by: Dana`; Ann's chip: no public put, one sealed to Ann, none to Dana; not in the late tab's public part; then a sealed removal to Ann, none public, and a tomb
 **Refs:** crc-Authority.md
 **Code:** `src/net/authority.test.ts`
