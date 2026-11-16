@@ -64,3 +64,14 @@ sends it
 **Fire alarm:** Start every Stamps at 0, ignoring the storage: the new Stamps' next is 1
 **Inject:** src/net/stamps.ts:constructor
 **Pulled:** 2026-11-12 — rang: the new Stamps' next was 1, not 3
+
+## Test: a private mat's piece is carried here alone
+**Purpose:** R361: a carry of a piece nobody-at-all may see never goes to the room, in hand or dropped, while the rest of the carry does
+**Input:** a drop of the private chip alone; a drop of it with a sticky
+**Expected:** nothing sent; then a move with the sticky only
+**Refs:** crc-Moves.md
+**Code:** `src/net/moves.test.ts`
+**Alarm:** 5
+**Fire alarm:** send every item (drop the `shared` filter); red: the private chip's move is sent
+**Inject:** src/net/moves.ts:#sendNow
+**Pulled:** 2026-11-16 — rang: "a private mat's piece is carried here alone" failed, its move was sent; restored clean

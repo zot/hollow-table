@@ -1,5 +1,5 @@
 # Copy
-**Requirements:** R140, R171, R172, R173, R189, R190
+**Requirements:** R140, R171, R172, R173, R189, R190, R361
 
 A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 page answers them.
@@ -16,7 +16,8 @@ page answers them.
   ASK_MS until it arrives (the stored copy shows meanwhile), resending what's due. It sends none of
   its own changes before the table arrives.
 - heardGm(peer): a message from the GM's browser (the invite's `gm=`), `hello` and `here` included.
-- receive(batch): opens its sealed part, replaces the redacted pieces with it, applies what is
+- receive(batch): opens its sealed part, replaces the redacted pieces with it (a sealed put also
+  overrides a public removal of the same piece, and sealed removals apply as removals, R361), applies what is
   fresh (Stamps), skips pieces with a pending change, holds pieces in hand (Moves.hold); takes the
   round from meta; keeps its own tape. A full table also removes what the GM's table doesn't have,
   except pending new pieces. A gap in versions asks for the whole table after GAP_MS.

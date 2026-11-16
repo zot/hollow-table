@@ -1,5 +1,5 @@
 # Envelope
-**Requirements:** R109, R177, R296, R299, R314, R326, R345, R349
+**Requirements:** R109, R177, R296, R299, R314, R326, R345, R349, R361
 
 Every message's shape, checked field by field before anyone reads it. A message that fails any check
 is dropped whole.
@@ -10,7 +10,7 @@ is dropped whole.
   `crit` (a CRIT choice), `refuse`, `claim`.
 - Each kind's body shape, built from the same combinators as `Records.check`. They are provisional
   where the module that owns the kind hasn't landed: `recs` `{g, full, puts: [{rid, s, rec, by?}],
-  dels: [{rid, s, by?}], sealed: {tab: box}}`, `edit` `{box}`, `move` `{s, items: [{rid, x, y, z,
+  dels: [{rid, s, by?}], sealed: {tab: box of {g, puts, dels?}}}`, `edit` `{box}`, `move` `{s, items: [{rid, x, y, z,
   part?, aim?}], drop?}` (aim: `slot {owner, name}`, `drawer {owner, at}`, `kill`, `merge`, `card`,
   `reach {owner, at, from}`, `chip`, each optional, R299), `intent`, `roll` `{n, receipt, sealed: {tab: box of {re, receipt}}}`, `crit`, `refuse`, `claim` `{name, why}` (why null when the page now holds the name, R296), `here` `{name, role}`.
 - Limits: string caps, at most 40 dice per roll, 8 items per move.

@@ -315,11 +315,16 @@
 - **R148:** A player can't take another player's character; clicking it does nothing.
 - **R149:** A player may own several characters.
 - **R150:** A character's sheet and its Influence cards, wherever they are, are readable only by its owner and the GM.
-- **R151:** A character's name and place, its drawer's card count, chip values in pools, and its sheet's shape are public.
-- **R152:** To others, a hidden character's card and drawer cards are face-down, and its pool chips lose their names on hover.
+- **~~R151:~~** (Retired T23 — see R356) A character's name and place, its drawer's card count, chip values in pools, and its sheet's shape are public.
+- **~~R152:~~** (Retired T24 — see R357) To others, a hidden character's card and drawer cards are face-down, and its pool chips lose their names on hover.
 - **R153:** Only a real GM has the "You are" chooser, as a thing at the table; it lists the GM, the players present and the defaults, and stays while the GM views as a player.
 - **R154:** A player's page has no chooser and is fixed to that player.
 - **R155:** The plain page is the GM's; an invite makes a player, named once per browser.
+- **R356:** A character's name and place, its drawer's card count, its sheet's shape, and the contributions in its pool are public.
+- **R357:** To others, a hidden character's card and its drawer's cards are face-down.
+- **R358:** A contribution is an Influence put in a pool by someone other than its character's owner: a chip whose `by` is not the owner, or a card whose home character has another owner; contributions are the public mat, seen by everyone, a card from a hidden character face-down with its value.
+- **R359:** Everything else in a pool (what its own side put there, Roll Ups, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats, and the game counts both.
+- **R360:** A chip put in a pool records who put it there (`by`): dropped on a slot or added in one, it takes the acting person's name, and its `by` stays as it is raised or lowered; the GM's page refuses a player's chip whose `by` changes to anyone but the sender.
 
 ## Feature: the network
 **Source:** specs/network.md
@@ -373,6 +378,7 @@
 - **R193:** A Boot Hill change from a copy that missed a later one is refused whole.
 - **R194:** Image bytes stay in each page's store named by hash; a page missing one asks the table, keeps the first answer that hashes right, and can then answer others.
 - **R195:** A missing image shows striped and marked missing with why, and is asked for again every 10 s.
+- **R361:** A piece someone may not see at all is left out of a batch's public part and sealed to those who may; when it stops being public, its removal goes out without a tomb, and a tab that alone stops seeing it gets the removal sealed; no page sends its carry to the room.
 
 ## Feature: delivery
 **Source:** specs/delivery.md

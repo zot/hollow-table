@@ -7,6 +7,9 @@ import { memoryStorage, fakeClock } from '../store/fakes.ts';
 
 const STICKY = 'o:00000008';
 
+/** A private mat's chip: its carry never goes to the room (R361). */
+const SECRET = 'o:000000c2';
+
 /** A receiving page: one piece's x, a manual scheduler, and what it sent. */
 function page() {
   const stamps = new Stamps(memoryStorage());
@@ -14,7 +17,7 @@ function page() {
   const sent: Move[] = [];
   const { clock, advance } = fakeClock();
   const moves = new Moves({
-    stamps, tab: 'me', send: m => sent.push(m), timers: clock,
+    stamps, tab: 'me', send: m => sent.push(m), timers: clock, shared: rid => rid !== SECRET,
     place: (cs: Command[]) => { for (const c of cs) if (c.rid === STICKY) x = c.x; },
     schedule: fn => { queued.push(fn); },
   });
@@ -96,7 +99,7 @@ test('a move carries its aim, and a drop says it let go', () => {
   const stamps = new Stamps(memoryStorage()), got: Command[] = [], sent: Move[] = [];
   const { clock, advance } = fakeClock();
   let queued: (() => void)[] = [];
-  const moves = new Moves({ stamps, tab: 'me', send: m => sent.push(m), timers: clock, place: cs => got.push(...cs), schedule: fn => { queued.push(fn); } });
+  const moves = new Moves({ stamps, tab: 'me', send: m => sent.push(m), timers: clock, shared: () => true, place: cs => got.push(...cs), schedule: fn => { queued.push(fn); } });
   const aim = { slot: { owner: '00000001', name: 'main' as const }, chip: true };
   moves.drag([{ rid: STICKY, x: 5, y: 6, z: 1, aim }]);
   advance(SEND_MS);
@@ -106,4 +109,13 @@ test('a move carries its aim, and a drop says it let go', () => {
   while (queued.length) { const q = queued; queued = []; q.forEach(f => f()); }
   // Both arrived in one pass: the drop, the newest, places it, and says so.
   assert.deepEqual(got.map(c => [c.x, c.drop, c.aim]), [[9, true, undefined]]);
+});
+
+test("a private mat's piece is carried here alone", () => {
+  // R361: the room hears nothing of it, in hand or dropped; a carry with it still sends the rest.
+  const p = page();
+  p.moves.drop([{ rid: SECRET, x: 1, y: 0, z: 0 }]);
+  assert.equal(p.sent.length, 0);
+  p.moves.drop([{ rid: SECRET, x: 1, y: 0, z: 0 }, { rid: STICKY, x: 2, y: 0, z: 0 }]);
+  assert.deepEqual(p.sent.map(m => m.items.map(i => i.rid)), [[STICKY]]);
 });

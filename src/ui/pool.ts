@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64, R251, R268, R269, R285
+// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R52, R53, R64, R251, R268, R269, R285, R360
 // A character's pool mat: the seven slots, the drawer of Influence cards with its writers, used pile
 // and kill box, and the header. What a click or a drop does is in actions.ts; this only draws and
 // listens.
@@ -200,11 +200,11 @@ function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
       click: ev => {
         if ((ev.target as HTMLElement).closest('.chip, .pile')) return;
         if (slot.classList.contains('narrow')) { w.toggle('slots', `${c.oid}:${s}`, true); return; }
-        run(w.game, addLoose(w.game, c.oid, s, false, w.mint()));
+        run(w.game, addLoose(w.game, c.oid, s, false, w.mint(), w.viewer?.name));
       },
       shift: ev => {
         if ((ev.target as HTMLElement).closest('.chip, .pile') || slot.classList.contains('narrow')) return;
-        run(w.game, addLoose(w.game, c.oid, s, true, w.mint()));
+        run(w.game, addLoose(w.game, c.oid, s, true, w.mint(), w.viewer?.name));
       },
     });
     slots.append(slot);

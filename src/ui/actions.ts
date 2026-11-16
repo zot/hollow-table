@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R260, R268, R269
+// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R260, R268, R269, R360
 // What a click or a drop on a pool, a drawer or a glyph does to the game, as one change. Pure: each
 // takes the game and gives a writer for Game.change (or null when nothing happens), so the views stay
 // thin and these are tested without a browser.
@@ -6,7 +6,7 @@
 import type { Game, Writer } from '../model/game.ts';
 import {
   PLAYER_OIDS, isPiece, oidOf, ridOf, type Character, type Chip, type Influence, type Oid, type Place, type Rec,
-  type Rid, type Sign, type SlotName, type Where,
+  type Rid, type Sign, type SlotName, type Where, type Who,
 } from '../model/records.ts';
 import { lowerCard, lowerChip, raiseCard, raiseChip, MIN } from '../rules/influence.ts';
 import { accepts, rollUp, type Item } from '../rules/pool.ts';
@@ -59,12 +59,17 @@ function withItem(game: Game, owner: Oid, slot: SlotName, changed: Item | null, 
 }
 
 // R39, R47: a chip or card dropped on a slot joins it (a Damage card only its own kind's slot).
-export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, mint: () => Oid): Change | null {
+// R360: a chip coming into the pool takes the name of whoever put it there (`by`); one moved between
+// the pool's own slots keeps its own.
+export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, mint: () => Oid, by?: Who): Change | null {
   const i = item(game, rid);
   if (!i || !accepts(slot, i)) return null;
   // R260: a Motivation's card dropped in a Main slot joins that character's drawer.
   const home = i.kind === 'influence' && i.mot ? { home: owner } : {};
-  const moved: Item = { ...i, ...home, where: { slot: owner, name: slot }, n: slotItems(game, owner, slot).length };
+  const inPool = typeof i.where === 'object' && 'slot' in i.where && i.where.slot === owner;
+  const moved = { ...i, ...home, where: { slot: owner, name: slot }, n: slotItems(game, owner, slot).length } as Item;
+  // A chip coming into the pool takes the putter's name; moved within it, it keeps its own.
+  if (moved.kind === 'chip' && !inPool) { if (by) moved.by = by; else delete moved.by; }
   return w => {
     // Leaving another slot can't break a Roll Up already made, so only the new one settles.
     settle(w, withItem(game, owner, slot, moved), mint);
@@ -133,10 +138,10 @@ export function riderClick(game: Game, rid: Rid, shift: boolean): Change | null 
   return w => w.put(rid, { ...c, rider: false });
 }
 
-// R41: a click on a slot's empty space adds a loose +1; shift-click a −1.
-export function addLoose(game: Game, owner: Oid, slot: SlotName, shift: boolean, mint: () => Oid): Change {
+// R41: a click on a slot's empty space adds a loose +1; shift-click a −1. R360: by whoever clicked.
+export function addLoose(game: Game, owner: Oid, slot: SlotName, shift: boolean, mint: () => Oid, by?: Who): Change {
   const chip: Chip = { kind: 'chip', oid: mint(), where: { slot: owner, name: slot }, n: slotItems(game, owner, slot).length,
-    sign: shift ? -1 : 1, points: 1, rider: false };
+    sign: shift ? -1 : 1, points: 1, rider: false, ...(by && { by }) };
   return w => w.put(ridOf(chip.oid), chip);
 }
 

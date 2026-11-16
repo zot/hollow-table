@@ -106,3 +106,14 @@ source getting its Level back
 **Fire alarm:** In cardClick, delete without refunding at Min (`w.del` only): the card goes but Money stays +Sig
 **Inject:** src/ui/actions.ts:cardClick
 **Pulled:** 2026-11-12 — rang: the card was deleted but Money stayed +Sig
+
+## Test: a chip put in a pool says who put it there
+**Purpose:** R360: a chip dropped on a slot or added in one takes the putter's name; moved between the pool's own slots it keeps its own; a Roll Up's chip has none
+**Input:** a −2 dropped on Devreux's Stagger by Dana, moved to his Main by the GM, then to Sam's Main by the GM; a loose +1 added on Beauford's Edge by Ann; three −2s dropped on Beauford's Stagger by Dana
+**Expected:** `by` Dana, still Dana, then GM; the loose one Ann's; one −4 with no `by`
+**Refs:** crc-PoolView.md
+**Code:** `src/ui/actions.test.ts`
+**Alarm:** 9
+**Fire alarm:** give a chip moved within its pool the mover's name too (treat it as never in the pool); red: it becomes the GM's
+**Inject:** src/ui/actions.ts:toSlot
+**Pulled:** 2026-11-16 — rang: "a chip put in a pool says who put it there" failed, the chip moved within its pool became the GM's; restored clean

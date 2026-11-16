@@ -1,4 +1,4 @@
-// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R140, R171, R172, R173, R189, R190
+// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R140, R171, R172, R173, R189, R190, R361
 // A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 // page answers them, whether it took them or not. Pending changes survive the GM's absence and a
 // reload, and go again until answered.
@@ -121,13 +121,16 @@ export class Copy {
     if (from.browser !== this.#w.gm) return Promise.resolve();
     this.heardGm(from);
     this.#work = this.#work.then(async () => {
-      let puts = batch.puts;
+      let puts = batch.puts, dels = batch.dels;
       const box = batch.sealed[this.#w.link.tab];
       if (box) {
         const mine = await this.#w.sealer.open(from.sealKey, 'recs', from.tab, this.#w.link.tab, box) as Sealed;
         if (sealedRecs(mine) && mine.g === batch.g) {
+          // R361: this tab's own part wins over the public one, a removal included; its own removals
+          // take away what only it stops seeing.
           const own = new Set(mine.puts.map(p => p.rid));
           puts = [...puts.filter(p => !own.has(p.rid)), ...mine.puts];
+          dels = [...dels.filter(d => !own.has(d.rid)), ...(mine.dels ?? [])];
         }
       }
       const last = this.#lastG;
@@ -138,7 +141,7 @@ export class Copy {
         }
         this.#lastG = batch.g;
       }
-      this.#apply(puts, batch.dels, from.tab, batch.full);
+      this.#apply(puts, dels, from.tab, batch.full);
       if (this.synced && (batch.full || (last !== undefined && batch.g === last + 1))) this.#setSeen(batch.g);
       // R190: once the table is here, what's pending goes again.
       if (batch.full && this.#pending.size) this.#resend([...this.#pending.keys()]);

@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -21,6 +21,8 @@ export type DragWith = {
   hand: string;
   /** The next frame, or 100 ms in a hidden tab (R215). */
   schedule: (fn: () => void) => void;
+  /** R360: who is doing the putting, the name a chip put in a pool takes. */
+  who: () => string | undefined;
   /** The graveyard being browsed (the Seat), where a put-away piece is buried (R122, R288). */
   yard: () => { cur: number; name: string };
 };
@@ -251,7 +253,7 @@ export class Drag {
     if (!i) return null;
     if (aim?.merge) return mergeTap(game, rid, aim.merge, mint);
     // R211, R260: a card a slot refuses (a Damage card, a Motivation's) goes home to its drawer.
-    if (aim?.slot) return toSlot(game, rid, aim.slot.owner, aim.slot.name, mint) ?? (i.kind === 'influence' ? toDrawer(game, rid, i.home) : null);
+    if (aim?.slot) return toSlot(game, rid, aim.slot.owner, aim.slot.name, mint, this.#w.who()) ?? (i.kind === 'influence' ? toDrawer(game, rid, i.home) : null);
     if (aim?.kill) return killCard(game, rid);
     if (aim?.drawer) return toDrawer(game, rid, aim.drawer.owner, aim.drawer.at);
     if (away) return i.kind === 'influence' ? toDrawer(game, rid, i.home) : vanish(game, rid);

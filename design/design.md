@@ -80,7 +80,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Yards.md → `src/rules/yards.ts`
 - [x] crc-TableView.md → `src/ui/table.ts`
 - [x] crc-PieceView.md → `src/ui/piece.ts`
-- [ ] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
+- [x] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
 - [x] crc-Gesture.md → `src/ui/gesture.ts`
 - [x] crc-Drag.md → `src/ui/drag.ts`
 - [x] crc-Pens.md → `src/ui/pens.ts`
@@ -191,3 +191,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T20: R327 retired by R336 (2026-11-15 part 35.2: the acting action chooses the attribute, not always Cha)
 - T21: R311 retired by R339 (Item 6: overflow now fills a Conviction or Burden (Bill, 2026-11-15))
 - T22: R306 retired by R346 (a ? roll can't be aimed at the world either; nothing rolls at nobody (#16))
+- T23: R151 retired by R356 (a hidden pool's own chips are no longer public; contributions are (#20))
+- T24: R152 retired by R357 (a hidden pool's own chips no longer reach others at all (#20))

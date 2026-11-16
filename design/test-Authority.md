@@ -59,3 +59,26 @@ is tombed
 **Expected:** Dana is sent the deletion, and the book tombs the sticky
 **Refs:** crc-Authority.md
 **Code:** `src/net/authority.test.ts`
+
+## Test: the private mat on the wire
+**Purpose:** R361: a piece going private is removed from the public part without a tomb; back out it is public again; a contribution is public; an owner's own chip is sealed to them alone, kept out of a catch-up's public part, and when deleted is taken away from them sealed and tombed
+**Input:** the GM's table (Sam and Devreux the GM's, Beauford Ann's), Dana and Ann listening: a chip on the table, moved into Devreux's Stagger by the GM, back to the table, into Devreux's Stagger by Dana; Ann's own chip on Beauford; a tab joining as Dana; Ann's chip deleted
+**Expected:** Dana gets a public put, then a removal and no second put, no tomb; Ann the put again; the public put says `by: Dana`; Ann's chip: no public put, one sealed to Ann, none to Dana; not in the late tab's public part; then a sealed removal to Ann, none public, and a tomb
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 5
+**Fire alarm:** stop sending the public removal when a piece goes private; red: Dana gets no removal
+**Inject:** src/net/authority.ts:#out
+**Pulled:** 2026-11-16 — rang, and again after the test was made to ask for its catch-ups: "the private mat on the wire" failed, Dana got no removal; restored clean
+
+## Test: a player puts only their own name on a chip
+**Purpose:** R360: the GM's page takes a player's chip that says it is theirs, and refuses one that says it is another's
+**Input:** Dana's change putting a chip on Devreux's Stagger with `by` Dana, and with `by` Ann
+**Expected:** the first taken, the second refused
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 6
+**Fire alarm:** never call a `by` forged; red: Ann's name is taken from Dana
+**Inject:** src/net/authority.ts:forged
+@alarm-hash: 4d3de4a4866a2199
+**Pulled:** 2026-11-16 — rang: "a player puts only their own name on a chip" failed, Ann's name was taken from Dana; restored clean

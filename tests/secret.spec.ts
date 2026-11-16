@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297
+// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R359, R360, R361
 // Eve sits at the table owning nothing: no secret word reaches her page in the clear, though she
 // hears the sealed boxes meant for others. Dana sees what she owns, and nothing more.
 import { expect, test, type Page } from '@playwright/test';
@@ -52,4 +52,42 @@ test('secrets', async ({ browser }) => {
   expect(heard.flatMap(leaks)).toEqual([]);
   expect(leaks(await held(eve))).toEqual([]);
   expect(heard.some(m => { const s = JSON.parse(m).sealed; return s && Object.keys(s).some(tab => tab !== 'eve'); })).toBe(true);
+});
+
+test('two mats: a pool hidden from you shows only what others put in it', async ({ browser }) => {
+  test.setTimeout(120_000);
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const eve = await join(browser, invite, 'Eve', gm);
+  const C = 'o:000000c1', has = async (page: Page) => !!(await recOf(page, C));
+  const put = (page: Page, rec: object) => hook(page, new Function('h', `h.store.game.change(w => w.put('${C}', ${JSON.stringify(rec)}))`) as (h: any) => void);
+  const onTable = { kind: 'chip', oid: '000000c1', where: { table: { x: 600, y: 600, z: 1, tilt: 0 } }, n: 0, sign: -1, points: 2, rider: false };
+  const inPool = (oid: string, by: string) => ({ ...onTable, where: { slot: oid, name: 'stagger' }, by });
+  // R361: on the table everyone has it; the GM moves it into Devreux's pool and it leaves the players' pages.
+  await put(gm, onTable);
+  await expect.poll(() => has(dana), { timeout: 15_000 }).toBe(true);
+  await put(gm, inPool('00000003', 'GM'));
+  await expect.poll(() => has(dana), { timeout: 15_000 }).toBe(false);
+  await expect.poll(() => has(eve), { timeout: 15_000 }).toBe(false);
+  // Back on the table it comes back.
+  await put(gm, onTable);
+  await expect.poll(() => has(eve), { timeout: 15_000 }).toBe(true);
+  // R358, R360: Dana's contribution to Devreux is public, hers by name.
+  await put(dana, inPool('00000003', 'Dana'));
+  await expect.poll(async () => (await recOf(gm, C))?.by, { timeout: 15_000 }).toBe('Dana');
+  await expect.poll(async () => (await recOf(eve, C))?.by, { timeout: 15_000 }).toBe('Dana');
+  // R359: Sam given to Dana, her own chip on him is private: it stays on her page, sealed over the
+  // public removal, and leaves Eve's; a reload's catch-up brings it back to her only.
+  await hook(gm, new Function('h', `const s = h.store.game.get('${SAM}'); h.store.game.change(w => w.put('${SAM}', { ...s, owner: 'Dana' }));`) as (h: any) => void);
+  await expect.poll(async () => (await recOf(dana, SAM)).owner, { timeout: 15_000 }).toBe('Dana');
+  await put(dana, inPool('00000001', 'Dana'));
+  await expect.poll(async () => (await recOf(gm, C))?.where?.slot, { timeout: 15_000 }).toBe('00000001');
+  await expect.poll(() => has(eve), { timeout: 15_000 }).toBe(false);
+  await gm.waitForTimeout(1000);
+  expect(await has(dana)).toBe(true);
+  await dana.reload();
+  await expect.poll(() => has(dana), { timeout: 15_000 }).toBe(true);
+  await eve.reload();
+  await gm.waitForTimeout(2000);
+  expect(await has(eve)).toBe(false);
 });

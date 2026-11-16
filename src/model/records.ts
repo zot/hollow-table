@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R352
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R352, R360
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -84,7 +84,8 @@ export type Influence = {
 };
 
 // R36, R38: a chip; a loose odd point is `points: 1`, and `rider` is a +1 riding the chip.
-export type Chip = { kind: 'chip'; oid: Oid; where: Where; n: number; sign: Sign; points: number; rider: boolean };
+// R360: `by` is who put it in a pool; none on a Roll Up's chip or one from before.
+export type Chip = { kind: 'chip'; oid: Oid; where: Where; n: number; sign: Sign; points: number; rider: boolean; by?: Who };
 
 export type Pin = { card: Oid; dx: number; dy: number };
 // R248: `big` is the big sticky, for the GM's long notes.
@@ -229,7 +230,7 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
   influence: fields({ kind: oneOf('influence'), oid: isOid, home: isOid, where, n: int(0, CAPS.list), name: str(CAPS.name),
     sign, points, used: bool, crit: bool },
     { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true) }),
-  chip: fields({ kind: oneOf('chip'), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
+  chip: fields({ kind: oneOf('chip'), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }, { by: str(CAPS.name) }),
   sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin, big: bool }),
   text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin }),
   image: fields({ kind: oneOf('image'), oid: isOid, place, blob: v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v),

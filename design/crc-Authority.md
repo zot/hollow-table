@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -15,7 +15,7 @@ judges every player's change.
 - book.hillGv: the version Boot Hill last changed at.
 - LOCAL: `book` and `tape` are each page's own and never sent.
 - A batch: `{g, full, puts: [{rid, s, by?, rec}], dels: [{rid, s, by?}], sealed: {tab: box of {g,
-  puts}}}`; `by` names whose number `s` is, the GM's tab when absent.
+  puts, dels?}}}`; `by` names whose number `s` is, the GM's tab when absent.
 
 ## Does
 - join(tab, name, browser, sealKey): a tab said who it is (Presence's `here`); Claims decides its
@@ -24,11 +24,14 @@ judges every player's change.
   so the new holder gets its secrets, and sends each tab playing as that name a `claim`: why for a
   tab that is nobody, null for the holder.
 - out(changed): Game's changes, gathered until the change in hand is done (`schedule`); for each
-  changed rid, the redacted-for-nobody view to everyone; for each player tab
-  whose view differs from what it holds, its view sealed to it, in the same batch. Deletions go out
+  changed rid, the redacted-for-nobody view to everyone, or, when nobody-at-all may see it (R361), a
+  removal if it had gone out, under a fresh stamp and not tombed; for each player tab
+  whose view differs from what it holds, its view sealed to it, in the same batch, and a sealed
+  removal for a tab that alone stops seeing it (R361). Deletions go out
   under a **fresh** stamp (Stamps). Also re-checks every record when a character changes hands, so
   sheets and cards follow ownership though their records didn't change.
-- catchUp(tab): the whole table, to that tab only, at the current version without moving it. What it
+- catchUp(tab): the whole table, to that tab only (a piece nobody may see only sealed to those who
+  may, R361), at the current version without moving it. What it
   sends counts as gone out to everyone (where nothing had yet), so deleting it later is sent and tombed
   (R188, R192).
 - judge(game, edit, who): pure. For each record in a player's change, refuses it when:
@@ -36,6 +39,7 @@ judges every player's change.
   - Ownership.mayChange says no;
   - the sender can only see the piece redacted (Visibility);
   - it puts back a piece deleted after the copy it was made on (tomb newer than the edit's version);
+  - it is a chip whose `by` changes to anyone but the sender (R360);
   - it is a Boot Hill change from a copy that missed a later one (refused whole, with what was
     changed with it); a Boot Hill change it may make has what the sender sees redacted put back as
     the GM has it, and is refused if it leaves out something they couldn't read.

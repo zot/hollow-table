@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Book, type Character, type Influence, type Sticky, type Yards } from '../model/records.ts';
+import { ridOf, type Book, type Character, type Chip, type Influence, type Sticky, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { handOver, whoIs } from './claims.ts';
 import { FakeRoom } from './fakeroom.ts';
@@ -139,4 +139,63 @@ test('a deletion of what a tab only had from its catch-up still reaches it, and 
   await room.settle();
   assert.ok(got.get('dana')!.public.some(b => b.dels.some(d => d.rid === STICKY)), 'Dana is told it is gone');
   assert.ok(((game.get('book') as Book).tomb[STICKY] ?? 0) > 0, 'and a stale copy cannot put it back');
+});
+
+test('the private mat on the wire', async () => {
+  // R361: Sam and Devreux are the GM's, Beauford Ann's; Dana owns nothing.
+  const { room, game, got, join } = await table();
+  const CHIP = ridOf('000000c1'), PRIV = ridOf('000000c2');
+  const onTable: Chip = { kind: 'chip', oid: '000000c1', where: { table: { x: 0, y: 0, z: 0, tilt: 0 } }, n: 0, sign: -1, points: 2, rider: false };
+  const pubPuts = (tab: string, rid: string) => got.get(tab)!.public.flatMap(b => b.puts).filter(p => p.rid === rid);
+  const pubDels = (tab: string, rid: string) => got.get(tab)!.public.flatMap(b => b.dels).filter(d => d.rid === rid);
+  const own = (tab: string, rid: string) => got.get(tab)!.mine.flatMap(s => [...s.puts.filter(p => p.rid === rid), ...(s.dels ?? []).filter(d => d.rid === rid)]);
+  const tomb = () => (game.get('book') as Book).tomb;
+  game.change(w => w.put(CHIP, onTable));
+  await room.settle();
+  assert.equal(pubPuts('dana', CHIP).length, 1, 'on the table: public');
+  // The GM moves it into Devreux's Stagger: it goes private, a removal and no tomb.
+  game.change(w => w.put(CHIP, { ...onTable, where: { slot: DEVREUX, name: 'stagger' }, by: 'GM' }));
+  await room.settle();
+  assert.equal(pubDels('dana', CHIP).length, 1, 'removed from the public part');
+  assert.equal(pubPuts('dana', CHIP).length, 1, 'and never put again');
+  assert.equal(tomb()[CHIP], undefined, 'not remembered as deleted');
+  // Back on the table, it is public again.
+  game.change(w => w.put(CHIP, onTable));
+  await room.settle();
+  assert.equal(pubPuts('ann', CHIP).length, 2);
+  // Dana's contribution to Devreux is public.
+  game.change(w => w.put(CHIP, { ...onTable, where: { slot: DEVREUX, name: 'stagger' }, by: 'Dana' }));
+  await room.settle();
+  assert.equal((pubPuts('ann', CHIP).at(-1)!.rec as Chip).by, 'Dana');
+  // Ann's own chip on Beauford: sealed to her, never in the public part.
+  const priv: Chip = { ...onTable, oid: '000000c2', where: { slot: BEAUFORD, name: 'stagger' }, by: 'Ann' };
+  game.change(w => w.put(PRIV, priv));
+  await room.settle();
+  assert.deepEqual([pubPuts('dana', PRIV).length, own('ann', PRIV).length, own('dana', PRIV).length], [0, 1, 0]);
+  // A catch-up keeps it out of the public part too, and brings it to Ann sealed.
+  const late = await join('late', 'b-late', 'Dana');
+  late.link.send('sync', {});
+  got.get('ann')!.link.send('sync', {});
+  await room.settle();
+  const full = late.public.find(b => b.full)!;
+  assert.ok(full, 'the late tab had its catch-up');
+  assert.equal(full.puts.some(p => p.rid === PRIV), false);
+  assert.ok(got.get('ann')!.mine.some(s => s.puts.some(p => p.rid === PRIV)) && own('ann', PRIV).length === 2, "Ann's catch-up seals it to her");
+  // Deleted, it is taken away from Ann, sealed, and tombed; the public part never names it.
+  game.change(w => w.del(PRIV));
+  await room.settle();
+  assert.deepEqual(own('ann', PRIV).map(x => 'rec' in x ? 'put' : 'del'), ['put', 'put', 'del']);
+  assert.equal(pubDels('dana', PRIV).length, 0);
+  assert.ok(tomb()[PRIV]);
+});
+
+test('a player puts only their own name on a chip', () => {
+  // R360: Dana may say a chip is hers; she may not say it is Ann's.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const chip = (by?: string): Chip => ({ kind: 'chip', oid: '000000c1', where: { slot: DEVREUX, name: 'stagger' }, n: 0, sign: -1, points: 2,
+    rider: false, ...(by && { by }) });
+  const book = game.get('book') as Book, edit = (c: Chip): Edit => ({ s: 1, base: book.gv, puts: [{ rid: ridOf(c.oid), rec: c }], dels: [] });
+  assert.deepEqual(judge(game, edit(chip('Dana')), 'Dana').refused, []);
+  assert.deepEqual(judge(game, edit(chip('Ann')), 'Dana').refused, [ridOf('000000c1')]);
 });

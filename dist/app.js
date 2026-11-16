@@ -112,7 +112,7 @@ var PIECES = {
     },
     { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true) }
   ),
-  chip: fields({ kind: oneOf("chip"), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }),
+  chip: fields({ kind: oneOf("chip"), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }, { by: str(CAPS.name) }),
   sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin, big: bool }),
   text: fields({ kind: oneOf("text"), oid: isOid, place, text: marked }, { pin }),
   image: fields({
@@ -849,8 +849,20 @@ var blankBack = (b) => ({
   damage: damageSlots((d, r) => ({ name: "", boxes: b.damage[d][r].boxes.map(() => false), spent: [] }))
 });
 var inSlot = (i) => typeof i.where === "object" && "slot" in i.where;
+var poolOf = (i, chars) => typeof i.where === "object" && "slot" in i.where ? chars(i.where.slot) : void 0;
+function contribution(i, chars) {
+  const pool = poolOf(i, chars);
+  if (!pool) return false;
+  if (i.kind === "chip") return !!i.by && i.by !== pool.owner;
+  const home = chars(i.home);
+  return !!home && home.owner !== pool.owner;
+}
 function redactPiece(r, viewer, chars) {
   if (r.kind === "character") return canSee(viewer, r) ? r : { ...r, front: blank(r.front), back: blankBack(r.back) };
+  if (r.kind === "chip" || r.kind === "influence") {
+    const pool = poolOf(r, chars);
+    if (pool && !canSee(viewer, pool) && !contribution(r, chars)) return void 0;
+  }
   if (r.kind === "influence") {
     const home = chars(r.home);
     if (home && canSee(viewer, home)) return r;
@@ -872,7 +884,7 @@ function redactYards(y, viewer, chars) {
       items: g.items.map((b) => {
         const buried = new Map(b.records.filter((r) => r.kind === "character").map((c) => [c.oid, c]));
         const look = (oid) => buried.get(oid) ?? chars(oid);
-        return { ...b, records: b.records.map((r) => redactPiece(r, viewer, look)) };
+        return { ...b, records: b.records.map((r) => redactPiece(r, viewer, look)).filter((r) => !!r) };
       })
     }))
   };
@@ -1962,7 +1974,7 @@ var BODIES = {
   claim: fields({ name, why: whyOrNull })
 };
 var sealedRoll = (v) => fields({ re: seq, receipt })(v) && fewDice(v.receipt);
-var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) });
+var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) }, { dels: list(del, LIMITS.batch) });
 var change2 = (v) => fields({ rid: str(CAPS.id), rec: () => true })(v) && check(v.rid, v.rec);
 var editBody = fields({ s: seq, base: seq, puts: list(change2, LIMITS.batch), dels: list(str(CAPS.id), LIMITS.batch) });
 var header = fields({ v: oneOf(VERSION), kind: oneOf(...KINDS), tab, at: num(0, 1e15), body: () => true });
@@ -1989,6 +2001,7 @@ var stampOf = (o) => o.by === void 0 ? { s: o.s } : { s: o.s, by: o.by };
 var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters = (game) => (oid) => game.get(`o:${oid}`);
 var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
+var forged = (old, rec, who) => "kind" in rec && rec.kind === "chip" && rec.by !== void 0 && rec.by !== who && rec.by !== (old && "kind" in old && old.kind === "chip" ? old.by : void 0);
 function mergeYards(real2, mine, viewer, chars) {
   const truth = /* @__PURE__ */ new Map(), secret = /* @__PURE__ */ new Set();
   for (const g of real2?.yards ?? []) for (const b of g.items) for (const r of b.records) {
@@ -2028,6 +2041,7 @@ function judge(game, edit, who) {
       if (merged) puts.push({ rid: rid2, rec: merged });
       else refused.push(rid2);
     } else if (!isPiece(rid2) || (book2.tomb[rid2] ?? 0) > edit.base) refused.push(rid2);
+    else if (forged(game.get(rid2), rec, who)) refused.push(rid2);
     else if (mine(game.get(rid2), rec)) puts.push({ rid: rid2, rec });
     else refused.push(rid2);
   }
@@ -2122,28 +2136,40 @@ var Authority = class {
     for (const rid2 of /* @__PURE__ */ new Set([...rids, ...this.#answerDel])) {
       const rec = game.get(rid2);
       if (!rec) {
-        if (!this.#public.has(rid2) && !this.#answerDel.has(rid2)) continue;
+        const holders = [...this.#tabs].filter(([, t]) => t.holds.has(rid2));
+        const wasPublic = this.#public.has(rid2) || this.#answerDel.has(rid2);
+        if (!wasPublic && !holders.length) continue;
+        const stamp3 = this.#stamp(rid2);
+        if (wasPublic) dels.push({ rid: rid2, ...stamp3 });
+        else for (const [tab2] of holders) {
+          const f = sealFor.get(tab2) ?? { puts: [], dels: [] };
+          f.dels.push({ rid: rid2, ...stamp3 });
+          sealFor.set(tab2, f);
+        }
         this.#public.delete(rid2);
         for (const t of this.#tabs.values()) t.holds.delete(rid2);
-        dels.push({ rid: rid2, ...this.#stamp(rid2) });
         gone.push(rid2);
         continue;
       }
       const pv = redact(rec, null, chars), changed = !same(this.#public.get(rid2), pv);
       let stamp2;
       const stampOnce = () => stamp2 ??= this.#stamp(rid2);
-      if (changed) {
+      if (changed && pv) {
         this.#public.set(rid2, pv);
         puts.push({ rid: rid2, ...stampOnce(), rec: pv });
+      } else if (changed) {
+        this.#public.delete(rid2);
+        dels.push({ rid: rid2, ...stampOnce() });
       }
       for (const [tab2, t] of this.#tabs) {
         const tv = redact(rec, this.#viewer(t), chars), holds = changed ? pv : t.holds.get(rid2);
-        t.holds.set(rid2, tv);
-        if (!same(tv, holds)) {
-          const f = sealFor.get(tab2) ?? [];
-          f.push({ rid: rid2, ...stampOnce(), rec: tv });
-          sealFor.set(tab2, f);
-        }
+        if (tv) t.holds.set(rid2, tv);
+        else t.holds.delete(rid2);
+        if (same(tv, holds)) continue;
+        const f = sealFor.get(tab2) ?? { puts: [], dels: [] };
+        if (tv) f.puts.push({ rid: rid2, ...stampOnce(), rec: tv });
+        else f.dels.push({ rid: rid2, ...stampOnce() });
+        sealFor.set(tab2, f);
       }
     }
     this.#answerDel.clear();
@@ -2162,9 +2188,9 @@ var Authority = class {
     const { link, sealer } = this.#w;
     this.#work = this.#work.then(async () => {
       const sealed = {};
-      for (const [tab2, puts] of sealFor) {
+      for (const [tab2, { puts, dels }] of sealFor) {
         const t = this.#tabs.get(tab2);
-        if (t) sealed[tab2] = await sealer.seal(t.sealKey, "recs", link.tab, tab2, { g: batch.g, puts });
+        if (t) sealed[tab2] = await sealer.seal(t.sealKey, "recs", link.tab, tab2, { g: batch.g, puts, ...dels.length && { dels } });
       }
       link.send("recs", { ...batch, sealed }, to);
     });
@@ -2179,13 +2205,13 @@ var Authority = class {
     for (const [rid2, rec] of game.all()) {
       if (LOCAL.has(rid2)) continue;
       const stamp2 = this.#current(rid2), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
-      puts.push({ rid: rid2, ...stamp2, rec: pv });
-      if (!this.#public.has(rid2)) this.#public.set(rid2, pv);
-      if (!same(tv, pv)) mine.push({ rid: rid2, ...stamp2, rec: tv });
-      t.holds.set(rid2, tv);
+      if (pv) puts.push({ rid: rid2, ...stamp2, rec: pv });
+      if (pv && !this.#public.has(rid2)) this.#public.set(rid2, pv);
+      if (tv && !same(tv, pv)) mine.push({ rid: rid2, ...stamp2, rec: tv });
+      if (tv) t.holds.set(rid2, tv);
     }
     const g = game.get("book").gv;
-    this.#send({ g, full: true, puts, dels: [] }, mine.length ? /* @__PURE__ */ new Map([[tab2, mine]]) : /* @__PURE__ */ new Map(), tab2);
+    this.#send({ g, full: true, puts, dels: [] }, mine.length ? /* @__PURE__ */ new Map([[tab2, { puts: mine, dels: [] }]]) : /* @__PURE__ */ new Map(), tab2);
     if (!viewer) this.#w.link.send("claim", { name: t.name, why: why(t.name) }, tab2);
   }
   // Seq: seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R172, R173
@@ -2363,13 +2389,14 @@ var Copy = class {
     if (from.browser !== this.#w.gm) return Promise.resolve();
     this.heardGm(from);
     this.#work = this.#work.then(async () => {
-      let puts = batch.puts;
+      let puts = batch.puts, dels = batch.dels;
       const box2 = batch.sealed[this.#w.link.tab];
       if (box2) {
         const mine = await this.#w.sealer.open(from.sealKey, "recs", from.tab, this.#w.link.tab, box2);
         if (sealedRecs(mine) && mine.g === batch.g) {
           const own2 = new Set(mine.puts.map((p) => p.rid));
           puts = [...puts.filter((p) => !own2.has(p.rid)), ...mine.puts];
+          dels = [...dels.filter((d) => !own2.has(d.rid)), ...mine.dels ?? []];
         }
       }
       const last = this.#lastG;
@@ -2386,7 +2413,7 @@ var Copy = class {
         }
         this.#lastG = batch.g;
       }
-      this.#apply(puts, batch.dels, from.tab, batch.full);
+      this.#apply(puts, dels, from.tab, batch.full);
       if (this.synced && (batch.full || last !== void 0 && batch.g === last + 1)) this.#setSeen(batch.g);
       if (batch.full && this.#pending.size) this.#resend([...this.#pending.keys()]);
     });
@@ -2676,7 +2703,8 @@ var Moves = class {
     }
     this.#sendNow(items.map(({ aim: _, ...i }) => i), true);
   }
-  #sendNow(items, drop = false) {
+  #sendNow(all2, drop = false) {
+    const items = all2.filter((i) => this.#w.shared(i.rid));
     if (!items.length) return;
     const s = this.#w.stamps.next();
     for (const i of items) this.#w.stamps.mark(i.rid, this.#w.tab, s);
@@ -6343,17 +6371,17 @@ var SharedPeerManager = class {
     const current = () => this.rooms.get(appId)?.get(roomId) === registration;
     const advertise = (present) => {
       if (!registration.token) return;
-      for (const shared of values(this.byApp[appId] ?? {})) try {
-        this.sendRoomPresence(shared, registration.token, present);
+      for (const shared2 of values(this.byApp[appId] ?? {})) try {
+        this.sendRoomPresence(shared2, registration.token, present);
       } catch {
       }
     };
     tokenPromise.then((token) => {
       if (!current()) return;
       registration.token = token;
-      for (const shared of values(this.byApp[appId] ?? {})) {
-        if (shared.remoteRoomTokens.has(token)) this.attachRoom(appId, roomId, registration, shared);
-        this.discardUnboundData(shared);
+      for (const shared2 of values(this.byApp[appId] ?? {})) {
+        if (shared2.remoteRoomTokens.has(token)) this.attachRoom(appId, roomId, registration, shared2);
+        this.discardUnboundData(shared2);
       }
       if (current() && registration.active) advertise(true);
     });
@@ -6365,17 +6393,17 @@ var SharedPeerManager = class {
         }
         const existing = this.reusable(appId, peerId);
         if (existing && existing.peer !== peer) peer.destroy();
-        const shared = existing ?? this.register(appId, peerId, peer, idleMs);
-        this.attachRoom(appId, roomId, registration, shared);
+        const shared2 = existing ?? this.register(appId, peerId, peer, idleMs);
+        this.attachRoom(appId, roomId, registration, shared2);
         if (!existing) {
-          for (const room2 of rooms.values()) if (room2.active && room2.token) this.sendRoomPresence(shared, room2.token, true);
+          for (const room2 of rooms.values()) if (room2.active && room2.token) this.sendRoomPresence(shared2, room2.token, true);
         }
       },
       reuse: (peerId) => {
         if (!current()) return false;
-        const shared = this.reusable(appId, peerId);
-        if (!shared) return false;
-        this.attachRoom(appId, roomId, registration, shared);
+        const shared2 = this.reusable(appId, peerId);
+        if (!shared2) return false;
+        this.attachRoom(appId, roomId, registration, shared2);
         return true;
       },
       setActive: (active) => {
@@ -6388,11 +6416,11 @@ var SharedPeerManager = class {
         rooms.delete(roomId);
         if (!rooms.size) this.rooms.delete(appId);
         advertise(false);
-        for (const shared of values(this.byApp[appId] ?? {})) {
-          const binding = shared.bindings[roomId];
+        for (const shared2 of values(this.byApp[appId] ?? {})) {
+          const binding = shared2.bindings[roomId];
           binding?.handlers.close?.();
           binding?.detach();
-          this.discardUnboundData(shared);
+          this.discardUnboundData(shared2);
         }
       }
     };
@@ -6401,37 +6429,37 @@ var SharedPeerManager = class {
     return this.byApp[appId]?.[peerId]?.peer === peer;
   }
   reusable(appId, peerId) {
-    const shared = this.byApp[appId]?.[peerId];
-    if (shared && isPeerUnderlyingStale(shared.peer)) {
+    const shared2 = this.byApp[appId]?.[peerId];
+    if (shared2 && isPeerUnderlyingStale(shared2.peer)) {
       this.clear(appId, peerId, { destroyPeer: true });
       return;
     }
-    return shared;
+    return shared2;
   }
-  attachRoom(appId, roomId, registration, shared) {
-    if (this.rooms.get(appId)?.get(roomId) !== registration || shared.isClosing || this.get(appId, shared.peerId) !== shared) return;
-    const { proxy, isNew } = this.bind(roomId, registration.tokenPromise, shared, { onDetach: () => registration.onDetach(shared.peerId, shared.peer) });
-    if (isNew) registration.onPeer(proxy, shared.peerId, shared.peer);
+  attachRoom(appId, roomId, registration, shared2) {
+    if (this.rooms.get(appId)?.get(roomId) !== registration || shared2.isClosing || this.get(appId, shared2.peerId) !== shared2) return;
+    const { proxy, isNew } = this.bind(roomId, registration.tokenPromise, shared2, { onDetach: () => registration.onDetach(shared2.peerId, shared2.peer) });
+    if (isNew) registration.onPeer(proxy, shared2.peerId, shared2.peer);
   }
   get(appId, peerId) {
     return this.byApp[appId]?.[peerId];
   }
-  sendRoomPresence(shared, roomToken, isPresent) {
-    if (shared.isClosing || isPeerUnderlyingStale(shared.peer)) return;
-    shared.peer.sendData(wrapRoomPresenceFrame(roomToken, isPresent));
+  sendRoomPresence(shared2, roomToken, isPresent) {
+    if (shared2.isClosing || isPeerUnderlyingStale(shared2.peer)) return;
+    shared2.peer.sendData(wrapRoomPresenceFrame(roomToken, isPresent));
   }
   clear(appId, peerId, { destroyPeer }) {
     const map = this.byApp[appId];
-    const shared = map?.[peerId];
-    if (!shared || shared.isClosing) return;
-    shared.idleTimer = resetTimer(shared.idleTimer);
-    this.clearDataTimers(shared);
-    shared.isClosing = true;
-    if (destroyPeer && !shared.peer.isDead) shared.peer.destroy();
-    const bindings = values(shared.bindings);
-    shared.bindings = {};
-    shared.bindingsByToken = {};
-    shared.controlRoomId = null;
+    const shared2 = map?.[peerId];
+    if (!shared2 || shared2.isClosing) return;
+    shared2.idleTimer = resetTimer(shared2.idleTimer);
+    this.clearDataTimers(shared2);
+    shared2.isClosing = true;
+    if (destroyPeer && !shared2.peer.isDead) shared2.peer.destroy();
+    const bindings = values(shared2.bindings);
+    shared2.bindings = {};
+    shared2.bindingsByToken = {};
+    shared2.controlRoomId = null;
     delete map[peerId];
     bindings.forEach((binding) => {
       binding.handlers.close?.();
@@ -6439,9 +6467,9 @@ var SharedPeerManager = class {
       binding.pendingSendData.length = 0;
       binding.pendingTracks.length = 0;
     });
-    shared.media.clearRemote();
-    shared.pendingDataByToken.clear();
-    shared.remoteRoomTokens.clear();
+    shared2.media.clearRemote();
+    shared2.pendingDataByToken.clear();
+    shared2.remoteRoomTokens.clear();
     if (keys(map).length === 0) delete this.byApp[appId];
   }
   register(appId, peerId, peer, idleMs) {
@@ -6451,7 +6479,7 @@ var SharedPeerManager = class {
       if (existing.peer === peer) return existing;
       this.clear(appId, peerId, { destroyPeer: true });
     }
-    const shared = {
+    const shared2 = {
       appId,
       peerId,
       peer,
@@ -6467,26 +6495,26 @@ var SharedPeerManager = class {
       idleMs,
       isClosing: false
     };
-    (this.byApp[appId] ??= {})[peerId] = shared;
+    (this.byApp[appId] ??= {})[peerId] = shared2;
     const clearCurrent = () => {
       if (this.owns(appId, peerId, peer)) this.clear(appId, peerId, { destroyPeer: true });
     };
     peer.setHandlers({
-      data: (data) => this.dispatchData(shared, data),
-      signal: (signal) => this.dispatchSignal(shared, signal),
+      data: (data) => this.dispatchData(shared2, data),
+      signal: (signal) => this.dispatchSignal(shared2, signal),
       close: clearCurrent,
       error: (err) => {
         console.error(`${libName} peer error:`, err);
         clearCurrent();
       },
-      track: (track, stream) => this.dispatchTrack(shared, track, stream)
+      track: (track, stream) => this.dispatchTrack(shared2, track, stream)
     });
-    return shared;
+    return shared2;
   }
-  bind(roomId, roomTokenPromise, shared, { onDetach }) {
-    const existingBinding = shared.bindings[roomId];
+  bind(roomId, roomTokenPromise, shared2, { onDetach }) {
+    const existingBinding = shared2.bindings[roomId];
     if (existingBinding) {
-      shared.idleTimer = resetTimer(shared.idleTimer);
+      shared2.idleTimer = resetTimer(shared2.idleTimer);
       return {
         proxy: existingBinding.proxy,
         isNew: false
@@ -6504,260 +6532,260 @@ var SharedPeerManager = class {
       proxy: {}
     };
     const detachBinding = () => {
-      if (shared.bindings[roomId] !== binding) return;
-      const shouldDestroy = keys(shared.bindings).length === 1 && (shared.streamOwners.size > 0 || shared.trackOwners.size > 0 || shared.media.hasRemoteMedia());
-      if (!shouldDestroy) this.pruneRoomOwnership(shared, roomId);
-      delete shared.bindings[roomId];
-      if (binding.roomToken && shared.bindingsByToken[binding.roomToken] === binding) delete shared.bindingsByToken[binding.roomToken];
-      if (shared.controlRoomId === roomId) shared.controlRoomId = keys(shared.bindings)[0] ?? null;
-      this.discardUnboundData(shared);
+      if (shared2.bindings[roomId] !== binding) return;
+      const shouldDestroy = keys(shared2.bindings).length === 1 && (shared2.streamOwners.size > 0 || shared2.trackOwners.size > 0 || shared2.media.hasRemoteMedia());
+      if (!shouldDestroy) this.pruneRoomOwnership(shared2, roomId);
+      delete shared2.bindings[roomId];
+      if (binding.roomToken && shared2.bindingsByToken[binding.roomToken] === binding) delete shared2.bindingsByToken[binding.roomToken];
+      if (shared2.controlRoomId === roomId) shared2.controlRoomId = keys(shared2.bindings)[0] ?? null;
+      this.discardUnboundData(shared2);
       onDetach();
-      if (shouldDestroy) this.clear(shared.appId, shared.peerId, { destroyPeer: true });
-      else this.scheduleIdleTimer(shared);
+      if (shouldDestroy) this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
+      else this.scheduleIdleTimer(shared2);
     };
     const proxy = {
       get connection() {
-        return shared.peer.connection;
+        return shared2.peer.connection;
       },
       get channel() {
-        return shared.peer.channel;
+        return shared2.peer.channel;
       },
       get isDead() {
-        return shared.peer.isDead;
+        return shared2.peer.isDead;
       },
-      getOffer: (restartIce) => shared.peer.getOffer(restartIce),
-      signal: (sdp) => shared.peer.signal(sdp),
+      getOffer: (restartIce) => shared2.peer.getOffer(restartIce),
+      signal: (sdp) => shared2.peer.signal(sdp),
       sendData: (data) => {
         if (!binding.roomToken) {
           binding.pendingSendData.push(data);
           return;
         }
-        shared.peer.sendData(wrapRoomFrame(binding.roomToken, data));
+        shared2.peer.sendData(wrapRoomFrame(binding.roomToken, data));
       },
       destroy: () => detachBinding(),
       setHandlers: (newHandlers) => {
         Object.assign(binding.handlers, newHandlers);
-        this.flushBindingQueues(shared, binding);
+        this.flushBindingQueues(shared2, binding);
       },
       addStream: (stream) => {
-        const owners = shared.streamOwners.get(stream) ?? /* @__PURE__ */ new Set();
+        const owners = shared2.streamOwners.get(stream) ?? /* @__PURE__ */ new Set();
         const shouldAttach = owners.size === 0;
         owners.add(roomId);
-        shared.streamOwners.set(stream, owners);
-        if (shouldAttach) shared.peer.addStream(stream);
+        shared2.streamOwners.set(stream, owners);
+        if (shouldAttach) shared2.peer.addStream(stream);
       },
-      removeStream: (stream) => this.releaseStreamOwner(shared, stream, roomId),
+      removeStream: (stream) => this.releaseStreamOwner(shared2, stream, roomId),
       addTrack: (track, stream) => {
-        const entry = shared.trackOwners.get(track) ?? {
+        const entry = shared2.trackOwners.get(track) ?? {
           stream,
           rooms: /* @__PURE__ */ new Set()
         };
         const shouldAttach = entry.rooms.size === 0;
         entry.stream = stream;
         entry.rooms.add(roomId);
-        shared.trackOwners.set(track, entry);
-        if (shouldAttach) return shared.peer.addTrack(track, stream);
-        return shared.peer.connection.getSenders().find((s) => s.track === track) ?? shared.peer.addTrack(track, stream);
+        shared2.trackOwners.set(track, entry);
+        if (shouldAttach) return shared2.peer.addTrack(track, stream);
+        return shared2.peer.connection.getSenders().find((s) => s.track === track) ?? shared2.peer.addTrack(track, stream);
       },
-      removeTrack: (track) => this.releaseTrackOwner(shared, track, roomId),
+      removeTrack: (track) => this.releaseTrackOwner(shared2, track, roomId),
       replaceTrack: async (oldTrack, newTrack) => {
-        const oldEntry = shared.trackOwners.get(oldTrack);
-        await shared.peer.replaceTrack(oldTrack, newTrack);
-        if (oldEntry && shared.trackOwners.get(oldTrack) === oldEntry) {
-          shared.trackOwners.delete(oldTrack);
-          const nextEntry = shared.trackOwners.get(newTrack) ?? {
+        const oldEntry = shared2.trackOwners.get(oldTrack);
+        await shared2.peer.replaceTrack(oldTrack, newTrack);
+        if (oldEntry && shared2.trackOwners.get(oldTrack) === oldEntry) {
+          shared2.trackOwners.delete(oldTrack);
+          const nextEntry = shared2.trackOwners.get(newTrack) ?? {
             stream: oldEntry.stream,
             rooms: /* @__PURE__ */ new Set()
           };
           oldEntry.rooms.forEach((room2) => nextEntry.rooms.add(room2));
-          shared.trackOwners.set(newTrack, nextEntry);
+          shared2.trackOwners.set(newTrack, nextEntry);
         }
       },
-      __trysteroMedia: shared.media
+      __trysteroMedia: shared2.media
     };
     binding.proxy = proxy;
     binding.detach = detachBinding;
-    shared.bindings[roomId] = binding;
-    shared.controlRoomId ??= roomId;
-    shared.idleTimer = resetTimer(shared.idleTimer);
+    shared2.bindings[roomId] = binding;
+    shared2.controlRoomId ??= roomId;
+    shared2.idleTimer = resetTimer(shared2.idleTimer);
     roomTokenPromise.then((roomToken) => {
-      if (shared.isClosing || shared.bindings[roomId] !== binding) return;
+      if (shared2.isClosing || shared2.bindings[roomId] !== binding) return;
       binding.roomToken = roomToken;
-      shared.bindingsByToken[roomToken] = binding;
-      const pendingData = shared.pendingDataByToken.get(roomToken);
+      shared2.bindingsByToken[roomToken] = binding;
+      const pendingData = shared2.pendingDataByToken.get(roomToken);
       if (pendingData?.length) {
         binding.pendingData.push(...pendingData);
-        shared.pendingDataByToken.delete(roomToken);
+        shared2.pendingDataByToken.delete(roomToken);
       }
       const pendingSendData = binding.pendingSendData.splice(0);
-      if (!isPeerUnderlyingStale(shared.peer)) pendingSendData.forEach((payload) => {
+      if (!isPeerUnderlyingStale(shared2.peer)) pendingSendData.forEach((payload) => {
         try {
-          shared.peer.sendData(wrapRoomFrame(roomToken, payload));
+          shared2.peer.sendData(wrapRoomFrame(roomToken, payload));
         } catch {
         }
       });
-      this.flushBindingQueues(shared, binding);
-      this.discardUnboundData(shared);
+      this.flushBindingQueues(shared2, binding);
+      this.discardUnboundData(shared2);
     });
     return {
       proxy,
       isNew: true
     };
   }
-  releaseStreamOwner(shared, stream, roomIdToRemove) {
-    const rooms = shared.streamOwners.get(stream);
+  releaseStreamOwner(shared2, stream, roomIdToRemove) {
+    const rooms = shared2.streamOwners.get(stream);
     if (!rooms) return;
     rooms.delete(roomIdToRemove);
     if (rooms.size === 0) {
-      shared.streamOwners.delete(stream);
-      shared.peer.removeStream(stream);
+      shared2.streamOwners.delete(stream);
+      shared2.peer.removeStream(stream);
     }
   }
-  releaseTrackOwner(shared, track, roomIdToRemove) {
-    const entry = shared.trackOwners.get(track);
+  releaseTrackOwner(shared2, track, roomIdToRemove) {
+    const entry = shared2.trackOwners.get(track);
     if (!entry) return;
     entry.rooms.delete(roomIdToRemove);
     if (entry.rooms.size === 0) {
-      shared.trackOwners.delete(track);
-      shared.peer.removeTrack(track);
+      shared2.trackOwners.delete(track);
+      shared2.peer.removeTrack(track);
     }
   }
-  pruneRoomOwnership(shared, roomIdToRemove) {
-    shared.streamOwners.forEach((_, stream) => this.releaseStreamOwner(shared, stream, roomIdToRemove));
-    shared.trackOwners.forEach((_, track) => this.releaseTrackOwner(shared, track, roomIdToRemove));
+  pruneRoomOwnership(shared2, roomIdToRemove) {
+    shared2.streamOwners.forEach((_, stream) => this.releaseStreamOwner(shared2, stream, roomIdToRemove));
+    shared2.trackOwners.forEach((_, track) => this.releaseTrackOwner(shared2, track, roomIdToRemove));
   }
-  scheduleIdleTimer(shared) {
-    if (shared.isClosing || keys(shared.bindings).length > 0) return;
-    shared.idleTimer = resetTimer(shared.idleTimer);
-    shared.idleTimer = setTimeout(() => {
-      const current = this.byApp[shared.appId]?.[shared.peerId];
+  scheduleIdleTimer(shared2) {
+    if (shared2.isClosing || keys(shared2.bindings).length > 0) return;
+    shared2.idleTimer = resetTimer(shared2.idleTimer);
+    shared2.idleTimer = setTimeout(() => {
+      const current = this.byApp[shared2.appId]?.[shared2.peerId];
       if (!current || keys(current.bindings).length > 0) return;
-      this.clear(shared.appId, shared.peerId, { destroyPeer: true });
-    }, shared.idleMs);
+      this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
+    }, shared2.idleMs);
   }
-  getSignalBinding(shared) {
-    if (shared.controlRoomId) {
-      const selected = shared.bindings[shared.controlRoomId];
+  getSignalBinding(shared2) {
+    if (shared2.controlRoomId) {
+      const selected = shared2.bindings[shared2.controlRoomId];
       if (selected?.handlers.signal) return selected;
     }
-    const fallback = values(shared.bindings).find((binding) => Boolean(binding.handlers.signal));
+    const fallback = values(shared2.bindings).find((binding) => Boolean(binding.handlers.signal));
     if (!fallback) return null;
-    shared.controlRoomId = fallback.roomId;
+    shared2.controlRoomId = fallback.roomId;
     return fallback;
   }
-  flushBindingQueues(shared, binding) {
+  flushBindingQueues(shared2, binding) {
     const { handlers } = binding;
     if (handlers.data && binding.pendingData.length > 0) {
       const queued = binding.pendingData.splice(0);
-      this.syncDataTimers(shared);
+      this.syncDataTimers(shared2);
       queued.forEach((payload) => handlers.data?.(payload));
-    } else this.syncDataTimers(shared);
+    } else this.syncDataTimers(shared2);
     if ((handlers.track || handlers.stream) && binding.pendingTracks.length) binding.pendingTracks.splice(0).forEach(({ track, stream }) => {
       handlers.track?.(track, stream);
       handlers.stream?.(stream);
     });
   }
-  unclaimedBufferedFrameCount(shared) {
+  unclaimedBufferedFrameCount(shared2) {
     let count = 0;
-    for (const queue of shared.pendingDataByToken.values()) count += queue.length;
+    for (const queue of shared2.pendingDataByToken.values()) count += queue.length;
     return count;
   }
-  boundBufferedFrameCount(shared) {
+  boundBufferedFrameCount(shared2) {
     let count = 0;
-    for (const binding of values(shared.bindings)) count += binding.pendingData.length;
+    for (const binding of values(shared2.bindings)) count += binding.pendingData.length;
     return count;
   }
-  bufferedFrameCount(shared) {
-    return this.unclaimedBufferedFrameCount(shared) + this.boundBufferedFrameCount(shared);
+  bufferedFrameCount(shared2) {
+    return this.unclaimedBufferedFrameCount(shared2) + this.boundBufferedFrameCount(shared2);
   }
-  clearDataTimers(shared) {
-    resetTimer(this.unclaimedDataTimers.get(shared));
-    this.unclaimedDataTimers.delete(shared);
-    resetTimer(this.pendingDataTimers.get(shared));
-    this.pendingDataTimers.delete(shared);
+  clearDataTimers(shared2) {
+    resetTimer(this.unclaimedDataTimers.get(shared2));
+    this.unclaimedDataTimers.delete(shared2);
+    resetTimer(this.pendingDataTimers.get(shared2));
+    this.pendingDataTimers.delete(shared2);
   }
-  syncDataTimers(shared) {
-    if (shared.isClosing) {
-      this.clearDataTimers(shared);
+  syncDataTimers(shared2) {
+    if (shared2.isClosing) {
+      this.clearDataTimers(shared2);
       return;
     }
-    if (this.unclaimedBufferedFrameCount(shared) === 0) {
-      resetTimer(this.unclaimedDataTimers.get(shared));
-      this.unclaimedDataTimers.delete(shared);
-    } else if (!this.unclaimedDataTimers.has(shared)) this.unclaimedDataTimers.set(shared, setTimeout(() => {
-      this.unclaimedDataTimers.delete(shared);
-      shared.pendingDataByToken.clear();
+    if (this.unclaimedBufferedFrameCount(shared2) === 0) {
+      resetTimer(this.unclaimedDataTimers.get(shared2));
+      this.unclaimedDataTimers.delete(shared2);
+    } else if (!this.unclaimedDataTimers.has(shared2)) this.unclaimedDataTimers.set(shared2, setTimeout(() => {
+      this.unclaimedDataTimers.delete(shared2);
+      shared2.pendingDataByToken.clear();
     }, pendingDataTimeoutMs));
-    if (this.boundBufferedFrameCount(shared) === 0) {
-      resetTimer(this.pendingDataTimers.get(shared));
-      this.pendingDataTimers.delete(shared);
-    } else if (!this.pendingDataTimers.has(shared)) this.pendingDataTimers.set(shared, setTimeout(() => {
-      this.pendingDataTimers.delete(shared);
-      if (this.boundBufferedFrameCount(shared) > 0) this.failData(shared, "room data handler timed out");
+    if (this.boundBufferedFrameCount(shared2) === 0) {
+      resetTimer(this.pendingDataTimers.get(shared2));
+      this.pendingDataTimers.delete(shared2);
+    } else if (!this.pendingDataTimers.has(shared2)) this.pendingDataTimers.set(shared2, setTimeout(() => {
+      this.pendingDataTimers.delete(shared2);
+      if (this.boundBufferedFrameCount(shared2) > 0) this.failData(shared2, "room data handler timed out");
     }, pendingDataTimeoutMs));
   }
-  canBindRoomToken(shared, token) {
-    return values(shared.bindings).some((binding) => !binding.roomToken) || [...this.rooms.get(shared.appId)?.values() ?? []].some((room2) => !room2.token || room2.token === token);
+  canBindRoomToken(shared2, token) {
+    return values(shared2.bindings).some((binding) => !binding.roomToken) || [...this.rooms.get(shared2.appId)?.values() ?? []].some((room2) => !room2.token || room2.token === token);
   }
-  discardUnboundData(shared) {
-    for (const token of shared.pendingDataByToken.keys()) if (!this.canBindRoomToken(shared, token)) shared.pendingDataByToken.delete(token);
-    this.syncDataTimers(shared);
+  discardUnboundData(shared2) {
+    for (const token of shared2.pendingDataByToken.keys()) if (!this.canBindRoomToken(shared2, token)) shared2.pendingDataByToken.delete(token);
+    this.syncDataTimers(shared2);
   }
-  failData(shared, reason) {
-    console.warn(`${libName}: ${reason}; disconnecting peer ${shared.peerId}`);
-    this.clear(shared.appId, shared.peerId, { destroyPeer: true });
+  failData(shared2, reason) {
+    console.warn(`${libName}: ${reason}; disconnecting peer ${shared2.peerId}`);
+    this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
   }
-  dispatchData(shared, data) {
-    if (shared.isClosing) return;
+  dispatchData(shared2, data) {
+    if (shared2.isClosing) return;
     const decoded = unwrapFrame(data);
     if (!decoded) {
-      this.failData(shared, "invalid or incompatible room frame");
+      this.failData(shared2, "invalid or incompatible room frame");
       return;
     }
     if (decoded.type === "presence") {
       if (decoded.isPresent) {
-        if (!shared.remoteRoomTokens.has(decoded.roomToken) && shared.remoteRoomTokens.size >= 64) {
-          this.failData(shared, "too many advertised rooms");
+        if (!shared2.remoteRoomTokens.has(decoded.roomToken) && shared2.remoteRoomTokens.size >= 64) {
+          this.failData(shared2, "too many advertised rooms");
           return;
         }
-        shared.remoteRoomTokens.add(decoded.roomToken);
-        for (const [roomId, registration] of this.rooms.get(shared.appId) ?? []) if (registration.token === decoded.roomToken) this.attachRoom(shared.appId, roomId, registration, shared);
+        shared2.remoteRoomTokens.add(decoded.roomToken);
+        for (const [roomId, registration] of this.rooms.get(shared2.appId) ?? []) if (registration.token === decoded.roomToken) this.attachRoom(shared2.appId, roomId, registration, shared2);
       } else {
-        shared.remoteRoomTokens.delete(decoded.roomToken);
-        shared.pendingDataByToken.delete(decoded.roomToken);
-        const binding2 = shared.bindingsByToken[decoded.roomToken];
+        shared2.remoteRoomTokens.delete(decoded.roomToken);
+        shared2.pendingDataByToken.delete(decoded.roomToken);
+        const binding2 = shared2.bindingsByToken[decoded.roomToken];
         binding2?.handlers.close?.();
         binding2?.detach();
-        this.syncDataTimers(shared);
+        this.syncDataTimers(shared2);
       }
       return;
     }
-    const binding = shared.bindingsByToken[decoded.roomToken];
+    const binding = shared2.bindingsByToken[decoded.roomToken];
     if (!binding) {
-      if (!this.canBindRoomToken(shared, decoded.roomToken) || this.bufferedFrameCount(shared) >= 64) return;
-      const pending = shared.pendingDataByToken.get(decoded.roomToken) ?? [];
+      if (!this.canBindRoomToken(shared2, decoded.roomToken) || this.bufferedFrameCount(shared2) >= 64) return;
+      const pending = shared2.pendingDataByToken.get(decoded.roomToken) ?? [];
       pending.push(decoded.payload);
-      shared.pendingDataByToken.set(decoded.roomToken, pending);
-      this.syncDataTimers(shared);
+      shared2.pendingDataByToken.set(decoded.roomToken, pending);
+      this.syncDataTimers(shared2);
       return;
     }
     if (binding.handlers.data) binding.handlers.data(decoded.payload);
     else {
-      if (this.bufferedFrameCount(shared) >= 64) {
-        this.failData(shared, "too much data waiting for a room handler");
+      if (this.bufferedFrameCount(shared2) >= 64) {
+        this.failData(shared2, "too much data waiting for a room handler");
         return;
       }
       binding.pendingData.push(decoded.payload);
-      this.syncDataTimers(shared);
+      this.syncDataTimers(shared2);
     }
   }
-  dispatchSignal(shared, signal) {
-    const binding = this.getSignalBinding(shared);
+  dispatchSignal(shared2, signal) {
+    const binding = this.getSignalBinding(shared2);
     if (binding) binding.handlers.signal?.(signal);
-    else if (signal.type === "offer") this.clear(shared.appId, shared.peerId, { destroyPeer: true });
+    else if (signal.type === "offer") this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
   }
-  dispatchTrack(shared, track, stream) {
-    values(shared.bindings).forEach((binding) => {
+  dispatchTrack(shared2, track, stream) {
+    values(shared2.bindings).forEach((binding) => {
       if (binding.handlers.track || binding.handlers.stream) {
         binding.handlers.track?.(track, stream);
         binding.handlers.stream?.(stream);
@@ -8170,11 +8198,16 @@ function withItem(game, owner, slot2, changed, gone) {
   const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
   return changed ? [...rest, changed] : rest;
 }
-function toSlot(game, rid2, owner, slot2, mint2) {
+function toSlot(game, rid2, owner, slot2, mint2, by) {
   const i = item(game, rid2);
   if (!i || !accepts(slot2, i)) return null;
   const home = i.kind === "influence" && i.mot ? { home: owner } : {};
+  const inPool = typeof i.where === "object" && "slot" in i.where && i.where.slot === owner;
   const moved = { ...i, ...home, where: { slot: owner, name: slot2 }, n: slotItems(game, owner, slot2).length };
+  if (moved.kind === "chip" && !inPool) {
+    if (by) moved.by = by;
+    else delete moved.by;
+  }
   return (w) => {
     settle(w, withItem(game, owner, slot2, moved), mint2);
   };
@@ -8232,7 +8265,7 @@ function riderClick(game, rid2, shift) {
   if (c?.kind !== "chip" || !c.rider || !shift) return null;
   return (w) => w.put(rid2, { ...c, rider: false });
 }
-function addLoose(game, owner, slot2, shift, mint2) {
+function addLoose(game, owner, slot2, shift, mint2, by) {
   const chip2 = {
     kind: "chip",
     oid: mint2(),
@@ -8240,7 +8273,8 @@ function addLoose(game, owner, slot2, shift, mint2) {
     n: slotItems(game, owner, slot2).length,
     sign: shift ? -1 : 1,
     points: 1,
-    rider: false
+    rider: false,
+    ...by && { by }
   };
   return (w) => w.put(ridOf(chip2.oid), chip2);
 }
@@ -9226,11 +9260,11 @@ function make3(doc, c, w) {
           w.toggle("slots", `${c.oid}:${s}`, true);
           return;
         }
-        run(w.game, addLoose(w.game, c.oid, s, false, w.mint()));
+        run(w.game, addLoose(w.game, c.oid, s, false, w.mint(), w.viewer?.name));
       },
       shift: (ev) => {
         if (ev.target.closest(".chip, .pile") || slot2.classList.contains("narrow")) return;
-        run(w.game, addLoose(w.game, c.oid, s, true, w.mint()));
+        run(w.game, addLoose(w.game, c.oid, s, true, w.mint(), w.viewer?.name));
       }
     });
     slots2.append(slot2);
@@ -10032,7 +10066,7 @@ var infl = (oid, name2, points3, n) => {
   };
 };
 function scene(sam = "Player 1", beauford = "Player 2") {
-  const chip2 = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false };
+  const chip2 = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false, by: "GM" };
   const sticky = { kind: "sticky", oid: "00000008", place: at2(1430, 20), text: STICKY2, big: true };
   const ref = { kind: "reference", oid: "00000009", place: at2(1430, 650), which: "actions" };
   return [
@@ -10774,7 +10808,7 @@ var Drag = class {
     const { game } = this.#w, i = game.get(rid2);
     if (!i) return null;
     if (aim2?.merge) return mergeTap(game, rid2, aim2.merge, mint2);
-    if (aim2?.slot) return toSlot(game, rid2, aim2.slot.owner, aim2.slot.name, mint2) ?? (i.kind === "influence" ? toDrawer(game, rid2, i.home) : null);
+    if (aim2?.slot) return toSlot(game, rid2, aim2.slot.owner, aim2.slot.name, mint2, this.#w.who()) ?? (i.kind === "influence" ? toDrawer(game, rid2, i.home) : null);
     if (aim2?.kill) return killCard(game, rid2);
     if (aim2?.drawer) return toDrawer(game, rid2, aim2.drawer.owner, aim2.drawer.at);
     if (away) return i.kind === "influence" ? toDrawer(game, rid2, i.home) : vanish(game, rid2);
@@ -11679,7 +11713,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
   };
   const hands = new Hands({ game, table });
   table.after = () => hands.react();
-  drag = new Drag({ game, table, hands, hand, moves, mint: mint2, schedule: frame, yard });
+  drag = new Drag({ game, table, hands, hand, moves, mint: mint2, schedule: frame, yard, who: () => viewer?.name });
   const tape = new TapeView(document.getElementById("table"), {
     game,
     viewer,
@@ -11822,7 +11856,7 @@ async function main() {
     let hands2;
     const moves2 = new Moves({ stamps, tab: tab2, send: (m) => {
       void wire.send("move", m);
-    }, place: (cs) => shown2(hands2, cs), timers: clock, schedule: frame });
+    }, shared: shared(game2), place: (cs) => shown2(hands2, cs), timers: clock, schedule: frame });
     wire.on("move", (b, from) => moves2.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: "player", name: name2, gone: (tab3) => {
       rolls2.left(tab3);
@@ -11856,6 +11890,7 @@ async function main() {
     send: (m) => {
       void table?.wire.send("move", m);
     },
+    shared: shared(game),
     place: (cs) => shown2(hands, cs, (c) => !!table?.authority.mayMove(c.tab, c.rid)),
     timers: clock,
     schedule: frame
@@ -11954,9 +11989,15 @@ async function main() {
     },
     get rolls() {
       return rolls;
-    }
+    },
+    // R361: for the browser specs, the records someone who owns nothing may see at all.
+    forNobody: () => game.all().map(([rid2]) => rid2).filter(shared(game))
   };
 }
+var shared = (game) => (rid2) => {
+  const r = game.get(rid2);
+  return !r || !!redact(r, null, (oid) => game.get(ridOf(oid)));
+};
 var ready = main();
 if (new URLSearchParams(location.search).has("test")) {
   window.hollow = { version: "dev", date: "", ready };

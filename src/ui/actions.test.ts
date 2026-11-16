@@ -173,3 +173,24 @@ test('shift-click at Min deletes a tap and refunds it', () => {
   assert.equal(t.get(made.oid), undefined);
   assert.equal(money(), '<res>Money +Maj</res>');
 });
+
+test('a chip put in a pool says who put it there', () => {
+  // R360: dropped on a slot or added in one, it takes the putter's name; moved between the pool's own
+  // slots it keeps its own; a Roll Up's chip has none.
+  const { game, run, chip, mint, get } = table();
+  const c = chip(2, -1);
+  run(toSlot(game, ridOf(c.oid), DEVREUX, 'stagger', mint, 'Dana'));
+  assert.equal((get(c.oid) as Chip).by, 'Dana');
+  run(toSlot(game, ridOf(c.oid), DEVREUX, 'main', mint, 'GM'));
+  assert.equal((get(c.oid) as Chip).by, 'Dana', 'moved within the pool, still hers');
+  run(toSlot(game, ridOf(c.oid), SAM, 'main', mint, 'GM'));
+  assert.equal((get(c.oid) as Chip).by, 'GM', 'into another pool, the mover');
+  run(addLoose(game, BEAUFORD, 'edge', false, mint, 'Ann'));
+  const loose = slotItems(game, BEAUFORD, 'edge').find(i => i.kind === 'chip' && i.points === 1) as Chip;
+  assert.equal(loose.by, 'Ann');
+  // Three −2s roll up to a −4 with no `by`.
+  for (const who of ['Dana', 'Dana', 'Dana']) run(toSlot(game, ridOf(chip(2, -1).oid), BEAUFORD, 'stagger', mint, who));
+  const up = slotItems(game, BEAUFORD, 'stagger').filter(i => i.kind === 'chip' && i.points === 4) as Chip[];
+  assert.equal(up.length, 1);
+  assert.equal(up[0]!.by, undefined);
+});

@@ -1,4 +1,4 @@
-// CRC: crc-Moves.md | Seq: seq-move.md#1, seq-move.md#1.1, seq-move.md#1.2, seq-move.md#1.3, seq-move.md#1.5, seq-move.md#2 | R298, R299, R300, R182, R183
+// CRC: crc-Moves.md | Seq: seq-move.md#1, seq-move.md#1.1, seq-move.md#1.2, seq-move.md#1.3, seq-move.md#1.5, seq-move.md#2 | R298, R299, R300, R182, R183, R361
 // Drags go straight to the room, without passing through the GM's page. A receiving page queues
 // what arrives and an actor works through it in passes, newest arrival first, and shows the winners
 // (Hands). A move saves nothing: the drop's change does.
@@ -36,6 +36,8 @@ export type MovesWith = {
   tab: string;
   /** Sends a move to the room. */
   send: (move: Move) => void;
+  /** R361: whether a piece's carry may go to the room: not one of a private mat. */
+  shared: (rid: string) => boolean;
   /** Shows a pass's winners (Hands): moves in hand, or let go. */
   place: (commands: Command[]) => void;
   timers: Timers;
@@ -72,7 +74,9 @@ export class Moves {
     this.#sendNow(items.map(({ aim: _, ...i }) => i), true);
   }
 
-  #sendNow(items: MoveItem[], drop = false): void {
+  #sendNow(all: MoveItem[], drop = false): void {
+    // R361: a private mat's piece is carried in this page alone; the room hears only where it lands.
+    const items = all.filter(i => this.#w.shared(i.rid));
     if (!items.length) return;
     const s = this.#w.stamps.next();
     for (const i of items) this.#w.stamps.mark(i.rid, this.#w.tab, s);

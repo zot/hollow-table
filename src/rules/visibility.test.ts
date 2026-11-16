@@ -1,8 +1,8 @@
 // CRC: crc-Visibility.md | Test: test-Visibility.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Character, Influence, PieceRecord, Rec } from '../model/records.ts';
-import { canSee, redact, differs, type Viewer } from './visibility.ts';
+import type { Character, Chip, Influence, PieceRecord, Rec, Yards } from '../model/records.ts';
+import { canSee, contribution, redact, differs, type Viewer } from './visibility.ts';
 import { bury, burialOf, empty } from './yards.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 
@@ -90,4 +90,30 @@ test("the world's number is the GM's alone", () => {
   assert.deepEqual(redact(world, { name: 'GM', gm: true }, () => undefined), world);
   assert.ok(differs(world, { name: 'GM', gm: true }, () => undefined), "sealed for the GM's tabs");
   assert.ok(!differs(world, { name: 'Dana', gm: false }, () => undefined));
+});
+
+test('two mats: the private one reaches only its owner and the GM', () => {
+  // R358, R359: a chip in a pool is public only when someone other than its character's owner put it
+  // there; a card, when its home character has another owner. Sam is Dana's, Devreux the GM's.
+  const chip = (slot: string, by?: string): Chip => ({ kind: 'chip', oid: '000000c1', where: { slot, name: 'stagger' }, n: 0, sign: -1, points: 2,
+    rider: false, ...(by && { by }) });
+  const [nobody, dana, gm] = VIEWERS as [Viewer, Viewer, Viewer], ann: Viewer = { name: 'Ann', gm: false };
+  const gmsOwn = chip(DEVREUX, 'GM'), danas = chip(DEVREUX, 'Dana'), old = chip(DEVREUX), onSam = chip(SAM, 'GM'), samsOwn = chip(SAM, 'Dana');
+  assert.deepEqual([gmsOwn, danas, old, onSam, samsOwn].map(c => contribution(c, look)), [false, true, false, true, false]);
+  for (const v of [nobody, dana, ann]) assert.equal(redact(gmsOwn, v, look), undefined, "the GM's own chip on Devreux: absent, not face-down");
+  assert.equal(redact(old, dana, look), undefined, 'a chip from before has no `by`: private');
+  assert.deepEqual(redact(gmsOwn, gm, look), gmsOwn, 'the GM sees the private mat');
+  assert.deepEqual([redact(danas, ann, look), redact(onSam, ann, look)], [danas, onSam], 'contributions are public');
+  assert.deepEqual([redact(samsOwn, ann, look), redact(samsOwn, dana, look)], [undefined, samsOwn], "Dana's own chip on Sam: hers and the GM's");
+  // A card from Devreux in his own pool is private; one from Sam, in Devreux's, a contribution, face-down to Ann.
+  const keep = records.find((r): r is Influence => r.kind === 'influence' && r.home === DEVREUX)!;
+  assert.equal(redact({ ...keep, where: { slot: DEVREUX, name: 'main' } }, dana, look), undefined);
+  const sams = records.find((r): r is Influence => r.kind === 'influence' && r.home === SAM);
+  if (sams) {
+    const shown = redact({ ...sams, where: { slot: DEVREUX, name: 'main' } }, ann, look) as Influence;
+    assert.deepEqual([shown.name, shown.points], ['', sams.points]);
+  }
+  // A burial keeps out what its viewer may not see.
+  const yard: Yards = { yards: [{ name: 'Hill', named: false, items: [{ name: 'x', records: [chars.get(DEVREUX)!, gmsOwn] }] }] };
+  assert.deepEqual((redact(yard, dana, look) as Yards).yards[0]!.items[0]!.records.map(r => r.kind), ['character']);
 });

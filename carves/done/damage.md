@@ -136,6 +136,7 @@ DECIDED (Bill, 2026-11-15): **Conditions stay a Note**: physical overflow is sti
 card's Notes until the physical injury rules are published.
 Table's choice (Daneel, 2026-11-15, for Bill's review): the table knows no Event, so Recovery is the
 GM's hand: rewriting the points lowers it, and 0 points with no name removes it.
+CONFIRMED (Bill, 2026-11-16): recovery by hand stays.
 
 ## Item 7
 

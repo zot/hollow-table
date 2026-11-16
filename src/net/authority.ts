@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
@@ -19,7 +19,10 @@ export type Put = { rid: Rid; s: number; by?: string; rec: Rec };
 export type Del = { rid: Rid; s: number; by?: string };
 export type Batch = { g: number; full: boolean; puts: Put[]; dels: Del[]; sealed: Record<string, Box> };
 /** What a tab's sealed box holds. */
-export type Sealed = { g: number; puts: Put[] };
+// R361: `dels` takes away what only this tab stops seeing.
+/** A tab's own part of a batch, before sealing. */
+type Own = { puts: Put[]; dels: Del[] };
+export type Sealed = { g: number; puts: Put[]; dels?: Del[] };
 /** A player's change, as it is sealed to the GM's page: `base` is the version of the copy it was made on. */
 export type Edit = { s: number; base: number; puts: { rid: Rid; rec: Rec }[]; dels: Rid[] };
 
@@ -34,6 +37,9 @@ const stampOf = (o: Stamp): Stamp => o.by === undefined ? { s: o.s } : { s: o.s,
 const kindOf = (r: Rec | undefined) => r && 'kind' in r ? r.kind : undefined;
 const characters = (game: Game): Characters => oid => game.get(`o:${oid}`) as Character | undefined;
 const seen = (rec: Rec, viewer: Viewer, chars: Characters) => same(redact(rec, viewer, chars), rec);
+// R360: a player may put their own name on a chip, never another's.
+const forged = (old: Rec | undefined, rec: Rec, who: string) => 'kind' in rec && rec.kind === 'chip'
+  && rec.by !== undefined && rec.by !== who && rec.by !== (old && 'kind' in old && old.kind === 'chip' ? old.by : undefined);
 
 // R191: Boot Hill from a player: what they can only see redacted is put back as the GM has it; if they
 // left out something they couldn't read, the change is refused (a burial would lose it).
@@ -83,6 +89,7 @@ export function judge(game: Game, edit: Edit, who: string | null): { puts: { rid
       const merged = mergeYards(game.get('yards') as Yards | undefined, rec as Yards, viewer, chars);
       if (merged) puts.push({ rid, rec: merged }); else refused.push(rid);
     } else if (!isPiece(rid) || (book.tomb[rid] ?? 0) > edit.base) refused.push(rid);       // R192
+    else if (forged(game.get(rid), rec, who)) refused.push(rid);                             // R360
     else if (mine(game.get(rid), rec)) puts.push({ rid, rec });
     else refused.push(rid);
   }
@@ -176,30 +183,41 @@ export class Authority {
     if (rids.some(rid => kindOf(game.get(rid)) === 'character' || kindOf(this.#public.get(rid)) === 'character')) {
       rids = [...game.all().map(([rid]) => rid).filter(rid => !LOCAL.has(rid)), ...rids.filter(rid => !game.get(rid))];
     }
-    const puts: Put[] = [], dels: Del[] = [], sealFor = new Map<string, Put[]>();
+    const puts: Put[] = [], dels: Del[] = [], sealFor = new Map<string, Own>();
     const gone: Rid[] = [];
     for (const rid of new Set([...rids, ...this.#answerDel])) {
       const rec = game.get(rid);
       if (!rec) {
-        if (!this.#public.has(rid) && !this.#answerDel.has(rid)) continue;
+        // R361: a deleted piece of a private mat is taken away, sealed, from the tabs that held it.
+        const holders = [...this.#tabs].filter(([, t]) => t.holds.has(rid));
+        const wasPublic = this.#public.has(rid) || this.#answerDel.has(rid);
+        if (!wasPublic && !holders.length) continue;
+        const stamp = this.#stamp(rid);
+        if (wasPublic) dels.push({ rid, ...stamp });
+        else for (const [tab] of holders) {
+          const f = sealFor.get(tab) ?? { puts: [], dels: [] };
+          f.dels.push({ rid, ...stamp });
+          sealFor.set(tab, f);
+        }
         this.#public.delete(rid);
         for (const t of this.#tabs.values()) t.holds.delete(rid);
-        dels.push({ rid, ...this.#stamp(rid) });
         gone.push(rid);
         continue;
       }
       const pv = redact(rec, null, chars), changed = !same(this.#public.get(rid), pv);
       let stamp: Stamp | undefined;
       const stampOnce = () => stamp ??= this.#stamp(rid);
-      if (changed) { this.#public.set(rid, pv); puts.push({ rid, ...stampOnce(), rec: pv }); }
+      if (changed && pv) { this.#public.set(rid, pv); puts.push({ rid, ...stampOnce(), rec: pv }); }
+      // R361: a piece nobody-at-all may see goes out as a removal, not a deletion: no tomb.
+      else if (changed) { this.#public.delete(rid); dels.push({ rid, ...stampOnce() }); }
       for (const [tab, t] of this.#tabs) {
         const tv = redact(rec, this.#viewer(t), chars), holds = changed ? pv : t.holds.get(rid);
-        t.holds.set(rid, tv);
-        if (!same(tv, holds)) {
-          const f = sealFor.get(tab) ?? [];
-          f.push({ rid, ...stampOnce(), rec: tv });
-          sealFor.set(tab, f);
-        }
+        if (tv) t.holds.set(rid, tv); else t.holds.delete(rid);
+        if (same(tv, holds)) continue;
+        const f = sealFor.get(tab) ?? { puts: [], dels: [] };
+        // R361: what only this tab stops seeing is taken away from it alone, sealed.
+        if (tv) f.puts.push({ rid, ...stampOnce(), rec: tv }); else f.dels.push({ rid, ...stampOnce() });
+        sealFor.set(tab, f);
       }
     }
     this.#answerDel.clear();
@@ -216,13 +234,13 @@ export class Authority {
     this.#send({ g, full: false, puts, dels }, sealFor);
   }
 
-  #send(batch: Omit<Batch, 'sealed'>, sealFor: Map<string, Put[]>, to?: string): void {
+  #send(batch: Omit<Batch, 'sealed'>, sealFor: Map<string, Own>, to?: string): void {
     const { link, sealer } = this.#w;
     this.#work = this.#work.then(async () => {
       const sealed: Record<string, Box> = {};
-      for (const [tab, puts] of sealFor) {
+      for (const [tab, { puts, dels }] of sealFor) {
         const t = this.#tabs.get(tab);
-        if (t) sealed[tab] = await sealer.seal(t.sealKey, 'recs', link.tab, tab, { g: batch.g, puts } satisfies Sealed);
+        if (t) sealed[tab] = await sealer.seal(t.sealKey, 'recs', link.tab, tab, { g: batch.g, puts, ...(dels.length && { dels }) } satisfies Sealed);
       }
       link.send('recs', { ...batch, sealed } satisfies Batch, to);
     });
@@ -238,15 +256,16 @@ export class Authority {
     for (const [rid, rec] of game.all()) {
       if (LOCAL.has(rid)) continue;
       const stamp = this.#current(rid), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
-      puts.push({ rid, ...stamp, rec: pv });
+      // R361: a piece nobody-at-all may see is left out of the public part, sealed to those who may.
+      if (pv) puts.push({ rid, ...stamp, rec: pv });
       // R188, R192: what a catch-up sends has gone out, so its deletion is sent and tombed. A record
       // already out keeps what went out, so a change not yet sent still reaches the other tabs.
-      if (!this.#public.has(rid)) this.#public.set(rid, pv);
-      if (!same(tv, pv)) mine.push({ rid, ...stamp, rec: tv });
-      t.holds.set(rid, tv);
+      if (pv && !this.#public.has(rid)) this.#public.set(rid, pv);
+      if (tv && !same(tv, pv)) mine.push({ rid, ...stamp, rec: tv });
+      if (tv) t.holds.set(rid, tv);
     }
     const g = (game.get('book') as Book).gv;
-    this.#send({ g, full: true, puts, dels: [] }, mine.length ? new Map([[tab, mine]]) : new Map(), tab);
+    this.#send({ g, full: true, puts, dels: [] }, mine.length ? new Map([[tab, { puts: mine, dels: [] }]]) : new Map(), tab);
     if (!viewer) this.#w.link.send('claim', { name: t.name, why: why(t.name) }, tab);
   }
 

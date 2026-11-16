@@ -124,3 +124,14 @@ by the drop
 **Fire alarm:** drop the world's redaction; red: Dana's page holds 5
 **Inject:** src/rules/visibility.ts:redact
 **Pulled:** 2026-11-15 — rang (Chromium): "the world at the table" failed, Dana's page held 5; restored clean
+
+## Test: two mats: a pool hidden from you shows only what others put in it
+**Purpose:** R358–R361 over the wire: a chip the GM moves into Devreux's pool leaves the players' pages and comes back with it; Dana's contribution there reaches everyone by her name; her own chip on Sam (hers now) stays on her page, sealed over the public removal, leaves Eve's, and survives a reload, while Eve's reload doesn't bring it
+**Input:** the GM's table, Dana and Eve; a chip on the table, into Devreux's Stagger by the GM, back; into Devreux's Stagger by Dana; Sam given to Dana; the chip into Sam's Stagger by Dana; Dana and Eve reload
+**Expected:** Dana has it, then not, Eve not; Eve has it back; `by` Dana on the GM's and Eve's pages; the GM's has it in Sam's pool, Eve's not, Dana's yes; after reloads Dana's yes, Eve's no
+**Refs:** crc-Copy.md, crc-Authority.md, crc-Visibility.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 7
+**Fire alarm:** let the public removal win over the tab's own sealed put (don't filter its own rids out of the removals); red: Dana loses her own chip on Sam
+**Inject:** src/net/copy.ts:#recs
+**Pulled:** 2026-11-16 — rang (Chromium): "two mats" failed at Dana's own chip on Sam, gone from her page; restored clean

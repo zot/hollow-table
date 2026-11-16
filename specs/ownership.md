@@ -25,10 +25,22 @@ The die by the character's name shows GM, open, or the player.
 - **What's secret.** A character's sheet and its Influence cards, wherever they are: in its drawer,
   its used pile, someone's pool, loose on the table, or in Boot Hill. Only the owner and the GM may
   read them.
-- **What's public.** The character's name and place, the number of cards in its drawer, the values
-  of chips in pools, the sheet's shape.
-- To everyone else, a hidden character's card is face-down, its drawer's cards are face-down, and its
-  pool chips lose their names on hover.
+- **What's public.** The character's name and place, the number of cards in its drawer, the sheet's
+  shape, and what others put in its pool (below).
+- To everyone else, a hidden character's card is face-down, and its drawer's cards are face-down.
+- **A pool has two mats** (Bill, 11-16: "At the game table, there would be an Influence Pool mat for
+  the NPC on the table and another one behind the GM screen"). A **contribution** is an Influence put
+  in a pool by someone other than its character's owner: a chip a player (or the GM, on a player's
+  character) put there, or a card from another owner's character. Contributions are the public mat,
+  seen by everyone ("since we're all speaking out loud and shoving chips around at the table"), a
+  card from a hidden character face-down with its value. Everything else in the pool, what its own
+  side put there and every Roll Up, is the **private mat**: only the owner and the GM may see it, and
+  it never reaches anyone else's page, not even face-down. The game counts both mats; a contribution
+  is counted in the real pool as it is, never copied.
+- **A chip remembers who put it in a pool** (`by`), and a chip moved into a pool from the table takes
+  the mover's name. A chip moved into a hidden pool by its own side goes private, leaving the other
+  pages. Chips already in pools before this, and Roll Ups, belong to the private mat.
+- **The GM sees the private mats**; "You are" shows the table as a player sees it.
 
 ## Identity and viewing as
 

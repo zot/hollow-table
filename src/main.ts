@@ -30,7 +30,7 @@ import { BootHillView } from './ui/boothill.ts';
 import { FolksView, arrivalName, gmName, viewAsChoices, type Here, type Me } from './ui/folks.ts';
 import { newCharacter, newChip, newHowTo, newSticky, newText } from './rules/supplies.ts';
 import { handOver } from './net/claims.ts';
-import type { Viewer } from './rules/visibility.ts';
+import { redact, type Viewer } from './rules/visibility.ts';
 import { BlobStore, type Size } from './store/blobs.ts';
 import { IdbDb } from './store/db.ts';
 import { GameStore, type Clock, type KeyValue } from './store/gamestore.ts';
@@ -232,7 +232,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   // R298, R299: every hand, this page's and others', drawn alike, again after every redraw.
   const hands = new Hands({ game, table });
   table.after = () => hands.react();
-  drag = new Drag({ game, table, hands, hand, moves, mint, schedule: frame, yard });
+  drag = new Drag({ game, table, hands, hand, moves, mint, schedule: frame, yard, who: () => viewer?.name });
   // R110–R113: this page's tape, under the pieces; a torn roll is carried off like any piece.
   const tape = new TapeView(document.getElementById('table')!, {
     game, viewer, up: () => seat.tapeUp, setUp: up => keep({ ...seat, tapeUp: up }),
@@ -344,7 +344,7 @@ async function main() {
     const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm,
       held: rid => moves.holds(rid) });
     let hands: Hands | undefined;
-    const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, place: cs => shown(hands, cs), timers: clock, schedule: frame });
+    const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, shared: shared(game), place: cs => shown(hands, cs), timers: clock, schedule: frame });
     wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: 'player', name, gone: tab => { rolls.left(tab); hands?.leave(tab); } });
     // R167, R296: the GM's page says when this page is nobody, and when it is handed the name.
@@ -371,7 +371,7 @@ async function main() {
   let table: { room: string; wire: Wire; presence: Presence; authority: Authority; rolls: Rolls; images: ImageExchange } | null = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
   // Drags go to the room once there is one; players' drags are judged like their changes.
-  const moves = new Moves({ stamps, tab, send: m => { void table?.wire.send('move', m); },
+  const moves = new Moves({ stamps, tab, send: m => { void table?.wire.send('move', m); }, shared: shared(game),
     place: cs => shown(hands, cs, c => !!table?.authority.mayMove(c.tab, c.rid)), timers: clock, schedule: frame });
 
   // R157: Open the table makes the room (or reopens this game's); the GM's URL is never rewritten.
@@ -430,8 +430,16 @@ async function main() {
     },
   });
   return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'gm' as const, tab, identity, store, blobs, open, invite: link, moves, view, drag,
-    get table() { return table; }, get rolls() { return rolls; } };
+    get table() { return table; }, get rolls() { return rolls; },
+    // R361: for the browser specs, the records someone who owns nothing may see at all.
+    forNobody: () => game.all().map(([rid]) => rid).filter(shared(game)) };
 }
+
+// R361: a piece someone who owns nothing may see at all: anything but a private mat's.
+const shared = (game: Game) => (rid: string): boolean => {
+  const r = game.get(rid);
+  return !r || !!redact(r, null, oid => game.get(ridOf(oid)) as Character | undefined);
+};
 
 const ready = main();
 if (new URLSearchParams(location.search).has('test')) {

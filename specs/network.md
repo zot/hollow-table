@@ -90,6 +90,12 @@ them. Nothing to install, no local-network grant, no daemon.
 - Every batch carries each piece as someone who owns nothing sees it (Influence names and values
   gone, the sheet's words, numbers and images blanked). For each player, the pieces they see
   differently ride sealed in the same batch.
+- **A piece someone may not see at all** (the private mat of a pool, `ownership.md`) isn't in the
+  public part of a batch; it rides sealed to those who may read it. When a piece goes private (a chip
+  moved into a hidden pool), the other pages get a removal, not a deletion: it is not remembered as
+  deleted, since it may come back out onto the table, and a player who alone stops seeing it gets the
+  removal sealed. Nobody's carry of such a piece goes to the room: the other pages see only where it
+  lands, the GM's page too.
 - **Changing hands:** when Sam is given to Dana, his sheet and cards go sealed to her; when he's
   taken back, she gets the redacted ones.
 - Players' changes are sealed to the GM's page. **A redacted copy can't overwrite the real one**: the
