@@ -174,7 +174,7 @@ export class TableView {
   #push(rid: Rid): void {
     const { game, viewer } = this.#w, mat = this.#pools.get(rid), c = game.get(rid) as Character | undefined;
     if (!mat || !c || c.kind !== 'character' || mat.ownerDocument.body.classList.contains('dragging')) return;
-    // The docked roll row is this page's alone (R68): it never pushes anyone's pieces.
+    // The docked roll row is this page's alone (R371): it never pushes anyone's pieces.
     const row = mat.querySelector<HTMLElement>('.roller'), own = row ? row.offsetHeight + parseFloat(getComputedStyle(row).marginBottom || '0') : 0;
     const h = mat.offsetHeight - own, was = this.#heights.get(rid);
     this.#heights.set(rid, h);

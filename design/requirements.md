@@ -171,9 +171,9 @@
 **Source:** specs/rolls.md
 
 - **~~R67:~~** (Retired T17 — see R321) The roll row is the dice with no labels: White, Blue, Yellows, bonus, and Roll; Roll is a key and the GM's private switch a tag.
-- **R68:** Clicking the die of a pool you own docks the roll row there, in your view only.
+- **~~R68:~~** (Retired T31 — see R371) Clicking the die of a pool you own docks the roll row there, in your view only.
 - **R69:** Clicking the die of the pool the row is on starts fresh: no action, no opponent, White, one Yellow, +0.
-- **R70:** The roll row leaves a pool its viewer stops owning.
+- **~~R70:~~** (Retired T32 — see R371) The roll row leaves a pool its viewer stops owning.
 - **R71:** The GM can dock and work any character's roll row without taking the character.
 - **R72:** The White die opens the Difference menu, each row with its words first and its dice at the right; picking one sets the row.
 - **R73:** Yellows: click adds, shift-click removes; bonus: click raises, shift-click lowers, showing −n below zero.
@@ -191,10 +191,10 @@
 - **R82:** Hand edits to Yellows and bonus are kept as an adjustment until the next action.
 - **R83:** Dragging from the Base onto another character's pool or card aims at them; a chooser offers Mental or Psych Defend from their `<def>` mark, and a single number needs no choice (an Attack goes straight at its own Defend, and a roll typed ? can't be aimed: R306); a number, Field or Skill pointed at overrides the chooser (R326, R327).
 - **~~R84:~~** (Retired T19 — see R330) The opponent's total is Defend + Main + Edge + Bias + Affliction + Injury + Stagger.
-- **R85:** The Difference picks the White row live as either side's pools change, until the roller picks a row by hand, which holds until they aim again.
+- **~~R85:~~** (Retired T34 — see R373) The Difference picks the White row live as either side's pools change, until the roller picks a row by hand, which holds until they aim again.
 - **R86:** The current opponent is marked with an amber ring and ⌖; clicking `vs` stops aiming.
-- **R87:** A player can't aim at a character hidden from them and is told "Only the GM can aim at" that character.
-- **R88:** The roll row's numbers follow the rolling character's owner: if the owner can't see the opponent, the row shows `vs` name and the White setting as dice only, and the White menu is locked ("set by the GM"); the GM's hover still shows the Difference.
+- **~~R87:~~** (Retired T33 — see R372) A player can't aim at a character hidden from them and is told "Only the GM can aim at" that character.
+- **~~R88:~~** (Retired T35 — see R374) The roll row's numbers follow the rolling character's owner: if the owner can't see the opponent, the row shows `vs` name and the White setting as dice only, and the White menu is locked ("set by the GM"); the GM's hover still shows the Difference.
 - **R277:** While dragging from the Base, the pool under the pointer has a dashed amber outline and the pointing hand holds; the Defend chooser opens at the pointer with its first choice focused and closes on Escape or a click elsewhere; "Only the GM can aim at …" goes after about 2 s.
 - **R89:** Dice are White, Green, Red, Blue and Yellow d6; the basic roll is White, Blue and the Yellows.
 - **R90:** The Difference table maps +10 or more to Outclass, +7..+9 Green + 1, +5..+6 Green, +3..+4 +1, −2..+2 White, −3..−4 −1, −5..−6 Red, −7..−9 Red − 1, −10 or less Outclassed.
@@ -262,7 +262,7 @@
 - **R346:** An Attack's kind decides its Damage column, and aiming one goes straight at that Defend with no chooser: a Mental Attack at Mental Defend, a Psych Attack at Psych Defend, a Phys Attack at 0; a roll typed ? can't be aimed at a character or at the world (refused with "Say what this roll is first", gone after about 2 s), so with an action it can't be rolled until its type is chosen.
 - **R347:** The bar's Opposition button, a small brass plate after the chips, slides a brass tray out under the bar and back again; the tray holds one number, the world's Total Influence, typed only by the GM; a blank tray means the world has no number, and nothing adds to it.
 - **R348:** The world's number is the GM's alone: a player's page gets only whether it is set, and a player's tray reads "set by the GM" or stays blank.
-- **R349:** A drag from the Base that ends on open table or on the tray aims at the world; while the pointer is over either, the dashed amber box goes round the tray (round the Opposition button while the tray is in); a blank tray refuses it with a note at the pointer, "Put the world's number in the tray first" for the GM and "The GM hasn't given the world a number yet" for a player, gone after about 2 s.
+- **~~R349:~~** (Retired T36 — see R376) A drag from the Base that ends on open table or on the tray aims at the world; while the pointer is over either, the dashed amber box goes round the tray (round the Opposition button while the tray is in); a blank tray refuses it with a note at the pointer, "Put the world's number in the tray first" for the GM and "The GM hasn't given the world a number yet" for a player, gone after about 2 s.
 - **R350:** Aimed at the world, the header reads `vs the world 4 (+2)`, the numbers as the rolling character's owner may see them (a player's character: `vs the world` and the White as dice only, locked for the player), the tray or its button wears the amber ring, and clicking `vs` stops aiming; the number is live until the roll, moving the White row unless one was picked by hand.
 - **R351:** On the GM's page a roll at the world totals against the tray's number, and is refused while the tray is blank; the receipt's `vs` reads "the world (4), Difference +2" where the numbers may be seen and "the world" elsewhere; an Attack at the world rolls with nothing to take its Damage, so its receipt has no Take.
 - **~~R352:~~** (Retired T25 — see R362) An action whose label is an Influence (`Name -Level` or `Name +Level`, as `Tricky -Min`) puts that Influence on its roll: while it is the roll row's action, a card of that name, sign and Level's points (Min 2, Sig 4) marked `once` sits in the actor's Main pool, counted like any card there; choosing the action again keeps the one card.
@@ -273,6 +273,12 @@
 - **R363:** An action line that is only an Influence, with no action above it and no Skill named, gets no die: it rolls nothing and puts no card anywhere.
 - **R364:** The action's label preselects the type when it says (Mental Atk, Psych Atk, Phys or Physical with Atk or Attack, Infer, Impress, Req or Request, Influence); otherwise it starts at the type the viewer's seat remembers for that action on that card, else Skill when the label names a Field or Skill on the card, else ?; clicking the tag changes it.
 - **R365:** A Skill roll aimed at a Defend, a Defend number pointed at or a drop that falls back to Defend, aims as asked, with a note at the pointer, "A Skill or Attribute normally opposes a Skill", gone after about 2 s.
+- **R371:** A character's roll row is one row, a piece of the table: it shows on that character's pool on every page, and only its owner and the GM change it; the die button (its owner's or the GM's) brings it up there, and again starts it fresh; while the GM's private switch is on, the row is the GM's alone.
+- **R372:** Only the GM aims: the GM drags from the action in a character's pool header to the opposition; a player's drag from the Base aims at nothing, a character or the world.
+- **R373:** The GM's page sets the White for every row aimed, from the real numbers, as the Difference picks it, live as either side's pools change, unless the GM picked a row by hand (held until the next aim); it writes the White into the row as dice, and the opposition's numbers never leave the GM's page.
+- **R374:** The numbers follow the viewer: a player's row shows the White as dice only, its menu locked ("set by the GM"); `vs` shows the opponent's number only to a viewer who can see the opponent, and the action's number only where its card can be read; the GM's page shows the numbers and the Difference.
+- **R375:** The GM's page refuses a player's change to a roll row's aim or White, and to the row of a character the player doesn't own; it resolves a player's roll against the aim in that row as the GM's page holds it.
+- **R376:** A drag from the Base that ends on open table or on the tray aims at the world; while the pointer is over either, the dashed amber box goes round the tray (round the Opposition button while the tray is in); a blank tray refuses it with a note at the pointer, "Put the world's number in the tray first", gone after about 2 s.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

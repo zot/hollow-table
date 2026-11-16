@@ -1,4 +1,4 @@
-// CRC: crc-Tray.md | R347, R348, R349, R350
+// CRC: crc-Tray.md | R347, R348, R376, R350
 // The Opposition button in the bar and the brass tray it slides out: the world's Total Influence,
 // what a roll aimed at no character is against. Only the GM types it; a player's page never holds it.
 
@@ -59,7 +59,7 @@ export class TrayView {
     this.render();
   }
 
-  // R349, R350: the world's mark: the tray while it is out, else its button.
+  // R376, R350: the world's mark: the tray while it is out, else its button.
   /** The element that stands for the world while aiming and aimed. */
   mark(): HTMLElement { return this.#open ? this.#tray : this.#button; }
 

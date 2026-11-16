@@ -2,29 +2,16 @@
 // Your seat at the table: how you're looking, kept per game and per viewer in localStorage, never
 // checkpointed, exported or sent. Every read and write survives a blocked or empty storage.
 
-import type { Die, Oid, Opponent, Rid, RollType } from '../model/records.ts';
-import type { Against } from '../rules/readmarks.ts';
-import { WORLD, ridOf } from '../model/records.ts';
+import type { Oid, Rid, RollType } from '../model/records.ts';
+import { ridOf } from '../model/records.ts';
 import type { KeyValue } from './gamestore.ts';
 
-/** The docked roll row. */
-export type Roller = {
-  pool: Oid; action: string; opponent: Opponent | null; defend: 'mental' | 'psych'; row: string | null;
-  byHand: boolean; hand: { yellows: number; bonus: number }; dice: Die[];
-  /** R104, R275: the GM's private switch. */
-  priv?: boolean;
-  /** R319: what the roll is (absent in a seat saved before, which counts as `?`). */
-  type?: RollType;
-  /** R316: the alternative of a `/` label whose die was clicked. */
-  alt?: string;
-  /** R326, R336: what was pointed at on the opponent's card, by name; absent, Defend (R328). */
-  against?: Against;
-};
+// R371: the roll row is the game's (`rows`), not the seat's.
+export type { Roller } from '../model/records.ts';
 
 export type Seat = {
   /** Pan and zoom; null until the table has been fitted once (a first visit, R271). */
   view: { x: number; y: number; zoom: number } | null;
-  roller: Roller | null;
   /** Who the GM is viewing as, or null for the GM's own view. */
   viewAs: string | null;
   tapeUp: boolean;
@@ -40,7 +27,7 @@ export const seatKey = (game: string, viewer: string) => `hollow.seat.${game}.${
 
 export function fresh(): Seat {
   return {
-    view: null, roller: null, viewAs: null, tapeUp: false,
+    view: null, viewAs: null, tapeUp: false,
     boothill: { cur: 0, open: false }, open: { used: [], piles: [], slots: [], columns: [] }, types: {},
   };
 }
@@ -73,14 +60,10 @@ export function save(storage: KeyValue, game: string, viewer: string, seat: Seat
 export function prune(seat: Seat, exists: (rid: Rid) => boolean, yards: number): Seat {
   const here = (oid: Oid) => exists(ridOf(oid));
   const owner = (s: string) => here(s.slice(0, s.indexOf(':')));
-  let roller: Roller | null = null;
-  if (seat.roller && here(seat.roller.pool)) {
-    const { opponent } = seat.roller;
-    // R350: the world is always there to aim at.
-    roller = { ...seat.roller, opponent: opponent && (opponent === WORLD || here(opponent)) ? opponent : null };
-  }
+  // R371: a seat saved before still names a roll row; it is the game's now.
+  const { roller: _, ...rest } = seat as Seat & { roller?: unknown };
   return {
-    ...seat, roller,
+    ...rest,
     boothill: { ...seat.boothill, cur: Math.max(0, Math.min(seat.boothill.cur, yards - 1)) },
     open: {
       used: seat.open.used.filter(here), piles: seat.open.piles.filter(here),

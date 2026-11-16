@@ -1,4 +1,4 @@
-// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R349
+// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R376
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
@@ -18,7 +18,7 @@ export type Envelope<B = unknown> = { v: typeof VERSION; kind: Kind; tab: string
 
 const tab = str(CAPS.id), name = str(CAPS.name), why = str(LIMITS.why);
 const seq = int(0, Number.MAX_SAFE_INTEGER), coord = num(-CAPS.coord, CAPS.coord);
-// R349: a roll aims at a character's oid, at the world, or (plain dice) at nobody.
+// R376: a roll aims at a character's oid, at the world, or (plain dice) at nobody.
 const opponent: Shape = v => v === null || v === WORLD || isOid(v);
 // R296: a claim's why is null when the page now holds its name.
 const whyOrNull: Shape = v => v === null || why(v);

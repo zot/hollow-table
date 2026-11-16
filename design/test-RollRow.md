@@ -2,7 +2,7 @@
 **Source:** crc-RollRow.md
 
 ## Test: docking and starting fresh
-**Purpose:** R68, R69, R78: a pool's die docks the row there, fresh; the same die again starts
+**Purpose:** R371, R69, R78: a pool's die docks the row there, fresh; the same die again starts
 fresh; clearing the Base starts fresh; the GM's private switch stays
 **Input:** dock on Sam; then Sam busy with Infer, an opponent and private, docked on Sam again, on
 Beauford, and cleared
@@ -42,7 +42,7 @@ Yellows; no label, no total, 1 Yellow, +0
 **Pulled:** 2026-11-12 — rang: with the Bonus pool left out, Infer stayed 0 Yellows, +2
 
 ## Test: who rolls for whom
-**Purpose:** R68, R71: a character's owner, or the GM for anyone; nobody for an open character
+**Purpose:** R371, R71: a character's owner, or the GM for anyone; nobody for an open character
 **Input:** Sam (Dana's) for Dana, Ann and the GM; Devreux (the GM's) for Dana and the GM; an open Sam for the GM
 **Expected:** true, false, true; false, true; false
 **Refs:** crc-RollRow.md
@@ -53,7 +53,7 @@ Yellows; no label, no total, 1 Yellow, +0
 **Pulled:** 2026-11-12 — rang: Ann could roll for Sam
 
 ## Test: aiming at an opponent
-**Purpose:** R83–R85, R88: the opponent's Defend and pools (Stagger included) against your total;
+**Purpose:** R83, R84, R373, R374: the opponent's Defend and pools (Stagger included) against your total;
 the Difference picks the row live, until one is picked by hand, which holds until the next aim;
 stopping keeps a picked row and drops a Difference row; whether the rolling character's owner sees
 the opponent
@@ -146,3 +146,14 @@ Red picked by hand
 **Fire alarm:** never default to Skill (`'?'` in place of the Skill fallback); red: Tact starts at ?
 **Inject:** src/ui/rollrow.ts:withAction
 **Pulled:** 2026-11-16 — rang: "a Skill-first label suffers its Influence" failed, Tact started at ?; restored clean
+
+## Test: the GM's page keeps each aimed row's White; elsewhere the row's own
+**Purpose:** R373: whites() gives exactly the aimed rows, not picked by hand, whose White should change, and nothing once written back; R374: elsewhere shown() gives the White the row holds
+**Input:** Sam's Infer aimed at Devreux; Beauford fresh; Devreux's Attack aimed at Sam with Red picked by hand; written back; Sam's row holding Red, shown not live
+**Expected:** only Sam's, with the Difference's White; then nothing; Red
+**Refs:** crc-RollRow.md
+**Code:** `src/ui/rollrow.test.ts`
+**Alarm:** 13
+**Fire alarm:** let the Difference override a White picked by hand (drop `r.byHand` from shown's choice of White); red: "aiming at an opponent" fails, a row picked by hand no longer holds (whites skips such rows too, so this test stays green)
+**Inject:** src/ui/rollrow.ts:shown
+**Pulled:** 2026-11-16 — first silent at `whites` (shown already keeps a hand-picked White, so whites has nothing to change either way); re-pointed at shown, it rang: "aiming at an opponent" failed, the picked row not holding; restored clean

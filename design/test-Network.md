@@ -115,9 +115,9 @@ by the drop
 **Code:** `tests/relays.spec.ts`
 
 ## Test: the world at the table: its number stays on the GM's page
-**Purpose:** R348, R349, R351 over the wire: a player's page holds whether the world is set and never its number; the player's reminder while blank; the player's row and receipt without the number; the GM's receipt with it
-**Input:** the GM's table and Dana, Sam given to Dana; Dana drags Sam's Infer to open table; the GM sets the world at 5; Dana opens the tray, aims at the world and rolls
-**Expected:** "The GM hasn't given the world a number yet."; Dana's record `{set: true, total: 0}`; her tray "set by the GM", no field; `vs the world`, the White locked; her receipt "vs the world" with no Difference; the GM's "vs the world (5), Difference"
+**Purpose:** R348, R371–R375, R351 over the wire: Dana picks Sam's Infer and the GM's page shows it on Sam's pool; Dana's drag aims at nothing; the GM aims, reminded while the tray is blank; Dana's page holds whether the world is set and never its number; her row shows `vs the world` with the GM's White, locked; her receipt without the number, the GM's with it
+**Input:** the GM's table and Dana, Sam given to Dana; Dana clicks Sam's Infer; Dana drags it to open table; the GM drags Sam's Infer to open table; the GM sets the world at 5; Dana opens the tray; the GM aims again; Dana rolls
+**Expected:** Infer in Sam's header on the GM's page; no note on Dana's page; the GM's "Put the world's number in the tray first."; Dana's record `{set: true, total: 0}`, her tray "set by the GM", no field; the GM's `vs the world 5`, Dana's `vs the world`, her White locked and the same dice as the GM's; her receipt "vs the world" with no Difference; the GM's "vs the world (5), Difference"
 **Refs:** crc-Visibility.md, crc-Tray.md, crc-Rolls.md, crc-Authority.md
 **Code:** `tests/rolls.spec.ts`
 **Alarm:** 6
@@ -146,3 +146,14 @@ by the drop
 **Fire alarm:** pile every pool (`pileUp` always true); red: Dana's page shows a pile
 **Inject:** src/ui/pool.ts:units
 **Pulled:** 2026-11-16 — re-pulled after the simplifier renamed its line (`pileUp`): rang (Chromium), Dana's page showed a pile; restored clean *Earlier —* 2026-11-16 — rang (Chromium): Dana's page showed a pile; restored clean
+
+## Test: a player's row reaches the GM's page
+**Purpose:** R371: a player's roll row change goes to the GM's page (the same test as the world at the table, its first step)
+**Input:** Dana clicks Sam's Infer
+**Expected:** Infer in Sam's header on the GM's page
+**Refs:** crc-Copy.md
+**Code:** `tests/rolls.spec.ts`
+**Alarm:** 9
+**Fire alarm:** send only pieces and Boot Hill, not `rows` (the old filter); red: the GM's page never shows Infer
+**Inject:** src/net/copy.ts:#changed
+**Pulled:** 2026-11-16 — rang (Chromium): the GM's page never showed Infer; restored clean

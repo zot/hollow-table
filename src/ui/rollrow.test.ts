@@ -5,13 +5,13 @@ import { Game } from '../model/game.ts';
 import { WORLD, ridOf, type Character, type Influence } from '../model/records.ts';
 import { row as rowFor } from '../rules/odds.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
-import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase, waits, onceCard } from './rollrow.ts';
+import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase, waits, onceCard, whites, rowsOf } from './rollrow.ts';
 import { SAM_FRONT } from '../store/playtest.ts';
 
 const scene = () => { const g = new Game(); g.load(playtest('Dana', 'Ann')); return g; };
 
 test('docking and starting fresh', () => {
-  // R68, R69: a pool's die docks the row there; the same die again starts fresh; private stays.
+  // R371, R69: a pool's die docks the row there; the same die again starts fresh; private stays.
   const r = dock(null, SAM);
   assert.deepEqual([r.pool, r.action, r.opponent, r.row, r.hand], [SAM, '', null, null, { yellows: 1, bonus: 0 }]);
   const busy = { ...withAction(r, 'Infer'), opponent: DEVREUX, priv: true };
@@ -49,7 +49,7 @@ test('what the row shows', () => {
 });
 
 test('who rolls for whom', () => {
-  // R68, R71: its owner, or the GM for anyone; nobody for an open character.
+  // R371, R71: its owner, or the GM for anyone; nobody for an open character.
   const g = scene(), sam = g.get(ridOf(SAM)) as Character, dev = g.get(ridOf(DEVREUX)) as Character;
   const dana = { name: 'Dana', gm: false }, ann = { name: 'Ann', gm: false }, gm = { name: 'GM', gm: true };
   assert.deepEqual([dana, ann, gm].map(v => rollsFor(v, sam)), [true, false, true]);
@@ -58,7 +58,7 @@ test('who rolls for whom', () => {
 });
 
 test('aiming at an opponent', () => {
-  // R83–R85, R88: their Defend plus their pools against your total; the Difference picks the row
+  // R83, R84, R373, R374: their Defend plus their pools against your total; the Difference picks the row
   // until one is picked by hand, which holds until you aim again; whether Sam's owner sees them.
   const g = scene(), dev = g.get(ridOf(DEVREUX)) as Character;
   assert.deepEqual(defendOf(dev), { mental: 6, psych: 5 });
@@ -182,4 +182,19 @@ test('a Skill-first label suffers its Influence; a lone one is no action', () =>
   game.change(onceCard(game, null, named, mint)!);
   const card = game.get(ridOf('000000f1')) as Influence;
   assert.deepEqual([card.name, card.sign, card.points, card.once], ['Audience', -1, 4, true]);
+});
+
+test("the GM's page keeps each aimed row's White; elsewhere the row's own", () => {
+  // R373: whites() gives the aimed rows whose White should change, and nothing else.
+  const game = scene(), aimedAt = aimed(withAction(dock(null, SAM), 'Infer'), DEVREUX, 'mental');
+  const fresh0 = dock(null, BEAUFORD), byHand = picked(aimed(withAction(dock(null, DEVREUX), 'Attack'), SAM, 'mental'), 'red');
+  game.change(w => w.put('rows', { rows: { [SAM]: aimedAt, [BEAUFORD]: fresh0, [DEVREUX]: byHand } }));
+  const out = whites(game);
+  assert.deepEqual(Object.keys(out), [SAM], 'only the aimed row not picked by hand');
+  assert.equal(out[SAM]!.row, shown(game, aimedAt).row.key);
+  game.change(w => w.put('rows', { rows: { ...rowsOf(game), ...out } }));
+  assert.deepEqual(whites(game), {}, 'written back, nothing more to change');
+  // R374: a player's page shows the White the row holds, not one worked out from what it can see.
+  const held = { ...aimedAt, row: 'red' };
+  assert.equal(shown(game, held, false).row.key, 'red');
 });

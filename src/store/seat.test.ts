@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fresh, load, prune, save, seatKey, type Seat } from './seat.ts';
 import { memoryStorage } from './fakes.ts';
-import { ridOf, WORLD } from '../model/records.ts';
+import { ridOf } from '../model/records.ts';
 import { BEAUFORD, DEVREUX, SAM } from './playtest.ts';
 
 test('the seat on its own', () => {
@@ -11,8 +11,6 @@ test('the seat on its own', () => {
   const gm: Seat = {
     ...fresh(),
     view: { x: -120, y: 40, zoom: 1.5 },
-    roller: { pool: DEVREUX, action: 'Attack', opponent: SAM, defend: 'mental', row: 'green', byHand: true,
-      hand: { yellows: 2, bonus: 0 }, dice: [] },
     tapeUp: true, boothill: { cur: 0, open: true },
     open: { used: [DEVREUX, BEAUFORD], piles: [], slots: [`${SAM}:main`], columns: [`${DEVREUX}:injury`, `${BEAUFORD}:bias`] },
   };
@@ -34,15 +32,11 @@ test('the seat on its own', () => {
   // A restore where Sam and Devreux are gone.
   const left = new Set([ridOf(BEAUFORD)]);
   const pruned = prune(gm, rid => left.has(rid), 1);
-  assert.equal(pruned.roller, null);
   assert.deepEqual(pruned.open, { used: [BEAUFORD], piles: [], slots: [], columns: [`${BEAUFORD}:bias`] });
   assert.deepEqual(pruned.view, gm.view);
-  // Only the opponent gone: the roller stays, aimed at nobody.
-  const aimed = prune(gm, rid => rid !== ridOf(SAM), 1);
-  assert.deepEqual([aimed.roller?.pool, aimed.roller?.opponent], [DEVREUX, null]);
-  // R350: the world is always there to aim at.
-  const world = prune({ ...gm, roller: { ...gm.roller!, opponent: WORLD } }, rid => rid === ridOf(DEVREUX), 1);
-  assert.equal(world.roller?.opponent, WORLD);
+  // R371: a seat saved before still names a roll row; a restore drops it, the row being the game's.
+  const old = prune({ ...gm, roller: { pool: DEVREUX, action: 'Attack' } } as Seat, () => true, 1);
+  assert.equal('roller' in old, false);
 });
 
 test('a first visit has no view', () => {

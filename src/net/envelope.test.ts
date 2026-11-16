@@ -64,7 +64,7 @@ test('an intent says what it points at by name, and nothing else', () => {
 });
 
 test('an intent may aim at the world', () => {
-  // R349: `vs` is an oid, the world, or nobody; nothing else.
+  // R376: `vs` is an oid, the world, or nobody; nothing else.
   const intent = (vs: unknown) => make('intent', 'tab-a', { n: 1, pool: '00000002', action: 'Infer', vs, defend: 'mental',
     hand: { yellows: 0, bonus: 0 }, type: 'infer' });
   for (const ok of ['00000001', 'world', null]) assert.ok(check(intent(ok)), JSON.stringify(ok));

@@ -1,13 +1,20 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R349, R350, R362, R353, R355, R362-365
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R376, R350, R362, R353, R355, R362-365, R371-376
 
-The dice you're about to roll, docked on the pool you roll for, in your view only (Seat).
+The dice about to be rolled for a character: one row per character, a piece of the table kept in
+the game's `rows` record (R371), shown on its pool on every page, changed only by its owner and the GM.
 
 ## Knows
 - pool, action `{label, base, yellows, bonus}`, opponent `{oid, kind}`, row and whether picked by
   hand, hand adjustments, private (the GM's switch).
 
 ## Does
+- The shared row (R371–R375): RollRowView draws a row on every pool that has one in `rows`; its
+  controls answer only its owner and the GM (rollsFor); the drag from the action in the header aims
+  only on the GM's page (R372). The GM's page keeps each aimed row's White as the Difference picks
+  it (setWhite: from shown() over the GM's own records, unless picked by hand), writing the row back
+  only when it changed (R373); every other page shows the White the row holds, locked for a player
+  (R374). The rest of a row is per page: whether its own Roll is waiting.
 - Pure (`src/ui/rollrow.ts`): fresh(pool) is no action, no opponent, White, one Yellow, +0, the
   hand being the dice when there is no action; dock(r, pool) starts fresh there (the same pool's die
   again too), keeping the GM's private switch; withAction(r, label) resets the hand, and the row to
@@ -15,9 +22,9 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   lowers the bonus; picked(r, key) holds a hand-picked row; rollsFor(viewer, c) is its owner or the
   GM, never an open character; shown(game, r) gives the label, Base, Total Influence and its parts,
   the Yellows and bonus (Odds.bonus over the Bonus pool, the hand on top) and the row; against an
-  opponent (aimed, R83–R85) their Defend (defendOf) and pools (Odds.opposition), the Difference
+  opponent (aimed, R83, R84, R373) their Defend (defendOf) and pools (Odds.opposition), the Difference
   picking the row unless picked by hand, and whether the rolling character's owner sees them
-  (ownerAsViewer, R88). unaimed(r) stops aiming, keeping a picked row.
+  (ownerAsViewer, R374). unaimed(r) stops aiming, keeping a picked row.
 - The view (RollRowView): the row inserted after the pool's header, the action and its numbers in
   the header (`rollinfo`), the Difference menu in the pool; redrawn on every Game change, and the
   cards whose swish changes redrawn with it. The `vs` line (numbers only as the owner may see them;
@@ -65,11 +72,11 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   text by its Range's rectangles, or round the pool; an overlay line (`#aimline`, SVG) runs from the
   action in the header to the pointer. Neither touches the card's text.
 
-- The world (R345, R349, R350): `opponent` may be `WORLD`. waits(r) is whether Roll waits: an action
+- The world (R345, R376, R350): `opponent` may be `WORLD`. waits(r) is whether Roll waits: an action
   and no opponent, or an action typed `?`; Roll is then disabled, its title saying to aim first (or
   to say what the roll is). shown() against the world: its total the tray's number (Records' World,
   no pools), named "the world", seen only when the rolling character's owner is the GM, so a
-  player's character gets dice only, locked, as against a hidden character (R88). A drag from the
+  player's character gets dice only, locked, as against a hidden character (R374). A drag from the
   Base over open table (the topmost element under the pointer is `#table` or its layer `#world`
   itself) or over the tray is over the world: the dashed box goes round Tray.mark() (the tray, or
   its button while the tray is in); a drop there aims at WORLD, refused for `?` ("Say what this roll

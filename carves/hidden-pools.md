@@ -13,7 +13,8 @@ and influences for NPCs, except those contributed by the players."
 
 - [x] ~~**Item 1 — the two mats on the wire.**~~ **LANDED (2026-11-16 — `#20`.)**
 - [x] ~~**Item 2 — Roll Ups behind the screen.**~~ **LANDED (2026-11-16 — `#21`.)**
-- [ ] **Item 3 — the GM aims a player's roll.** **OPEN (not queued.)**
+- [x] ~~**Item 3 — the GM aims a player's roll.**~~ **LANDED (2026-11-16 — `#22`.)**
+- [ ] **Item 4 — Stagger is always seen.** **OPEN (#23.)**
 
 ## Decisions
 
@@ -93,5 +94,26 @@ player picks the action, the GM points it"). Here the player's row, its action b
 GM's page; the GM drags from it to the opposing Quick Action, Skill or Attribute (pointing, as #13
 built it), and the White setting the Difference picks shows on both pages, the player's as dice only,
 never the numbers. This also answers the setting a player's page shows today against a hidden
-opponent, which it computes from what it holds and so can show wrong (found in #16). Open: where the
-GM sees a player's row and drags from it.
+opponent, which it computes from what it holds and so can show wrong (found in #16).
+
+DECIDED (Bill, 2026-11-16), after a walk through the table: "keep in mind that this is a roleplaying
+game. The primary activity in the game is not using the rules and clicking around, it's describing
+what you do as your character." Players and GM talk aloud, off the table: Dana describes what Sam
+does, the GM says "Give me an Infer", Dana clicks Infer, the GM sees "Infer 10" by Sam's name and
+drags it to Devreux's `6` after Defend, and Sam's row reads "White + 1". "Dana does not get to aim,
+only the GM can aim." And "At the physical table, everyone sees all of the dice and hears the player
+and the GM talk to each other ... So there is no secrecy about the dice or the result. The only small
+amount of secrecy is the NPC's actual value and invisible Influences. So the dice row should show on
+everyone's page, but only the GM and owner can change anything."
+
+So a character's roll row is one row, a piece of the table: everyone sees it on its pool; only its
+owner and the GM change it; only the GM aims it; the GM's page writes the White setting into it as
+dice, worked out from the real numbers, which never leave the GM's page. It retires R68's "in your
+view only". Noted for later (Bill, 2026-11-16): Investigation is mental and Sounding its
+psychological analog, which could let the table pick an Infer's Defend kind by itself.
+
+## Item 4
+
+DECIDED (Bill, 2026-11-16): "Stagger should always be visible to everyone. They can tell when the
+opposition is becoming off-balance and when they use a Rest action to clear it up." A pool's Stagger
+slot is public whoever put its chips there, shown to everyone as its owner sees it, piles included.

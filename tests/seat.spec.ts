@@ -1,4 +1,4 @@
-// CRC: crc-Seat.md | Test: test-Seat.md | R126, R127, R128, R136, R153
+// CRC: crc-Seat.md | Test: test-Seat.md | R126, R127, R128, R136, R153, R371
 // The seat in the browser: everything done for looking stays in this viewer's seat, never in the
 // game; a reload brings it back; each viewer has their own; a restore keeps it.
 import { expect, test, type Page } from '@playwright/test';
@@ -46,10 +46,16 @@ test('the seat is not the game', async ({ page }) => {
 
   // 2. The game, held and saved, is as it was; the seat is one key for this game and viewer.
   await page.waitForTimeout(600);
-  expect(await records(page)).toEqual(before);
+  // R371: the roll row it brought up is the game's; nothing else changed.
+  const without = (r: { held: string; saved: string; id: string }) => ({ ...r, held: JSON.stringify(JSON.parse(r.held).filter(([rid]: [string]) => rid !== 'rows')),
+    saved: JSON.stringify(JSON.parse(r.saved).filter(([rid]: [string]) => rid !== 'rows')) });
+  const after = await records(page);
+  expect(without(after)).toEqual(without(before));
+  expect(JSON.parse(after.held).find(([rid]: [string]) => rid === 'rows')[1].rows['00000003']).toBeTruthy();
   const seat = JSON.parse((await seatOf(page, 'GM'))!);
   expect(seat.view).not.toBeNull();
-  expect(seat.roller.pool).toBe('00000003');
+  // R371: the roll row is the game's, not the seat's.
+  expect(seat.roller).toBeUndefined();
   expect(seat.tapeUp).toBe(true);
   expect(seat.boothill.open).toBe(true);
   expect(seat.open.used).toEqual(['00000003']);
@@ -63,14 +69,15 @@ test('the seat is not the game', async ({ page }) => {
   await expect(page.locator('#tape')).toHaveClass(/\bup\b/);
   await expect(page.locator('#graves')).toBeVisible();
 
-  // 4. Viewing as a player (R153): that viewer's own seat, nothing docked; 5. back as the GM, the
-  // GM's seat again.
+  // 4. Viewing as a player (R153): that viewer's own seat; the row the GM brought up on Devreux is the
+  // table's (R371), so it shows, but isn't theirs to roll; 5. back as the GM, the GM's seat again.
   await page.locator('.tag.viewas').click();
   await page.waitForURL(/./);
   await open(page);
   const as = await page.locator('.tag.viewas').textContent();
   expect(as).not.toBe('GM');
-  await expect(page.locator('.roller')).toHaveCount(0);
+  await expect(page.locator('.roller')).toHaveCount(1);
+  await expect(page.locator('.roller .roll')).toHaveCount(0);
   await expect(page.locator('#graves')).toBeHidden();
   for (let i = 0; i < 8 && await page.locator('.tag.viewas').textContent() !== 'GM'; i++) {
     await page.locator('.tag.viewas').click();

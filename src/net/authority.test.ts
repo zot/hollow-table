@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Book, type Character, type Chip, type Influence, type Sticky, type Yards } from '../model/records.ts';
+import { ridOf, type Book, type Character, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { handOver, whoIs } from './claims.ts';
 import { FakeRoom } from './fakeroom.ts';
@@ -198,4 +198,20 @@ test('a player puts only their own name on a chip', () => {
   const book = game.get('book') as Book, edit = (c: Chip): Edit => ({ s: 1, base: book.gv, puts: [{ rid: ridOf(c.oid), rec: c }], dels: [] });
   assert.deepEqual(judge(game, edit(chip('Dana')), 'Dana').refused, []);
   assert.deepEqual(judge(game, edit(chip('Ann')), 'Dana').refused, [ridOf('000000c1')]);
+});
+
+test("a player changes only their own row's action and dice, never its aim", () => {
+  // R375: Sam is Dana's, Beauford Ann's; the GM aimed Sam's row at Devreux.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const row = (pool: string, extra: Partial<Roller> = {}): Roller =>
+    ({ pool, action: 'Infer', opponent: DEVREUX, defend: 'mental', row: 'white+1', byHand: false, hand: { yellows: 0, bonus: 0 }, ...extra });
+  game.change(w => w.put('rows', { rows: { [SAM]: row(SAM), [BEAUFORD]: row(BEAUFORD) } }));
+  const book = game.get('book') as Book;
+  const mine: Rows = { rows: { [SAM]: row(SAM, { action: 'Impress', opponent: BEAUFORD, row: 'green', hand: { yellows: 1, bonus: 2 }, type: 'impress' }),
+    [BEAUFORD]: row(BEAUFORD, { action: 'Shoot' }) } };
+  const v = judge(game, { s: 1, base: book.gv, puts: [{ rid: 'rows', rec: mine }], dels: [] }, 'Dana');
+  const out = (v.puts[0]!.rec as Rows).rows;
+  assert.deepEqual([out[SAM]!.action, out[SAM]!.type, out[SAM]!.hand, out[SAM]!.opponent, out[SAM]!.row], ['Impress', 'impress', { yellows: 1, bonus: 2 }, DEVREUX, 'white+1']);
+  assert.equal(out[BEAUFORD]!.action, 'Infer', "Ann's row is not Dana's to change");
 });

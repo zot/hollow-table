@@ -57,7 +57,7 @@ made from the name is the views' (test-Table); big batches travel whole, chunked
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: "an intent says what it points at by name" failed at {"def":"physical"}; restored clean
 
 ## Test: an intent may aim at the world
-**Purpose:** R349: `intent.vs` is an oid, `world`, or null, and nothing else
+**Purpose:** R376: `intent.vs` is an oid, `world`, or null, and nothing else
 **Input:** intents with `vs` an oid, `world`, null; `World`, `the world`, `worlds`, 4, the empty string
 **Expected:** the first three pass; the rest drop the intent
 **Refs:** crc-Envelope.md

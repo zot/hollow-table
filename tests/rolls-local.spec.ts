@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R364, R326, R327, R329, R345, R346, R347, R349, R350, R351, R362, R353, R354, R355, R363, R365
+// CRC: crc-RollRow.md | Test: test-Table.md | R371, R72, R316, R76, R78, R79, R83, R86, R372, R374, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R364, R326, R327, R329, R345, R346, R347, R376, R350, R351, R362, R353, R354, R355, R363, R365
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
@@ -42,7 +42,7 @@ async function aimed(page: Page) {
 test.beforeEach(async ({ page }) => { await open(page); });
 
 test('the roll row docks, and the Difference menu', async ({ page }) => {
-  // R68: no roll controls in the bar; Devreux's die docks the row on his pool.
+  // R371: no roll controls in the bar; Devreux's die docks the row on his pool.
   await expect(page.locator('#bar .roller')).toHaveCount(0);
   await page.locator(`${DPOOL} .die-own`).click();
   await expect(page.locator(`${DPOOL} .roller`)).toBeVisible();
@@ -57,7 +57,7 @@ test('the roll row docks, and the Difference menu', async ({ page }) => {
 });
 
 test('aiming, and the Difference as pools change', async ({ page }) => {
-  // R316, R76, R83, R87: Devreux's Attack (4) dragged onto Sam offers Mental 2 / Psych 4.
+  // R316, R76, R83, R372: Devreux's Attack (4) dragged onto Sam offers Mental 2 / Psych 4.
   await aimed(page);
   // R86: Mental gives vs Sam 2 (+2), White.
   const vs = page.locator(`${DPOOL} .rollinfo .vs`), white = page.locator(`${DPOOL} .roller .white`);
@@ -140,14 +140,19 @@ test('pointing at the opposing number', async ({ page }) => {
   await expect(page.locator('#tape .strip .receipt').first()).toContainText('vs Sam (Investigation 2 + Cha 2');
 });
 
-test('a player cannot aim at someone hidden from them', async ({ page }) => {
-  // R88: viewing as Player 1, Sam's Infer dragged onto Devreux is refused, saying so.
+test('a player cannot aim', async ({ page }) => {
+  // R372: only the GM aims: viewing as Player 1, Sam's Infer dragged onto Devreux does nothing.
   for (let i = 0; i < 6 && await page.locator('.tag.viewas').textContent() !== 'Player 1'; i++) { await page.locator('.tag.viewas').click(); await open(page); }
   await page.locator(`.obj.card[data-rid="${SAM}"] .actdie`).first().click();
   const base = await at(page, `${SPOOL} .rollinfo .base`, 8, 6), dev = await at(page, `${DPOOL} .slots`, 60, 30);
   await dragFromTo(page, base.x, base.y, dev.x, dev.y, 15);
-  await expect(page.locator('#defchoice')).toHaveText('Only the GM can aim at Devreux.');
+  // Nor at the world: a drag to open table opens nothing (a GM's would be reminded of the blank tray).
+  const table = await openTable(page);
+  await dragFromTo(page, base.x, base.y, table.x, table.y, 15);
+  await expect(page.locator('#defchoice')).toHaveCount(0);
   await expect(page.locator(`${SPOOL} .rollinfo .vs`)).toHaveCount(0);
+  // R374: a player's White is the GM's, locked.
+  await expect(page.locator(`${SPOOL} .roller .white`)).toHaveClass(/\blocked\b/);
   for (let i = 0; i < 6 && await page.locator('.tag.viewas').textContent() !== 'GM'; i++) { await page.locator('.tag.viewas').click(); await open(page); }
 });
 
@@ -213,7 +218,7 @@ test('the world as opposition', async ({ page }) => {
   await page.keyboard.press('Escape');
   await typed(page, 'Skill');
   await expect(roll).toHaveAttribute('title', /^Aim it first/);
-  // R349: open table is the world, but not while the tray is blank: a reminder at the pointer.
+  // R376: open table is the world, but not while the tray is blank: a reminder at the pointer.
   await dragFromTo(page, base.x, base.y, table.x, table.y, 15);
   await expect(page.locator('#defchoice')).toHaveText("Put the world's number in the tray first.");
   await expect(vs).toHaveCount(0);

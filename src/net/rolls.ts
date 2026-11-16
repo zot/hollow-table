@@ -1,11 +1,11 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R346, R307, R308, R316, R345, R351, R353
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R346, R307, R308, R316, R345, R351, R353, R375
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
 // tape what its person may know.
 
 import type { Game, Writer } from '../model/game.ts';
-import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opponent, type Receipt, type RollType, type Tape, type World } from '../model/records.ts';
+import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opponent, type Receipt, type RollType, type Rows, type Tape, type World } from '../model/records.ts';
 import { roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
@@ -340,7 +340,11 @@ export class Rolls {
     const refuse = (why: string) => { link!.send('refuse', { why, n: intent.n }, from.tab); };
     if (!who) { refuse('Only someone at the table can roll.'); return this.#work; }
     if (c?.kind === 'character' && c.owner !== who) { refuse(`${c.name} isn't yours to roll.`); return this.#work; }
-    const done = resolve(game, intent, rng, clock.now());
+    // R375: a player's roll is aimed as the GM's page holds its row, whatever the intent says.
+    const held = (game.get('rows') as Rows | undefined)?.rows[intent.pool];
+    const aimed: Intent = { ...intent, vs: held?.opponent ?? null, defend: held?.defend ?? intent.defend, against: held?.against,
+      row: held?.byHand ? held.row ?? undefined : undefined };
+    const done = resolve(game, aimed, rng, clock.now());
     if ('refused' in done) { refuse(done.refused); return this.#work; }
     game.change(done.apply);
     this.#print(done.full);

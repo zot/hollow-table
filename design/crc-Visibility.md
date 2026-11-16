@@ -1,5 +1,5 @@
 # Visibility
-**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R370
+**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R370, R371
 
 Who may read what, and each record as a given viewer may see it. Pure. The invariant it serves: no
 page ever holds, in the clear, a secret its person may not read.
@@ -24,6 +24,7 @@ page ever holds, in the clear, a secret its person may not read.
   - A burial in Boot Hill: each record in it redacted the same way.
   - The world's number (R348): for anyone but the GM, `{set, total: 0}`: whether the tray is set,
     never its number.
+  - The roll rows (R371): a row with the GM's private switch on is left out for anyone but the GM.
   - Everything else unchanged.
 - differs(record, viewer, characters): whether a viewer's view differs from the redacted-for-nobody
   view (so the network knows what to seal for them).

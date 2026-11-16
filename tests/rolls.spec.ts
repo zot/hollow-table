@@ -1,4 +1,4 @@
-// CRC: crc-Rolls.md | Test: test-Network.md | R100, R101, R102, R103, R104, R105, R110, R297, R348, R349, R351
+// CRC: crc-Rolls.md | Test: test-Network.md | R100, R101, R102, R103, R104, R105, R110, R297, R348, R376, R351, R371, R372, R373, R374, R375
 // Rolls resolve on the GM's page, and each page prints what it may know.
 import { expect, test, type Page } from '@playwright/test';
 import { at, dragFromTo, gmTable, hook, join, openTable } from './page.ts';
@@ -62,12 +62,18 @@ test('the world at the table: its number stays on the GM\'s page', async ({ brow
   const dana = await join(browser, invite, 'Dana', gm);
   await hook(gm, h => { const s = (h as any).store.game.get('o:00000001'); (h as any).store.game.change((w: any) => w.put('o:00000001', { ...s, owner: 'Dana' })); });
   await expect.poll(async () => (await dana.evaluate(async rid => (await (window as any).hollow.ready).store.game.get(rid), SAM)).owner, { timeout: 15_000 }).toBe('Dana');
-  // R349: Dana aims Sam's Infer at open table before the GM has set the world: the player's reminder.
+  // R371: Dana picks Sam's Infer; the row is the table's, so the GM's page shows it on Sam's pool.
   await dana.locator(`.obj.card[data-rid="${SAM}"] .front .text > div`, { hasText: 'Infer:' }).locator('.actdie').click();
-  const base = await at(dana, `.pool[data-rid="${SAM}"] .rollinfo .base`, 8, 6), table = await openTable(dana);
-  await dragFromTo(dana, base.x, base.y, table.x, table.y, 15);
-  await expect(dana.locator('#defchoice')).toHaveText("The GM hasn't given the world a number yet.");
-  await dana.keyboard.press('Escape');
+  const head = (page: Page) => page.locator(`.pool[data-rid="${SAM}"] .rollinfo`);
+  await expect(head(gm).locator('.base')).toContainText('Infer', { timeout: 15_000 });
+  // R372: Dana can't aim; the GM aims from Sam's header, and a blank tray reminds the GM.
+  const dBase = await at(dana, `.pool[data-rid="${SAM}"] .rollinfo .base`, 8, 6), dTable = await openTable(dana);
+  await dragFromTo(dana, dBase.x, dBase.y, dTable.x, dTable.y, 15);
+  await expect(dana.locator('#defchoice')).toHaveCount(0);
+  const base = await at(gm, `.pool[data-rid="${SAM}"] .rollinfo .base`, 8, 6), table = await openTable(gm);
+  await dragFromTo(gm, base.x, base.y, table.x, table.y, 15);
+  await expect(gm.locator('#defchoice')).toHaveText("Put the world's number in the tray first.");
+  await gm.keyboard.press('Escape');
   // R348: the GM sets it; Dana's page learns only that it is set.
   await hook(gm, h => (h as any).store.game.change((w: any) => w.put('world', { set: true, total: 5 })));
   await expect.poll(() => dana.evaluate(async () => (await (window as any).hollow.ready).store.game.get('world')), { timeout: 15_000 })
@@ -75,11 +81,14 @@ test('the world at the table: its number stays on the GM\'s page', async ({ brow
   await dana.locator('#bar .oppobtn').click();
   await expect(dana.locator('#bar .oppotray')).toContainText('set by the GM');
   await expect(dana.locator('#bar .oppotray input')).toHaveCount(0);
-  // R350: aimed, her row has no number for the world, and the White is the GM's.
-  await dragFromTo(dana, base.x, base.y, table.x, table.y, 15);
-  await expect(dana.locator(`.pool[data-rid="${SAM}"] .rollinfo .vs`)).toHaveText('vs the world');
+  // R373, R374: the GM aims; Dana's row shows the world without its number, and the GM's White, locked.
+  await dragFromTo(gm, base.x, base.y, table.x, table.y, 15);
+  await expect(head(gm).locator('.vs')).toContainText('vs the world 5');
+  await expect(head(dana).locator('.vs')).toHaveText('vs the world', { timeout: 15_000 });
   await expect(dana.locator(`.pool[data-rid="${SAM}"] .roller .white`)).toHaveClass(/\blocked\b/);
-  // R351: her receipt says the world; the GM's has its number and the Difference.
+  const whiteOf = (page: Page) => page.locator(`.pool[data-rid="${SAM}"] .roller .white`).innerHTML();
+  await expect.poll(async () => await whiteOf(dana), { timeout: 15_000 }).toBe(await whiteOf(gm));
+  // R351, R375: her receipt says the world; the GM's has its number and the Difference.
   await dana.locator(`.pool[data-rid="${SAM}"] .roller .roll`).click();
   await expect(receipts(dana).first()).toContainText('vs the world', { timeout: 15_000 });
   await expect(receipts(dana).first()).not.toContainText('Difference');

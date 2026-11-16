@@ -21,7 +21,7 @@ export type PoolWith = {
   toggle: (kind: 'piles' | 'slots' | 'used', key: string, on?: boolean) => void;
   dragItem: (rid: string, down: PointerLike, move: PointerLike) => void;
   dragPool: (rid: string, down: PointerLike, move: PointerLike) => void;
-  /** The die by the pool's name (R142, R68): claim, open, or dock the roll row; shift for the other. */
+  /** The die by the pool's name (R142, R371): claim, open, or dock the roll row; shift for the other. */
   poolDie: (oid: Oid, shift: boolean, die: HTMLElement) => void;
 };
 
@@ -182,7 +182,7 @@ function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
   // R33: Gather snaps the card back under the drawer.
   gesture(gather, { click: () => { const cur = w.game.get(rid) as Character; w.game.change(x => x.put(rid, { ...cur, gathered: true })); } });
   const name = el(doc, 'span', 'name');
-  // R142, R68: the die by the name shows the owner; click claims or docks the roll row, shift opens.
+  // R142, R371: the die by the name shows the owner; click claims or docks the roll row, shift opens.
   const die = el(doc, 'button', 'die-own');
   gesture(die, { click: () => w.poolDie(c.oid, false, die), shift: () => w.poolDie(c.oid, true, die) });
   hd.append(name, die, gather);

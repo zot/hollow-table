@@ -56,7 +56,7 @@ carried with the mouse, as a person does; measurements wait for the web fonts.
   Sam's pool ringed; Stagger −6 on Sam gives `vs Sam −4 (+8)`, Green + 1; Main +4 on Devreux gives
   `4 → 8`, `(+12)`, Outclass; a row picked by hand holds as pools change; the receipt has Total
   Influence 8 and the Difference
-- viewing as Player 1, Sam's action dragged onto Devreux says "Only the GM can aim at Devreux."
+- viewing as Player 1, Sam's action dragged onto Devreux aims at nothing, and the White is locked (R372, R374)
 - five rolls print newest first ("Devreux, roll 5"); the paper roll rolls the tape up and down; a
   press on the table lowers it; dragged, the whole roll tears off; the next roll starts a fresh
   tape; the torn roll buries as "Tape: 5 rolls, last Devreux, roll 5"
@@ -178,7 +178,7 @@ pool's labels selects as text but the build stamp
 **Pulled:** 2026-11-15 — rang in Chromium and Firefox at card.spec.ts:163: on one row the name was 80 and 78 px, under 100; restored clean
 
 ## Test: the world as opposition
-**Purpose:** R345–R347, R349–R351 on the GM's page: Roll waits for a type and an aim; open table is the world; a blank tray refuses with the GM's reminder; the Opposition button slides the tray out and the GM types the number; aimed, its numbers, the ring and Roll free; the number is live; `vs` stops aiming; a drop on the tray aims; the tray in, the ring is on its button; the receipt names the world
+**Purpose:** R345–R347, R376, R350, R351 on the GM's page: Roll waits for a type and an aim; open table is the world; a blank tray refuses with the GM's reminder; the Opposition button slides the tray out and the GM types the number; aimed, its numbers, the ring and Roll free; the number is live; `vs` stops aiming; a drop on the tray aims; the tray in, the ring is on its button; the receipt names the world
 **Input:** Devreux's die, then its Attack, `?`; as Skill; dragged to open table with the tray blank; 3 typed in the tray; dragged again; 9 typed; `vs` clicked; dragged to the tray; the tray slid in; Roll
 **Expected:** Roll enabled for plain dice, then disabled "Say what this roll is", then "Aim it first"; the GM's reminder and no `vs`; the record `{set: true, total: 3}`; `vs the world 3 (+1)`, the tray ringed, Roll enabled; `vs the world 9 (−5)` and a Red die; Roll disabled and no ring; aimed again; the button ringed; the receipt "vs the world (9), Difference −5"
 **Refs:** crc-RollRow.md, crc-Tray.md, crc-Rolls.md
@@ -253,3 +253,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** draw a pile's members as faces with nothing to click (a plain button, not `chip()`); red: the member's click changes nothing
 **Inject:** src/ui/pool.ts:pile
 **Pulled:** 2026-11-16 — rang (Chromium): the member's click changed nothing, the records still 4, 4, 4; restored clean
+
+## Test: a player cannot aim
+**Purpose:** R372, R374: viewing as Player 1, Sam's Infer dragged onto Devreux aims at nothing and opens nothing; the White is locked
+**Input:** "You are" Player 1; Sam's Infer; a drag from its Base to Devreux's pool, then to open table
+**Expected:** no note, no `vs`; the White `locked`
+**Refs:** crc-RollRow.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 18
+**Fire alarm:** let anyone drag from the Base to aim (drop the GM test on the drag); red: Sam's row is aimed, `vs Devreux` shows
+**Inject:** src/ui/rollrow.ts:#draw
+**Pulled:** 2026-11-16 — first silent: the drop on Devreux, hidden from the player, showed nothing either way; with a drag to open table added it rang (Chromium), the blank tray's note opened; restored clean

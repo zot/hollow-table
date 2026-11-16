@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { WORLD, damageSlots, ridOf, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
+import { WORLD, damageSlots, ridOf, type Rows, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
 import { pages, waitsIn } from '../rules/absorb.ts';
 import { Rolls, choose, diceOnly, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
 import { ADV } from '../rules/odds.ts';
@@ -84,8 +84,16 @@ async function table(rng = faces()) {
   return { room, page, tape, advance, hello };
 }
 
-/** A request, with the room settling under it. */
+/** R372, R375: the GM aims the character's roll row on the GM's page, as the intent names it. */
+function gmAims(t: Awaited<ReturnType<typeof table>>, intent: Omit<Intent, 'n'>) {
+  const game = t.page('gm').game, rows = (game.get('rows') as Rows | undefined)?.rows ?? {};
+  game.change(w => w.put('rows', { rows: { ...rows, [intent.pool]: { pool: intent.pool, action: intent.action, opponent: intent.vs,
+    defend: intent.defend, row: null, byHand: false, hand: intent.hand, ...(intent.against && { against: intent.against }) } } }));
+}
+
+/** A request, the GM having aimed it, with the room settling under it. */
 async function ask(t: Awaited<ReturnType<typeof table>>, intent: Omit<Intent, 'n'>) {
+  gmAims(t, intent);
   const asked = t.page('dana').rolls.request(intent);
   await t.room.settle();
   return asked;
@@ -153,8 +161,10 @@ test('taking an Attack, and naming it', async () => {
   await t.hello();
   const sam = () => t.page('gm').game.get(ridOf(SAM)) as Character;
   const before = sam();
-  const asked = t.page('ann').rolls.request({ pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Mental Atk', type: 'mental',
-    vs: SAM, defend: 'psych', hand: { yellows: 0, bonus: 0 } });
+  const beau: Omit<Intent, 'n'> = { pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Mental Atk', type: 'mental',
+    vs: SAM, defend: 'psych', hand: { yellows: 0, bonus: 0 } };
+  gmAims(t, beau);
+  const asked = t.page('ann').rolls.request(beau);
   await t.room.settle();
   assert.equal(await asked, null);
   const r = t.tape('dana')[0]!, a = r.attack!;
@@ -389,4 +399,22 @@ test('a roll uses up the card its action suffered', () => {
   assert.deepEqual([r.full.action, r.full.influence, r.full.base], ['Tricky -Min', 3, 5]);
   game.change(r.apply);
   assert.equal(game.get(ridOf(tricky.oid)), undefined);
+});
+
+test("a player's roll is aimed as the GM's page holds it", async () => {
+  // R375: the intent's aim is not believed; with no aim held, the roll waits for one.
+  const t = await table(faces(4, 3));
+  await t.hello();
+  const sam = t.page('gm').game.get(ridOf(SAM)) as Character;
+  t.page('gm').game.change(w => w.put(ridOf(SAM), { ...sam, owner: 'Dana' }));
+  await t.room.settle();
+  const said = t.page('dana').rolls.request({ ...infer(DEVREUX) });
+  await t.room.settle();
+  assert.equal(await said, 'Aim it first.');
+  // Aimed at Beauford on the GM's page, a request naming Devreux still rolls against Beauford.
+  gmAims(t, infer(BEAUFORD));
+  const asked = t.page('dana').rolls.request({ ...infer(DEVREUX) });
+  await t.room.settle();
+  assert.equal(await asked, null);
+  assert.match(t.tape('gm')[0]!.vs!, /^Beauford/);
 });

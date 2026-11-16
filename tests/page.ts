@@ -124,7 +124,7 @@ export async function dragVia(page: Page, points: { x: number; y: number }[], st
   await page.mouse.up();
 }
 
-/** A point on open table: nothing on the table there, so a drop from the Base aims at the world (R349). */
+/** A point on open table: nothing on the table there, so a drop from the Base aims at the world (R376). */
 export async function openTable(page: Page): Promise<{ x: number; y: number }> {
   return page.evaluate(() => {
     for (let y = innerHeight - 40; y > 140; y -= 37) for (let x = 40; x < innerWidth - 40; x += 41) {

@@ -1,4 +1,4 @@
-// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R370, R185, R348
+// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R370, R185, R348, R371
 // Who may read what, and each record as a given viewer may see it. Pure. The invariant: no page
 // ever holds, in the clear, a secret its person may not read.
 
@@ -58,6 +58,8 @@ function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRe
 export function redact(record: Rec, viewer: Viewer, chars: Characters): Rec | undefined {
   if ('kind' in record) return redactPiece(record, viewer, chars);
   if ('yards' in record) return redactYards(record, viewer, chars);
+  // R371: a roll row is the table's, except one behind the GM's private switch.
+  if ('rows' in record) return viewer?.gm ? record : { rows: Object.fromEntries(Object.entries(record.rows).filter(([, r]) => !r.priv)) };
   // R348: the world's number is the GM's alone; anyone else learns only whether the tray is set.
   if ('set' in record && !viewer?.gm) return { set: record.set, total: 0 };
   return record;

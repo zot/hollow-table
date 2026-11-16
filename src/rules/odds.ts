@@ -1,4 +1,4 @@
-// CRC: crc-Odds.md | R79, R80, R81, R82, R84, R85, R90
+// CRC: crc-Odds.md | R79, R80, R81, R82, R84, R373, R90
 // The numbers before the dice: Total Influence, the opponent's total, the Difference row, and the
 // Success Bonus (Hollow Folks IV). Pure.
 

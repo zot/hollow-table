@@ -213,7 +213,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       if (t) void rolling().take(t.id, t.pages[t.k]!);
     },
     cancelTake,
-    // R142, R144, R146, R68: the die by a pool's name claims, opens, or docks the roll row.
+    // R142, R144, R146, R371: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die) => {
       const c = game.get(ridOf(oid)) as Character | undefined;
       if (c?.kind !== 'character') return;
@@ -269,7 +269,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   // R347: the Opposition button and the world's tray, in the bar.
   const tray = new TrayView(bar.oppo, { game, viewer });
   rollRow = new RollRowView({
-    game, viewer, tray, mint: () => mint()(), roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
+    game, viewer, tray, mint: () => mint()(),
     // R364: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
@@ -279,9 +279,9 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     roll: r => {
       const rolls = rolling(), intent = intentOf(r);
       // R353: a roll that goes through lets the row start fresh after a variant.
-      if (gm) { const why = rolls.roll(intent, !!r.priv); if (why) rolls.note(why); else rollRow!.rolled(); return; }
-      rollRow!.waiting(true);
-      void rolls.request(intent).then(why => { rollRow!.waiting(false); if (why) rolls.note(why); else rollRow!.rolled(); });
+      if (gm) { const why = rolls.roll(intent, !!r.priv); if (why) rolls.note(why); else rollRow!.rolled(r.pool); return; }
+      rollRow!.waiting(r.pool, true);
+      void rolls.request(intent).then(why => { rollRow!.waiting(r.pool, false); if (why) rolls.note(why); else rollRow!.rolled(r.pool); });
     },
   });
   return { table, drag, bar, hands };

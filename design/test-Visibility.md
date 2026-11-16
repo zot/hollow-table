@@ -61,3 +61,14 @@ the GM's view is unchanged
 **Fire alarm:** keep the private mat face-down instead of absent (drop the early `return undefined` for it); red: the GM's own chip reaches Dana
 **Inject:** src/rules/visibility.ts:redactPiece
 **Pulled:** 2026-11-16 — rang: "two mats: the private one reaches only its owner and the GM" failed, the GM's own chip reached Dana; restored clean
+
+## Test: a roll row is the table's, but not one behind the GM's screen
+**Purpose:** R371: everyone sees the roll rows; a row with the GM's private switch on only the GM
+**Input:** rows for Devreux (private) and Sam; redacted for Dana and for the GM
+**Expected:** Dana's view holds Sam's row only; the GM's both
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 6
+**Fire alarm:** send private rows to everyone (drop the filter); red: Dana's view holds Devreux's
+**Inject:** src/rules/visibility.ts:redact
+**Pulled:** 2026-11-16 — rang: "a roll row is the table's" failed, Dana's view held Devreux's private row; restored clean

@@ -27,6 +27,18 @@ carries `// CRC: … | R…` comments back to the design. Read the design docs b
 - The table supports play rather than running it: "play as in music, not chess". The GM handling
   hidden information fairly is part of the game, which is why secrecy is enforced on the wire and
   the GM's page arbitrates, not merely hidden in the view.
+- **It's a roleplaying game.** The main activity is describing what your character does, not using
+  the rules or clicking. Players and the GM talk aloud, off the table; the table doesn't relay what
+  voice already carries. A player describes, the GM turns that into an Action ("Give me an Infer"),
+  the player picks it, and **the GM names the opposition: only the GM aims a roll**.
+- **Model the physical table.** Before deciding who sees what, ask what everyone at a real table
+  sees and hears. Everyone sees all the dice and hears the result, so a roll's dice, its Green, Red
+  or ±1, its bonus and its outcome are public. The secrets are small: an NPC's actual values and the
+  Influences others can't see, which sit behind the GM's screen.
+- **Two mats.** An Influence a player puts on another character is seen by everyone (chips shoved
+  across the table); the real pool, with its Roll Ups, is behind the screen, and the public mat is
+  only for watching. **Stagger is always seen**: everyone can tell when the opposition is going
+  off-balance, and when a Rest clears it.
 - Specific first: build the concrete thing, and factor it only once it has earned it. Don't
   propose abstractions for parts nobody has played.
 

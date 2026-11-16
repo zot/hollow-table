@@ -82,3 +82,14 @@ is tombed
 **Inject:** src/net/authority.ts:forged
 @alarm-hash: 4d3de4a4866a2199
 **Pulled:** 2026-11-16 — rang: "a player puts only their own name on a chip" failed, Ann's name was taken from Dana; restored clean
+
+## Test: a player changes only their own row's action and dice, never its aim
+**Purpose:** R375: of a player's `rows`, only their own characters' rows are taken, and of those only the action, alternative, type and hand; the aim and the White stay the GM's
+**Input:** Sam (Dana's) and Beauford (Ann's) rows aimed at Devreux, White + 1; Dana's change: Sam's row Impress, impress, 1 Yellow +2, aimed at Beauford, Green; Beauford's row Shoot
+**Expected:** Sam's row Impress, impress, 1 Yellow +2, still aimed at Devreux, White + 1; Beauford's row still Infer
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 7
+**Fire alarm:** take a player's row whole (`...r`); red: Sam's row is aimed at Beauford
+**Inject:** src/net/authority.ts:mergeRows
+**Pulled:** 2026-11-16 — rang: "a player changes only their own row's action and dice" failed, Sam's row aimed at Beauford; restored clean

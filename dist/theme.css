@@ -410,10 +410,10 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .pool.aimed .slots { outline: 3px dashed #ffd36b; outline-offset: 3px; }
 .pool.targeted .slots { outline: 3px solid var(--amber); outline-offset: 3px; }
 .pool.targeted .hd .name::after { content: " ⌖"; color: var(--amber); }
-/* R88: a row set by the GM can't be opened. */
+/* R374: a row set by the GM can't be opened. */
 .roller .white.locked { cursor: default; }
 .roller .white.locked:hover { background: none; }
-/* R87, R277: the Defend chooser or a short note, at the pointer. */
+/* R372, R277: the Defend chooser or a short note, at the pointer. */
 #defchoice { position: fixed; z-index: 200; background: #fbfaf6; color: #222; border-radius: 8px; padding: 8px 10px; box-shadow: 0 6px 14px rgba(0,0,0,.5);
   display: flex; flex-direction: column; gap: 4px; font: 12px var(--mono); }
 #defchoice p { margin: 0 0 2px; }

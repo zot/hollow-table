@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R371
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -137,6 +137,22 @@ export type Graveyard = { name: string; named: boolean; items: Burial[] };
 export type Yards = { yards: Graveyard[] };
 // R278: `counts` numbers each character's rolls on their own.
 export type Meta = { round: number; rolls: number; counts?: Record<Oid, number> };
+/** R326, R336: what was pointed at on the opponent's card, by name. */
+export type Against = { def: 'mental' | 'psych' } | { act: string } | { fld: string } | { skl: string };
+// R371: a character's roll row, one per character, a piece of the table.
+export type Roller = {
+  pool: Oid; action: string; opponent: Opponent | null; defend: 'mental' | 'psych'; row: string | null;
+  byHand: boolean; hand: { yellows: number; bonus: number };
+  /** R104, R275: the GM's private switch. */
+  priv?: boolean;
+  /** R319: what the roll is (absent counts as `?`). */
+  type?: RollType;
+  /** R316: the alternative of a `/` label whose die was clicked. */
+  alt?: string;
+  /** R326, R336: what was pointed at on the opponent's card, by name; absent, Defend (R328). */
+  against?: Against;
+};
+export type Rows = { rows: Record<Oid, Roller> };
 // R347, R348: the world's Total Influence in the brass tray; `set` false (or no record) is a blank
 // tray. Written only by the GM's page; a player's page gets `{set, total: 0}` (Visibility).
 export type World = { set: boolean; total: number };
@@ -163,7 +179,7 @@ export const TOMBS = 3000;
 /** Each page's own, never sent (R111). */
 export type Tape = { receipts: Receipt[] };
 
-export type Rec = PieceRecord | Yards | Meta | World | Book | Tape;
+export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape;
 
 // Player-made characters number from here up, so they can't collide with the GM's.
 export const PLAYER_OIDS = 0x100000;
@@ -246,6 +262,11 @@ const SINGLETONS: Record<string, Shape> = {
     items: list(fields({ name: str(CAPS.name), records: list(piece) })) }), 100) }),
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000) }),
   world: fields({ set: bool, total: int(-1000, 1000) }),
+  rows: fields({ rows: dict(fields({ pool: isOid, action: str(CAPS.name), opponent: (v: unknown) => v === null || v === WORLD || isOid(v),
+    defend: oneOf('mental', 'psych'), row: (v: unknown) => v === null || str(32)(v), byHand: bool,
+    hand: fields({ yellows: int(-100, 100), bonus: int(-1000, 1000) }) },
+  { priv: bool, type: oneOf(...ROLL_TYPES), alt: str(CAPS.name), against: (v: unknown) => [fields({ def: oneOf('mental', 'psych') }),
+    fields({ act: str(CAPS.name) }), fields({ fld: str(CAPS.name) }), fields({ skl: str(CAPS.name) })].some(f => f(v)) }), 1000) }),
   book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     { hillGv: int(0, Number.MAX_SAFE_INTEGER),
       kept: list(fields({ character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },

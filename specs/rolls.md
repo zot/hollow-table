@@ -18,10 +18,14 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   (*Oratory*, *Oratory, Audience -Sig*), which starts at *Skill* (Bill, 11-16: "let's preselect Skill
   when a Skill doesn't specify a normal Action"). A preselected type is only a start: clicking the
   tag changes it.
-- **The die button** by a pool's name: clicking the die of a pool you own **docks the roll row**
-  there (in your view only). Clicking the die of the pool the row is already on **starts fresh**: no
-  action, no opponent, White, one Yellow, +0. The row leaves a pool you stop owning. The GM can
-  work any character's roll row without taking it.
+- **A character's roll row is one row, a piece of the table** (Bill, 11-16: "the dice row should
+  show on everyone's page, but only the GM and owner can change anything"). It shows on that
+  character's pool on every page; only its owner and the GM change it. **The die button** by a
+  pool's name, for its owner or the GM, brings the row up on that pool; clicking it again **starts
+  fresh**: no action, no opponent, White, one Yellow, +0. The GM can work any character's row
+  without taking it. While the GM's private switch is on, the row is the GM's alone.
+- **Numbers show where they are already visible**: "Infer 10" draws from the character's card, so its
+  owner and the GM see it; anyone else sees the row's dice and its action's name.
 - **White opens the Difference menu**: each row of the Difference table, words first and its dice
   at the right (Green or Red, ±1, or auto ✓ / ✗). Picking one sets the White die.
 - Yellows: click adds, shift-click removes. Bonus: click raises, shift-click lowers (it shows −n
@@ -139,12 +143,18 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   under the pointer gets a dashed amber outline (the solid ring only once aimed) and the pointing
   hand holds. The Defend chooser opens at the pointer with its first choice ready, and closes on
   Escape or a click elsewhere. "Only the GM can aim at …" goes after about two seconds.
-- **No probing:** players can't aim at characters hidden from them ("Only the GM can aim at
-  Devreux."). The player picks the action, the GM points it.
-- **The roll row is the rolling character's**, so its numbers follow that character's owner, not the
-  viewer. If the owner can't see the opponent, the row shows `vs Devreux` and the White setting as
-  dice only ("Red", "White − 1"), never the range, and the White menu is locked ("set by the GM").
-  The GM's hover still shows the Difference. The GM's own NPC against a PC shows the numbers.
+- **Only the GM aims** (Bill, 11-16: "Dana does not get to aim, only the GM can aim"). The player
+  says what their character does, the GM turns it into an Action ("Give me an Infer"), the player
+  picks it, and the GM drags it, from the action in the character's pool header on the GM's page, to
+  the opposition. A player's drag from the Base aims at nothing, a character or the world.
+- **The GM's page sets the White** for every row aimed, from the real numbers, as the Difference
+  picks it, live as either side's pools change, and writes it into the row as dice; every page shows
+  it. The numbers behind it, the opposition's value and the Influences others can't see, never leave
+  the GM's page. Only the GM picks a row by hand from the Difference menu, held until the next aim.
+- **The numbers follow the viewer.** A player's row shows `vs Devreux` and the White setting as dice
+  only ("Red", "White − 1"), never the range, and its White menu is locked ("set by the GM"); `vs`
+  shows the opponent's number only to a viewer who can see the opponent. The GM's page shows the
+  numbers and the Difference.
 
 ## The world as opposition
 
@@ -168,9 +178,9 @@ Resources*).
 - **Aiming at the world** (Bill, 11-15): the drag from the Base ends **on open table or on the tray**.
   While the pointer is over either, the dashed amber box goes round the tray (round the Opposition
   button while the tray is in). **A blank tray refuses** it with a note at the pointer, gone after
-  about two seconds: "Put the world's number in the tray first" for the GM, "The GM hasn't given the
-  world a number yet" for a player (Bill, 11-15: "If it's blank, you can't aim at the world (a
-  message should pop up with a reminder)").
+  about two seconds: "Put the world's number in the tray first" (Bill, 11-15: "If it's blank, you
+  can't aim at the world (a message should pop up with a reminder)"). Only the GM aims, at the world
+  as anywhere.
 - **Aimed at the world**, the header reads `vs the world 4 (+2)` (the numbers as the owner may see
   them), the tray (or its button) wears the amber ring, and clicking `vs` stops aiming. The number is
   live until the roll, as pools are: the GM changing it moves the White row unless a row was picked

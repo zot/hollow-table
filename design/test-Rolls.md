@@ -212,3 +212,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** mark a `once` card used like any other; red: the card is still there
 **Inject:** src/net/rolls.ts:resolve
 **Pulled:** 2026-11-16 — rang: "a roll uses up the card its action suffered" failed, the card was still there; restored clean
+
+## Test: a player's roll is aimed as the GM's page holds it
+**Purpose:** R375: the intent's aim is not believed: with no aim held the roll waits; aimed at Beauford on the GM's page, a request naming Devreux rolls against Beauford
+**Input:** Sam given to Dana; Dana's Infer naming Devreux, nothing held; then the GM aims Sam's row at Beauford and Dana asks again naming Devreux
+**Expected:** "Aim it first."; then the roll, the GM's receipt `vs Beauford`
+**Refs:** crc-Rolls.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 18
+**Fire alarm:** believe the intent's aim (resolve the intent as sent); red: the first request rolls against Devreux
+**Inject:** src/net/rolls.ts:#intent
+**Pulled:** 2026-11-16 — rang: "a player's roll is aimed as the GM's page holds it" failed, the first request rolled; restored clean

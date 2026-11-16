@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R69, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353
+**Requirements:** R69, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -32,8 +32,9 @@ know.
   The receipts: the GM's has everything; the roller's has their Total Influence and base, and `vs`
   and the row as the character's owner may see them (dice only, "White + 1", when they can't see
   the opponent); the table's has neither.
-- On the GM's page, an intent: refuses a character the sender doesn't own (saying why), else
-  resolves, applies, prints the full receipt, and sends `roll {n, receipt: the table's, sealed:
+- On the GM's page, an intent: refuses a character the sender doesn't own (saying why), else takes
+  the aim (opponent, Defend kind, what was pointed at, the White row) from the GM's own `rows`, not
+  the intent (R375), and resolves, applies, prints the full receipt, and sends `roll {n, receipt: the table's, sealed:
   {tab: the roller's, with which request it answers}}`.
 - roll(intent, private): the GM's own roll; private (or with no table) it prints on the GM's tape
   only, "Private: not shown to the table", and sends nothing.

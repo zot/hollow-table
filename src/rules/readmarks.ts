@@ -3,6 +3,7 @@
 // that fits it.
 
 import { parse, plain, type Line, type MarkName } from '../text/marks.ts';
+import type { Against } from '../model/records.ts';
 
 /** The attribute an action's roll uses (R337): Cha, Int, or none. */
 export type Att = 'Cha' | 'Int' | null;
@@ -248,7 +249,7 @@ const skillName = (text: string) => text.replace(/^\s*✓\s*/, '').replace(/\s+\
 
 // R326, R336: what a drop can point at on a card, by name, so a roll carries names and never numbers
 // (R100) and the GM's page looks the number up on its own copy.
-export type Against = { def: 'mental' | 'psych' } | { act: string } | { fld: string } | { skl: string };
+export type { Against };
 /** One thing on a card's front a drop can point at: where it is, what it is, its base and its words. */
 export type Point = { line: number; start: number; end: number; against: Against; base: number; words: string };
 

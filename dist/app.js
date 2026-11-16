@@ -135,6 +135,23 @@ var SINGLETONS = {
   }), 100) }),
   meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4) }),
   world: fields({ set: bool, total: int(-1e3, 1e3) }),
+  rows: fields({ rows: dict(fields(
+    {
+      pool: isOid,
+      action: str(CAPS.name),
+      opponent: (v) => v === null || v === WORLD || isOid(v),
+      defend: oneOf("mental", "psych"),
+      row: (v) => v === null || str(32)(v),
+      byHand: bool,
+      hand: fields({ yellows: int(-100, 100), bonus: int(-1e3, 1e3) })
+    },
+    { priv: bool, type: oneOf(...ROLL_TYPES), alt: str(CAPS.name), against: (v) => [
+      fields({ def: oneOf("mental", "psych") }),
+      fields({ act: str(CAPS.name) }),
+      fields({ fld: str(CAPS.name) }),
+      fields({ skl: str(CAPS.name) })
+    ].some((f) => f(v)) }
+  ), 1e3) }),
   book: fields(
     { claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     {
@@ -883,6 +900,7 @@ function redactPiece(r, viewer, chars) {
 function redact(record, viewer, chars) {
   if ("kind" in record) return redactPiece(record, viewer, chars);
   if ("yards" in record) return redactYards(record, viewer, chars);
+  if ("rows" in record) return viewer?.gm ? record : { rows: Object.fromEntries(Object.entries(record.rows).filter(([, r]) => !r.priv)) };
   if ("set" in record && !viewer?.gm) return { set: record.set, total: 0 };
   return record;
 }
@@ -2025,6 +2043,15 @@ function mergeYards(real2, mine, viewer, chars) {
   }) })) }));
   return [...secret].every((o) => kept.has(o)) ? { yards } : null;
 }
+function mergeRows(real2, mine, who, chars) {
+  const rows = { ...real2?.rows };
+  for (const [oid, r] of Object.entries(mine.rows)) {
+    if (chars(oid)?.owner !== who) continue;
+    const { alt: _a, type: _t, ...gms } = rows[oid] ?? { pool: oid, action: "", opponent: null, defend: "mental", row: null, byHand: false, hand: { yellows: 1, bonus: 0 } };
+    rows[oid] = { ...gms, action: r.action, hand: r.hand, ...r.alt && { alt: r.alt }, ...r.type && { type: r.type } };
+  }
+  return { rows };
+}
 function judge(game, edit, who) {
   const all2 = [...edit.puts.map((p) => p.rid), ...edit.dels].filter((rid2) => rid2 !== "meta" && !LOCAL.has(rid2));
   const book2 = game.get("book"), chars = characters(game);
@@ -2049,7 +2076,8 @@ function judge(game, edit, who) {
       const merged = mergeYards(game.get("yards"), rec, viewer, chars);
       if (merged) puts.push({ rid: rid2, rec: merged });
       else refused.push(rid2);
-    } else if (!isPiece(rid2) || (book2.tomb[rid2] ?? 0) > edit.base) refused.push(rid2);
+    } else if (rid2 === "rows") puts.push({ rid: rid2, rec: mergeRows(game.get("rows"), rec, who, chars) });
+    else if (!isPiece(rid2) || (book2.tomb[rid2] ?? 0) > edit.base) refused.push(rid2);
     else if (forged(game.get(rid2), rec, who)) refused.push(rid2);
     else if (mine(game.get(rid2), rec)) puts.push({ rid: rid2, rec });
     else refused.push(rid2);
@@ -2502,7 +2530,7 @@ var Copy = class {
   }
   // Seq: seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3 | R172
   #changed(rids) {
-    const mine = [...rids].filter((rid2) => isPiece(rid2) || rid2 === "yards");
+    const mine = [...rids].filter((rid2) => isPiece(rid2) || rid2 === "yards" || rid2 === "rows");
     if (!mine.length) return;
     const s = this.#w.stamps.next(), at3 = this.#w.clock.now();
     for (const rid2 of mine) {
@@ -3300,7 +3328,15 @@ var Rolls = class {
       refuse(`${c.name} isn't yours to roll.`);
       return this.#work;
     }
-    const done2 = resolve2(game, intent, rng, clock2.now());
+    const held = game.get("rows")?.rows[intent.pool];
+    const aimed2 = {
+      ...intent,
+      vs: held?.opponent ?? null,
+      defend: held?.defend ?? intent.defend,
+      against: held?.against,
+      row: held?.byHand ? held.row ?? void 0 : void 0
+    };
+    const done2 = resolve2(game, aimed2, rng, clock2.now());
     if ("refused" in done2) {
       refuse(done2.refused);
       return this.#work;
@@ -8111,7 +8147,7 @@ var TrayView = class {
     w.game.listen(() => this.render());
     this.render();
   }
-  // R349, R350: the world's mark: the tray while it is out, else its button.
+  // R376, R350: the world's mark: the tray while it is out, else its button.
   /** The element that stands for the world while aiming and aimed. */
   mark() {
     return this.#open ? this.#tray : this.#button;
@@ -8311,7 +8347,7 @@ function mergeTap(game, fromRid, intoRid, mint2) {
 
 // src/ui/rollrow.ts
 function fresh(pool) {
-  return { pool, action: "", opponent: null, defend: "mental", row: null, byHand: false, hand: { yellows: 1, bonus: 0 }, dice: [] };
+  return { pool, action: "", opponent: null, defend: "mental", row: null, byHand: false, hand: { yellows: 1, bonus: 0 } };
 }
 function dock(r, pool) {
   return { ...fresh(pool), ...r?.priv && { priv: true } };
@@ -8360,7 +8396,8 @@ function picked(r, key) {
   return { ...r, row: key, byHand: true };
 }
 function aimed(r, opponent2, defend2, against) {
-  return { ...r, opponent: opponent2, defend: defend2, row: null, byHand: false, against };
+  const { against: _, ...rest } = r;
+  return { ...rest, opponent: opponent2, defend: defend2, row: null, byHand: false, ...against && { against } };
 }
 function unaimed(r) {
   return { ...r, opponent: null, ...!r.byHand && { row: null } };
@@ -8394,7 +8431,7 @@ function rollsFor(viewer, c) {
 function actionOf(c, label) {
   return marks(parse(c.front), "act").map((m) => action(m.text)).find((a) => a?.label === label) ?? null;
 }
-function shown(game, r) {
+function shown(game, r, live = true) {
   const c = game.get(ridOf(r.pool));
   const items = game.all().map(([, x]) => x).filter((x) => "kind" in x && (x.kind === "chip" || x.kind === "influence"));
   const mine = c ? pools(c.oid, items) : null;
@@ -8405,7 +8442,7 @@ function shown(game, r) {
   const out = { label: alternative(act.label, r.alt), base: act.base, total: sum2.total, parts: sum2.parts, yellows: dice.yellows, bonus: dice.bonus, row: row2 };
   if (r.opponent === WORLD) {
     const against2 = game.get("world")?.total ?? 0, diff2 = sum2.total - against2;
-    return { ...out, row: r.byHand ? row2 : row(diff2), vs: { oid: WORLD, name: "the world", total: against2, diff: diff2, sees: !!ownerAsViewer(c)?.gm } };
+    return { ...out, row: r.byHand || !live ? row2 : row(diff2), vs: { oid: WORLD, name: "the world", total: against2, diff: diff2, sees: !!ownerAsViewer(c)?.gm } };
   }
   const opp = r.opponent ? game.get(ridOf(r.opponent)) : void 0;
   if (opp?.kind !== "character") return out;
@@ -8413,7 +8450,7 @@ function shown(game, r) {
   const against = opposition(point ? point.base : defendBase(r, defendOf(opp)), pools(opp.oid, items)).total, diff = sum2.total - against;
   return {
     ...out,
-    row: r.byHand ? row2 : row(diff),
+    row: r.byHand || !live ? row2 : row(diff),
     vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c), opp), ...point && { words: point.words } }
   };
 }
@@ -8442,6 +8479,16 @@ function onceCard(game, was, now2, mint2) {
   };
 }
 var ownerWord = (c) => c.owner === GM ? "GM" : c.owner === OPEN ? "open" : c.owner;
+var rowsOf = (game) => game.get("rows")?.rows ?? {};
+function whites(game) {
+  const out = {};
+  for (const [oid, r] of Object.entries(rowsOf(game))) {
+    if (!r.opponent || r.byHand) continue;
+    const key = shown(game, r).row.key;
+    if (r.row !== key) out[oid] = { ...r, row: key };
+  }
+  return out;
+}
 var TYPE_WORDS = {
   "?": "?",
   skill: "Skill",
@@ -8457,99 +8504,113 @@ var TAG_WORDS = { influence: "Influence", phys: "Phys Atk", mental: "Mental Atk"
 var SIGN = (n) => n < 0 ? `\u2212${-n}` : `+${n}`;
 var RollRowView = class {
   #w;
-  #row;
-  #info;
-  #menu;
-  #waiting = false;
+  #els = /* @__PURE__ */ new Map();
+  #waiting = /* @__PURE__ */ new Set();
   constructor(w) {
     this.#w = w;
-    const doc = document;
-    this.#row = doc.createElement("div");
-    this.#row.className = "roller";
-    this.#info = doc.createElement("span");
-    this.#info.className = "rollinfo";
-    this.#menu = doc.createElement("div");
-    this.#menu.className = "advmenu";
-    this.#menu.hidden = true;
-    doc.addEventListener("pointerdown", (e) => {
-      if (!this.#menu.hidden && !e.target.closest?.(".advmenu, .white")) this.#menu.hidden = true;
+    document.addEventListener("pointerdown", (e) => {
+      if (e.target.closest?.(".advmenu, .white")) return;
+      for (const { menu } of this.#els.values()) menu.hidden = true;
     }, true);
     w.game.listen(() => this.render());
+    if (w.viewer?.gm) w.game.listen(() => queueMicrotask(() => {
+      const changed = whites(w.game);
+      if (Object.keys(changed).length) w.game.change((x) => x.put("rows", { rows: { ...rowsOf(w.game), ...changed } }));
+    }));
     this.render();
   }
+  // R371: a row is the game's; R362, R353: the card its action suffers follows it, in the same change.
   #set(r) {
-    const was = this.#w.roller();
-    this.#w.keep(r);
-    const card2 = onceCard(this.#w.game, was, r, this.#w.mint);
-    if (card2) this.#w.game.change(card2);
-    this.#w.redraw([...new Set([was?.pool, r?.pool].filter((x) => !!x))]);
+    const { game } = this.#w, was = rowsOf(game)[r.pool] ?? null, card2 = onceCard(game, was, r, this.#w.mint);
+    game.change((x) => {
+      x.put("rows", { rows: { ...rowsOf(game), [r.pool]: r } });
+      card2?.(x);
+    });
+    this.#w.redraw([r.pool]);
     this.render();
   }
   // R353: a roll that went through used up the card its action suffered, so the row starts fresh.
-  /** After a roll that went through. */
-  rolled() {
-    const r = this.#w.roller(), c = r?.action ? this.#w.game.get(ridOf(r.pool)) : void 0;
+  /** After a roll of this character's row went through. */
+  rolled(oid) {
+    const r = rowsOf(this.#w.game)[oid], c = r?.action ? this.#w.game.get(ridOf(oid)) : void 0;
     const act = c?.kind === "character" ? actionOf(c, r.action) : null;
     if (act && suffers(c.front, act.label)) this.#set(cleared(r));
   }
-  /** A player's roll is waiting on the GM's page (R102). */
-  waiting(on) {
-    this.#waiting = on;
+  /** A roll of this character's row is waiting on the GM's page (R102). */
+  waiting(oid, on) {
+    if (on) this.#waiting.add(oid);
+    else this.#waiting.delete(oid);
     this.render();
   }
-  /** The die by a pool's name docked here (R68, R69). */
+  /** The die by a pool's name: its row comes up there, fresh (R371, R69). */
   dock(oid) {
-    this.#set(dock(this.#w.roller(), oid));
+    this.#set(dock(rowsOf(this.#w.game)[oid] ?? null, oid));
   }
-  /** An action's die (R76): false when the viewer can't roll for that character. */
+  /** An action's die (R76): false when the viewer can't change that character's row. */
   action(oid, label, alt) {
     const c = this.#w.game.get(ridOf(oid));
     if (!rollsFor(this.#w.viewer, c)) return false;
-    const r = this.#w.roller(), name2 = alt ?? label;
-    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label, alt, this.#w.remembered(oid, name2), skillNamed(c.front, name2)));
+    const r = rowsOf(this.#w.game)[oid] ?? dock(null, oid), name2 = alt ?? label;
+    this.#set(withAction(r, label, alt, this.#w.remembered(oid, name2), skillNamed(c.front, name2)));
     return true;
   }
   /** The action in use on this character, for its swish (R77). */
   inUse(oid) {
-    const r = this.#w.roller();
-    return r?.pool === oid && r.action ? r.action : null;
+    return rowsOf(this.#w.game)[oid]?.action || null;
   }
   render() {
-    const { game, viewer } = this.#w;
-    let r = this.#w.roller();
-    const c = r ? game.get(ridOf(r.pool)) : void 0;
-    if (r && !rollsFor(viewer, c)) {
-      this.#w.keep(null);
-      this.#w.redraw([r.pool]);
-      r = null;
+    const { game, viewer } = this.#w, rows = rowsOf(game), doc = document;
+    for (const [oid, els] of this.#els) {
+      if (rows[oid] && this.#w.pool(oid)) continue;
+      els.row.remove();
+      els.info.remove();
+      els.menu.remove();
+      this.#els.delete(oid);
     }
-    const mat = r ? this.#w.pool(r.pool) : void 0;
-    if (!r || !mat) {
-      this.#row.remove();
-      this.#info.remove();
-      this.#menu.remove();
-      return;
+    for (const p of doc.querySelectorAll(".pool.targeted")) p.classList.remove("targeted");
+    let world = false;
+    for (const [oid, r] of Object.entries(rows)) {
+      const mat = this.#w.pool(oid), c = game.get(ridOf(oid));
+      if (!mat || c?.kind !== "character") continue;
+      let els = this.#els.get(oid);
+      if (!els) {
+        const el3 = (tag2, cls) => {
+          const e = doc.createElement(tag2);
+          e.className = cls;
+          return e;
+        };
+        els = { row: el3("div", "roller"), info: el3("span", "rollinfo"), menu: el3("div", "advmenu") };
+        els.menu.hidden = true;
+        this.#els.set(oid, els);
+      }
+      const hd = mat.querySelector(".hd");
+      if (els.row.parentElement !== mat) {
+        hd.after(els.row);
+        mat.append(els.menu);
+      }
+      if (els.info.parentElement !== hd) hd.append(els.info);
+      const s = shown(game, r, !!viewer?.gm);
+      this.#draw(r, s, els, rollsFor(viewer, c));
+      if (s.vs && s.vs.oid !== WORLD) this.#w.pool(s.vs.oid)?.classList.add("targeted");
+      world ||= s.vs?.oid === WORLD;
     }
-    const hd = mat.querySelector(".hd");
-    if (this.#row.parentElement !== mat) {
-      hd.after(this.#row);
-      mat.append(this.#menu);
-    }
-    if (this.#info.parentElement !== hd) hd.append(this.#info);
-    this.#draw(r, shown(game, r));
+    this.#w.tray.ring(world);
   }
-  #draw(r, s) {
-    const doc = this.#row.ownerDocument, die3 = (c, title = "") => {
+  // R371: a row's controls answer only its owner and the GM (`mine`); R372: only the GM aims.
+  #draw(r, s, els, mine) {
+    const doc = els.row.ownerDocument, die3 = (c, title = "") => {
       const d = doc.createElement("span");
       d.className = `rrdie ${c}`;
       if (title) d.title = title;
       return d;
     };
-    const step = (r2) => this.#set(r2);
-    const hidden = !!s.vs && !s.vs.sees, gm = !!this.#w.viewer?.gm, locked = hidden && !gm;
+    const step = (r2) => {
+      if (mine) this.#set(r2);
+    };
+    const gm = !!this.#w.viewer?.gm, waiting = this.#waiting.has(r.pool);
     const white = doc.createElement("span");
-    white.className = locked ? "white locked" : "white";
-    white.title = locked ? `${diceOnly(s.row)} (set by the GM)` : `Difference ${rowWords(s.row)}. Click to choose the row.`;
+    white.className = gm ? "white" : "white locked";
+    white.title = gm ? `Difference ${rowWords(s.row)}. Click to choose the row.` : `${diceOnly(s.row)} (set by the GM)`;
     white.append(die3("W"));
     if (s.row.die) white.append(die3(s.row.die));
     if (s.row.mod || s.row.auto) {
@@ -8559,26 +8620,28 @@ var RollRowView = class {
       white.append(mod);
     }
     gesture(white, { click: () => {
-      if (!locked) this.#openMenu(r, s.row.key);
+      if (gm) this.#openMenu(r, s.row.key, els.menu);
     } });
     const ys = doc.createElement("span");
     ys.className = "ydice";
-    ys.title = "Yellow dice: click to add one, shift-click to remove one";
+    if (mine) ys.title = "Yellow dice: click to add one, shift-click to remove one";
     ys.append(...s.yellows ? Array.from({ length: s.yellows }, () => die3("Y")) : [die3("ghost")]);
     gesture(ys, { click: () => step(handStep(r, "yellows", 1)), shift: () => step(handStep(r, "yellows", -1)) });
     const b = doc.createElement("span");
     b.className = s.bonus ? "bonus" : "bonus zero";
     b.textContent = SIGN(s.bonus);
-    b.title = "Success Bonus: click to raise, shift-click to lower";
+    if (mine) b.title = "Success Bonus: click to raise, shift-click to lower";
     gesture(b, { click: () => step(handStep(r, "bonus", 1)), shift: () => step(handStep(r, "bonus", -1)) });
     const parts = [white, die3("B", "Blue: always rolled"), ys, b];
     const type = r.type ?? "?", t = doc.createElement("button");
     t.className = type === "?" ? "rtype unsaid" : "rtype";
     t.textContent = TAG_WORDS[type] ?? TYPE_WORDS[type];
-    t.title = type === "?" ? "What is this roll? Click to say. A roll that doesn't say can't be aimed at anyone." : `This roll is ${TYPE_WORDS[type]}. Click to change it.`;
-    gesture(t, { click: (e) => this.#types(r, e) });
+    t.title = type === "?" ? "What is this roll? Click to say. A roll that doesn't say can't be aimed at anyone." : `This roll is ${TYPE_WORDS[type]}.${mine ? " Click to change it." : ""}`;
+    gesture(t, { click: (e) => {
+      if (mine) this.#types(r, e);
+    } });
     parts.push(t);
-    if (this.#w.viewer?.gm) {
+    if (gm) {
       const p = doc.createElement("button");
       p.className = r.priv ? "priv on" : "priv";
       p.textContent = r.priv ? "private" : "to table";
@@ -8586,52 +8649,59 @@ var RollRowView = class {
       gesture(p, { click: () => step({ ...r, priv: !r.priv }) });
       parts.push(p);
     }
-    const roll3 = doc.createElement("button"), why3 = waits(r);
-    roll3.className = "roll";
-    roll3.textContent = this.#waiting ? "GM\u2026" : "Roll";
-    roll3.disabled = this.#waiting || !!why3;
-    if (this.#waiting) roll3.title = "Waiting for the GM's page to roll";
-    else if (why3) roll3.title = why3;
-    gesture(roll3, { click: () => {
-      if (!this.#waiting) this.#w.roll(r);
-    } });
-    parts.push(roll3);
-    this.#row.replaceChildren(...parts);
-    this.#info.replaceChildren();
-    if (s.label) {
-      const base = doc.createElement("span"), n = doc.createElement("b");
+    if (mine) {
+      const roll3 = doc.createElement("button"), why3 = waits(r);
+      roll3.className = "roll";
+      roll3.textContent = waiting ? "GM\u2026" : "Roll";
+      roll3.disabled = waiting || !!why3;
+      if (waiting) roll3.title = "Waiting for the GM's page to roll";
+      else if (why3) roll3.title = why3;
+      gesture(roll3, { click: () => {
+        if (!waiting) this.#w.roll(r);
+      } });
+      parts.push(roll3);
+    }
+    els.row.replaceChildren(...parts);
+    els.info.replaceChildren();
+    const label = s.label || (r.action ? r.alt ?? r.action : "");
+    if (label) {
+      const base = doc.createElement("span");
       base.className = "base";
-      n.textContent = s.total !== s.base ? `${s.base} \u2192 ${s.total}` : String(s.base);
-      base.append(s.label, n);
-      const breakdown = Object.entries(s.parts).filter(([k, v]) => k !== "base" && v).map(([k, v]) => `${k[0].toUpperCase()}${k.slice(1)} ${SIGN(v)}`);
-      base.title = `Total Influence ${s.total}: Base ${s.base}${breakdown.length ? `, ${breakdown.join(", ")}` : ""}. Click to clear.`;
-      gesture(base, { click: () => step(cleared(r)), drag: (d, m) => this.#aim(r, d, m) });
-      this.#info.append(base);
+      base.append(label);
+      if (s.label) {
+        const n = doc.createElement("b");
+        n.textContent = s.total !== s.base ? `${s.base} \u2192 ${s.total}` : String(s.base);
+        base.append(n);
+        const breakdown = Object.entries(s.parts).filter(([k, v]) => k !== "base" && v).map(([k, v]) => `${k[0].toUpperCase()}${k.slice(1)} ${SIGN(v)}`);
+        base.title = `Total Influence ${s.total}: Base ${s.base}${breakdown.length ? `, ${breakdown.join(", ")}` : ""}.${mine ? " Click to clear." : ""}${gm ? " Drag to aim." : ""}`;
+      }
+      gesture(base, { click: () => step(cleared(r)), ...gm && { drag: (d, m) => this.#aim(r, d, m) } });
+      els.info.append(base);
     }
     if (s.vs) {
-      const vs = doc.createElement("span"), shows = s.vs.sees || this.#w.viewer?.gm;
+      const vs = doc.createElement("span"), shows = s.vs.sees || gm;
       vs.className = "vs";
       vs.append(`vs ${s.vs.name}`);
-      if (s.vs.sees) {
+      if (shows) {
         const n = doc.createElement("b");
         n.textContent = ` ${s.vs.total < 0 ? `\u2212${-s.vs.total}` : s.vs.total} (${SIGN(s.vs.diff)})`;
         vs.append(n);
       }
-      if (s.vs.oid === WORLD) vs.title = shows ? `The world: the GM's number in the tray, ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : "Only the GM knows the world's number. Click to stop aiming.";
-      else vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}. Click to stop aiming.` : `Only the GM knows ${s.vs.name}'s numbers. Click to stop aiming.`;
-      gesture(vs, { click: () => step(unaimed(r)) });
-      this.#info.append(vs);
+      const stop = gm ? " Click to stop aiming." : "";
+      if (s.vs.oid === WORLD) vs.title = shows ? `The world: the GM's number in the tray, ${s.vs.total}. Difference ${SIGN(s.vs.diff)}.${stop}` : "Only the GM knows the world's number.";
+      else vs.title = shows ? `${s.vs.name}: ${s.vs.words ?? `${r.defend} Defend`}, plus Main, Edge, Bias, Affliction, Injury and Stagger = ${s.vs.total}. Difference ${SIGN(s.vs.diff)}.${stop}` : `Only the GM knows ${s.vs.name}'s numbers.`;
+      gesture(vs, { click: () => {
+        if (gm) this.#set(unaimed(r));
+      } });
+      els.info.append(vs);
     }
-    for (const p of doc.querySelectorAll(".pool.targeted")) p.classList.remove("targeted");
-    if (s.vs && s.vs.oid !== WORLD) this.#w.pool(s.vs.oid)?.classList.add("targeted");
-    this.#w.tray.ring(s.vs?.oid === WORLD);
   }
-  // R83, R87, R277: drag from the Base onto another character: the pool under the pointer is outlined,
+  // R83, R372, R277: drag from the Base onto another character: the pool under the pointer is outlined,
   // the pointing hand holds; let go to aim, through the Defend chooser when they have two.
   // R326, R336, R329: a line runs from the press to the pointer, and the box goes round the number,
   // Field or Skill under it on the target's card front; a drop there aims at it, with no chooser.
   #aim(r, down, move) {
-    const doc = this.#row.ownerDocument, body = doc.body;
+    const doc = document, body = doc.body;
     const under = (e) => {
       const els = doc.elementsFromPoint?.(e.clientX, e.clientY) ?? [], top = els[0];
       if (top && (top.closest?.(".oppo") || top.id === "table" || top.id === "world")) return { oid: WORLD };
@@ -8700,10 +8770,6 @@ var RollRowView = class {
       }
       const opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) : void 0;
       if (opp?.kind !== "character") return;
-      if (!viewer?.gm && !canSee(viewer, opp)) {
-        this.#note(`Only the GM can aim at ${opp.name}.`, e);
-        return;
-      }
       if ((r.type ?? "?") === "?") {
         this.#note("Say what this roll is first.", e);
         return;
@@ -8737,9 +8803,9 @@ var RollRowView = class {
     doc.addEventListener("pointerup", onUp);
     onMove(move);
   }
-  /** A small box at the pointer: a note that goes after about 2 s, or the Defend chooser (R87, R277). */
+  /** A small box at the pointer: a note that goes after about 2 s, or the Defend chooser (R372, R277). */
   #box(at3) {
-    const doc = this.#row.ownerDocument;
+    const doc = document;
     doc.querySelector("#defchoice")?.remove();
     const box2 = doc.createElement("div");
     box2.id = "defchoice";
@@ -8795,13 +8861,13 @@ var RollRowView = class {
     box2.querySelector("button")?.focus();
   }
   // R72: each row, its words first and its dice at the right; picking one sets the row.
-  #openMenu(r, current) {
-    const doc = this.#menu.ownerDocument;
-    if (!this.#menu.hidden) {
-      this.#menu.hidden = true;
+  #openMenu(r, current, menu) {
+    const doc = menu.ownerDocument;
+    if (!menu.hidden) {
+      menu.hidden = true;
       return;
     }
-    this.#menu.replaceChildren(...ADV.map((row2) => {
+    menu.replaceChildren(...ADV.map((row2) => {
       const b = doc.createElement("button"), words = doc.createElement("span"), dice = doc.createElement("span");
       b.className = row2.key === current ? "on" : "";
       words.textContent = rowWords(row2).split(": ")[0];
@@ -8809,12 +8875,12 @@ var RollRowView = class {
       dice.textContent = row2.auto ? `auto ${row2.auto === "success" ? "\u2713" : "\u2717"}` : diceOnly(row2);
       b.append(words, dice);
       gesture(b, { click: () => {
-        this.#menu.hidden = true;
+        menu.hidden = true;
         this.#set(picked(r, row2.key));
       } });
       return b;
     }));
-    this.#menu.hidden = false;
+    menu.hidden = false;
   }
 };
 function caretIn(text, e) {
@@ -10288,7 +10354,6 @@ var seatKey = (game, viewer) => `hollow.seat.${game}.${viewer}`;
 function fresh2() {
   return {
     view: null,
-    roller: null,
     viewAs: null,
     tapeUp: false,
     boothill: { cur: 0, open: false },
@@ -10324,14 +10389,9 @@ function save(storage, game, viewer, seat) {
 function prune(seat, exists, yards) {
   const here2 = (oid) => exists(ridOf(oid));
   const owner = (s) => here2(s.slice(0, s.indexOf(":")));
-  let roller = null;
-  if (seat.roller && here2(seat.roller.pool)) {
-    const { opponent: opponent2 } = seat.roller;
-    roller = { ...seat.roller, opponent: opponent2 && (opponent2 === WORLD || here2(opponent2)) ? opponent2 : null };
-  }
+  const { roller: _, ...rest } = seat;
   return {
-    ...seat,
-    roller,
+    ...rest,
     boothill: { ...seat.boothill, cur: Math.max(0, Math.min(seat.boothill.cur, yards - 1)) },
     open: {
       used: seat.open.used.filter(here2),
@@ -11678,7 +11738,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       if (t) void rolling().take(t.id, t.pages[t.k]);
     },
     cancelTake,
-    // R142, R144, R146, R68: the die by a pool's name claims, opens, or docks the roll row.
+    // R142, R144, R146, R371: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die3) => {
       const c = game.get(ridOf(oid));
       if (c?.kind !== "character") return;
@@ -11745,8 +11805,6 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     viewer,
     tray: tray2,
     mint: () => mint2()(),
-    roller: () => seat.roller,
-    keep: (r) => keep({ ...seat, roller: r }),
     // R364: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
@@ -11759,14 +11817,14 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       if (gm) {
         const why3 = rolls.roll(intent, !!r.priv);
         if (why3) rolls.note(why3);
-        else rollRow.rolled();
+        else rollRow.rolled(r.pool);
         return;
       }
-      rollRow.waiting(true);
+      rollRow.waiting(r.pool, true);
       void rolls.request(intent).then((why3) => {
-        rollRow.waiting(false);
+        rollRow.waiting(r.pool, false);
         if (why3) rolls.note(why3);
-        else rollRow.rolled();
+        else rollRow.rolled(r.pool);
       });
     }
   });
