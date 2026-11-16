@@ -128,7 +128,7 @@ name with no Level
 **Pulled:** 2026-11-15 — 2026-11-15 — rang: "what a drop can point at" failed, the none case read base 4 `Investigation 2 + Cha 2`; restored clean
 
 ## Test: an action that suffers an Influence, and its variants
-**Purpose:** R352: a label with a sign and a Level is an Influence the action suffers; R354, R355: such an action line right under another action, or under its other variants, varies it, and one with no action above doesn't
+**Purpose:** R362: a label with a sign and a Level is an Influence the action suffers; R354, R355: such an action line right under another action, or under its other variants, varies it, and one with no action above doesn't
 **Input:** `Tricky -Min`, `Audience −Sig`, `Mental Atk / Req`, `Shoot`, `Infer`; Beauford's front; a front with Attack, two Influence actions under it, a plain line, then `Lucky +Min`
 **Expected:** Tricky, −1, Min; Audience, −1, Sig; null for the plain ones; Beauford's one variant, line 13, varying `Mental Atk / Req`; the two under Attack vary it, `Lucky +Min` doesn't
 **Refs:** crc-MarkReader.md
@@ -137,3 +137,14 @@ name with no Level
 **Fire alarm:** let any Influence action be a variant, with or without an action above (drop `of &&`); red: `Lucky +Min` after the plain line is counted
 **Inject:** src/rules/readmarks.ts:variants
 **Pulled:** 2026-11-16 — rang: "an action that suffers an Influence, and its variants" failed, `Lucky +Min` with no action above was counted; restored clean
+
+## Test: which Influence an action suffers, and which label names a Skill
+**Purpose:** R362, R363: a variant suffers its own label, a label naming its Skill first what follows the comma, and a lone Influence nothing; a Skill-first label under an action is its own action, not a variant; R364: a label names a Field or Skill on the card before any comma, whatever its case
+**Input:** Beauford's Tricky -Min; a front with Oratory, Audience -Sig under it, a plain line, a lone Audience -Sig, `Musician, Audience -Min`, `Oratory, Audience -Sig`; a lone Audience -Sig alone; Sam's front with Tact, sparker, `Tact, Audience -Sig`, Shoot, Infer
+**Expected:** Tricky −Min; Audience −Min; null for Oratory, Mental Atk / Req and the lone one; one variant, line 1 of Oratory; true, true, true, false, false
+**Refs:** crc-MarkReader.md
+**Code:** `src/rules/readmarks.test.ts`
+**Alarm:** 11
+**Fire alarm:** let a lone Influence suffer itself (return `suffered(label)` in place of the variant check); red: the lone Audience -Sig suffers
+**Inject:** src/rules/readmarks.ts:suffers
+**Pulled:** 2026-11-16 — rang: "which Influence an action suffers" failed, the lone Audience -Sig suffered; restored clean

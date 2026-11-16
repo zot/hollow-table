@@ -57,7 +57,7 @@ test("the world's record", () => {
 });
 
 test('a card an action suffers', () => {
-  // R352: `once` is the one value it may have.
+  // R362: `once` is the one value it may have.
   const card = { kind: 'influence', oid: '000000f1', home: '00000002', where: { slot: '00000002', name: 'main' }, n: 0, name: 'Tricky',
     sign: -1, points: 2, used: false, crit: false };
   assert.ok(check(ridOf('000000f1'), { ...card, once: true }));

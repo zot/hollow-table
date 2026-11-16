@@ -200,7 +200,7 @@ pool's labels selects as text but the build stamp
 **Pulled:** 2026-11-15 — rang (Chromium): "the world as opposition" failed at the `?` drop, the blank tray's reminder in place of "Say what this roll is first."; restored clean
 
 ## Test: a Finesse variant suffers its Tricky
-**Purpose:** R352–R355 on the GM's page: Beauford's Tricky -Min indents under Mental Atk / Req with a die per alternative; choosing it puts one Tricky card in his Main, the header naming it, typed Mental Atk; again keeps one; a cleared Base takes it away; chosen again, aimed at Sam and rolled, the receipt names it, the card is gone and the row starts fresh
+**Purpose:** R362–R355 on the GM's page: Beauford's Tricky -Min indents under Mental Atk / Req with a die per alternative; choosing it puts one Tricky card in his Main, the header naming it, typed Mental Atk; again keeps one; a cleared Base takes it away; chosen again, aimed at Sam and rolled, the receipt names it, the card is gone and the row starts fresh
 **Input:** Beauford's card; the variant's first die, twice; the Base; the die again; a drag to Sam; Roll
 **Expected:** `varpad`; two dice titled "Roll this: Tricky -Min as Mental Atk" and "… as Req"; one `once` Tricky (−1, 2 points, Beauford's Main); `Tricky -Min` in the header, Mental Atk on the tag; still one; none; one; `vs Sam`; the receipt says Tricky -Min, no `once` card, no Base in the header
 **Refs:** crc-PieceView.md, crc-RollRow.md, crc-Rolls.md
@@ -220,3 +220,25 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** make `rolled` do nothing; red: the header still holds Tricky -Min
 **Inject:** src/ui/rollrow.ts:rolled
 **Pulled:** 2026-11-16 — rang (Chromium): "a Finesse variant suffers its Tricky" failed at the end, the header still held a Base; restored clean
+
+## Test: a Skill action, its Audience variant, and a lone Influence
+**Purpose:** R363–R365 on the GM's page: Audience -Sig under Tact is its variant, with a die as Tact; a lone Audience -Min has no die; Tact starts at Skill; a Skill roll dropped on Devreux's pool falls back to his Defend through the chooser, aims, and reminds
+**Input:** Sam's card with Tact, Audience -Sig under it, a plain line, a lone Audience -Min; Tact's die; a drag to Devreux's pool; the chooser's first button
+**Expected:** `varpad` and "Roll this: Audience -Sig as Tact"; no die on the lone line; the tag Skill; `vs Devreux`; the note "A Skill or Attribute normally opposes a Skill."
+**Refs:** crc-PieceView.md, crc-RollRow.md, crc-MarkReader.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 15
+**Fire alarm:** give a lone Influence its die (drop the lone check in frontGlyphs); red: the lone Audience -Min has a die
+**Inject:** src/ui/piece.ts:frontGlyphs
+**Pulled:** 2026-11-16 — rang (Chromium): the lone Audience -Min had a die; restored clean
+
+## Test: a Skill roll at a Defend is reminded
+**Purpose:** R365: the reminder after a Skill roll falls back to Defend through the chooser
+**Input:** Sam's Tact as Skill, dropped on Devreux's pool, the chooser's first button
+**Expected:** the note "A Skill or Attribute normally opposes a Skill."
+**Refs:** crc-RollRow.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 16
+**Fire alarm:** make the reminder say nothing (`remind` a no-op); red: no note after the chooser
+**Inject:** src/ui/rollrow.ts:#aim
+**Pulled:** 2026-11-16 — rang (Chromium): no reminder after the chooser; restored clean

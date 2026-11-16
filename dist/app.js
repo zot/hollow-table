@@ -431,10 +431,19 @@ function variants(front) {
       of = null;
       return;
     }
-    if (of && suffered(act.label)) out.push({ line, label: act.label, of });
+    if (of && !act.label.includes(",") && suffered(act.label)) out.push({ line, label: act.label, of });
     else of = act.label;
   });
   return out;
+}
+function suffers(front, label) {
+  const comma = label.lastIndexOf(",");
+  if (comma > 0 && label.slice(0, comma).trim()) return suffered(label.slice(comma + 1));
+  return variants(front).some((v) => v.label === label) ? suffered(label) : null;
+}
+function skillNamed(front, label) {
+  const name2 = label.split(",")[0].trim().toLowerCase();
+  return points2(front).some((p) => ("fld" in p.against ? p.against.fld : "skl" in p.against ? p.against.skl : "").toLowerCase() === name2);
 }
 var N = "(\\d+)";
 var DEF_ONE = new RegExp(`^${N}$`);
@@ -1742,7 +1751,7 @@ function frontGlyphs(text, c, w) {
   }
   for (const span of text.querySelectorAll("span.act")) {
     const label = action(span.textContent ?? "")?.label;
-    if (!label) continue;
+    if (!label || suffered(label) && !suffers(c.front, label)) continue;
     const alts = label.split("/").map((a) => a.trim()).filter(Boolean);
     const die3 = (alt, title = `Roll this: ${alt ?? label}`) => {
       const d = doc.createElement("span");
@@ -8354,8 +8363,8 @@ function typeOf(label) {
   if (has(/\binfluence\b/)) return "influence";
   return null;
 }
-function withAction(r, label, alt, remembered) {
-  const type = typeOf(alt ?? label.split("/")[0]) ?? remembered ?? "?";
+function withAction(r, label, alt, remembered, skill = false) {
+  const type = typeOf(alt ?? label.split("/")[0]) ?? remembered ?? (skill ? "skill" : "?");
   const { alt: _, ...rest } = r;
   return {
     ...rest,
@@ -8443,7 +8452,7 @@ function shown(game, r) {
 }
 function onceCard(game, was, now2, mint2) {
   const c = now2?.action ? game.get(ridOf(now2.pool)) : void 0;
-  const act = c?.kind === "character" ? actionOf(c, now2.action) : null, inf = act ? suffered(act.label) : null;
+  const act = c?.kind === "character" ? actionOf(c, now2.action) : null, inf = act ? suffers(c.front, act.label) : null;
   const want = inf && { home: now2.pool, name: inf.name, sign: inf.sign, points: STEP * levelsOf(inf) };
   const cards = game.all().map(([, x]) => x).filter((x) => "kind" in x && x.kind === "influence" && !!x.once && (x.home === was?.pool || x.home === now2?.pool));
   const keep = want && cards.find((i) => i.home === want.home && i.name === want.name && i.sign === want.sign && i.points === want.points && typeof i.where === "object" && "slot" in i.where && i.where.slot === want.home && i.where.name === "main");
@@ -8514,7 +8523,7 @@ var RollRowView = class {
   rolled() {
     const r = this.#w.roller(), c = r?.action ? this.#w.game.get(ridOf(r.pool)) : void 0;
     const act = c?.kind === "character" ? actionOf(c, r.action) : null;
-    if (act && suffered(act.label)) this.#set(cleared(r));
+    if (act && suffers(c.front, act.label)) this.#set(cleared(r));
   }
   /** A player's roll is waiting on the GM's page (R102). */
   waiting(on) {
@@ -8530,7 +8539,7 @@ var RollRowView = class {
     const c = this.#w.game.get(ridOf(oid));
     if (!rollsFor(this.#w.viewer, c)) return false;
     const r = this.#w.roller(), name2 = alt ?? label;
-    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label, alt, this.#w.remembered(oid, name2)));
+    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label, alt, this.#w.remembered(oid, name2), skillNamed(c.front, name2)));
     return true;
   }
   /** The action in use on this character, for its swish (R77). */
@@ -8733,9 +8742,13 @@ var RollRowView = class {
         return;
       }
       const byType = r.type === "psych" ? "psych" : "mental";
+      const remind = () => {
+        if (r.type === "skill") this.#note("A Skill or Attribute normally opposes a Skill.", e);
+      };
       if (t.point) {
         const a = t.point.against;
         this.#set(aimed(r, opp.oid, "def" in a ? a.def : byType, a));
+        if ("def" in a) remind();
         return;
       }
       if (isAttack(r.type)) {
@@ -8745,9 +8758,13 @@ var RollRowView = class {
       const def = defendOf(opp);
       if (!def || def.mental === def.psych) {
         this.#set(aimed(r, opp.oid, "mental"));
+        remind();
         return;
       }
-      this.#choose(opp, def, e, (kind) => this.#set(aimed(r, opp.oid, kind)));
+      this.#choose(opp, def, e, (kind) => {
+        this.#set(aimed(r, opp.oid, kind));
+        remind();
+      });
     };
     doc.addEventListener("pointermove", onMove);
     doc.addEventListener("pointerup", onUp);
@@ -8778,7 +8795,7 @@ var RollRowView = class {
     box2.append(p);
     setTimeout(() => box2.remove(), 2200);
   }
-  // R319, R320: the list of types at the tag; a choice is kept for this action on this card.
+  // R319, R364: the list of types at the tag; a choice is kept for this action on this card.
   #types(r, at3) {
     const box2 = this.#box(at3), doc = box2.ownerDocument;
     box2.classList.add("types");
@@ -11762,7 +11779,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     mint: () => mint2()(),
     roller: () => seat.roller,
     keep: (r) => keep({ ...seat, roller: r }),
-    // R320: the type last chosen for an action on a card, in this viewer's seat.
+    // R364: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
     pool: (oid) => table.pool(ridOf(oid)),

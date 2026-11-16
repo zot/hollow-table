@@ -2,8 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { action, adjust, attributes, defend, influence, motiveLeft, offer, spend, unadjusted } from './readmarks.ts';
-import { field, pointed, points, skillsLine, suffered, variants, type Point } from './readmarks.ts';
-import { BEAUFORD_FRONT } from '../store/playtest.ts';
+import { field, pointed, points, skillNamed, skillsLine, suffered, suffers, variants, type Point } from './readmarks.ts';
+import { BEAUFORD_FRONT, SAM_FRONT } from '../store/playtest.ts';
 
 test('action lines', () => {
   const rows: [string, string, number, number, number][] = [
@@ -136,7 +136,7 @@ test('what a drop can point at', () => {
 });
 
 test('an action that suffers an Influence, and its variants', () => {
-  // R352: a label with a sign and a Level is an Influence the action suffers.
+  // R362: a label with a sign and a Level is an Influence the action suffers.
   assert.deepEqual(suffered('Tricky -Min'), { name: 'Tricky', sign: -1, level: 'Min' });
   assert.deepEqual(suffered('Audience −Sig'), { name: 'Audience', sign: -1, level: 'Sig' });
   for (const plain of ['Mental Atk / Req', 'Shoot', 'Infer']) assert.equal(suffered(plain), null, plain);
@@ -145,4 +145,19 @@ test('an action that suffers an Influence, and its variants', () => {
   // Two under one action both vary it; one after a plain line, or with no action above, doesn't.
   const front = '<act>Attack: 4, 1d</act>\n<act>Tricky -Min: 4, 2d</act>\n<act>Audience -Sig: 4, 1d</act>\nnotes\n<act>Lucky +Min: 3, 1d</act>';
   assert.deepEqual(variants(front).map(v => [v.line, v.of]), [[1, 'Attack'], [2, 'Attack']]);
+});
+
+test('which Influence an action suffers, and which label names a Skill', () => {
+  // R362: a variant suffers its own label; a label naming its Skill first, what follows the comma.
+  const front = '<act>Oratory: 4, 1d</act>\n<act>Audience -Sig: 4, 1d</act>\nnotes\n<act>Audience -Sig: 3, 1d</act>\n'
+    + '<act>Musician, Audience -Min: 3, 1d</act>\n<act>Oratory, Audience -Sig: 4, 1d</act>';
+  assert.deepEqual(suffers(BEAUFORD_FRONT, 'Tricky -Min'), { name: 'Tricky', sign: -1, level: 'Min' });
+  assert.deepEqual(suffers(front, 'Musician, Audience -Min'), { name: 'Audience', sign: -1, level: 'Min' });
+  assert.equal(suffers(front, 'Oratory'), null);
+  assert.equal(suffers(BEAUFORD_FRONT, 'Mental Atk / Req'), null);
+  // R363: the variant under Oratory suffers; the same label with nothing above it doesn't.
+  assert.deepEqual(variants(front).map(v => [v.line, v.of]), [[1, 'Oratory']], 'a Skill-first label under an action is its own action');
+  assert.equal(suffers('<act>Audience -Sig: 3, 1d</act>', 'Audience -Sig'), null, 'a lone Influence is no action');
+  // R364: a label names a Field or Skill on the card, before any comma, whatever its case.
+  assert.deepEqual(['Tact', 'sparker', 'Tact, Audience -Sig', 'Shoot', 'Infer'].map(l => skillNamed(SAM_FRONT, l)), [true, true, true, false, false]);
 });

@@ -193,3 +193,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T22: R306 retired by R346 (a ? roll can't be aimed at the world either; nothing rolls at nobody (#16))
 - T23: R151 retired by R356 (a hidden pool's own chips are no longer public; contributions are (#20))
 - T24: R152 retired by R357 (a hidden pool's own chips no longer reach others at all (#20))
+- T25: R352 retired by R362 (only a variant, or a label naming its Skill first, suffers an Influence (#19))
+- T26: R320 retired by R364 (a label naming a Field or Skill on the card preselects Skill (#19))

@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R320, R326, R327, R329, R345, R346, R347, R349, R350, R351, R352, R353, R354, R355
+// CRC: crc-RollRow.md | Test: test-Table.md | R68, R72, R316, R76, R78, R79, R83, R86, R87, R88, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R364, R326, R327, R329, R345, R346, R347, R349, R350, R351, R362, R353, R354, R355, R363, R365
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
@@ -24,7 +24,7 @@ async function typed(page: Page, words: string) {
 }
 
 async function aimed(page: Page) {
-  // R320, R346: Devreux's plain Attack doesn't say what it is, so it starts at ? and can't be aimed;
+  // R364, R346: Devreux's plain Attack doesn't say what it is, so it starts at ? and can't be aimed;
   // as a Skill roll it can, through the Defend chooser.
   await page.locator(`.obj.card[data-rid="${DEVREUX}"] .actdie`).first().click();
   await expect(page.locator(`${DPOOL} .roller .rtype`)).toHaveText('?');
@@ -260,7 +260,7 @@ test('a Finesse variant suffers its Tricky', async ({ page }) => {
   await expect(tricky.locator('.actdie')).toHaveCount(2);
   await expect(tricky.locator('.actdie').first()).toHaveAttribute('title', 'Roll this: Tricky -Min as Mental Atk');
   await expect(tricky.locator('.actdie').nth(1)).toHaveAttribute('title', 'Roll this: Tricky -Min as Req');
-  // R352: choosing it puts one Tricky -Min card in Beauford's Main; the row names the variant, typed Mental Atk.
+  // R362: choosing it puts one Tricky -Min card in Beauford's Main; the row names the variant, typed Mental Atk.
   await tricky.locator('.actdie').first().click();
   await expect(page.locator(`${BPOOL} .rollinfo .base`)).toContainText('Tricky -Min');
   await expect(page.locator(`${BPOOL} .roller .rtype`)).toHaveText('Mental Atk');
@@ -280,4 +280,25 @@ test('a Finesse variant suffers its Tricky', async ({ page }) => {
   await expect(page.locator('#tape .strip .receipt').first()).toContainText('Tricky -Min');
   await expect.poll(once).toEqual([]);
   await expect(page.locator(`${BPOOL} .rollinfo .base`)).toHaveCount(0);
+});
+
+test('a Skill action, its Audience variant, and a lone Influence', async ({ page }) => {
+  // R363, R364: Sam gets Tact as an action, Audience -Sig under it, and a lone Audience -Min after a plain line.
+  await page.evaluate(async rid => {
+    const h = await (window as any).hollow.ready, sam = h.store.game.get(rid);
+    h.store.game.change((w: any) => w.put(rid, { ...sam, front: `${sam.front}\n<act>Tact: 3, 1d</act>\n<act>Audience -Sig: 3, 1d</act>\nnotes\n<act>Audience -Min: 2, 1d</act>` }));
+  }, SAM);
+  const card = page.locator(`.obj.card[data-rid="${SAM}"]`), line = (t: string) => card.locator('.front .text > div', { hasText: t });
+  await expect(line('Audience -Sig')).toHaveClass(/\bvarpad\b/);
+  await expect(line('Audience -Sig').locator('.actdie')).toHaveAttribute('title', 'Roll this: Audience -Sig as Tact');
+  await expect(line('Audience -Min').locator('.actdie')).toHaveCount(0);
+  // R364: Tact names a Skill on Sam's card, so its roll starts at Skill.
+  await line('Tact:').locator('.actdie').click();
+  await expect(page.locator(`${SPOOL} .roller .rtype`)).toHaveText('Skill');
+  // R365: dropped on Devreux's pool it falls back to his Defend, through the chooser, with a reminder.
+  const base = await at(page, `${SPOOL} .rollinfo .base`, 8, 6), dev = await at(page, `${DPOOL} .slots`, 60, 30);
+  await dragFromTo(page, base.x, base.y, dev.x, dev.y, 15);
+  await page.locator('#defchoice button').first().click();
+  await expect(page.locator(`${SPOOL} .rollinfo .vs`)).toContainText('vs Devreux');
+  await expect(page.locator('#defchoice')).toHaveText('A Skill or Attribute normally opposes a Skill.');
 });

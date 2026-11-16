@@ -82,7 +82,7 @@ Red picked by hand
 **Pulled:** 2026-11-12 — rang: the Difference row Red went along with the request
 
 ## Test: the roll type
-**Purpose:** R320: a label's words preselect the type, a label that doesn't say starts at the remembered type, else `?`; R316: the alternative clicked names the roll and picks its type, and goes in the intent; R346: turning a roll to `?` stops aiming, and an Attack goes at its own Defend, a Phys Attack at 0
+**Purpose:** R364: a label's words preselect the type, a label that doesn't say starts at the remembered type, else `?`; R316: the alternative clicked names the roll and picks its type, and goes in the intent; R346: turning a roll to `?` stops aiming, and an Attack goes at its own Defend, a Phys Attack at 0
 **Input:** labels Mental Atk, Psych Atk, Phys Attack, Physical Atk, Req, Request, Infer, Impress, Create Influence, Shoot, Attack; Shoot with and without a remembered `phys`; Infer with a remembered `skill`; `Mental Atk / Req` by its Req die; an aimed Mental Attack turned to `?`, psych, phys and infer, against Defend 6 / 5
 **Expected:** the types in order (Shoot and Attack null); `?` then `phys`; `infer`; `request` with `alt: 'Req'`; opponent null; Defend bases 6, 5, 0, 5
 **Refs:** crc-RollRow.md, crc-Seat.md
@@ -126,7 +126,7 @@ Red picked by hand
 **Pulled:** 2026-11-15 — rang: "the world as opposition" failed, the unaimed Infer no longer waited; restored clean
 
 ## Test: a variant suffers its Influence as a card in Main
-**Purpose:** R352: the row's action, when its label is an Influence, puts one `once` card of it in the actor's Main pool, and choosing it again keeps that one; R355: the header names the variant, its type from the alternative, its total less the card; R353: leaving it takes the card away
+**Purpose:** R362: the row's action, when its label is an Influence, puts one `once` card of it in the actor's Main pool, and choosing it again keeps that one; R355: the header names the variant, its type from the alternative, its total less the card; R353: leaving it takes the card away
 **Input:** Beauford docked; Mental Atk; Tricky -Min as Mental Atk; again; the Base cleared
 **Expected:** no change for Mental Atk; a card Tricky, −1, 2 points, in Beauford's Main, `once`; no change when chosen again; label `Tricky -Min`, type mental, total 2 below Mental Atk's before the card; the card gone after the Base is cleared
 **Refs:** crc-RollRow.md
@@ -135,3 +135,14 @@ Red picked by hand
 **Fire alarm:** never keep the card there (`gone` is every `once` card); red: choosing it again is a change
 **Inject:** src/ui/rollrow.ts:onceCard
 **Pulled:** 2026-11-16 — rang: "a variant suffers its Influence as a card in Main" failed, choosing it again was a change; restored clean
+
+## Test: a Skill-first label suffers its Influence; a lone one is no action
+**Purpose:** R364: a label naming a Field or Skill on the card starts at Skill, after the label's own words and a remembered type; R362, R363: `Tact, Audience -Sig` puts an Audience card in Main, a lone `Audience -Sig` none
+**Input:** Tact (a Skill), with and without a remembered Infer; Mental Atk with the Skill flag; Shoot; Sam's card with `Tact, Audience -Sig`, a plain line, and a lone `Audience -Sig`
+**Expected:** skill; infer; mental; ?; no card for the lone one; an Audience card, −1, 4 points, `once`
+**Refs:** crc-RollRow.md
+**Code:** `src/ui/rollrow.test.ts`
+**Alarm:** 12
+**Fire alarm:** never default to Skill (`'?'` in place of the Skill fallback); red: Tact starts at ?
+**Inject:** src/ui/rollrow.ts:withAction
+**Pulled:** 2026-11-16 — rang: "a Skill-first label suffers its Influence" failed, Tact started at ?; restored clean

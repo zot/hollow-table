@@ -6,6 +6,7 @@ import { WORLD, ridOf, type Character, type Influence } from '../model/records.t
 import { row as rowFor } from '../rules/odds.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
 import { aimed, cleared, defendOf, dock, fresh, handStep, intentOf, picked, rollsFor, shown, unaimed, withAction, typeOf, typed, defendBase, waits, onceCard } from './rollrow.ts';
+import { SAM_FRONT } from '../store/playtest.ts';
 
 const scene = () => { const g = new Game(); g.load(playtest('Dana', 'Ann')); return g; };
 
@@ -91,7 +92,7 @@ test('a Roll asks by names', () => {
 });
 
 test('the roll type', () => {
-  // R320: the label's words preselect it; a label that doesn't say starts at what was chosen last, else `?`.
+  // R364: the label's words preselect it; a label that doesn't say starts at what was chosen last, else `?`.
   assert.deepEqual(['Mental Atk', 'Psych Atk', 'Phys Attack', 'Physical Atk', 'Req', 'Request', 'Infer', 'Impress', 'Create Influence', 'Shoot', 'Attack']
     .map(typeOf), ['mental', 'psych', 'phys', 'phys', 'request', 'request', 'infer', 'impress', 'influence', null, null]);
   const base = dock(null, SAM);
@@ -149,7 +150,7 @@ test('the world as opposition', () => {
 });
 
 test('a variant suffers its Influence as a card in Main', () => {
-  // R352: Beauford's Tricky -Min, typed by Mental Atk, puts one Tricky -Min card (2 points) in his Main.
+  // R362: Beauford's Tricky -Min, typed by Mental Atk, puts one Tricky -Min card (2 points) in his Main.
   const game = scene(), ids = ['000000f1', '000000f2'], mint = () => ids.shift()!;
   const plain = withAction(dock(null, BEAUFORD), 'Mental Atk / Req', 'Mental Atk'), tricky = withAction(plain, 'Tricky -Min', 'Mental Atk');
   assert.equal(onceCard(game, null, plain, mint), null, 'a plain action suffers nothing');
@@ -164,4 +165,21 @@ test('a variant suffers its Influence as a card in Main', () => {
   // R353: leaving it, by another action or a cleared Base, takes the card away.
   game.change(onceCard(game, tricky, cleared(tricky), mint)!);
   assert.equal(game.get(ridOf('000000f1')), undefined);
+});
+
+test('a Skill-first label suffers its Influence; a lone one is no action', () => {
+  // R364: a label naming a Field or Skill on the card starts at Skill, after the label's own words and
+  // a remembered type.
+  assert.equal(withAction(dock(null, SAM), 'Tact', undefined, undefined, true).type, 'skill');
+  assert.equal(withAction(dock(null, SAM), 'Tact', undefined, 'infer', true).type, 'infer', 'remembered first');
+  assert.equal(withAction(dock(null, SAM), 'Mental Atk', undefined, undefined, true).type, 'mental', 'the label first');
+  assert.equal(withAction(dock(null, SAM), 'Shoot').type, '?');
+  // R362, R363: on Sam's card, `Tact, Audience -Sig` puts an Audience card in Main; a lone `Audience -Sig` puts none.
+  const game = scene(), sam = game.get(ridOf(SAM)) as Character, ids = ['000000f1'], mint = () => ids.shift()!;
+  game.change(w => w.put(ridOf(SAM), { ...sam, front: `${SAM_FRONT}\n<act>Tact, Audience -Sig: 3, 1d</act>\nnotes\n<act>Audience -Sig: 3, 1d</act>` }));
+  const lone = withAction(dock(null, SAM), 'Audience -Sig'), named = withAction(dock(null, SAM), 'Tact, Audience -Sig');
+  assert.equal(onceCard(game, null, lone, mint), null);
+  game.change(onceCard(game, null, named, mint)!);
+  const card = game.get(ridOf('000000f1')) as Influence;
+  assert.deepEqual([card.name, card.sign, card.points, card.once], ['Audience', -1, 4, true]);
 });

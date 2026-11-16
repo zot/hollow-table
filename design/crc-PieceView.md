@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -63,6 +63,8 @@ stickies, loose text, images, torn rolls and reference cards.
   spent. Writing its name and points away (no name, 0 points, nothing waited for) removes it. A
   column with one never collapses.
 
+- A lone Influence (R363, MarkReader.suffers): an action line that is only an Influence and no variant
+  gets no die.
 - A variant (R354, R355, MarkReader.variants): its line gets `varpad` (indented under its action),
   and in place of its own die a die per alternative of the action it varies, each passing that
   alternative to useAction, so the roll is typed by it and named by the variant.

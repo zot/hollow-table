@@ -378,7 +378,7 @@ test('the world as opposition', () => {
 });
 
 test('a roll uses up the card its action suffered', () => {
-  // R353: the GM's page deletes a `once` card in the roller's pool rather than marking it used; R352:
+  // R353: the GM's page deletes a `once` card in the roller's pool rather than marking it used; R362:
   // the Total Influence suffers it; R355: the receipt names the variant.
   const game = scene(), tricky: Influence = { kind: 'influence', oid: '000000f1', home: BEAUFORD, where: { slot: BEAUFORD, name: 'main' },
     n: 0, name: 'Tricky', sign: -1, points: 2, used: false, crit: false, once: true };

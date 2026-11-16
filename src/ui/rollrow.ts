@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | R321, R306, R316, R319, R320, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277, R345, R346, R349, R350, R352, R353, R355
+// CRC: crc-RollRow.md | R321, R306, R316, R319, R364, R68, R69, R70, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R85, R86, R87, R88, R277, R345, R346, R349, R350, R362, R353, R355, R363, R364, R365
 // The dice you're about to roll, docked on the pool you roll for, in your view only (the Seat).
 // The decisions are pure (dock, action, hand, row, numbers); the view below draws them.
 
@@ -6,7 +6,7 @@ import type { Game, Writer } from '../model/game.ts';
 import { GM, OPEN, ROLL_TYPES, WORLD, isAttack, ridOf, type Character, type Influence, type Oid, type Opponent, type RollType, type World } from '../model/records.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
-import { action as readAction, defend as readDefend, levelsOf, pointed, points, suffered, type Action, type Against, type Defend, type Point } from '../rules/readmarks.ts';
+import { action as readAction, defend as readDefend, levelsOf, pointed, points, skillNamed, suffers, type Action, type Against, type Defend, type Point } from '../rules/readmarks.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
 import type { Roller } from '../store/seat.ts';
 import { alternative, diceOnly, rowWords, type Intent } from '../net/rolls.ts';
@@ -26,7 +26,7 @@ export function dock(r: Roller | null, pool: Oid): Roller {
   return { ...fresh(pool), ...(r?.priv && { priv: true }) };
 }
 
-// R320: what a label's words say the roll is, or null when they don't say (Shoot, a plain Attack).
+// R364: what a label's words say the roll is, or null when they don't say (Shoot, a plain Attack).
 /** The roll type a label (or one alternative of it) names. */
 export function typeOf(label: string): RollType | null {
   const w = label.toLowerCase(), has = (re: RegExp) => re.test(w);
@@ -44,10 +44,11 @@ export function typeOf(label: string): RollType | null {
 }
 
 // R76, R82, R276: an action fills the row; the hand adjustment starts over, and the row starts at
-// White unless it is aiming at someone. R316, R320: the alternative clicked names it, and its type
+// White unless it is aiming at someone. R316, R364: the alternative clicked names it, and its type
 // starts as the label says, else as last chosen for it (`remembered`), else `?`.
-export function withAction(r: Roller, label: string, alt?: string, remembered?: RollType): Roller {
-  const type = typeOf(alt ?? label.split('/')[0]!) ?? remembered ?? '?';
+// R364: else Skill, when the label names a Field or Skill on the card (`skill`).
+export function withAction(r: Roller, label: string, alt?: string, remembered?: RollType, skill = false): Roller {
+  const type = typeOf(alt ?? label.split('/')[0]!) ?? remembered ?? (skill ? 'skill' : '?');
   const { alt: _, ...rest } = r;
   return { ...rest, action: label, ...(alt && { alt }), type, hand: { yellows: 0, bonus: 0 },
     ...(!r.opponent && { row: null, byHand: false }), ...(type === '?' && r.opponent && { opponent: null }) };
@@ -156,13 +157,13 @@ export function shown(game: Game, r: Roller): Shown {
     vs: { oid: opp.oid, name: opp.name, total: against, diff, sees: canSee(ownerAsViewer(c!), opp), ...(point && { words: point.words }) } };
 }
 
-// R352, R353: the row's action, when its label is an Influence, keeps one `once` card of it in the
+// R362, R353: the row's action, when its label is an Influence, keeps one `once` card of it in the
 // actor's Main pool: put when the row comes to it (the one there kept), taken away, wherever it lies,
 // when the row leaves it.
 /** The change that leaves the `once` cards as `now`'s action wants them, or null when they already are. */
 export function onceCard(game: Game, was: Roller | null, now: Roller | null, mint: () => Oid): ((w: Writer) => void) | null {
   const c = now?.action ? game.get(ridOf(now.pool)) as Character | undefined : undefined;
-  const act = c?.kind === 'character' ? actionOf(c, now!.action) : null, inf = act ? suffered(act.label) : null;
+  const act = c?.kind === 'character' ? actionOf(c, now!.action) : null, inf = act ? suffers(c!.front, act.label) : null;
   const want = inf && { home: now!.pool, name: inf.name, sign: inf.sign!, points: STEP * levelsOf(inf) };
   const cards = game.all().map(([, x]) => x).filter((x): x is Influence =>
     'kind' in x && x.kind === 'influence' && !!x.once && (x.home === was?.pool || x.home === now?.pool));
@@ -192,7 +193,7 @@ export type RollRowWith = {
   keep: (r: Roller | null) => void;
   /** A character's pool mat, to dock in. */
   pool: (oid: Oid) => HTMLElement | undefined;
-  /** R352: new oids, for the card an action suffers. */
+  /** R362: new oids, for the card an action suffers. */
   mint: () => Oid;
   /** Redraws these characters' cards (the swish, R77). */
   redraw: (oids: Oid[]) => void;
@@ -200,7 +201,7 @@ export type RollRowWith = {
   roll: (r: Roller) => void;
   /** R349, R350: the world's mark in the bar (the tray, or its button while the tray is in), and its ring. */
   tray: { mark(): HTMLElement | undefined; ring(on: boolean): void };
-  /** R320: the type last chosen for an action on a card, and keeping a new choice. */
+  /** R364: the type last chosen for an action on a card, and keeping a new choice. */
   remembered: (oid: Oid, label: string) => RollType | undefined;
   remember: (oid: Oid, label: string, type: RollType) => void;
 };
@@ -242,7 +243,7 @@ export class RollRowView {
   #set(r: Roller | null): void {
     const was = this.#w.roller();
     this.#w.keep(r);
-    // R352, R353: the card the row's action suffers follows the row.
+    // R362, R353: the card the row's action suffers follows the row.
     const card = onceCard(this.#w.game, was, r, this.#w.mint);
     if (card) this.#w.game.change(card);
     this.#w.redraw([...new Set([was?.pool, r?.pool].filter((x): x is Oid => !!x))]);
@@ -254,7 +255,7 @@ export class RollRowView {
   rolled(): void {
     const r = this.#w.roller(), c = r?.action ? this.#w.game.get(ridOf(r.pool)) as Character | undefined : undefined;
     const act = c?.kind === 'character' ? actionOf(c, r!.action) : null;
-    if (act && suffered(act.label)) this.#set(cleared(r!));
+    if (act && suffers(c!.front, act.label)) this.#set(cleared(r!));
   }
 
   /** A player's roll is waiting on the GM's page (R102). */
@@ -268,7 +269,7 @@ export class RollRowView {
     const c = this.#w.game.get(ridOf(oid)) as Character | undefined;
     if (!rollsFor(this.#w.viewer, c)) return false;
     const r = this.#w.roller(), name = alt ?? label;
-    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label, alt, this.#w.remembered(oid, name)));
+    this.#set(withAction(r?.pool === oid ? r : dock(r, oid), label, alt, this.#w.remembered(oid, name), skillNamed(c!.front, name)));
     return true;
   }
 
@@ -468,15 +469,18 @@ export class RollRowView {
       if ((r.type ?? '?') === '?') { this.#note('Say what this roll is first.', e); return; }
       // R326, R336: pointed at, it is the opposition; a Defend number also sets the Defend kind.
       const byType = r.type === 'psych' ? 'psych' : 'mental';
+      // R365: a Skill roll at a Defend aims as asked, with a reminder at the pointer.
+      const remind = () => { if (r.type === 'skill') this.#note('A Skill or Attribute normally opposes a Skill.', e); };
       if (t!.point) {
         const a = t!.point.against;
         this.#set(aimed(r, opp.oid, 'def' in a ? a.def : byType, a));
+        if ('def' in a) remind();
         return;
       }
       if (isAttack(r.type!)) { this.#set(aimed(r, opp.oid, byType)); return; }
       const def = defendOf(opp);
-      if (!def || def.mental === def.psych) { this.#set(aimed(r, opp.oid, 'mental')); return; }
-      this.#choose(opp, def, e, kind => this.#set(aimed(r, opp.oid, kind)));
+      if (!def || def.mental === def.psych) { this.#set(aimed(r, opp.oid, 'mental')); remind(); return; }
+      this.#choose(opp, def, e, kind => { this.#set(aimed(r, opp.oid, kind)); remind(); });
     };
     doc.addEventListener('pointermove', onMove);
     doc.addEventListener('pointerup', onUp);
@@ -510,7 +514,7 @@ export class RollRowView {
     setTimeout(() => box.remove(), 2200);
   }
 
-  // R319, R320: the list of types at the tag; a choice is kept for this action on this card.
+  // R319, R364: the list of types at the tag; a choice is kept for this action on this card.
   #types(r: Roller, at: PointerLike): void {
     const box = this.#box(at), doc = box.ownerDocument;
     box.classList.add('types');

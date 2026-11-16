@@ -1,4 +1,4 @@
-// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R352, R354, R355
+// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R362, R354, R355, R363, R364
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
@@ -64,7 +64,7 @@ export function influence(text: string): Reading | null {
   return t ? { name: t, sign: null, level: null } : null;
 }
 
-// R352: an action whose label is an Influence suffers it: `Tricky -Min` is Tricky, −1, Min.
+// R362: an action whose label is an Influence suffers it: `Tricky -Min` is Tricky, −1, Min.
 /** The Influence an action's label is, or null when the label has no sign and Level. */
 export function suffered(label: string): Reading | null {
   const r = influence(label);
@@ -83,10 +83,27 @@ export function variants(front: string): Variant[] {
     const only = marked.length === 1 && typeof marked[0] !== 'string' ? marked[0] : null;
     const act = only?.mark === 'act' ? action(only.text) : null;
     if (!act) { of = null; return; }
-    if (of && suffered(act.label)) out.push({ line, label: act.label, of });
+    // A label naming its Skill first (`Oratory, Audience -Sig`) is an action of its own, not a variant.
+    if (of && !act.label.includes(',') && suffered(act.label)) out.push({ line, label: act.label, of });
     else of = act.label;
   });
   return out;
+}
+
+// R362, R363: the Influence an action suffers: a variant's own label, or what follows the comma when
+// the label names its Skill first (`Oratory, Audience -Sig`). A lone Influence suffers nothing: it is no action.
+/** The Influence that action on that front suffers, or null. */
+export function suffers(front: string, label: string): Reading | null {
+  const comma = label.lastIndexOf(',');
+  if (comma > 0 && label.slice(0, comma).trim()) return suffered(label.slice(comma + 1));
+  return variants(front).some(v => v.label === label) ? suffered(label) : null;
+}
+
+// R364: whether a label (before any comma) names a Field or Skill on the front.
+/** Whether the label names one of the front's Fields or Skills. */
+export function skillNamed(front: string, label: string): boolean {
+  const name = label.split(',')[0]!.trim().toLowerCase();
+  return points(front).some(p => ('fld' in p.against ? p.against.fld : 'skl' in p.against ? p.against.skl : '').toLowerCase() === name);
 }
 
 const N = '(\\d+)';

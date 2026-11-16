@@ -1,4 +1,4 @@
-// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136, R320
+// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136, R364
 // Your seat at the table: how you're looking, kept per game and per viewer in localStorage, never
 // checkpointed, exported or sent. Every read and write survives a blocked or empty storage.
 
@@ -32,7 +32,7 @@ export type Seat = {
   /** Opened things, each named by the oid it belongs to: used piles and piles by oid, slots as
    * `<oid>:<slot>`, card columns as `<oid>:<damage>`. */
   open: { used: Oid[]; piles: Oid[]; slots: string[]; columns: string[] };
-  /** R320: the roll type this viewer last chose for each action on each card, by `<oid>:<label>`. */
+  /** R364: the roll type this viewer last chose for each action on each card, by `<oid>:<label>`. */
   types: Record<string, RollType>;
 };
 

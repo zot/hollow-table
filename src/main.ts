@@ -270,7 +270,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const tray = new TrayView(bar.oppo, { game, viewer });
   rollRow = new RollRowView({
     game, viewer, tray, mint: () => mint()(), roller: () => seat.roller, keep: r => keep({ ...seat, roller: r }),
-    // R320: the type last chosen for an action on a card, in this viewer's seat.
+    // R364: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
     pool: oid => table.pool(ridOf(oid)), redraw: oids => table.render(oids.map(ridOf)),

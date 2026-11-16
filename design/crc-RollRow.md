@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R349, R350, R352, R353, R355
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R349, R350, R362, R353, R355, R362-365
 
 The dice you're about to roll, docked on the pool you roll for, in your view only (Seat).
 
@@ -33,10 +33,14 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   `<def>` has two numbers, at the pointer with its first choice focused, closed by Escape or a click
   elsewhere. While dragging, the pool under the pointer has a dashed amber outline (`aimed`) and the
   pointing hand holds (R277).
-- type (R319, R320): the roll's type, `?`, `skill`, `influence`, `phys`, `mental`, `psych`
+- type (R319, R364): the roll's type, `?`, `skill`, `influence`, `phys`, `mental`, `psych`
   (the three Attacks), `infer`, `impress` or `request`; typeOf(label) preselects it from the label's
-  words, else the seat's remembered type for that action on that card, else `?`. The tag on the row
+  words, else the seat's remembered type for that action on that card, else `skill` when the label
+  names a Field or Skill on the card (MarkReader.skillNamed, R364), else `?`. The tag on the row
   opens the list; a choice is remembered in the seat.
+- A Skill roll aimed at a Defend (R365): a Defend number pointed at, or a drop that falls back to
+  Defend (the pool, the card away from a number, through the chooser too), aims as asked and puts the
+  note "A Skill or Attribute normally opposes a Skill" at the pointer.
 - An Attack aims straight at its Defend (R346): Mental at Mental, Psych at Psych, Phys at 0, with no
   chooser; a `?` roll's aim at a character or at the world is refused ("Say what this roll is first", gone after
   about 2 s). The type goes in the intent, and an Attack's kind in the receipt's `vs` (R307).
@@ -73,9 +77,9 @@ The dice you're about to roll, docked on the pool you roll for, in your view onl
   player: "The GM hasn't given the world a number yet"). Aimed at the world, Tray.mark() wears the
   `targeted` ring in place of a pool.
 
-- An action that suffers an Influence (R352, R353): onceCard(game, was, now, mint) is the change that
+- An action that suffers an Influence (R362, R353): onceCard(game, was, now, mint) is the change that
   keeps the actor's Main pool holding the one `once` card the row's action suffers
-  (MarkReader.suffered; points 2 a Level): put when the row comes to it (reused when there), taken
+  (MarkReader.suffers; points 2 a Level): put when the row comes to it (reused when there), taken
   away, wherever it lies, when the row leaves it; #set applies it.
   rolled(r): after a roll that went through, a row whose action suffers an Influence starts fresh
   (cleared), its card used up on the GM's page. The header names the action by Rolls.alternative,

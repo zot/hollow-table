@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -10,7 +10,7 @@ import {
   type AttackKind, type Lasting, type LastingColumn,
 } from '../model/records.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
-import { action as readAction, influence, variants } from '../rules/readmarks.ts';
+import { action as readAction, influence, suffered, suffers, variants } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
 import { LEVELS, columnRoom } from '../rules/influence.ts';
 import { COLUMN_OF, OVERFLOW, fill, isLasting, lastingLevels, lastingTop, type Page } from '../rules/absorb.ts';
@@ -478,7 +478,8 @@ function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
   // text stays as written.
   for (const span of text.querySelectorAll<HTMLElement>('span.act')) {
     const label = readAction(span.textContent ?? '')?.label;
-    if (!label) continue;
+    // R363: a lone Influence, with no action above and no Skill named, is no action: no die.
+    if (!label || (suffered(label) && !suffers(c.front, label))) continue;
     const alts = label.split('/').map(a => a.trim()).filter(Boolean);
     const die = (alt?: string, title = `Roll this: ${alt ?? label}`) => {
       const d = doc.createElement('span');

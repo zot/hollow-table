@@ -14,7 +14,9 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   action's label preselects it** when it says (*Mental Atk* → Mental Attack, *Phys* or *Physical*
   with *Atk* or *Attack* → Phys Attack, *Infer*, *Impress*, *Req* or *Request*, *Influence*); a label
   that doesn't say (*Shoot*, a plain *Attack*) starts at *?*, unless you chose a type for that action
-  on that card before, which your seat remembers. A preselected type is only a start: clicking the
+  on that card before, which your seat remembers, or **the label names a Field or Skill on the card**
+  (*Oratory*, *Oratory, Audience -Sig*), which starts at *Skill* (Bill, 11-16: "let's preselect Skill
+  when a Skill doesn't specify a normal Action"). A preselected type is only a start: clicking the
   tag changes it.
 - **The die button** by a pool's name: clicking the die of a pool you own **docks the roll row**
   there (in your view only). Clicking the die of the pool the row is already on **starts fresh**: no
@@ -48,7 +50,9 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   and fills the Base, Yellows and bonus. **A new action starts the row at White** unless the row is
   aiming at someone (Bill, 11-12). The action in use gets a **highlighter swish** on its line;
   it moves with the choice, survives edits, and clears when the action does.
-- **An action whose label is an Influence suffers it** (Bill, 11-15): `Tricky -Min: 5, 2d` puts a
+- **An action suffers an Influence its label names** (Bill, 11-15, 11-16) when it is a variant
+  (below) or names its Skill first (`Oratory, Audience -Sig: 4, 1d`, the Influence after the comma):
+  `Tricky -Min: 5, 2d` under Beauford's Mental Atk puts a
   Tricky -Min card in the actor's Main pool while it is the row's action, counted like any card there
   (Hollow Folks: only the pool's worst negative counts). Its points are the Level's (Min 2, Sig 4).
   The card is put when the action is chosen, and choosing it again keeps the one card; it is taken
@@ -62,7 +66,13 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   action (or under that action's other variants), is that action's variant. It is drawn **indented
   under its action**, as a Field's Skills are under their Field, and it has **a die per alternative
   of its action**, each naming its type as that action's own dice do (*Tricky -Min* as Mental Atk, or
-  as Req). The row's header and the receipt name the variant (`Tricky -Min`).
+  as Req). The row's header and the receipt name the variant (`Tricky -Min`). Audience is a variant
+  of the Skill it goes with (Bill, 11-16: "Audience is always paired with a particular skill, like
+  Oratory or Musician and it should appear like Beauford's Tricky, as a variant of the Skill"), as
+  `Audience -Sig: 4, 1d` under `Oratory: 4, 1d`.
+- **A lone Influence is no action** (Bill, 11-16: "We should not allow a lone Influence with no
+  action above it and no Skill named"): an action line that is only an Influence, with no action
+  above it, gets no die, so it rolls nothing and puts no card anywhere.
 - The action and opponent show in the **pool's header**, after gather (`Attack 4 → 8`, `vs Sam 4
   (+0)`), and travel with the roll row. Clicking the Base clears the action.
 
@@ -110,6 +120,10 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   so it types from any keyboard: `(no att)` for none, as Shoot (`Shoot: 4, +2 (unfr, x2, no att)`),
   and `(Int)` for Int, as a knowledge Skill. An action that says neither uses Cha (Bill, 11-13:
   "generally Cha but in some cases Int or nothing is used").
+- **A Skill roll aimed at a Defend** (Bill, 11-16: "If the GM drags to Defend for a Skill action, it
+  should pop a reminder that a Skill or Attribute normally opposes a Skill"): it aims as asked, and a
+  note at the pointer says "A Skill or Attribute normally opposes a Skill", gone after about two
+  seconds. That is a Defend number pointed at, or a drop that falls back to Defend.
 - **A drop anywhere else on the target** (Bill, 11-14) — its pool, its card away from a number, or a
   card turned to its back — keeps the rule above: an Attack at its own Defend, other rolls through
   the chooser when the Defend has two numbers.

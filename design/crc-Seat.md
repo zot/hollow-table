@@ -1,5 +1,5 @@
 # Seat
-**Requirements:** R127, R128, R136, R271, R320
+**Requirements:** R127, R128, R136, R271, R364
 
 Your seat at the table: everything about how you're looking, kept per game and per viewer, never
 checkpointed, exported or sent.
@@ -15,7 +15,7 @@ checkpointed, exported or sent.
 - open: open used piles, open piles, opened narrow slots and card columns.
 
 ## Does
-- types (R320): the roll type this viewer last chose for each action on each card (`<oid>:<label>` → type), so the next roll of it starts there.
+- types (R364): the roll type this viewer last chose for each action on each card (`<oid>:<label>` → type), so the next roll of it starts there.
 - load(storage, game, viewer) / save(storage, game, viewer, seat): every read and write wrapped so
   a blocked or empty storage still gives a working seat.
 - prune(seat, exists, yards): after a restore, drop what refers to records that no longer exist (`exists(rid)`):

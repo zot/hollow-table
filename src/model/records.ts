@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R352, R360
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -79,7 +79,7 @@ export type Influence = {
   points: number; used: boolean; crit: boolean; tap?: TapLedger; damage?: Damage;
   /** R260: tapped from a Motivation, a Main Pool Influence. */
   mot?: true;
-  /** R352, R353: put in its actor's Main pool by the action it suffers, for that action's roll only. */
+  /** R362, R353: put in its actor's Main pool by the action it suffers, for that action's roll only. */
   once?: true;
 };
 

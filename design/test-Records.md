@@ -45,7 +45,7 @@ faulty record is refused
 **Pulled:** 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
 
 ## Test: a card an action suffers
-**Purpose:** R352: an Influence may carry `once: true`, and nothing else in that field
+**Purpose:** R362: an Influence may carry `once: true`, and nothing else in that field
 **Input:** Beauford's Tricky card with `once: true`, and with `once: false`
 **Expected:** the first passes, the second is refused
 **Refs:** crc-Records.md
