@@ -22,6 +22,7 @@ import { Wire } from './net/wire.ts';
 import { mayTap } from './rules/tap.ts';
 import { click, shiftClick } from './rules/ownership.ts';
 import { TrayView } from './ui/tray.ts';
+import { markOlder } from './ui/pens.ts';
 import { RollRowView, intentOf } from './ui/rollrow.ts';
 import { TapeView } from './ui/tape.ts';
 import { RegisterView } from './ui/register.ts';
@@ -367,6 +368,9 @@ async function main() {
   // The GM's page: the game is here; a table opens on demand, in the room remembered for this game.
   await store.start();
   const game: Game = store.game;
+  // R380: an older game's Fields and Skills, marked the first time the GM's page opens it.
+  const older = markOlder(game);
+  if (older) game.change(older);
   let gmShown = local('hollow.gmname') ?? GM;
   let table: { room: string; wire: Wire; presence: Presence; authority: Authority; rolls: Rolls; images: ImageExchange } | null = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });

@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R371
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R371, R380
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -52,7 +52,8 @@ record crosses the wire, the database and an export file unchanged.
   the GM's private switch). Written as truth only by the GM's page.
 - Yards: `{yards: [{name, named, items: [{name, records: PieceRecord[]}]}]}`; a burial keeps the
   records buried together (a character with its cards, a sticky).
-- Meta: `{round, rolls, counts?: {[character oid]: number}}`; `counts` numbers each character's rolls
+- Meta: `{round, rolls, counts?: {[character oid]: number}, marked?: true}`; `marked` says an older game's
+  Fields and Skills have been marked (R380); `counts` numbers each character's rolls
   (R278).
 - World (R347, R348): `{set, total}`, the world's Total Influence in the brass tray; `set` false is a
   blank tray, and no record is the same. `WORLD` (`'world'`) is also the opponent a roll aims at the

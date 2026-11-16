@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287, R366, R369
+// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287, R366, R369, R380
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
@@ -230,4 +230,20 @@ test('a chip answers clicks in a slot and loose on the table', async ({ page }) 
   expect(await value('o:0000c001')).toBe(4);
   await loose.click({ modifiers: ['Shift'] });
   expect(await value('o:0000c001')).toBe(2);
+});
+
+test("an older game's Fields are marked and bold when the GM opens it", async ({ page }) => {
+  // R380, R332: Sam's front without its Field and Skill marks, and meta never marked: opened again, the
+  // GM's page marks them, so "Private Investigator 2 (5XP)" is a Field, drawn bold.
+  await page.evaluate(async rid => {
+    const h = await (window as any).hollow.ready, sam = h.store.game.get(rid), meta = h.store.game.get('meta');
+    const { marked: _, ...old } = meta;
+    h.store.game.change((w: any) => { w.put(rid, { ...sam, front: sam.front.replace(/<\/?(fld|skl)>/g, '') }); w.put('meta', old); });
+  }, SAM);
+  await page.waitForTimeout(600);
+  await open(page);
+  const field = page.locator(`.obj.card[data-rid="${SAM}"] .front .text .fld`, { hasText: 'Private Investigator' });
+  await expect(field).toHaveCount(1);
+  expect(await field.evaluate(e => getComputedStyle(e).fontWeight)).toBe('700');
+  expect((await rec(page, 'meta')).marked).toBe(true);
 });

@@ -264,3 +264,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** let anyone drag from the Base to aim (drop the GM test on the drag); red: Sam's row is aimed, `vs Devreux` shows
 **Inject:** src/ui/rollrow.ts:#draw
 **Pulled:** 2026-11-16 — first silent: the drop on Devreux, hidden from the player, showed nothing either way; with a drag to open table added it rang (Chromium), the blank tray's note opened; restored clean
+
+## Test: an older game's Fields are marked and bold when the GM opens it
+**Purpose:** R380, R332 on the GM's page: Sam's front without its Field and Skill marks and meta never marked, the page opened again, marks them, so "Private Investigator 2 (5XP)" is a Field drawn bold, and meta says so
+**Input:** Sam's front stripped of `fld` and `skl`, `marked` taken off meta; the page opened again
+**Expected:** one `.fld` holding Private Investigator, weight 700; meta `marked`
+**Refs:** crc-Pens.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 19
+**Fire alarm:** never apply markOlder on opening (drop the call in main); red: no Field on Sam's card
+**Inject:** src/main.ts:main
+**Pulled:** 2026-11-16 — rang (Chromium): no Field on Sam's card; restored clean

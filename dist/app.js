@@ -133,7 +133,7 @@ var SINGLETONS = {
     named: bool,
     items: list(fields({ name: str(CAPS.name), records: list(piece) }))
   }), 100) }),
-  meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4) }),
+  meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1e3, 1e3) }),
   rows: fields({ rows: dict(fields(
     {
@@ -1305,6 +1305,28 @@ function tray(piece2) {
   piece2.addEventListener("keyup", raise);
   piece2.addEventListener("mouseup", raise);
   return box2;
+}
+function markFields(front) {
+  const lines = parse(front);
+  lines.forEach((l, k) => {
+    const m = offered(lines, k);
+    if (m !== "fld" && m !== "skl") return;
+    const text = plain(l), t = text.trim(), at3 = text.indexOf(t);
+    lines[k] = [text.slice(0, at3), { mark: m, text: t }, text.slice(at3 + t.length)].filter((r) => r !== "");
+  });
+  return serialize(lines);
+}
+function markOlder(game) {
+  const meta = game.get("meta");
+  if (!meta || meta.marked) return null;
+  return (w) => {
+    for (const [, r] of game.all()) {
+      if (!("kind" in r) || r.kind !== "character") continue;
+      const front = markFields(r.front);
+      if (front !== r.front) w.put(ridOf(r.oid), { ...r, front });
+    }
+    w.put("meta", { ...meta, marked: true });
+  };
 }
 
 // src/ui/receipt.ts
@@ -11925,6 +11947,8 @@ async function main() {
   }
   await store.start();
   const game = store.game;
+  const older = markOlder(game);
+  if (older) game.change(older);
   let gmShown = local("hollow.gmname") ?? GM;
   let table = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });

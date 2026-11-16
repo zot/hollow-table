@@ -1,5 +1,5 @@
 # Pens
-**Requirements:** R206, R207, R219, R247, R258, R267, R323-325
+**Requirements:** R206, R207, R219, R247, R258, R267, R323-325, R380
 
 The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 toolbar. Seven pens, one per stored mark (`act`, `res`, `mot`, `att`, `inf`, `def`, `head`); Damage entries are
@@ -10,6 +10,10 @@ slots, not marks, so they have none (R209).
 - The writing area last written in, so a pen reached by keyboard still knows its text.
 
 ## Does
+- markFields(front) (R380): pure. The front with every line `offered` reads as a Field or Skill
+  marked so, top to bottom, so a Skill under a Field just marked reads as one; nothing else changes.
+- markOlder(game) (R380): pure. The change that marks every character's front so, and records
+  `marked` in meta; null once meta has it. The GM's page applies it right after opening a game.
 - tray(piece): the seven pens beside the piece's right edge, shown while one of its writing areas
   (a card's front or notes, a sticky, loose text) holds the cursor or a pen holds focus; the piece
   comes to the top meanwhile (R219), so the next piece doesn't cover its pens. Pressing a

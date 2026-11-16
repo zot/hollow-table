@@ -183,6 +183,12 @@ italic or underline.
   chartreuse for a Field, a paler chartreuse for its Skills, so a Field's Skills read as its own.
   The book's Levels (Hollow Folks, *Skills*): a Skill in a Field has the Field's Level, one higher
   with a checkmark; Skills outside a Field are listed by Level in `Skills N:` lines.
+- **An older game's Fields and Skills get marked** (Bill, 11-16): a game made before the Field and
+  Skill marks has its Fields and Skills as plain text, so a Field isn't bold and its Skills don't
+  indent. The first time the GM's page opens such a game it marks, top to bottom and without asking,
+  every line the table would offer the Field or Skill pen for, and records in the game that it has,
+  so it never runs again and a line unmarked on purpose stays plain. Only Fields and Skills: the
+  other marks were there when such a game was made. A character buried in Boot Hill is left as it is.
 - **A Field's Skills are indented under it, their names aligned** (Bill, 11-14: "I think we should
   always indent Field Skills, instead of based on whether they have a check mark -- that seems more
   intuitive and simpler too"): a ✓ hangs in the margin before its Skill's name, so a checked Skill's

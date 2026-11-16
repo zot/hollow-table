@@ -98,6 +98,7 @@
 - **R335:** While writing, a press in an indented Field Skill's margin toggles its ✓: on a ghost it writes `✓ ` at the start of that Skill's text, on a real ✓ it takes it out; the change is saved as typing is, so the Skill's Level follows at once.
 - **R341:** A character's back holds at most one Conviction, on a line under the Biases' Maj slot, and one Burden under the Afflictions': its name, its Level, and its points toward the next Level, *Sig (5/6)*. Its Level follows its points: Min to 2, Sig to 6, Maj to 12, Ext to 20, Exq beyond. The line shows only while the card has one, and it keeps its column from collapsing.
 - **R342:** A Conviction's or Burden's name and points are edited in place, which is how the GM does Recovery; one with no name and no points is gone.
+- **R380:** The first time the GM's page opens a game made before Field and Skill marks, it marks, top to bottom and without asking, every line of each character's front that the table would offer the Field or Skill pen for, and records in the game's meta that it has, so it never runs again; only Fields and Skills are marked, and a character buried in Boot Hill is left as it is.
 
 ## Feature: Influence
 **Source:** specs/influence.md

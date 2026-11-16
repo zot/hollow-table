@@ -3,6 +3,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { locate, parse, read, serialize, type Pos } from '../text/marks.ts';
 import { apply, offered, places } from './pens.ts';
+import { markFields, markOlder } from './pens.ts';
+import { Game } from '../model/game.ts';
+import { ridOf, type Character, type Meta } from '../model/records.ts';
+import { BEAUFORD_FRONT, SAM, SAM_FRONT, playtest } from '../store/playtest.ts';
 
 const at = (line: number, run: number, offset: number): Pos => ({ line, run, offset });
 
@@ -104,4 +108,24 @@ test('the Field and Skill pens offered', () => {
   // Skills) the Skill pen; the same line under anything else, nothing.
   const lines = parse('<fld>Sparker 2 (6XP)</fld>\n<skl>Composure</skl>\nGlimmer Lore (x2)\n<head>Memories</head>\nWicked deeds\nPrivate Investigator 2 (5XP)');
   assert.deepEqual([2, 4, 5].map(k => offered(lines, k)), ['skl', null, 'fld']);
+});
+
+test("an older game's Fields and Skills get marked, once", () => {
+  // R380: Sam's and Beauford's fronts with their Field and Skill marks taken off come back as written.
+  const older = (f: string) => f.replace(/<\/?(fld|skl)>/g, '');
+  for (const front of [SAM_FRONT, BEAUFORD_FRONT]) {
+    assert.equal(markFields(older(front)), front);
+    assert.equal(markFields(front), front, 'a marked front is left as it is');
+  }
+  // markOlder marks every character and says so in meta; after that it does nothing, so a Field
+  // unmarked on purpose stays plain.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const sam = () => game.get(ridOf(SAM)) as Character;
+  game.change(w => w.put(ridOf(SAM), { ...sam(), front: older(SAM_FRONT) }));
+  game.change(markOlder(game)!);
+  assert.equal(sam().front, SAM_FRONT);
+  assert.equal((game.get('meta') as Meta).marked, true);
+  game.change(w => w.put(ridOf(SAM), { ...sam(), front: older(SAM_FRONT) }));
+  assert.equal(markOlder(game), null);
 });

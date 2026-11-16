@@ -1,11 +1,13 @@
-// CRC: crc-Pens.md | R206, R207, R247, R258, R267, R323, R324, R325
+// CRC: crc-Pens.md | R206, R207, R247, R258, R267, R323, R324, R325, R380
 // The highlighter pens beside a piece while you write on it: one per mark, in place of a formatting
 // toolbar. What a pen does is decided on lines (apply, offered); the tray only finds the selection,
 // draws, and hands the result back to the writing area's own input.
 
+import type { Game, Writer } from '../model/game.ts';
+import { ridOf, type Character, type Meta } from '../model/records.ts';
 import { influence, offer } from '../rules/readmarks.ts';
 import {
-  locate, mark, plain, read, render, unmark, type Line, type MarkName, type MarkRun, type Pos, type Run,
+  locate, mark, parse, plain, read, render, serialize, unmark, type Line, type MarkName, type MarkRun, type Pos, type Run,
 } from '../text/marks.ts';
 
 export const PENS: readonly { mark: MarkName; word: string }[] = [
@@ -210,4 +212,33 @@ export function tray(piece: HTMLElement): HTMLElement {
   piece.addEventListener('keyup', raise);
   piece.addEventListener('mouseup', raise);
   return box;
+}
+
+// R380: an older game's Fields and Skills, as plain text, marked top to bottom, so a Skill under a
+// Field just marked reads as one; nothing else changes.
+/** The front with every line offered the Field or Skill pen marked so. */
+export function markFields(front: string): string {
+  const lines = parse(front);
+  lines.forEach((l, k) => {
+    const m = offered(lines, k);
+    if (m !== 'fld' && m !== 'skl') return;
+    const text = plain(l), t = text.trim(), at = text.indexOf(t);
+    lines[k] = [text.slice(0, at), { mark: m, text: t }, text.slice(at + t.length)].filter(r => r !== '');
+  });
+  return serialize(lines);
+}
+
+// R380: once per game, on the GM's page: every character's Fields and Skills marked, and meta says so.
+/** The change that marks an older game's Fields and Skills, or null when it has been done. */
+export function markOlder(game: Game): ((w: Writer) => void) | null {
+  const meta = game.get('meta') as Meta | undefined;
+  if (!meta || meta.marked) return null;
+  return w => {
+    for (const [, r] of game.all()) {
+      if (!('kind' in r) || r.kind !== 'character') continue;
+      const front = markFields(r.front);
+      if (front !== r.front) w.put(ridOf(r.oid), { ...r, front } satisfies Character);
+    }
+    w.put('meta', { ...meta, marked: true });
+  };
 }

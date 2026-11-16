@@ -132,3 +132,14 @@ marks each entry, the commas and spaces left plain
 **Fire alarm:** make `underField` always false; red: the plain line under the Skill is offered nothing
 **Inject:** src/ui/pens.ts:underField
 **Pulled:** 2026-11-14 — 2026-11-14 — rang: "the Field and Skill pens offered" failed (nothing offered under the Skill); restored clean
+
+## Test: an older game's Fields and Skills get marked, once
+**Purpose:** R380: Sam's and Beauford's fronts without Field and Skill marks come back as written, a marked front unchanged; markOlder marks every character and records `marked`, and after that does nothing, so a Field unmarked on purpose stays plain
+**Input:** SAM_FRONT and BEAUFORD_FRONT with `fld` and `skl` taken off, and as written; the playtest with Sam's front so, meta unmarked; markOlder, then Sam's front unmarked again and markOlder once more
+**Expected:** each comes back as written; Sam's front as written and meta `marked`; then null
+**Refs:** crc-Pens.md
+**Code:** `src/ui/pens.test.ts`
+**Alarm:** 11
+**Fire alarm:** run every time (drop `meta.marked` from markOlder's test); red: the second markOlder is a change
+**Inject:** src/ui/pens.ts:markOlder
+**Pulled:** 2026-11-16 — rang: "an older game's Fields and Skills get marked, once" failed, the second markOlder was a change; restored clean
