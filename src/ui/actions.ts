@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R44, R45, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R260, R268, R269, R360
+// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R366, R367, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R260, R268, R269, R360, R366, R369
 // What a click or a drop on a pool, a drawer or a glyph does to the game, as one change. Pure: each
 // takes the game and gives a writer for Game.change (or null when nothing happens), so the views stay
 // thin and these are tested without a browser.
@@ -9,7 +9,7 @@ import {
   type Rid, type Sign, type SlotName, type Where, type Who,
 } from '../model/records.ts';
 import { lowerCard, lowerChip, raiseCard, raiseChip, MIN } from '../rules/influence.ts';
-import { accepts, rollUp, type Item } from '../rules/pool.ts';
+import { accepts, type Item } from '../rules/pool.ts';
 import { feed, kill, tap, unfeed, type Lookup, type Tapped } from '../rules/tap.ts';
 
 export type Change = (w: Writer) => void;
@@ -43,25 +43,10 @@ export function slotItems(game: Game, owner: Oid, slot: SlotName): Item[] {
   return game.all().map(([rid]) => item(game, rid)).filter((i): i is Item => !!i && inSlot(i, owner, slot));
 }
 
-// R44, R45, R46: a slot's contents, settled: three of a value roll up, chaining.
-function settle(w: Writer, items: Item[], mint: () => Oid): void {
-  const plan = rollUp(items, mint);
-  const gone = new Set(plan.remove);
-  for (const i of items) if (!gone.has(i.oid)) w.put(ridOf(i.oid), i);
-  for (const oid of plan.remove) w.del(ridOf(oid));
-  for (const c of plan.add) w.put(ridOf(c.oid), c);
-}
-
-/** A slot's contents with `changed` in place of (or added to) what was there, and `gone` taken out. */
-function withItem(game: Game, owner: Oid, slot: SlotName, changed: Item | null, gone?: Oid): Item[] {
-  const rest = slotItems(game, owner, slot).filter(i => i.oid !== changed?.oid && i.oid !== gone);
-  return changed ? [...rest, changed] : rest;
-}
-
 // R39, R47: a chip or card dropped on a slot joins it (a Damage card only its own kind's slot).
 // R360: a chip coming into the pool takes the name of whoever put it there (`by`); one moved between
 // the pool's own slots keeps its own.
-export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, mint: () => Oid, by?: Who): Change | null {
+export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, _mint: () => Oid, by?: Who): Change | null {
   const i = item(game, rid);
   if (!i || !accepts(slot, i)) return null;
   // R260: a Motivation's card dropped in a Main slot joins that character's drawer.
@@ -70,10 +55,8 @@ export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, mint: (
   const moved = { ...i, ...home, where: { slot: owner, name: slot }, n: slotItems(game, owner, slot).length } as Item;
   // A chip coming into the pool takes the putter's name; moved within it, it keeps its own.
   if (moved.kind === 'chip' && !inPool) { if (by) moved.by = by; else delete moved.by; }
-  return w => {
-    // Leaving another slot can't break a Roll Up already made, so only the new one settles.
-    settle(w, withItem(game, owner, slot, moved), mint);
-  };
+  // R366: chips never merge; a Roll Up is worked out where it is drawn and counted.
+  return w => w.put(ridOf(moved.oid), moved);
 }
 
 /** A drawer's cards in order. */
@@ -116,19 +99,13 @@ export function vanish(game: Game, rid: Rid): Change | null {
   return i?.kind === 'chip' ? w => w.del(rid) : null;
 }
 
-// R40, R42, R46: click raises, shift lowers; lowering can complete a Roll Up.
-export function chipClick(game: Game, rid: Rid, shift: boolean, mint: () => Oid): Change | null {
+// R40, R42, R46: click raises, shift lowers; lowering can complete a Roll Up, worked out where it is
+// drawn. R369: a chip raises or lowers itself, in a pile or not.
+export function chipClick(game: Game, rid: Rid, shift: boolean, _mint?: () => Oid): Change | null {
   const c = item(game, rid);
   if (c?.kind !== 'chip') return null;
   const next = shift ? lowerChip(c) : raiseChip(c);
-  if (typeof c.where !== 'object' || !('slot' in c.where)) {
-    return w => { if (next) w.put(rid, next); else w.del(rid); };
-  }
-  const { slot: owner, name } = c.where;
-  return w => {
-    if (!next) w.del(rid);
-    settle(w, withItem(game, owner, name, next, next ? undefined : c.oid), mint);
-  };
+  return w => { if (next) w.put(rid, next); else w.del(rid); };
 }
 
 // R43: clicking a rider does nothing; shift-clicking removes it.

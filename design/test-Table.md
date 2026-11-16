@@ -242,3 +242,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** make the reminder say nothing (`remind` a no-op); red: no note after the chooser
 **Inject:** src/ui/rollrow.ts:#aim
 **Pulled:** 2026-11-16 — rang (Chromium): no reminder after the chooser; restored clean
+
+## Test: a Roll Up of chips is a pile, and its members are chips
+**Purpose:** R366, R369 on the GM's page: three 4s dropped in Beauford's Main act as a 6, a pile, the records keeping three 4s; opened, the members are chips, and clicking one raises that chip, breaking the pile
+**Input:** three 4-chips from the bar into Beauford's Main; the pile's disc; its first member
+**Expected:** the disc reads 6, the records 4, 4, 4; members 4, 4, 4; the records then 4, 4, 6, no pile, the chips 6, 4, 4
+**Refs:** crc-PoolView.md, crc-Pool.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 17
+**Fire alarm:** draw a pile's members as faces with nothing to click (a plain button, not `chip()`); red: the member's click changes nothing
+**Inject:** src/ui/pool.ts:pile
+**Pulled:** 2026-11-16 — rang (Chromium): the member's click changed nothing, the records still 4, 4, 4; restored clean

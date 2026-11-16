@@ -135,3 +135,14 @@ by the drop
 **Fire alarm:** let the public removal win over the tab's own sealed put (don't filter its own rids out of the removals); red: Dana loses her own chip on Sam
 **Inject:** src/net/copy.ts:#recs
 **Pulled:** 2026-11-16 — rang (Chromium): "two mats" failed at Dana's own chip on Sam, gone from her page; restored clean
+
+## Test: a hidden pool's contributions are never piled for players
+**Purpose:** R368: Dana's three −2s on Devreux's Stagger pile on the GM's page and show as put on hers
+**Input:** the GM's table and Dana; three −2 chips by Dana on Devreux's Stagger
+**Expected:** the GM's Stagger shows a −4 pile; Dana's three −2 chips and no pile
+**Refs:** crc-PoolView.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 8
+**Fire alarm:** pile every pool (`pileUp` always true); red: Dana's page shows a pile
+**Inject:** src/ui/pool.ts:units
+**Pulled:** 2026-11-16 — re-pulled after the simplifier renamed its line (`pileUp`): rang (Chromium), Dana's page showed a pile; restored clean *Earlier —* 2026-11-16 — rang (Chromium): Dana's page showed a pile; restored clean

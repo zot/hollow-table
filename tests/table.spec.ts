@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287
+// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287, R366, R369
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
@@ -144,10 +144,21 @@ test("Devreux's drawer, a pile of three 4s, and the kill box", async ({ page }) 
   // R50, R229: the drawer holds Devreux's three Motivation cards.
   await expect(page.locator(`${DPOOL} .drawer .cards .icard .iname`)).toHaveText(['Keep the Peace', 'Self-Preservation', 'Old Sympathy for Sparkers']);
   await expect(page.locator(`${DPOOL} .drawer .cards .icard .level`)).toHaveText(['+Sig', '+Sig', '+Min']);
-  // R237: three 4-chips in Beauford's Main Roll Up into one 6 (the book's Roll Up).
+  // R237, R366: three 4-chips in Beauford's Main Roll Up into one 6 (the book's Roll Up), as a pile:
+  // the chips stay as they were put.
   const BPOOL = `.obj.pool[data-rid="${BEAUFORD}"]`, four = () => at(page, '#bar .supplychips .chip.pos >> nth=1', 12, 12);
   for (let k = 0; k < 3; k++) { const c = await four(), m = await at(page, `${BPOOL} .slot-main`, 20, 40); await dragFromTo(page, c.x, c.y, m.x, m.y, 15); }
-  await expect(page.locator(`${BPOOL} .slot-main .chip`)).toHaveText(['6']);
+  const bpile = page.locator(`${BPOOL} .slot-main .pile`);
+  await expect(bpile.locator('.disc')).toHaveText('6');
+  const inMain = async () => (await kinds(page, 'chip')).map(([, c]) => c).filter(c => c.where?.slot === '00000002' && c.where.name === 'main').map(c => c.points).sort();
+  expect(await inMain()).toEqual([4, 4, 4]);
+  // R369: opened, its members are chips; raising one raises that chip itself, and the pile breaks.
+  await bpile.locator('.disc').click();
+  await expect(bpile.locator('.members .chip')).toHaveText(['4', '4', '4']);
+  await bpile.locator('.members .chip').first().click();
+  await expect.poll(inMain).toEqual([4, 4, 6]);
+  await expect(page.locator(`${BPOOL} .slot-main .pile`)).toHaveCount(0);
+  await expect(page.locator(`${BPOOL} .slot-main .chip`)).toHaveText(['6', '4', '4']);
   // R39, R236: Devreux's two +Sig cards and a 4-chip in his Main, which can't Roll Up, stack as a
   // pile acting as one: 6.
   for (let k = 0; k < 2; k++) { const c = await at(page, `${DPOOL} .drawer .cards .icard >> nth=0`, 8, 8), m = await at(page, `${DPOOL} .slot-main`, 20, 40); await dragFromTo(page, c.x, c.y, m.x, m.y, 15); }

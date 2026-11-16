@@ -8,6 +8,7 @@ import {
   toTable, vanish, writeCard, type Change,
 } from './actions.ts';
 import { BEAUFORD, DEVREUX, SAM, playtest } from '../store/playtest.ts';
+import { value } from '../rules/pool.ts';
 
 function table() {
   const game = new Game();
@@ -27,7 +28,9 @@ function table() {
 test('chips in slots', () => {
   const t = table();
   for (const p of [4, 4, 4]) t.run(toSlot(t.game, ridOf(t.chip(p).oid), SAM, 'main', t.mint));
-  assert.deepEqual(t.slot(SAM, 'main'), ['6'], 'three 4s roll up');
+  // R366: three 4s act as a 6, a pile; the chips stay as they were put.
+  assert.deepEqual(t.slot(SAM, 'main'), ['4', '4', '4']);
+  assert.equal(value(slotItems(t.game, SAM, 'main')), 6, 'three 4s roll up');
   const one = t.chip(1, 1, { slot: SAM, name: 'edge' });
   t.run(chipClick(t.game, ridOf(one.oid), false, t.mint));
   assert.deepEqual(t.slot(SAM, 'edge'), ['2'], 'a +1 clicked makes a 2');
@@ -40,7 +43,8 @@ test('chips in slots', () => {
   const six = t.chip(6);
   t.run(toSlot(t.game, ridOf(six.oid), BEAUFORD, 'main', t.mint));
   t.run(chipClick(t.game, ridOf(six.oid), true, t.mint));
-  assert.deepEqual(t.slot(BEAUFORD, 'main'), ['6']);
+  assert.deepEqual(t.slot(BEAUFORD, 'main'), ['4', '4', '4']);
+  assert.equal(value(slotItems(t.game, BEAUFORD, 'main')), 6);
   t.run(addLoose(t.game, SAM, 'bonus', true, t.mint));
   assert.deepEqual(t.slot(SAM, 'bonus'), ['−1']);
   const ridden = t.chip(2, 1, { slot: SAM, name: 'bonus' }, true);
@@ -188,9 +192,9 @@ test('a chip put in a pool says who put it there', () => {
   run(addLoose(game, BEAUFORD, 'edge', false, mint, 'Ann'));
   const loose = slotItems(game, BEAUFORD, 'edge').find(i => i.kind === 'chip' && i.points === 1) as Chip;
   assert.equal(loose.by, 'Ann');
-  // Three −2s roll up to a −4 with no `by`.
+  // R366: with the GM's −2 already there, four −2s act as a −4 and a −2, each still its own.
   for (const who of ['Dana', 'Dana', 'Dana']) run(toSlot(game, ridOf(chip(2, -1).oid), BEAUFORD, 'stagger', mint, who));
-  const up = slotItems(game, BEAUFORD, 'stagger').filter(i => i.kind === 'chip' && i.points === 4) as Chip[];
-  assert.equal(up.length, 1);
-  assert.equal(up[0]!.by, undefined);
+  const st = slotItems(game, BEAUFORD, 'stagger').filter(i => i.kind === 'chip' && i.points === 2) as Chip[];
+  assert.deepEqual(st.map(c => c.by).sort(), ['Dana', 'Dana', 'Dana', 'GM'], "the playtest's −2 is the GM's");
+  assert.equal(value(slotItems(game, BEAUFORD, 'stagger')), -4);
 });

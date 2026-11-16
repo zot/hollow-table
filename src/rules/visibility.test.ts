@@ -93,7 +93,7 @@ test("the world's number is the GM's alone", () => {
 });
 
 test('two mats: the private one reaches only its owner and the GM', () => {
-  // R358, R359: a chip in a pool is public only when someone other than its character's owner put it
+  // R358, R370: a chip in a pool is public only when someone other than its character's owner put it
   // there; a card, when its home character has another owner. Sam is Dana's, Devreux the GM's.
   const chip = (slot: string, by?: string): Chip => ({ kind: 'chip', oid: '000000c1', where: { slot, name: 'stagger' }, n: 0, sign: -1, points: 2,
     rider: false, ...(by && { by }) });

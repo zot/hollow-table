@@ -113,8 +113,8 @@
 - **R41:** Clicking a pool's empty slot space adds a loose +1; shift-click adds −1.
 - **R42:** Clicking a +1 makes a 2; shift-clicking a 2 makes a +1; shift-clicking a +1 removes it.
 - **R43:** Clicking a +1 rider does nothing; shift-clicking it removes it.
-- **R44:** Three chips of one value and color in a slot Roll Up into the next Level, chaining.
-- **R45:** A chip carrying a +1 counts at face value in a Roll Up, and its +1 is spent.
+- **~~R44:~~** (Retired T27 — see R366) Three chips of one value and color in a slot Roll Up into the next Level, chaining.
+- **~~R45:~~** (Retired T29 — see R367) A chip carrying a +1 counts at face value in a Roll Up, and its +1 is spent.
 - **R46:** Lowering a chip can complete a Roll Up.
 - **R47:** An Influence card lives in its pool's drawer and shrinks to a chip showing its value (name on hover) in a pool slot.
 - **R230:** A card in a drawer is a small white card with a band down its left edge in its sign's color, its name and Level in handwriting, a resource-made card's glyph before its name; cards wrap in the tray.
@@ -130,7 +130,7 @@
 - **R240:** Carrying a card over a drawer opens a gap where it would go, the other cards sliding aside and the drawer growing to fit; the gap follows the card, and letting go puts it there.
 - **~~R51:~~** (Retired T10 — see R269) Clicking a drawer card's Level raises it; cards stop at Min when lowered.
 - **R269:** A card's Level answers clicks wherever the card is (its drawer, a pool slot as a chip, loose on the table): click raises it, shift-click lowers it, and at Min shift-click deletes it.
-- **R52:** Three equal Influence cards in a slot form a pile showing the value they act as, without merging.
+- **~~R52:~~** (Retired T28 — see R366) Three equal Influence cards in a slot form a pile showing the value they act as, without merging.
 - **R53:** Clicking a pile opens or closes it; an open pile lists its members by name; dragging a member out breaks the pile.
 - **R236:** A pile is drawn as a stack of discs in its color; open, it lists its members beside it, each chip with its name.
 - **R237:** A chip or pile made by a Roll Up, and a card whose Level changes, pops: it grows in from half again its size with a white ring.
@@ -162,6 +162,10 @@
 - **R66:** A Resource dropped on a used card starts a new card beside it.
 - **R343:** A Conviction taps into a Bias Influence and a Burden into an Affliction Influence, worth its Level (Min 1, Sig 2, Maj 3, Ext 4, Exq 5) less what it has spent; End recharges what it spent.
 - **R344:** At End, an Influence card tapped from a Mild slot (or one of its boxes) goes, wherever it is, rolled or not; a card also fed by other sources instead loses the Levels its ledger says Mild sources gave (2 points each, never below Min) and keeps the rest, its ledger and current source left with the others.
+- **R366:** Three chips or cards of one value and color in a slot form a pile acting as the next Level, chaining; chips never merge: each stays as it was put, and the piles are worked out from them each time, the same way every time, so a chip taken out, raised or lowered changes the piles.
+- **R367:** A chip carrying a +1 counts at its face value in a pile; its +1 is not counted while it is there, and stays on the chip.
+- **R368:** A pool its viewer can't see shows the contributions in it as they were put, never piled.
+- **R369:** A member of an open pile is a chip or card like any other: clicking a member chip raises it (shift-click lowers it), the chip itself changing, a contribution on every page.
 
 ## Feature: rolls
 **Source:** specs/rolls.md
@@ -327,8 +331,9 @@
 - **R356:** A character's name and place, its drawer's card count, its sheet's shape, and the contributions in its pool are public.
 - **R357:** To others, a hidden character's card and its drawer's cards are face-down.
 - **R358:** A contribution is an Influence put in a pool by someone other than its character's owner: a chip whose `by` is not the owner, or a card whose home character has another owner; contributions are the public mat, seen by everyone, a card from a hidden character face-down with its value.
-- **R359:** Everything else in a pool (what its own side put there, Roll Ups, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats, and the game counts both.
+- **~~R359:~~** (Retired T30 — see R370) Everything else in a pool (what its own side put there, Roll Ups, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats, and the game counts both.
 - **R360:** A chip put in a pool records who put it there (`by`): dropped on a slot or added in one, it takes the acting person's name, and its `by` stays as it is raised or lowered; the GM's page refuses a player's chip whose `by` changes to anyone but the sender.
+- **R370:** Everything else in a pool (what its own side put there, and chips with no `by`) is the private mat: it never reaches the page of anyone but the owner and the GM, not even face-down; the GM sees the private mats; the game counts the whole pool, piled, contributions included, and the public mat is only for watching.
 
 ## Feature: the network
 **Source:** specs/network.md

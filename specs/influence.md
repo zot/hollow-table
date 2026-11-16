@@ -21,9 +21,12 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - Clicking a pool's empty space adds a loose +1 (shift-click: −1). Clicking a +1 makes it a 2, then
   4, 6 and so on; shift-clicking a 2 makes it a +1; shift-clicking a +1 removes it. Clicking a +1
   rider does nothing; shift-clicking it removes it.
-- **Roll Up:** three chips of one value and color in a slot become the next Level, chaining
-  (4, 4, then three 2s make 6). A chip carrying a +1 counts at its face value, and its +1 is spent
-  on the Roll Up. Lowering can complete a Roll Up too.
+- **Roll Up:** three chips of one value and color in a slot act as the next Level, chaining
+  (4, 4, then three 2s make 6). **Chips never merge** (Bill, 11-16): every chip stays as it was put,
+  and the Roll Ups are worked out from them each time, the same way every time, as **piles**, like
+  cards' (below). Take a chip out, or raise or lower one, and the piles are worked out again. A chip
+  carrying a +1 counts at its face value in a pile, its +1 not counted while it is there and kept on
+  the chip. Lowering can complete a Roll Up too.
 
 ## Influence cards
 
@@ -51,10 +54,14 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   small "used" tag under it.
 - A drawer its viewer may not read shows its cards face-down, as striped red backs that keep their
   number and size.
-- **Roll Up groups cards and doesn't merge them.** Three equal cards form a **pile** showing the
+- **Roll Up groups and doesn't merge.** Three equal chips or cards form a **pile** showing the
   value they act as, drawn as a stack of discs in its color. Click the pile to open or close it;
-  an open pile lists its members beside it, each chip with its name, and a member dragged out
-  breaks the pile.
+  an open pile lists its members beside it, each with its name, and a member dragged out breaks the
+  pile. A member is a chip like any other: clicking it raises that chip itself (Bill, 11-16: "raising
+  a member-chip of a pile raises that chip itself, and if it's a public chip, the players will all
+  see the public chip change").
+- **A pool you can't see isn't piled**: its contributions show as they were put, since Roll Ups
+  happen behind the screen (`ownership.md`).
 - **A Roll Up pops:** a chip or pile it makes grows in from half again its size with a white ring,
   and a card's Level changing pops the same way.
 

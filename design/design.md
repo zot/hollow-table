@@ -195,3 +195,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T24: R152 retired by R357 (a hidden pool's own chips no longer reach others at all (#20))
 - T25: R352 retired by R362 (only a variant, or a label naming its Skill first, suffers an Influence (#19))
 - T26: R320 retired by R364 (a label naming a Field or Skill on the card preselects Skill (#19))
+- T27: R44 retired by R366 (chips never merge; they pile like cards, worked out each time (#21))
+- T28: R52 retired by R366 (chips and cards pile alike (#21))
+- T29: R45 retired by R367 (a rider is kept on its chip, uncounted in a pile (#21))
+- T30: R359 retired by R370 (the game counts the whole pool; the public mat is only for watching (#21))

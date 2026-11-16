@@ -12,7 +12,7 @@ and influences for NPCs, except those contributed by the players."
 ## Status
 
 - [x] ~~**Item 1 — the two mats on the wire.**~~ **LANDED (2026-11-16 — `#20`.)**
-- [ ] **Item 2 — Roll Ups behind the screen.** **OPEN (not queued.)**
+- [x] ~~**Item 2 — Roll Ups behind the screen.**~~ **LANDED (2026-11-16 — `#21`.)**
 - [ ] **Item 3 — the GM aims a player's roll.** **OPEN (not queued.)**
 
 ## Decisions
@@ -68,10 +68,22 @@ private mat's, so a contribution that rolls up leaves the public mat.
 
 ## Item 2
 
-Roll Ups behind the screen (Hollow Folks, *Influence Roll Up*): the private mat rolls up its own
-chips with the contributions it refers to, and a contribution it uses stays on the public mat as it
-was put, marked used only on the private side. Open: how the private side records a contribution as
-taken into a Roll Up without changing the public record.
+Roll Ups behind the screen (Hollow Folks, *Influence Roll Up*).
+
+DECIDED (Bill, 2026-11-16): "The public view should only show publicly contributed influences and
+chips and should not do rollup. It's just so the players can track what they've contributed. Nothing
+uses the chip counts in the public mats". "If Dana takes a chip back, it always leaves both the
+public and private mats. The private mat needs to recompute roll-up." The lists: public influence
+contributions, public chips, all chips, Roll Ups, all influences; "Computing `all chips` -> `rollups`
+should be deterministic, so when a user removes a chip, it leaves #2 and #3, then the mat recomputes
+#4."
+DECIDED (Bill, 2026-11-16), on Daneel's reading of that as chip piles: a Roll Up of chips is a pile,
+"exactly like a card pile; raising a member-chip of a pile raises that chip itself, and if it's a
+public chip, the players will all see the public chip change".
+
+So chips never merge: the records keep every chip as it was put, and a pool's Roll Ups are computed
+from them, as card piles already are, never stored or sent. Only the records are kept; the public mat
+is the contributions among them, unpiled, and the private mat their piles.
 
 ## Item 3
 

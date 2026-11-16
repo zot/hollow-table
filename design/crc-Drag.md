@@ -30,7 +30,7 @@ Lifting, carrying and dropping, and deciding what a drop means.
   (Hands works that out on every page).
 - drop(pointer): resolves the target, in this order, then one Game.change:
   - a tap glyph or resource-made card on a resource-made card: Tap.feed (merge);
-  - a chip or Influence card on a slot: into the slot (Pool.rollUp applied); a card the slot
+  - a chip or Influence card on a slot: into the slot; a card the slot
     refuses (Pool.accepts: a Damage card outside its kind, a Motivation's outside Main) goes home
     to its drawer instead (R211, R260);
   - an Influence card on a drawer: home there (another character's drawer moves it);

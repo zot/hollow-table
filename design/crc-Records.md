@@ -37,8 +37,8 @@ record crosses the wire, the database and an export file unchanged.
   own roll (R362, R353). `home` is the character whose drawer it
   belongs to and who may read it. A source is `<character oid>:<Resource name>`.
 - Chip: `{kind: 'chip', oid, where: Where, n, sign, points, rider, by?}`. A loose odd point is
-  `points: 1`; `rider` is a +1 riding the chip; `by` is who put it in a pool (R360), absent on a
-  Roll Up's chip and on chips from before.
+  `points: 1`; `rider` is a +1 riding the chip; `by` is who put it in a pool (R360), absent on
+  chips from before. Chips are never merged (R366): a Roll Up is a pile, worked out, never stored.
 - Sticky, Text: `{kind, oid, place, text: Marked, pin?: {card: oid, dx, dy}}`; a sticky may carry
   `big: true` (R248).
 - Image: `{kind: 'image', oid, place, blob: sha256, w, h, pin?}`.

@@ -2998,9 +2998,13 @@ function worth(i) {
 }
 var isPile = (u) => "members" in u;
 var unitWorth = (u) => isPile(u) ? u.points : worth(u);
-function rollUp(items, mint2) {
-  const remove = [], add = [];
+function rollUp(items) {
   const units2 = [];
+  const key = (u) => isPile(u) ? [2, 0, ""] : [u.kind === "chip" && u.rider ? 1 : 0, u.kind === "chip" ? 0 : 1, u.oid];
+  const before2 = (a, b) => {
+    const [x, y] = [key(a), key(b)];
+    return x[0] - y[0] || x[1] - y[1] || (x[2] < y[2] ? -1 : x[2] > y[2] ? 1 : 0);
+  };
   for (const sign2 of [1, -1]) {
     let side = items.filter((i) => i.sign === sign2 && i.points >= STEP);
     for (; ; ) {
@@ -3008,32 +3012,15 @@ function rollUp(items, mint2) {
       for (const u of side) counts.set(u.points, [...counts.get(u.points) ?? [], u]);
       const v = [...counts.keys()].sort((a, b) => a - b).find((k) => counts.get(k).length >= 3);
       if (v === void 0) break;
-      const group = counts.get(v);
-      const plain2 = group.filter((u) => !isPile(u) && u.kind === "chip").sort((a, b) => Number(a.rider) - Number(b.rider));
-      let three, made;
-      if (plain2.length >= 3) {
-        const chips = plain2.slice(0, 3), first = chips[0];
-        const chip2 = { kind: "chip", oid: mint2(), where: first.where, n: first.n, sign: sign2, points: v + STEP, rider: false };
-        for (const c of chips) {
-          const k = add.indexOf(c);
-          if (k >= 0) add.splice(k, 1);
-          else remove.push(c.oid);
-        }
-        add.push(chip2);
-        three = chips;
-        made = chip2;
-      } else {
-        three = [...plain2, ...group.filter((u) => !plain2.includes(u))].slice(0, 3);
-        made = { sign: sign2, points: v + STEP, members: three };
-      }
-      side = [...side.filter((u) => !three.includes(u)), made];
+      const three = [...counts.get(v)].sort(before2).slice(0, 3);
+      side = [...side.filter((u) => !three.includes(u)), { sign: sign2, points: v + STEP, members: three }];
     }
     units2.push(...side, ...items.filter((i) => i.sign === sign2 && i.points < STEP));
   }
-  return { remove, add, units: units2 };
+  return units2;
 }
 function value(items) {
-  const { units: units2 } = rollUp(items, () => "");
+  const units2 = rollUp(items);
   const best = (s) => Math.max(0, ...units2.filter((u) => u.sign === s).map(unitWorth));
   return best(1) - best(-1);
 }
@@ -4871,14 +4858,14 @@ var maxPendingPerPeer = 64;
 var maxDecisions = 128;
 var maxDecisionsPerPeer = 8;
 var emptyBytes = /* @__PURE__ */ new Uint8Array();
-var decideReceive = (decide, settle2) => {
+var decideReceive = (decide, settle) => {
   let result;
   try {
     result = decide();
   } catch {
-    return settle2(false);
+    return settle(false);
   }
-  return typeof result === "boolean" ? settle2(result) : Promise.resolve(result).then((value2) => settle2(value2 === true), () => settle2(false));
+  return typeof result === "boolean" ? settle(result) : Promise.resolve(result).then((value2) => settle(value2 === true), () => settle(false));
 };
 var decodePayload = (bytes, format, copy) => format === 2 ? copy ? bytes.slice() : bytes : format === 1 ? fromJson(decodeBytes(bytes)) : decodeBytes(bytes);
 var progress = (action2, value2, peerId, metadata) => {
@@ -8196,18 +8183,7 @@ var inSlot2 = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.wh
 function slotItems(game, owner, slot2) {
   return game.all().map(([rid2]) => item(game, rid2)).filter((i) => !!i && inSlot2(i, owner, slot2));
 }
-function settle(w, items, mint2) {
-  const plan = rollUp(items, mint2);
-  const gone = new Set(plan.remove);
-  for (const i of items) if (!gone.has(i.oid)) w.put(ridOf(i.oid), i);
-  for (const oid of plan.remove) w.del(ridOf(oid));
-  for (const c of plan.add) w.put(ridOf(c.oid), c);
-}
-function withItem(game, owner, slot2, changed, gone) {
-  const rest = slotItems(game, owner, slot2).filter((i) => i.oid !== changed?.oid && i.oid !== gone);
-  return changed ? [...rest, changed] : rest;
-}
-function toSlot(game, rid2, owner, slot2, mint2, by) {
+function toSlot(game, rid2, owner, slot2, _mint, by) {
   const i = item(game, rid2);
   if (!i || !accepts(slot2, i)) return null;
   const home = i.kind === "influence" && i.mot ? { home: owner } : {};
@@ -8217,9 +8193,7 @@ function toSlot(game, rid2, owner, slot2, mint2, by) {
     if (by) moved.by = by;
     else delete moved.by;
   }
-  return (w) => {
-    settle(w, withItem(game, owner, slot2, moved), mint2);
-  };
+  return (w) => w.put(ridOf(moved.oid), moved);
 }
 function drawerCards(game, owner) {
   return game.all().map(([, r]) => r).filter((r) => "kind" in r && r.kind === "influence" && r.home === owner && r.where === "drawer").sort((a, b) => a.n - b.n);
@@ -8253,20 +8227,13 @@ function vanish(game, rid2) {
   const i = item(game, rid2);
   return i?.kind === "chip" ? (w) => w.del(rid2) : null;
 }
-function chipClick(game, rid2, shift, mint2) {
+function chipClick(game, rid2, shift, _mint) {
   const c = item(game, rid2);
   if (c?.kind !== "chip") return null;
   const next2 = shift ? lowerChip(c) : raiseChip(c);
-  if (typeof c.where !== "object" || !("slot" in c.where)) {
-    return (w) => {
-      if (next2) w.put(rid2, next2);
-      else w.del(rid2);
-    };
-  }
-  const { slot: owner, name: name2 } = c.where;
   return (w) => {
-    if (!next2) w.del(rid2);
-    settle(w, withItem(game, owner, name2, next2, next2 ? void 0 : c.oid), mint2);
+    if (next2) w.put(rid2, next2);
+    else w.del(rid2);
   };
 }
 function riderClick(game, rid2, shift) {
@@ -9215,7 +9182,8 @@ function drawPool(c, items, old, w) {
   const mine = slotEls.map((slotEl) => items.filter((i) => at(i, c.oid, slotEl.dataset.slot)));
   holdingOf.set(e, slotEls.map((slotEl, k) => mine[k].length > 0 || opened.slots.has(`${c.oid}:${slotEl.dataset.slot}`)));
   layout(e);
-  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown3, drawn));
+  const pileUp = canSee(w.viewer, c);
+  slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown3, drawn, pileUp));
   drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown3, drawn);
   for (const k of pops(seen2.get(e), shown3)) pop(drawn.get(k));
   seen2.set(e, shown3);
@@ -9293,8 +9261,8 @@ function make3(doc, c, w) {
   for (const part of [name2, slots2, drawer2]) gesture(part, { drag: (d, m) => w.dragPool(rid2, d, m) });
   return e;
 }
-function units(slotEl, items, w, shown3, drawn) {
-  const doc = slotEl.ownerDocument, { units: units2 } = rollUp(items, () => "");
+function units(slotEl, items, w, shown3, drawn, pileUp) {
+  const doc = slotEl.ownerDocument, units2 = pileUp ? rollUp(items) : items;
   const opened = w.poolOpen(), place3 = slotEl.dataset.slot;
   for (const sign2 of [1, -1]) {
     const box2 = slotEl.querySelector(sign2 > 0 ? ".pos" : ".neg");

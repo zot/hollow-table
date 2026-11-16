@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285, R360
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285, R360, R366, R368, R369
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -14,7 +14,7 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   click claims an open character or docks the roll row (Ownership.click), shift-click opens it
   (Ownership.shiftClick); a refusal shakes the die and titles it with why.
 - toSlot and addLoose (actions, R360): a chip dropped on a slot or added in one takes `by`, the
-  acting person's name (the viewer's); raising and lowering keep it, a Roll Up's chip has none.
+  acting person's name (the viewer's); raising and lowering keep it.
 - toSlot (actions): a `mot` card dropped into a Main slot joins that character's drawer, its
   `home` set to the slot's character (R260), so a card tapped from an NPC's Motivation is the
   tapper's.
@@ -22,7 +22,7 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   cards there take the press first (their own drag), and the header's empty space is left to the table.
 - drawPool(character, items, old): makes or updates the mat; what a click or a drop does is in
   `src/ui/actions.ts` (pure: each gives one Game change, so they're tested without a browser): into
-  a slot with Roll Up settled, into a drawer, onto the table, the kill box, a chip's click, a rider's
+  a slot, into a drawer, onto the table, the kill box, a chip's click, a rider's
   shift-click, a loose ±1, a card's Level wherever it is (or feed/unfeed for a resource-made card), shift-click at Min deleting it as the kill box does (R268, R269), a new card, the
   used pile, a tap from a glyph, a feed. New oids come from a minter: the GM counts up below the
   players' range; a player's page takes random oids in the players' range, so two players can't
@@ -55,9 +55,11 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   card in a slot adds a white inner ring, a resource-made one a tiny glyph at its corner; each tucks
   under the stronger one before it (stronger drawn on top).
 - piles (R236): a stack of discs in their color; open, the members listed beside the disc, each
-  with its name.
+  with its name, and each a chip like any other (R369): a click raises that member itself.
+- unpiled (R368): a pool its viewer can't see (Visibility.canSee) is drawn as its contributions,
+  never piled; piles are worked out only where the private mat is seen.
 - pops(before, after) (R237): pure. What pops in a redraw: a chip or card whose points changed, a
-  pile that formed, a new chip in a slot that lost two or more (a Roll Up); popping is a brief grow
+  pile that formed; popping is a brief grow
   from 1.5× with a white ring.
 - chips: ordered by Pool.order; red chips show their sign; Influence cards in a slot as chips with
   their name on hover; piles (from Pool.rollUp) as one disc, opened and closed by click.
