@@ -79,7 +79,7 @@ Outclassed: automatic failure`; `6 + 3 + 2 bonus`, `6 + 3 − 1 bonus`, `6 + 3`;
 **Pulled:** 2026-11-12 — rang: Disadvantage read `−6 to −5` (and the resolve receipt with it)
 
 ## Test: a roll with no action, and a note
-**Purpose:** R69: the fresh row rolls as set, its hand the dice, with no action or Total Influence;
+**Purpose:** R382: the fresh row rolls as set, its hand the dice, with no action or Total Influence;
 R281: why not prints on the tape as a note with the time
 **Input:** Sam with no action, two Yellows and +1 by hand, Green picked; faces 4, 2, 3, 5, 1; then
 a note on a GM's page with no table

@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -43,6 +43,8 @@ judges every player's change.
   - (R375) `rows` is merged, as Boot Hill's is: of a player's rows, only those of characters they own
     are taken, and of those only the action, its alternative, the type and the hand; the aim, the
     White, whether it was picked by hand and the private switch stay as the GM's page has them;
+    a row of their own character missing from theirs is put away (R383), unless it is private,
+    which their copy never holds;
   - it is a Boot Hill change from a copy that missed a later one (refused whole, with what was
     changed with it); a Boot Hill change it may make has what the sender sees redacted put back as
     the GM has it, and is refused if it leaves out something they couldn't read.

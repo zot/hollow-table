@@ -1,4 +1,4 @@
-// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R140, R171, R172, R173, R189, R190, R361, R371
+// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R140, R171, R172, R173, R189, R190, R361, R381
 // A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 // page answers them, whether it took them or not. Pending changes survive the GM's absence and a
 // reload, and go again until answered.
@@ -222,7 +222,7 @@ export class Copy {
 
   // Seq: seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3 | R172
   #changed(rids: ReadonlySet<Rid>): void {
-    // R371: a player's roll rows go to the GM's page too, which takes only what is theirs (R375).
+    // R381: a player's roll rows go to the GM's page too, which takes only what is theirs (R375).
     const mine = [...rids].filter(rid => isPiece(rid) || rid === 'yards' || rid === 'rows');
     if (!mine.length) return;
     const s = this.#w.stamps.next(), at = this.#w.clock.now();

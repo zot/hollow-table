@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R371, R380
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -140,7 +140,7 @@ export type Yards = { yards: Graveyard[] };
 export type Meta = { round: number; rolls: number; counts?: Record<Oid, number>; marked?: true };
 /** R326, R336: what was pointed at on the opponent's card, by name. */
 export type Against = { def: 'mental' | 'psych' } | { act: string } | { fld: string } | { skl: string };
-// R371: a character's roll row, one per character, a piece of the table.
+// R381: a character's roll row, one per character, a piece of the table.
 export type Roller = {
   pool: Oid; action: string; opponent: Opponent | null; defend: 'mental' | 'psych'; row: string | null;
   byHand: boolean; hand: { yellows: number; bonus: number };

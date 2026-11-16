@@ -2,7 +2,7 @@
 **Source:** crc-RollRow.md
 
 ## Test: docking and starting fresh
-**Purpose:** R371, R69, R78: a pool's die docks the row there, fresh; the same die again starts
+**Purpose:** R381, R382, R78: a pool's die docks the row there, fresh; the same die again starts
 fresh; clearing the Base starts fresh; the GM's private switch stays
 **Input:** dock on Sam; then Sam busy with Infer, an opponent and private, docked on Sam again, on
 Beauford, and cleared
@@ -42,7 +42,7 @@ Yellows; no label, no total, 1 Yellow, +0
 **Pulled:** 2026-11-12 — rang: with the Bonus pool left out, Infer stayed 0 Yellows, +2
 
 ## Test: who rolls for whom
-**Purpose:** R371, R71: a character's owner, or the GM for anyone; nobody for an open character
+**Purpose:** R381, R71: a character's owner, or the GM for anyone; nobody for an open character
 **Input:** Sam (Dana's) for Dana, Ann and the GM; Devreux (the GM's) for Dana and the GM; an open Sam for the GM
 **Expected:** true, false, true; false, true; false
 **Refs:** crc-RollRow.md

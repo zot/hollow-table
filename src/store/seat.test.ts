@@ -34,7 +34,7 @@ test('the seat on its own', () => {
   const pruned = prune(gm, rid => left.has(rid), 1);
   assert.deepEqual(pruned.open, { used: [BEAUFORD], piles: [], slots: [], columns: [`${BEAUFORD}:bias`] });
   assert.deepEqual(pruned.view, gm.view);
-  // R371: a seat saved before still names a roll row; a restore drops it, the row being the game's.
+  // R381: a seat saved before still names a roll row; a restore drops it, the row being the game's.
   const old = prune({ ...gm, roller: { pool: DEVREUX, action: 'Attack' } } as Seat, () => true, 1);
   assert.equal('roller' in old, false);
 });

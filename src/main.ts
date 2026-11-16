@@ -214,7 +214,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       if (t) void rolling().take(t.id, t.pages[t.k]!);
     },
     cancelTake,
-    // R142, R144, R146, R371: the die by a pool's name claims, opens, or docks the roll row.
+    // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die) => {
       const c = game.get(ridOf(oid)) as Character | undefined;
       if (c?.kind !== 'character') return;

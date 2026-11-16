@@ -119,7 +119,7 @@ test('two mats: the private one reaches only its owner and the GM', () => {
 });
 
 test("a roll row is the table's, but not one behind the GM's screen", () => {
-  // R371: everyone sees the rows; a privately switched one only the GM.
+  // R381: everyone sees the rows; a privately switched one only the GM.
   const r = { pool: DEVREUX, action: 'Attack', opponent: SAM, defend: 'mental' as const, row: null, byHand: false, hand: { yellows: 0, bonus: 0 } };
   const rows: Rec = { rows: { [DEVREUX]: { ...r, priv: true }, [SAM]: { ...r, pool: SAM } } };
   assert.deepEqual(Object.keys((redact(rows, { name: 'Dana', gm: false }, look) as { rows: object }).rows), [SAM]);

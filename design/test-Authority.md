@@ -93,3 +93,14 @@ is tombed
 **Fire alarm:** take a player's row whole (`...r`); red: Sam's row is aimed at Beauford
 **Inject:** src/net/authority.ts:mergeRows
 **Pulled:** 2026-11-16 — rang: "a player changes only their own row's action and dice" failed, Sam's row aimed at Beauford; restored clean
+
+## Test: a player puts away their own row, never a private one or another's
+**Purpose:** R383: a player's copy without their own character's row puts it away; another's row stays; a private row on their own character, which their copy never holds, stays
+**Input:** rows for Sam (Dana's), Beauford (Ann's) and Devreux, given to Dana, private; Dana's change with no rows
+**Expected:** Beauford's and Devreux's rows left; Sam's put away
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 8
+**Fire alarm:** never take a put-away (drop the removal loop); red: Sam's row stays
+**Inject:** src/net/authority.ts:mergeRows
+**Pulled:** 2026-11-16 — rang: "a player puts away their own row" failed, Sam's row stayed; restored clean

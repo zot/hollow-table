@@ -215,3 +215,20 @@ test("a player changes only their own row's action and dice, never its aim", () 
   assert.deepEqual([out[SAM]!.action, out[SAM]!.type, out[SAM]!.hand, out[SAM]!.opponent, out[SAM]!.row], ['Impress', 'impress', { yellows: 1, bonus: 2 }, DEVREUX, 'white+1']);
   assert.equal(out[BEAUFORD]!.action, 'Infer', "Ann's row is not Dana's to change");
 });
+
+test('a player puts away their own row, never a private one or another\'s', () => {
+  // R383: Dana's copy without Sam's row puts it away; Beauford's (Ann's) stays; a private row on a
+  // character of hers, which her copy never holds, stays too.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const row = (pool: string, extra: Partial<Roller> = {}): Roller =>
+    ({ pool, action: 'Infer', opponent: null, defend: 'mental', row: null, byHand: false, hand: { yellows: 1, bonus: 0 }, ...extra });
+  const devreux = game.get(ridOf(DEVREUX)) as Character;
+  game.change(w => {
+    w.put(ridOf(DEVREUX), { ...devreux, owner: 'Dana' });
+    w.put('rows', { rows: { [SAM]: row(SAM), [BEAUFORD]: row(BEAUFORD), [DEVREUX]: row(DEVREUX, { priv: true }) } });
+  });
+  const book = game.get('book') as Book;
+  const v = judge(game, { s: 1, base: book.gv, puts: [{ rid: 'rows', rec: { rows: {} } }], dels: [] }, 'Dana');
+  assert.deepEqual(Object.keys((v.puts[0]!.rec as Rows).rows).sort(), [BEAUFORD, DEVREUX].sort());
+});

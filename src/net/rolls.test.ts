@@ -286,7 +286,7 @@ test('an Attack', () => {
 });
 
 test('a roll with no action, and a note', () => {
-  // R69: the row as set, its hand the dice, no Total Influence; R281: why not, as a note.
+  // R382: the row as set, its hand the dice, no Total Influence; R281: why not, as a note.
   const game = scene();
   const r = resolve(game, { pool: SAM, action: '', vs: null, defend: 'mental', hand: { yellows: 2, bonus: 1 }, n: 1, row: 'green' }, faces(4, 2, 3, 5, 1), 1000);
   if ('refused' in r) throw new Error(r.refused);

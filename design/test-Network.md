@@ -115,7 +115,7 @@ by the drop
 **Code:** `tests/relays.spec.ts`
 
 ## Test: the world at the table: its number stays on the GM's page
-**Purpose:** R348, R371–R375, R351 over the wire: Dana picks Sam's Infer and the GM's page shows it on Sam's pool; Dana's drag aims at nothing; the GM aims, reminded while the tray is blank; Dana's page holds whether the world is set and never its number; her row shows `vs the world` with the GM's White, locked; her receipt without the number, the GM's with it
+**Purpose:** R348, R381–R375, R351 over the wire: Dana picks Sam's Infer and the GM's page shows it on Sam's pool; Dana's drag aims at nothing; the GM aims, reminded while the tray is blank; Dana's page holds whether the world is set and never its number; her row shows `vs the world` with the GM's White, locked; her receipt without the number, the GM's with it
 **Input:** the GM's table and Dana, Sam given to Dana; Dana clicks Sam's Infer; Dana drags it to open table; the GM drags Sam's Infer to open table; the GM sets the world at 5; Dana opens the tray; the GM aims again; Dana rolls
 **Expected:** Infer in Sam's header on the GM's page; no note on Dana's page; the GM's "Put the world's number in the tray first."; Dana's record `{set: true, total: 0}`, her tray "set by the GM", no field; the GM's `vs the world 5`, Dana's `vs the world`, her White locked and the same dice as the GM's; her receipt "vs the world" with no Difference; the GM's "vs the world (5), Difference"
 **Refs:** crc-Visibility.md, crc-Tray.md, crc-Rolls.md, crc-Authority.md
@@ -148,7 +148,7 @@ by the drop
 **Pulled:** 2026-11-16 — re-pulled after the simplifier renamed its line (`pileUp`): rang (Chromium), Dana's page showed a pile; restored clean *Earlier —* 2026-11-16 — rang (Chromium): Dana's page showed a pile; restored clean
 
 ## Test: a player's row reaches the GM's page
-**Purpose:** R371: a player's roll row change goes to the GM's page (the same test as the world at the table, its first step)
+**Purpose:** R381: a player's roll row change goes to the GM's page (the same test as the world at the table, its first step)
 **Input:** Dana clicks Sam's Infer
 **Expected:** Infer in Sam's header on the GM's page
 **Refs:** crc-Copy.md

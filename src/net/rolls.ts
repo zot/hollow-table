@@ -1,4 +1,4 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R69, R281, R346, R307, R308, R316, R345, R351, R353, R375
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R382, R281, R346, R307, R308, R316, R345, R351, R353, R375
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
@@ -116,7 +116,7 @@ export type Resolved = {
 export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resolved | { refused: string } {
   const character = game.get(ridOf(intent.pool)) as Character | undefined;
   if (character?.kind !== 'character') return { refused: 'That character is not on the table.' };
-  // R69: a roll with no action is the row as set: its hand is the dice, and there is no Total Influence.
+  // R382: a roll with no action is the row as set: its hand is the dice, and there is no Total Influence.
   const act = intent.action ? marks(parse(character.front), 'act').map(m => readAction(m.text)).find(a => a?.label === intent.action) : null;
   if (intent.action && !act) return { refused: `${character.name} has no action “${intent.action}”.` };
   const items = game.all().map(([, r]) => r).filter((r): r is Item => 'kind' in r && (r.kind === 'chip' || r.kind === 'influence'));

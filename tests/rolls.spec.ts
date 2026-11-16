@@ -1,4 +1,4 @@
-// CRC: crc-Rolls.md | Test: test-Network.md | R100, R101, R102, R103, R104, R105, R110, R297, R348, R376, R351, R371, R372, R373, R374, R375
+// CRC: crc-Rolls.md | Test: test-Network.md | R100, R101, R102, R103, R104, R105, R110, R297, R348, R376, R351, R381, R372, R373, R374, R375
 // Rolls resolve on the GM's page, and each page prints what it may know.
 import { expect, test, type Page } from '@playwright/test';
 import { at, dragFromTo, gmTable, hook, join, openTable } from './page.ts';
@@ -40,7 +40,7 @@ test('rolls at the table', async ({ browser }) => {
   await roll.click();
   await expect(receipts(dana)).toHaveCount(2, { timeout: 15_000 });
   expect(await dana.evaluate(() => (window as any).said)).toContain('GM…');
-  // A roll with no action (R69): her numbers are its resolution and Level.
+  // A roll with no action (R382): her numbers are its resolution and Level.
   await expect(receipts(dana).first()).toContainText('Resolution:');
   // R317: the outcome with its Level and how it adds up, "Failure −Sig: 2 + 5".
   await expect(receipts(dana).first().locator('.outcome')).toHaveText(/^(Success|Success at cost|Failure) [+−]\w+: \d/);
@@ -62,7 +62,7 @@ test('the world at the table: its number stays on the GM\'s page', async ({ brow
   const dana = await join(browser, invite, 'Dana', gm);
   await hook(gm, h => { const s = (h as any).store.game.get('o:00000001'); (h as any).store.game.change((w: any) => w.put('o:00000001', { ...s, owner: 'Dana' })); });
   await expect.poll(async () => (await dana.evaluate(async rid => (await (window as any).hollow.ready).store.game.get(rid), SAM)).owner, { timeout: 15_000 }).toBe('Dana');
-  // R371: Dana picks Sam's Infer; the row is the table's, so the GM's page shows it on Sam's pool.
+  // R381: Dana picks Sam's Infer; the row is the table's, so the GM's page shows it on Sam's pool.
   await dana.locator(`.obj.card[data-rid="${SAM}"] .front .text > div`, { hasText: 'Infer:' }).locator('.actdie').click();
   const head = (page: Page) => page.locator(`.pool[data-rid="${SAM}"] .rollinfo`);
   await expect(head(gm).locator('.base')).toContainText('Infer', { timeout: 15_000 });

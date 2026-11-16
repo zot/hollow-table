@@ -8,7 +8,7 @@ has their own (R153); a restore keeps it (R136)
 1. as GM: bring up Devreux's roll row, roll the tape up, open Devreux's used pile, pan and zoom
    over an empty stretch of table, open Boot Hill
 2. the game's records, held and saved: as before but for `rows`, which now holds Devreux's row (the
-   game's, R371); the seat is the one key `hollow.seat.<game>.GM`, holding the view, the tape up,
+   game's, R381); the seat is the one key `hollow.seat.<game>.GM`, holding the view, the tape up,
    Boot Hill open and the used pile, and no roll row
 3. reload: the seat exactly as set, and drawn so
 4. "You are" another viewer: Devreux's row shows, the table's, with no Roll key for them; Boot Hill
@@ -22,7 +22,7 @@ has their own (R153); a restore keeps it (R136)
 **Inject:** src/main.ts:views
 **Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the game's records changed with the seat (Chromium) *Earlier —* 2026-11-13 — rang: the game's records changed when the tape rolled up (Chromium)
 ## Test: the seat on its own
-**Purpose:** the seat is per game and viewer, survives broken storage, and prunes what vanished; R371: a seat saved by an older page sheds the roll row it carried, the row being the game's
+**Purpose:** the seat is per game and viewer, survives broken storage, and prunes what vanished; R381: a seat saved by an older page sheds the roll row it carried, the row being the game's
 **Input:** a memory Storage; a seat for (game a, GM) with a view, an open used pile and an opened column; another for (a, Player 2); a Storage that throws; prune after Sam and Devreux vanish; prune of a seat carrying an old `roller`
 **Expected:** each seat reads back as saved under `hollow.seat.<game>.<viewer>`, the two apart; the
 throwing Storage gives a default seat and saving does not throw; after the prune Sam's and Devreux's
@@ -46,7 +46,7 @@ kept view comes back, and a partial one is filled in
 **Pulled:** 2026-11-12 — rang: fresh() had a view at 0, 0, zoom 1, so a first visit was never fitted
 
 ## Test: a player sees the GM's roll row but can't roll it
-**Purpose:** R371: a roll row is the table's, shown on every page; only its owner and the GM have its controls (this entry replaces #16's "a seat aimed at the world survives a restore", whose seat code is gone: the row is the game's)
+**Purpose:** R381: a roll row is the table's, shown on every page; only its owner and the GM have its controls (this entry replaces #16's "a seat aimed at the world survives a restore", whose seat code is gone: the row is the game's)
 **Input:** the GM brings up Devreux's row; "You are" a player
 **Expected:** Devreux's row shows; no Roll key in it
 **Refs:** crc-RollRow.md

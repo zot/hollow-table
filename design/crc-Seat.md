@@ -7,7 +7,7 @@ checkpointed, exported or sent.
 ## Knows
 - Kept in localStorage under `hollow.seat.<game>.<viewer>`.
 - view: pan and zoom, or null until the table has been fitted once (a first visit, R271).
-- The roll row is not the seat's: it is the game's `rows` (R371).
+- The roll row is not the seat's: it is the game's `rows` (R381).
 - viewAs: who the GM is viewing as.
 - tape: rolled up or down.
 - boothill: the graveyard browsed, and whether the list is open.

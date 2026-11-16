@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | R321, R306, R316, R319, R364, R371, R69, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R373, R86, R372, R374, R277, R345, R346, R376, R350, R362, R353, R355, R363, R364, R365
+// CRC: crc-RollRow.md | R321, R306, R316, R319, R364, R381, R382, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R373, R86, R372, R374, R277, R345, R346, R376, R350, R362, R353, R355, R363, R364, R365
 // The dice you're about to roll, docked on the pool you roll for, in your view only (the Seat).
 // The decisions are pure (dock, action, hand, row, numbers); the view below draws them.
 
@@ -15,12 +15,12 @@ import { slotItems } from './actions.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 import { marks, parse } from '../text/marks.ts';
 
-// R69: fresh is no action, no opponent, White, one Yellow, +0. With no action the hand is the dice.
+// R382: fresh is no action, no opponent, White, one Yellow, +0. With no action the hand is the dice.
 export function fresh(pool: Oid): Roller {
   return { pool, action: '', opponent: null, defend: 'mental', row: null, byHand: false, hand: { yellows: 1, bonus: 0 } };
 }
 
-// R371, R69: docking on a pool starts it fresh, and so does that pool's die again; the GM's private
+// R381, R382: docking on a pool starts it fresh, and so does that pool's die again; the GM's private
 // switch stays as it was.
 export function dock(r: Roller | null, pool: Oid): Roller {
   return { ...fresh(pool), ...(r?.priv && { priv: true }) };
@@ -83,7 +83,7 @@ export function picked(r: Roller, key: string): Roller {
 // R83, R373: aiming at someone picks the row from the Difference again; stopping keeps a picked row.
 // R326–R328: what was pointed at holds until the next aim; a drop on no number aims as before.
 export function aimed(r: Roller, opponent: Opponent, defend: 'mental' | 'psych', against?: Against): Roller {
-  // R371: a row is a record, so a field it doesn't have is left out, not set to undefined.
+  // R381: a row is a record, so a field it doesn't have is left out, not set to undefined.
   const { against: _, ...rest } = r;
   return { ...rest, opponent, defend, row: null, byHand: false, ...(against && { against }) };
 }
@@ -114,7 +114,7 @@ export function intentOf(r: Roller): Omit<Intent, 'n'> {
     type: r.type ?? '?', ...(r.alt && { alt: r.alt }), ...(r.against && r.opponent && { against: r.against }) };
 }
 
-/** Whether `viewer` may roll for this character: its owner, or the GM for anyone (R371, R71). */
+/** Whether `viewer` may roll for this character: its owner, or the GM for anyone (R381, R71). */
 export function rollsFor(viewer: Viewer, c: Character | undefined): boolean {
   return !!viewer && !!c && c.owner !== OPEN && (viewer.gm || c.owner === viewer.name);
 }
@@ -206,7 +206,7 @@ export type RollRowWith = {
   remember: (oid: Oid, label: string, type: RollType) => void;
 };
 
-// R371: every character's roll row, from the game.
+// R381: every character's roll row, from the game.
 /** The game's roll rows, by character. */
 export const rowsOf = (game: Game): Record<Oid, Roller> => (game.get('rows') as Rows | undefined)?.rows ?? {};
 
@@ -255,7 +255,7 @@ export class RollRowView {
     this.render();
   }
 
-  // R371: a row is the game's; R362, R353: the card its action suffers follows it, in the same change.
+  // R381: a row is the game's; R362, R353: the card its action suffers follows it, in the same change.
   #set(r: Roller): void {
     const { game } = this.#w, was = rowsOf(game)[r.pool] ?? null, card = onceCard(game, was, r, this.#w.mint);
     game.change(x => { x.put('rows', { rows: { ...rowsOf(game), [r.pool]: r } }); card?.(x); });
@@ -274,8 +274,16 @@ export class RollRowView {
   /** A roll of this character's row is waiting on the GM's page (R102). */
   waiting(oid: Oid, on: boolean): void { if (on) this.#waiting.add(oid); else this.#waiting.delete(oid); this.render(); }
 
-  /** The die by a pool's name: its row comes up there, fresh (R371, R69). */
-  dock(oid: Oid): void { this.#set(dock(rowsOf(this.#w.game)[oid] ?? null, oid)); }
+  // R381: the die toggles the row: up fresh, or away, with the card its action suffered (R353).
+  /** The die by a pool's name. */
+  dock(oid: Oid): void {
+    const { game } = this.#w, was = rowsOf(game)[oid];
+    if (!was) { this.#set(dock(null, oid)); return; }
+    const { [oid]: _, ...rows } = rowsOf(game), card = onceCard(game, was, null, this.#w.mint);
+    game.change(x => { x.put('rows', { rows }); card?.(x); });
+    this.#w.redraw([oid]);
+    this.render();
+  }
 
   /** An action's die (R76): false when the viewer can't change that character's row. */
   action(oid: Oid, label: string, alt?: string): boolean {
@@ -322,7 +330,7 @@ export class RollRowView {
     this.#w.tray.ring(world);
   }
 
-  // R371: a row's controls answer only its owner and the GM (`mine`); R372: only the GM aims.
+  // R381: a row's controls answer only its owner and the GM (`mine`); R372: only the GM aims.
   #draw(r: Roller, s: Shown, els: Els, mine: boolean): void {
     const doc = els.row.ownerDocument, die = (c: string, title = '') => {
       const d = doc.createElement('span');

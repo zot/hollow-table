@@ -6,7 +6,7 @@ import type { Oid, Rid, RollType } from '../model/records.ts';
 import { ridOf } from '../model/records.ts';
 import type { KeyValue } from './gamestore.ts';
 
-// R371: the roll row is the game's (`rows`), not the seat's.
+// R381: the roll row is the game's (`rows`), not the seat's.
 export type { Roller } from '../model/records.ts';
 
 export type Seat = {
@@ -60,7 +60,7 @@ export function save(storage: KeyValue, game: string, viewer: string, seat: Seat
 export function prune(seat: Seat, exists: (rid: Rid) => boolean, yards: number): Seat {
   const here = (oid: Oid) => exists(ridOf(oid));
   const owner = (s: string) => here(s.slice(0, s.indexOf(':')));
-  // R371: a seat saved before still names a roll row; it is the game's now.
+  // R381: a seat saved before still names a roll row; it is the game's now.
   const { roller: _, ...rest } = seat as Seat & { roller?: unknown };
   return {
     ...rest,

@@ -1,15 +1,15 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R376, R350, R362, R353, R355, R362-365, R371-376
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R376, R350, R362, R353, R355, R362-365, R372-376, R381-383
 
 The dice about to be rolled for a character: one row per character, a piece of the table kept in
-the game's `rows` record (R371), shown on its pool on every page, changed only by its owner and the GM.
+the game's `rows` record (R381), shown on its pool on every page, changed only by its owner and the GM.
 
 ## Knows
 - pool, action `{label, base, yellows, bonus}`, opponent `{oid, kind}`, row and whether picked by
   hand, hand adjustments, private (the GM's switch).
 
 ## Does
-- The shared row (R371–R375): RollRowView draws a row on every pool that has one in `rows`; its
+- The shared row (R381–R375): RollRowView draws a row on every pool that has one in `rows`; its
   controls answer only its owner and the GM (rollsFor); the drag from the action in the header aims
   only on the GM's page (R372). The GM's page keeps each aimed row's White as the Difference picks
   it (setWhite: from shown() over the GM's own records, unless picked by hand), writing the row back
@@ -31,8 +31,8 @@ the game's `rows` record (R371), shown on its pool on every page, changed only b
   a click stops aiming), the opponent's pool ringed (`targeted`) with ⌖, and the White locked for a
   player when the opponent is hidden from the owner. Aiming is a drag from the Base (`#aim`); the
   Defend chooser and the note share a small box at the pointer (`#defchoice`).
-- dock(character): from its die (own, or any for the GM); the same die again starts fresh; leaves
-  when its viewer stops owning the character.
+- dock(character) (R381): from its die (own, or any for the GM), a toggle: the row comes up fresh, or
+  goes away (with the card its action suffered, R353); clearing the Base starts it fresh (R382).
 - action(mark, label): from an action's die, the alternative it stands before naming the action (R316): fills Base, Yellows and bonus (Odds.bonus), highlights that
   line; clicking the Base clears it. A new action starts the row at White unless it is aiming (R276).
 - aim(character, kind): from dragging the Base; refused for a character hidden from the rolling

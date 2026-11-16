@@ -21,7 +21,8 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
 - **A character's roll row is one row, a piece of the table** (Bill, 11-16: "the dice row should
   show on everyone's page, but only the GM and owner can change anything"). It shows on that
   character's pool on every page; only its owner and the GM change it. **The die button** by a
-  pool's name, for its owner or the GM, brings the row up on that pool; clicking it again **starts
+  pool's name, for its owner or the GM, **toggles the row** (Bill, 11-16: "The toggle looks good"):
+  a click brings it up on that pool, fresh, and the next puts it away. **Clicking the Base starts it
   fresh**: no action, no opponent, White, one Yellow, +0. The GM can work any character's row
   without taking it. While the GM's private switch is on, the row is the GM's alone.
 - **Numbers show where they are already visible**: "Infer 10" draws from the character's card, so its

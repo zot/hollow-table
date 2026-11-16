@@ -11,7 +11,7 @@ import { SAM_FRONT } from '../store/playtest.ts';
 const scene = () => { const g = new Game(); g.load(playtest('Dana', 'Ann')); return g; };
 
 test('docking and starting fresh', () => {
-  // R371, R69: a pool's die docks the row there; the same die again starts fresh; private stays.
+  // R381, R382: a pool's die docks the row there; the same die again starts fresh; private stays.
   const r = dock(null, SAM);
   assert.deepEqual([r.pool, r.action, r.opponent, r.row, r.hand], [SAM, '', null, null, { yellows: 1, bonus: 0 }]);
   const busy = { ...withAction(r, 'Infer'), opponent: DEVREUX, priv: true };
@@ -49,7 +49,7 @@ test('what the row shows', () => {
 });
 
 test('who rolls for whom', () => {
-  // R371, R71: its owner, or the GM for anyone; nobody for an open character.
+  // R381, R71: its owner, or the GM for anyone; nobody for an open character.
   const g = scene(), sam = g.get(ridOf(SAM)) as Character, dev = g.get(ridOf(DEVREUX)) as Character;
   const dana = { name: 'Dana', gm: false }, ann = { name: 'Ann', gm: false }, gm = { name: 'GM', gm: true };
   assert.deepEqual([dana, ann, gm].map(v => rollsFor(v, sam)), [true, false, true]);

@@ -275,3 +275,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** never apply markOlder on opening (drop the call in main); red: no Field on Sam's card
 **Inject:** src/main.ts:main
 **Pulled:** 2026-11-16 — rang (Chromium): no Field on Sam's card; restored clean
+
+## Test: the die toggles the roll row
+**Purpose:** R381, R382, R353 on the GM's page: Beauford's die brings his row up; Tricky -Min puts its card in Main; clicking the Base starts the row fresh, the card gone; the die again puts the row away, the card with it
+**Input:** Beauford's die; Tricky -Min; the Base; Tricky -Min again; the die
+**Expected:** one row; one `once` card; no Base, the row still there, no card; one card; no row, no card, no row in `rows`
+**Refs:** crc-RollRow.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 20
+**Fire alarm:** let the die start the row fresh as before (always bring it up); red: the row is still there after the second click
+**Inject:** src/ui/rollrow.ts:dock
+**Pulled:** 2026-11-16 — rang (Chromium): the row was still there after the second click; restored clean

@@ -2073,6 +2073,9 @@ function mergeRows(real2, mine, who, chars) {
     const { alt: _a, type: _t, ...gms } = rows[oid] ?? { pool: oid, action: "", opponent: null, defend: "mental", row: null, byHand: false, hand: { yellows: 1, bonus: 0 } };
     rows[oid] = { ...gms, action: r.action, hand: r.hand, ...r.alt && { alt: r.alt }, ...r.type && { type: r.type } };
   }
+  for (const [oid, r] of Object.entries(real2?.rows ?? {})) {
+    if (!(oid in mine.rows) && !r.priv && chars(oid)?.owner === who) delete rows[oid];
+  }
   return { rows };
 }
 function judge(game, edit, who) {
@@ -8542,7 +8545,7 @@ var RollRowView = class {
     }));
     this.render();
   }
-  // R371: a row is the game's; R362, R353: the card its action suffers follows it, in the same change.
+  // R381: a row is the game's; R362, R353: the card its action suffers follows it, in the same change.
   #set(r) {
     const { game } = this.#w, was = rowsOf(game)[r.pool] ?? null, card2 = onceCard(game, was, r, this.#w.mint);
     game.change((x) => {
@@ -8565,9 +8568,21 @@ var RollRowView = class {
     else this.#waiting.delete(oid);
     this.render();
   }
-  /** The die by a pool's name: its row comes up there, fresh (R371, R69). */
+  // R381: the die toggles the row: up fresh, or away, with the card its action suffered (R353).
+  /** The die by a pool's name. */
   dock(oid) {
-    this.#set(dock(rowsOf(this.#w.game)[oid] ?? null, oid));
+    const { game } = this.#w, was = rowsOf(game)[oid];
+    if (!was) {
+      this.#set(dock(null, oid));
+      return;
+    }
+    const { [oid]: _, ...rows } = rowsOf(game), card2 = onceCard(game, was, null, this.#w.mint);
+    game.change((x) => {
+      x.put("rows", { rows });
+      card2?.(x);
+    });
+    this.#w.redraw([oid]);
+    this.render();
   }
   /** An action's die (R76): false when the viewer can't change that character's row. */
   action(oid, label, alt) {
@@ -8619,7 +8634,7 @@ var RollRowView = class {
     }
     this.#w.tray.ring(world);
   }
-  // R371: a row's controls answer only its owner and the GM (`mine`); R372: only the GM aims.
+  // R381: a row's controls answer only its owner and the GM (`mine`); R372: only the GM aims.
   #draw(r, s, els, mine) {
     const doc = els.row.ownerDocument, die3 = (c, title = "") => {
       const d = doc.createElement("span");
@@ -11761,7 +11776,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       if (t) void rolling().take(t.id, t.pages[t.k]);
     },
     cancelTake,
-    // R142, R144, R146, R371: the die by a pool's name claims, opens, or docks the roll row.
+    // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die3) => {
       const c = game.get(ridOf(oid));
       if (c?.kind !== "character") return;

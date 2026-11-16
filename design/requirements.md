@@ -174,7 +174,7 @@
 
 - **~~R67:~~** (Retired T17 — see R321) The roll row is the dice with no labels: White, Blue, Yellows, bonus, and Roll; Roll is a key and the GM's private switch a tag.
 - **~~R68:~~** (Retired T31 — see R371) Clicking the die of a pool you own docks the roll row there, in your view only.
-- **R69:** Clicking the die of the pool the row is on starts fresh: no action, no opponent, White, one Yellow, +0.
+- **~~R69:~~** (Retired T40 — see R382) Clicking the die of the pool the row is on starts fresh: no action, no opponent, White, one Yellow, +0.
 - **~~R70:~~** (Retired T32 — see R371) The roll row leaves a pool its viewer stops owning.
 - **R71:** The GM can dock and work any character's roll row without taking the character.
 - **R72:** The White die opens the Difference menu, each row with its words first and its dice at the right; picking one sets the row.
@@ -275,12 +275,15 @@
 - **R363:** An action line that is only an Influence, with no action above it and no Skill named, gets no die: it rolls nothing and puts no card anywhere.
 - **R364:** The action's label preselects the type when it says (Mental Atk, Psych Atk, Phys or Physical with Atk or Attack, Infer, Impress, Req or Request, Influence); otherwise it starts at the type the viewer's seat remembers for that action on that card, else Skill when the label names a Field or Skill on the card, else ?; clicking the tag changes it.
 - **R365:** A Skill roll aimed at a Defend, a Defend number pointed at or a drop that falls back to Defend, aims as asked, with a note at the pointer, "A Skill or Attribute normally opposes a Skill", gone after about 2 s.
-- **R371:** A character's roll row is one row, a piece of the table: it shows on that character's pool on every page, and only its owner and the GM change it; the die button (its owner's or the GM's) brings it up there, and again starts it fresh; while the GM's private switch is on, the row is the GM's alone.
+- **~~R371:~~** (Retired T39 — see R381) A character's roll row is one row, a piece of the table: it shows on that character's pool on every page, and only its owner and the GM change it; the die button (its owner's or the GM's) brings it up there, and again starts it fresh; while the GM's private switch is on, the row is the GM's alone.
 - **R372:** Only the GM aims: the GM drags from the action in a character's pool header to the opposition; a player's drag from the Base aims at nothing, a character or the world.
 - **R373:** The GM's page sets the White for every row aimed, from the real numbers, as the Difference picks it, live as either side's pools change, unless the GM picked a row by hand (held until the next aim); it writes the White into the row as dice, and the opposition's numbers never leave the GM's page.
 - **R374:** The numbers follow the viewer: a player's row shows the White as dice only, its menu locked ("set by the GM"); `vs` shows the opponent's number only to a viewer who can see the opponent, and the action's number only where its card can be read; the GM's page shows the numbers and the Difference.
 - **R375:** The GM's page refuses a player's change to a roll row's aim or White, and to the row of a character the player doesn't own; it resolves a player's roll against the aim in that row as the GM's page holds it.
 - **R376:** A drag from the Base that ends on open table or on the tray aims at the world; while the pointer is over either, the dashed amber box goes round the tray (round the Opposition button while the tray is in); a blank tray refuses it with a note at the pointer, "Put the world's number in the tray first", gone after about 2 s.
+- **R381:** A character's roll row is one row, a piece of the table: it shows on that character's pool on every page, and only its owner and the GM change it; the die button (its owner's or the GM's) toggles it, a click bringing it up there fresh and the next putting it away; while the GM's private switch is on, the row is the GM's alone.
+- **R382:** Clicking the Base starts the row fresh: no action, no opponent, White, one Yellow, +0.
+- **R383:** A player puts away their own character's row by its die, and the GM's page takes that, though a private row hidden from them, missing from their copy, is not taken as put away.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

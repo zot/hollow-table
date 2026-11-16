@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | Test: test-Table.md | R371, R72, R316, R76, R78, R79, R83, R86, R372, R374, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R364, R326, R327, R329, R345, R346, R347, R376, R350, R351, R362, R353, R354, R355, R363, R365
+// CRC: crc-RollRow.md | Test: test-Table.md | R381, R72, R316, R76, R78, R79, R83, R86, R372, R374, R110, R112, R113, R115, R116, R117, R274, R277, R282, R283, R284, R306, R307, R319, R364, R326, R327, R329, R345, R346, R347, R376, R350, R351, R362, R353, R354, R355, R363, R365
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
@@ -42,7 +42,7 @@ async function aimed(page: Page) {
 test.beforeEach(async ({ page }) => { await open(page); });
 
 test('the roll row docks, and the Difference menu', async ({ page }) => {
-  // R371: no roll controls in the bar; Devreux's die docks the row on his pool.
+  // R381: no roll controls in the bar; Devreux's die docks the row on his pool.
   await expect(page.locator('#bar .roller')).toHaveCount(0);
   await page.locator(`${DPOOL} .die-own`).click();
   await expect(page.locator(`${DPOOL} .roller`)).toBeVisible();
@@ -306,4 +306,26 @@ test('a Skill action, its Audience variant, and a lone Influence', async ({ page
   await page.locator('#defchoice button').first().click();
   await expect(page.locator(`${SPOOL} .rollinfo .vs`)).toContainText('vs Devreux');
   await expect(page.locator('#defchoice')).toHaveText('A Skill or Attribute normally opposes a Skill.');
+});
+
+test('the die toggles the roll row', async ({ page }) => {
+  // R381, R382: Beauford's die brings his row up; clicking the Base starts it fresh; the die again puts
+  // it away, the card his variant suffered with it (R353).
+  const BEAU = 'o:00000002', BPOOL = `.obj.pool[data-rid="${BEAU}"]`, row = page.locator(`${BPOOL} .roller`);
+  const once = async () => (await kinds(page, 'influence')).map(([, r]) => r).filter(r => r.once);
+  await page.locator(`${BPOOL} .die-own`).click();
+  await expect(row).toHaveCount(1);
+  const tricky = page.locator(`.obj.card[data-rid="${BEAU}"] .front .text > div`, { hasText: 'Tricky -Min' });
+  await tricky.locator('.actdie').first().click();
+  await expect.poll(once).toHaveLength(1);
+  await page.locator(`${BPOOL} .rollinfo .base`).click();
+  await expect(page.locator(`${BPOOL} .rollinfo .base`)).toHaveCount(0);
+  await expect(row).toHaveCount(1);
+  await expect.poll(once).toEqual([]);
+  await tricky.locator('.actdie').first().click();
+  await expect.poll(once).toHaveLength(1);
+  await page.locator(`${BPOOL} .die-own`).click();
+  await expect(row).toHaveCount(0);
+  await expect.poll(once).toEqual([]);
+  expect((await rec(page, 'rows')).rows['00000002']).toBeUndefined();
 });

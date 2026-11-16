@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R69, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375
+**Requirements:** R382, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -23,7 +23,7 @@ know.
   Defend kind, hand adjustments, and a hand-picked row if any; never numbers. Resolves with null
   when answered, or why not (refused, no GM heard, or nothing within WAIT_MS); Roll shows "GM…"
   meanwhile.
-- resolve(game, intent, rng, at): pure: with no action (R69), the row as set, its hand the dice, no
+- resolve(game, intent, rng, at): pure: with no action (R382), the row as set, its hand the dice, no
   Total Influence; otherwise looks up the action on the GM's own records, totals both
   sides (Odds, Pool), picks the White row from the Difference unless the player picked one, rolls
   (Dice), and gives three receipts in R317's words and the roll's effects (the character's own roll
