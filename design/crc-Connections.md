@@ -1,5 +1,5 @@
 # Connections
-**Requirements:** R407-428
+**Requirements:** R407-430
 
 The Connection Table: its rules, pure (`src/rules/connections.ts`), and its sheet and the group
 chooser on the GM's page (`src/ui/connections.ts`).
@@ -40,6 +40,10 @@ chooser on the GM's page (`src/ui/connections.ts`).
   inverted when the cell is negative) or "Reaction ?", then Professional Respect.
 - synced(table, record) (R421, R428): the table with the record's Connection in its cell, kept even
   when 0, so a PC's cell shows it.
+- reactionOf(d6) (R430): the book's Default Reaction, 1 -Sig, 2 -Min, 3-4 0, 5 +Min, 6 +Sig, as a Level
+  number; awaits(text): whether a record has a "Reaction ?" line; reacted(text, n): the first such line
+  written "Reaction <Level>".
+- recordOf(records, t, npc, pc) (R429, R430): the record the NPC's row (its group's) holds of the PC.
 - the menu's candidates (R422): the PCs with no record from the holder, by name, then the other rows
   with none, by name.
 - seed (R418): *Connections in Unton* from *A Ghoulish Problem*: eight rows, Devreux linked to the

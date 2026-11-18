@@ -428,3 +428,26 @@ test('the GM keeps Opinion Records', async ({ page }) => {
   await expect(card.locator('.infopaper.opinion .text')).toHaveText('Reaction ?Professional Respect (Suasion, Tact) +Min');
   await expect(page.locator('#boothill .n')).toHaveText('');
 });
+
+test('the GM calls a Reaction', async ({ page }) => {
+  // R429: Devreux's record of Sam waits for a Reaction; its die brings Sam's row up, the White die alone.
+  const pool = page.locator('.obj.pool[data-rid="o:00000003"]'), card = page.locator('.obj.card[data-rid="o:00000003"]');
+  await pool.locator('.makemenu').click();
+  await pool.locator('.poolmenu .opinionof', { hasText: 'Sam' }).click();
+  const paper = card.locator('.infopaper.opinion');
+  await expect(paper.locator('.text')).toContainText('Reaction ?');
+  await page.locator('#table').click({ position: { x: 5, y: 300 } });
+  await paper.locator('.reactdie').click();
+  const sam = page.locator('.obj.pool[data-rid="o:00000001"]'), row = sam.locator('.roller');
+  await expect(row.locator('.rrdie.W')).toHaveCount(1);
+  await expect(row.locator('.rrdie.B, .rrdie.Y, .rrdie.ghost, .rtype, .bonus')).toHaveCount(0);
+  await expect(sam.locator('.rollinfo .base')).toHaveText("Devreux's Reaction");
+  // R430, R431: Roll writes the line and prints the receipt; the row goes away.
+  await row.locator('.roll').click();
+  const receipt = page.locator('#tape .strip .receipt').first();
+  await expect(receipt).toContainText("Devreux's Reaction: ");
+  const said = (await receipt.textContent())!.match(/Reaction: ([+-](?:Min|Sig)|0)/)![1]!;
+  await expect(paper.locator('.text')).toContainText(`Reaction ${said}`);
+  await expect(paper.locator('.reactdie')).toHaveCount(0);
+  await expect(row).toHaveCount(0);
+});

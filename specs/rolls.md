@@ -25,6 +25,8 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   a click brings it up on that pool, fresh, and the next puts it away. **Clicking the Base starts it
   fresh**: no action, no opponent, White, one Yellow, +0. The GM can work any character's row
   without taking it. While the GM's private switch is on, the row is the GM's alone.
+- **A Reaction roll** is a row brought up from an Opinion Record's "Reaction ?" line (see
+  `connections.md`): the White die only, and Roll.
 - **Numbers show where they are already visible**: "Infer 10" draws from the character's card, so its
   owner and the GM see it; anyone else sees the row's dice and its action's name.
 - **White opens the Difference menu**: each row of the Difference table, words first and its dice

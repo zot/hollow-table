@@ -1,4 +1,4 @@
-// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418, R420-426
+// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418, R420-426, R429, R430
 // The Connection Table's rules, pure: Levels as words, a card's group, a row for every named NPC,
 // renaming rows, setting cells, the adventure's table as the seed, and the Opinion Records: their
 // Connection, their first Opinions, and their cells.
@@ -205,6 +205,28 @@ export function first(t: Connections, records: Opinion[], holder: Oid, of: Oid, 
 // R421, R428: the record's Connection in its cell, kept even when 0, so a PC's cell shows it.
 export function synced(t: Connections, r: Opinion): Connections {
   return { ...t, cells: { ...t.cells, [`${r.holder}>${r.of}`]: connection(r.text) } };
+}
+
+// R430: Bunkum's Default Reaction: 1 -Sig, 2 -Min, 3-4 0, 5 +Min, 6 +Sig.
+const DEFAULT_REACTION = [-2, -1, 0, 0, 1, 2];
+/** The Reaction a d6 gives, as a Level number. */
+export const reactionOf = (d6: number): number => DEFAULT_REACTION[d6 - 1] ?? 0;
+
+const AWAITING = /^\s*Reaction \?\s*$/;
+/** Whether a record waits for its Reaction roll: a "Reaction ?" line. */
+export const awaits = (text: string): boolean => text.split('\n').some(l => AWAITING.test(l));
+/** A record's text with its first "Reaction ?" line written as the Reaction rolled. */
+export function reacted(text: string, n: number): string {
+  const lines = text.split('\n'), k = lines.findIndex(l => AWAITING.test(l));
+  if (k >= 0) lines[k] = `Reaction ${level(n)}`;
+  return lines.join('\n');
+}
+
+// R429, R430: the record an NPC's card shows of a PC: its row's, or its group's.
+/** The record the NPC's row holds of `of`, if any. */
+export function recordOf(records: Opinion[], t: Connections, npc: Character, of: Oid): Opinion | undefined {
+  const row = rowOf(t, npc);
+  return row && records.find(r => r.holder === row.id && r.of === of);
 }
 
 /** The name of what a record is of: a row's name, or a PC's. */

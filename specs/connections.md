@@ -64,13 +64,24 @@ alone.
     magnitude; a tie goes to the one with the strongest Connection to the PC, and a tie there to the
     positive one (Bill, 11-18: "give the PC the benefit of the doubt"). The Reputation is that one's
     Connection to the PC, inverted when the NPC's cell for it is negative.
-  - **Reaction ?** otherwise, for the GM to fill in with the book's Default Reaction (a d6: 1 -Sig,
-    2 -Min, 3-4 0, 5 +Min, 6 +Sig).
+  - **Reaction ?** otherwise, for the player to roll (below).
   - **Professional Respect**, one line naming the Skills the two cards have in common (Bill, 11-18:
     "One line naming the Skills"), "Professional Respect (Composure, Tact) +Maj": 1 Level, plus 2 if
     the PC has Level 2 in any of them (Bunkum). The GM deletes a Skill the characters wouldn't know
     about from the parentheses, and on leaving the record its Level is worked out again; with none
     left, the line goes.
+- **The Reaction roll** (Bill, 11-18: "A die on the line"; Bunkum: "the Player rolls a d6 for a
+  Reaction value"): on the GM's page a record's "Reaction ?" line has a White die before it. Clicking
+  it brings the PC's roll row up on its pool as a Reaction: only the White die, set by no one, and Roll;
+  the header reads "Devreux's Reaction". The PC's owner, or the GM, presses Roll, and the GM's page
+  rolls a d6 on the book's Default Reaction table (1 -Sig, 2 -Min, 3-4 0, 5 +Min, 6 +Sig), writes
+  "Reaction +Min" in the line's place, its cell taking the record's new Connection, and puts the row
+  away. The receipt is one of the PC's rolls, the same on every tape (Bill, 11-18: "Names NPC and
+  Level"): the White die, "White 5 on the Default Reaction table", "Devreux's Reaction: +Min". The
+  record stays the GM's; everyone hears the Reaction, as at a real table.
+- **Made by the GM, not by aiming** (Bill, 11-18: "Not now; menu only"): a record is made from the
+  menu when the GM says the characters have met, though Bunkum makes it "The first time a PC targets
+  a particular NPC with an Action".
 - **A group shares its records** (Bill, 11-18: "The group gets the connection record, not the
   individual NPC ... they share the logical card, like two Emacs windows on the same buffer"): an NPC
   in a group shows the group's records, its Opinions of the characters are the group's, and an edit

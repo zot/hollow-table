@@ -238,3 +238,25 @@ test('Opinion Records never reach a player', async ({ browser }) => {
   expect(await recOf(gm, 'o:00000031')).toBeUndefined();
   expect((await recOf(gm, RECORD)).text).toBe('Old Grudge -Sig');
 });
+
+test('a player rolls a Reaction', async ({ browser }) => {
+  // R429-R431: the GM calls Sam's Reaction from Devreux's record; Dana rolls it, both tapes hear it,
+  // and the record stays the GM's.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  await hook(gm, new Function('h', `const s = h.store.game.get('${SAM}'); h.store.game.change(w => w.put('${SAM}', { ...s, owner: 'Dana' }));`) as (h: any) => void);
+  const pool = gm.locator(`.obj.pool[data-rid="${DEVREUX}"]`), paper = gm.locator(`.obj.card[data-rid="${DEVREUX}"] .infopaper.opinion`);
+  await pool.locator('.makemenu').click();
+  await pool.locator('.poolmenu .opinionof', { hasText: 'Sam' }).click();
+  await gm.locator('#table').click({ position: { x: 5, y: 300 } });
+  await paper.locator('.reactdie').click();
+  const row = dana.locator(`.obj.pool[data-rid="${SAM}"] .roller`);
+  await expect(row.locator('.rrdie.W')).toHaveCount(1, { timeout: 15_000 });
+  await row.locator('.roll').click();
+  const outcome = (p: typeof gm) => p.locator('#tape .strip .receipt').first();
+  await expect(outcome(dana)).toContainText("Devreux's Reaction: ", { timeout: 15_000 });
+  await expect(outcome(gm)).toContainText("Devreux's Reaction: ");
+  const said = (await outcome(gm).textContent())!.match(/Reaction: ([+-](?:Min|Sig)|0)/)![1]!;
+  await expect(paper.locator('.text')).toContainText(`Reaction ${said}`);
+  expect(await held(dana)).not.toContain('"opinion"');
+});

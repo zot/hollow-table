@@ -153,12 +153,18 @@ var SINGLETONS = {
       byHand: bool,
       hand: fields({ yellows: int(-100, 100), bonus: int(-1e3, 1e3) })
     },
-    { priv: bool, type: oneOf(...ROLL_TYPES), alt: str(CAPS.name), against: (v) => [
-      fields({ def: oneOf("mental", "psych") }),
-      fields({ act: str(CAPS.name) }),
-      fields({ fld: str(CAPS.name) }),
-      fields({ skl: str(CAPS.name) })
-    ].some((f) => f(v)) }
+    {
+      priv: bool,
+      type: oneOf(...ROLL_TYPES),
+      alt: str(CAPS.name),
+      against: (v) => [
+        fields({ def: oneOf("mental", "psych") }),
+        fields({ act: str(CAPS.name) }),
+        fields({ fld: str(CAPS.name) }),
+        fields({ skl: str(CAPS.name) })
+      ].some((f) => f(v)),
+      reaction: isOid
+    }
   ), 1e3) }),
   book: fields(
     { claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
@@ -1073,6 +1079,19 @@ function first(t, records3, holder, of, npc, pc) {
 function synced(t, r) {
   return { ...t, cells: { ...t.cells, [`${r.holder}>${r.of}`]: connection(r.text) } };
 }
+var DEFAULT_REACTION = [-2, -1, 0, 0, 1, 2];
+var reactionOf = (d62) => DEFAULT_REACTION[d62 - 1] ?? 0;
+var AWAITING = /^\s*Reaction \?\s*$/;
+var awaits = (text) => text.split("\n").some((l) => AWAITING.test(l));
+function reacted(text, n) {
+  const lines = text.split("\n"), k = lines.findIndex((l) => AWAITING.test(l));
+  if (k >= 0) lines[k] = `Reaction ${level(n)}`;
+  return lines.join("\n");
+}
+function recordOf(records3, t, npc, of) {
+  const row2 = rowOf(t, npc);
+  return row2 && records3.find((r) => r.holder === row2.id && r.of === of);
+}
 function nameOf(t, chars, of) {
   return t.rows.find((r) => r.id === of)?.name ?? chars.find((c) => c.oid === of)?.name ?? "?";
 }
@@ -1761,15 +1780,15 @@ function tray(piece2) {
   function use(b, tag2) {
     const t = last;
     const ends = t && selection(t);
-    if (!t || !ends) return shake(b);
+    if (!t || !ends) return shake2(b);
     const lines = read(t), out = apply(lines, ends[0], ends[1], tag2);
-    if (out === lines) return shake(b);
+    if (out === lines) return shake2(b);
     render(out, t);
     t.dispatchEvent(new Event("input", { bubbles: true }));
     caretAt(t, Math.min(ends[0].line, ends[1].line));
     raise();
   }
-  function shake(b) {
+  function shake2(b) {
     b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
   }
   function raise() {
@@ -2379,7 +2398,9 @@ function infos(e, c, w, secret, draft) {
       box2.prepend(paper);
     }
     paper.querySelector(".connhead").textContent = `\u2794 ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
-    rewrite(paper.querySelector(".text"), rec.rec.text);
+    const text = paper.querySelector(".text");
+    rewrite(text, rec.rec.text);
+    reactDie(text, rec.rec, c, w);
   }
   const tabs = el2(doc, "div", "infotabs");
   for (const k of showing) {
@@ -2436,6 +2457,23 @@ function recordPaper(doc, oid, w, away) {
   paper.append(el2(doc, "div", "connhead"), text);
   return paper;
 }
+var shake = (d) => d.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+function reactDie(text, rec, npc, w) {
+  const doc = text.ownerDocument;
+  if (doc.activeElement && text.contains(doc.activeElement)) return;
+  for (const d2 of text.querySelectorAll(".reactdie")) d2.remove();
+  const pc = w.game.get(ridOf(rec.of));
+  const line = pc?.kind === "character" ? [...text.children].find((l) => awaits(l.textContent ?? "")) : void 0;
+  if (!line) return;
+  const d = el2(doc, "span", "reactdie");
+  d.contentEditable = "false";
+  d.title = `Roll ${npc.name}'s Reaction to ${pc.name}`;
+  d.addEventListener("pointerdown", (ev) => ev.preventDefault());
+  gesture(d, { click: () => {
+    if (!w.react(pc.oid, npc.oid)) shake(d);
+  } });
+  line.prepend(d);
+}
 function eyeMenu(e, oid, w) {
   const was = e.querySelector(".eyemenu");
   if (was) {
@@ -2484,7 +2522,7 @@ function frontGlyphs(text, c, w) {
       d.title = title;
       d.addEventListener("pointerdown", (ev) => ev.preventDefault());
       gesture(d, { click: () => {
-        if (!w.useAction(c.oid, label2, alt)) d.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+        if (!w.useAction(c.oid, label2, alt)) shake(d);
       } });
       return d;
     };
@@ -2696,7 +2734,7 @@ var BODIES = {
       fields({ act: name }),
       fields({ fld: name }),
       fields({ skl: name })
-    ].some((f) => f(v)) }
+    ].some((f) => f(v)), reaction: isOid }
   ),
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf("max", "dbl"), lock: bool }),
@@ -3835,6 +3873,7 @@ function mint(game) {
 function resolve2(game, intent, rng, at3) {
   const character2 = game.get(ridOf(intent.pool));
   if (character2?.kind !== "character") return { refused: "That character is not on the table." };
+  if (intent.reaction) return reaction(game, intent.reaction, character2, rng, at3);
   const act = intent.action ? marks(parse(character2.front), "act").map((m) => action(m.text)).find((a) => a?.label === intent.action) : null;
   if (intent.action && !act) return { refused: `${character2.name} has no action \u201C${intent.action}\u201D.` };
   const items = game.all().map(([, r2]) => r2).filter((r2) => "kind" in r2 && (r2.kind === "chip" || r2.kind === "influence"));
@@ -3926,6 +3965,33 @@ function resolve2(game, intent, rng, at3) {
     }
   };
   return { full, roller, table, apply: apply3, character: character2 };
+}
+function reaction(game, npcOid, character2, rng, at3) {
+  const all2 = game.all().map(([, r]) => r), t = tableOf(all2), npc = game.get(ridOf(npcOid));
+  if (npc?.kind !== "character") return { refused: "That NPC is not on the table." };
+  const rec = t && recordOf(all2.filter((r) => r.kind === "opinion"), t, npc, character2.oid);
+  if (!t || !rec || !awaits(rec.text)) return { refused: `${npc.name} has no Reaction to roll for ${character2.name}.` };
+  const v = d6(rng), n = reactionOf(v);
+  const meta = game.get("meta"), k = (meta.counts?.[character2.oid] ?? 0) + 1;
+  const receipt2 = {
+    id: `roll-${character2.oid}-${k}`,
+    at: at3,
+    title: `${character2.name}, roll ${k}`,
+    by: character2.owner === GM ? "GM" : character2.owner,
+    dice: [{ c: "W", v, added: false, dropped: false }],
+    resolution: `White ${v} on the Default Reaction table`,
+    level: "",
+    outcome: `${npc.name}'s Reaction: ${level(n)}`
+  };
+  const apply3 = (w) => {
+    w.put("meta", { ...meta, rolls: meta.rolls + 1, counts: { ...meta.counts, [character2.oid]: k } });
+    const now2 = { ...rec, text: reacted(rec.text, n) };
+    w.put(ridOf(rec.oid), now2);
+    w.put(ridOf(t.oid), synced(t, now2));
+    const { [character2.oid]: _, ...rows } = game.get("rows")?.rows ?? {};
+    w.put("rows", { rows });
+  };
+  return { full: receipt2, roller: receipt2, table: receipt2, apply: apply3, character: character2 };
 }
 function choose(r, choice, lock) {
   if (!r.crit) return r;
@@ -4051,12 +4117,14 @@ var Rolls = class {
       return this.#work;
     }
     const held = game.get("rows")?.rows[intent.pool];
+    const { reaction: _asked, ...asked } = intent;
     const aimed2 = {
-      ...intent,
+      ...asked,
       vs: held?.opponent ?? null,
       defend: held?.defend ?? intent.defend,
       against: held?.against,
-      row: held?.byHand ? held.row ?? void 0 : void 0
+      row: held?.byHand ? held.row ?? void 0 : void 0,
+      ...held?.reaction && { reaction: held.reaction }
     };
     const done2 = resolve2(game, aimed2, rng, clock2.now());
     if ("refused" in done2) {
@@ -9090,7 +9158,7 @@ function typeOf(label2) {
 }
 function withAction(r, label2, alt, remembered, skill = false) {
   const type = typeOf(alt ?? label2.split("/")[0]) ?? remembered ?? (skill ? "skill" : "?");
-  const { alt: _, ...rest } = r;
+  const { alt: _, reaction: _r, ...rest } = r;
   return {
     ...rest,
     action: label2,
@@ -9125,7 +9193,7 @@ function unaimed(r) {
   return { ...r, opponent: null, ...!r.byHand && { row: null } };
 }
 function waits(r) {
-  if (!r.action) return null;
+  if (!r.action || r.reaction) return null;
   if ((r.type ?? "?") === "?") return "Say what this roll is, then aim it: drag from the action to a character, or to open table for the world";
   return r.opponent ? null : "Aim it first: drag from the action to a character, or to open table for the world";
 }
@@ -9144,7 +9212,8 @@ function intentOf(r) {
     ...row2,
     type: r.type ?? "?",
     ...r.alt && { alt: r.alt },
-    ...r.against && r.opponent && { against: r.against }
+    ...r.against && r.opponent && { against: r.against },
+    ...r.reaction && { reaction: r.reaction }
   };
 }
 function rollsFor(viewer, c) {
@@ -9280,6 +9349,14 @@ var RollRowView = class {
     this.#w.redraw([oid]);
     this.render();
   }
+  // R429: a record's "Reaction ?" die brings the PC's row up as a Reaction from the NPC's card.
+  /** A Reaction's die: false when the viewer can't change that character's row. */
+  react(pc, npc) {
+    const c = this.#w.game.get(ridOf(pc));
+    if (!rollsFor(this.#w.viewer, c)) return false;
+    this.#set({ ...dock(rowsOf(this.#w.game)[pc] ?? null, pc), reaction: npc });
+    return true;
+  }
   /** An action's die (R76): false when the viewer can't change that character's row. */
   action(oid, label2, alt) {
     const c = this.#w.game.get(ridOf(oid));
@@ -9341,10 +9418,10 @@ var RollRowView = class {
     const step = (r2) => {
       if (mine) this.#set(r2);
     };
-    const gm = !!this.#w.viewer?.gm, waiting = this.#waiting.has(r.pool);
+    const gm = !!this.#w.viewer?.gm, waiting = this.#waiting.has(r.pool), reacting = !!r.reaction;
     const white = doc.createElement("span");
-    white.className = gm ? "white" : "white locked";
-    white.title = gm ? `Difference ${rowWords(s.row)}. Click to choose the row.` : `${diceOnly(s.row)} (set by the GM)`;
+    white.className = gm && !reacting ? "white" : "white locked";
+    white.title = reacting ? "A Reaction: the White die on the Default Reaction table" : gm ? `Difference ${rowWords(s.row)}. Click to choose the row.` : `${diceOnly(s.row)} (set by the GM)`;
     white.append(die3("W"));
     if (s.row.die) white.append(die3(s.row.die));
     if (s.row.mod || s.row.auto) {
@@ -9354,7 +9431,7 @@ var RollRowView = class {
       white.append(mod);
     }
     gesture(white, { click: () => {
-      if (gm) this.#openMenu(r, s.row.key, els.menu);
+      if (gm && !reacting) this.#openMenu(r, s.row.key, els.menu);
     } });
     const ys = doc.createElement("span");
     ys.className = "ydice";
@@ -9366,7 +9443,7 @@ var RollRowView = class {
     b.textContent = SIGN(s.bonus);
     if (mine) b.title = "Success Bonus: click to raise, shift-click to lower";
     gesture(b, { click: () => step(handStep(r, "bonus", 1)), shift: () => step(handStep(r, "bonus", -1)) });
-    const parts2 = [white, die3("B", "Blue: always rolled"), ys, b];
+    const parts2 = reacting ? [white] : [white, die3("B", "Blue: always rolled"), ys, b];
     const type = r.type ?? "?", t = doc.createElement("button");
     t.className = type === "?" ? "rtype unsaid" : "rtype";
     t.textContent = TAG_WORDS[type] ?? TYPE_WORDS[type];
@@ -9374,7 +9451,7 @@ var RollRowView = class {
     gesture(t, { click: (e) => {
       if (mine) this.#types(r, e);
     } });
-    parts2.push(t);
+    if (!reacting) parts2.push(t);
     if (gm) {
       const p = doc.createElement("button");
       p.className = r.priv ? "priv on" : "priv";
@@ -9398,7 +9475,8 @@ var RollRowView = class {
     }
     els.row.replaceChildren(...parts2);
     els.info.replaceChildren();
-    const label2 = s.label || (r.action ? r.alt ?? r.action : "");
+    const npc = reacting ? this.#w.game.get(ridOf(r.reaction)) : void 0;
+    const label2 = npc ? `${npc.name}'s Reaction` : s.label || (r.action ? r.alt ?? r.action : "");
     if (label2) {
       const base = doc.createElement("span");
       base.className = "base";
@@ -9410,7 +9488,9 @@ var RollRowView = class {
         const breakdown = Object.entries(s.parts).filter(([k, v]) => k !== "base" && v).map(([k, v]) => `${k[0].toUpperCase()}${k.slice(1)} ${SIGN(v)}`);
         base.title = `Total Influence ${s.total}: Base ${s.base}${breakdown.length ? `, ${breakdown.join(", ")}` : ""}.${mine ? " Click to clear." : ""}${gm ? " Drag to aim." : ""}`;
       }
-      gesture(base, { click: () => step(cleared(r)), ...gm && { drag: (d, m) => this.#aim(r, d, m) } });
+      const pc = this.#w.game.get(ridOf(r.pool))?.name ?? "them";
+      if (npc) base.title = `How ${npc.name} takes to ${pc} on meeting.${mine ? " Click to clear." : ""}`;
+      gesture(base, { click: () => step(cleared(r)), ...gm && !reacting && { drag: (d, m) => this.#aim(r, d, m) } });
       els.info.append(base);
     }
     if (s.vs) {
@@ -12606,6 +12686,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     dragItem: (rid2, down, move) => drag?.startItem(rid2, down, move),
     // R75–R77: an action's die brings the roll row; the action in use gets its swish.
     useAction: (oid, label2, alt) => rollRow?.action(oid, label2, alt) ?? false,
+    react: (pc, npc) => rollRow?.react(pc, npc) ?? false,
     inUse: (oid) => rollRow?.inUse(oid) ?? null,
     taking: () => taking,
     turnPage: (k) => {

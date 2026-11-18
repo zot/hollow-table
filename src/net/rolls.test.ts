@@ -2,10 +2,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { WORLD, damageSlots, ridOf, type Rows, type Character, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
+import { WORLD, damageSlots, ridOf, type Rows, type Character, type Connections, type Opinion, type Roller, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
 import { pages, waitsIn } from '../rules/absorb.ts';
 import { Rolls, choose, diceOnly, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
 import { ADV } from '../rules/odds.ts';
+import { seed, tableOf } from '../rules/connections.ts';
 import type { Die } from '../model/records.ts';
 import { FakeRoom } from './fakeroom.ts';
 import { Sealer } from './seal.ts';
@@ -417,4 +418,48 @@ test("a player's roll is aimed as the GM's page holds it", async () => {
   await t.room.settle();
   assert.equal(await asked, null);
   assert.match(t.tape('gm')[0]!.vs!, /^Beauford/);
+});
+
+/** R429: a seeded Connection Table, Devreux's record of Sam waiting for its Reaction, and Sam's row calling it. */
+function reacting(game: Game) {
+  const t = seed('0000000e', { x: 0, y: 0, z: 0, tilt: 0 }, DEVREUX), dev = t.rows.find(r => r.oid === DEVREUX)!.id;
+  const rec: Opinion = { kind: 'opinion', oid: '0000000f', holder: dev, of: SAM, text: 'Reaction ?\nProfessional Respect (Tact) +Min' };
+  const row: Roller = { pool: SAM, action: '', opponent: null, defend: 'mental', row: null, byHand: false, hand: { yellows: 1, bonus: 0 }, reaction: DEVREUX };
+  game.change(w => { w.put(ridOf(t.oid), t); w.put(ridOf(rec.oid), rec); w.put('rows', { rows: { [SAM]: row } }); });
+  return { rec, cell: `${dev}>${SAM}` };
+}
+const plain: Omit<Intent, 'n'> = { pool: SAM, action: '', vs: null, defend: 'mental', hand: { yellows: 1, bonus: 0 } };
+
+test('a Reaction roll', async () => {
+  // R430, R431: one White d6 on the Default Reaction table, written on the record, the same receipt everywhere.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const { rec, cell } = reacting(game);
+  const r = resolve(game, { ...plain, n: 1, reaction: DEVREUX }, faces(5), 1000);
+  if ('refused' in r) throw new Error(r.refused);
+  assert.deepEqual(r.full.dice.map(d => [d.c, d.v]), [['W', 5]]);
+  for (const x of [r.full, r.roller, r.table]) {
+    assert.deepEqual([x.title, x.resolution, x.outcome], ['Sam, roll 1', 'White 5 on the Default Reaction table', "Devreux's Reaction: +Min"]);
+  }
+  game.change(r.apply);
+  assert.equal((game.get(ridOf(rec.oid)) as Opinion).text, 'Reaction +Min\nProfessional Respect (Tact) +Min');
+  const all = game.all().map(([, x]) => x as Connections);
+  assert.equal(tableOf(all)!.cells[cell], 1);
+  assert.equal((game.get('rows') as Rows).rows[SAM], undefined, 'the row goes away');
+  assert.deepEqual((game.get('meta') as Meta).counts, { [SAM]: 1 });
+  const again = resolve(game, { ...plain, n: 2, reaction: DEVREUX }, faces(5), 1000);
+  assert.deepEqual(again, { refused: 'Devreux has no Reaction to roll for Sam.' });
+
+  // A player's Reaction is the one the GM's page holds: Dana's request names none.
+  const t = await table(faces(5));
+  await t.hello();
+  const gm = t.page('gm').game, sam = gm.get(ridOf(SAM)) as Character;
+  gm.change(w => w.put(ridOf(SAM), { ...sam, owner: 'Dana' }));
+  reacting(gm);
+  await t.room.settle();
+  const asked = t.page('dana').rolls.request(plain);
+  await t.room.settle();
+  assert.equal(await asked, null);
+  assert.equal(t.tape('gm')[0]!.outcome, "Devreux's Reaction: +Min");
+  assert.equal(t.tape('dana')[0]!.outcome, "Devreux's Reaction: +Min");
 });

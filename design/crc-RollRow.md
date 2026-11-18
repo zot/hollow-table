@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R376, R350, R362, R353, R355, R362-365, R372-376, R381-383, R388
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R376, R350, R362, R353, R355, R362-365, R372-376, R381-383, R388, R429
 
 The dice about to be rolled for a character: one row per character, a piece of the table kept in
 the game's `rows` record (R381), shown on its pool on every page, changed only by its owner and the GM.
@@ -93,6 +93,11 @@ the game's `rows` record (R381), shown on its pool on every page, changed only b
   rolled(r): after a roll that went through, a row whose action suffers an Influence starts fresh
   (cleared), its card used up on the GM's page. The header names the action by Rolls.alternative,
   so a variant typed by its action's alternative reads as itself (R355).
+
+- A Reaction (R429): react(pc, npc) docks the PC's row, keeping the private switch, with `reaction`, the
+  NPC's card; the row draws only the White die, locked ("the Default Reaction table"), the GM's private
+  switch and Roll, and the header "Devreux's Reaction" (a click clears it). waits(r) is null for it;
+  intentOf carries it; withAction drops it, and clearing starts fresh without it.
 
 ## Collaborators
 - Odds, Pool, MarkReader, Visibility, Rolls, Seat, PoolView, Gesture, Tray

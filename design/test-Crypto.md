@@ -54,8 +54,7 @@ made from the name is the views' (test-Table); big batches travel whole, chunked
 **Alarm:** 4
 **Fire alarm:** let `against` be anything (`v => true || …`); red: `{"def":"physical"}` passes
 **Inject:** src/net/envelope.ts:against
-**Pulled:** 2026-11-14 — 2026-11-14 — rang: "an intent says what it points at by name" failed at {"def":"physical"}; restored clean
-
+**Pulled:** 2026-11-18 — 2026-11-18 — re-pulled after the intent's shape took `reaction`; rang: the bad `against` passed; restored clean *Earlier —* 2026-11-14 — 2026-11-14 — rang: "an intent says what it points at by name" failed at {"def":"physical"}; restored clean
 ## Test: an intent may aim at the world
 **Purpose:** R376: `intent.vs` is an oid, `world`, or null, and nothing else
 **Input:** intents with `vs` an oid, `world`, null; `World`, `the world`, `worlds`, 4, the empty string

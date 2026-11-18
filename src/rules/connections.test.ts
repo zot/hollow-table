@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { GM, type Character, type Connections, type Opinion } from '../model/records.ts';
-import { cell, connection, first, groupOf, keep, level, order, rename, respected, seed, set, synced } from './connections.ts';
+import { awaits, cell, connection, first, groupOf, keep, level, order, reacted, reactionOf, recordOf, rename, respected, seed, set, synced } from './connections.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -96,3 +96,19 @@ test('the first meeting', () => {
   assert.equal(synced(t, { ...mine, text: 'Reaction ?' }).cells[`${id(t, 'Devreux')}>${SAM}`], 0);
 });
 
+
+test('a Reaction', () => {
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(reactionOf), [-2, -1, 0, 0, 1, 2]);
+  const text = 'Reaction ?\nProfessional Respect (Tact) +Min';
+  assert.equal(awaits(text), true);
+  assert.equal(awaits('Reaction +Min'), false);
+  assert.equal(reacted(text, 1), 'Reaction +Min\nProfessional Respect (Tact) +Min');
+  assert.equal(reacted('  Reaction ?  ', -2), 'Reaction -Sig');
+  assert.equal(reacted('Reputation +Sig', 1), 'Reputation +Sig');
+  const t = seed('0000000a', at, DEVREUX), dev = card(DEVREUX);
+  const mine: Opinion = { kind: 'opinion', oid: 'e0000001', holder: id(t, 'Devreux'), of: SAM, text };
+  assert.equal(recordOf([mine], t, dev, SAM), mine);
+  const g = { ...t, rows: [...t.rows, { id: 'c0000099', name: 'Unton folk', group: true as const }] };
+  const ours: Opinion = { ...mine, oid: 'e0000002', holder: 'c0000099' };
+  assert.equal(recordOf([mine, ours], g, npc('00000020', 'Hank', '<head>Hank (Unton folk)</head>'), SAM), ours);
+});

@@ -263,8 +263,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 18
 **Fire alarm:** let anyone drag from the Base to aim (drop the GM test on the drag); red: Sam's row is aimed, `vs Devreux` shows
 **Inject:** src/ui/rollrow.ts:#draw
-**Pulled:** 2026-11-16 — first silent: the drop on Devreux, hidden from the player, showed nothing either way; with a drag to open table added it rang (Chromium), the blank tray's note opened; restored clean
-
+**Pulled:** 2026-11-18 — 2026-11-18 — re-pulled after the drag's GM test took in a Reaction; rang (Chromium): Sam's row was aimed from a player's page; restored clean *Earlier —* 2026-11-16 — first silent: the drop on Devreux, hidden from the player, showed nothing either way; with a drag to open table added it rang (Chromium), the blank tray's note opened; restored clean
 ## Test: an older game's Fields are marked and bold when the GM opens it
 **Purpose:** R380, R332 on the GM's page: Sam's front without its Field and Skill marks and meta never marked, the page opened again, marks them, so "Private Investigator 2 (5XP)" is a Field drawn bold, and meta says so
 **Input:** Sam's front stripped of `fld` and `skl`, `marked` taken off meta; the page opened again
@@ -329,4 +328,15 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** write a record's text without its cell (drop synced from the edit); red: the sheet's cell for Sam stays "+Maj"
 **Inject:** src/ui/piece.ts:writeRecord
 **Pulled:** 2026-11-18 — rang (Chromium): the sheet's cell for Sam stayed +Maj; restored clean
+
+## Test: the GM calls a Reaction
+**Purpose:** R429-R431: a "Reaction ?" line's die brings the PC's row up as a Reaction, White only; Roll writes the line and prints the receipt
+**Input:** the GM's table; Devreux's ▾, "Opinion of", Sam; the die on "Reaction ?"; Roll on Sam's row
+**Expected:** a `.reactdie` on the line; Sam's row with a White die and Roll, no Blue, Yellow or type tag, the header "Devreux's Reaction"; after Roll the tape's newest receipt reads "Devreux's Reaction: " and a Level, the record's line "Reaction " and the same Level, no die on it, and Sam's row gone
+**Refs:** crc-PieceView.md, crc-RollRow.md, crc-Rolls.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 25
+**Fire alarm:** draw a Reaction row as any other (skip its own drawing); red: Sam's row has a Blue die
+**Inject:** src/ui/rollrow.ts:#draw
+**Pulled:** 2026-11-18 — 2026-11-18 — rang (Chromium): Sam's Reaction row had 3 of the Blue, Yellow ghost, bonus and type; restored clean
 

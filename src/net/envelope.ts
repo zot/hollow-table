@@ -1,4 +1,4 @@
-// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R376
+// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R376, R429
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
@@ -51,7 +51,7 @@ const BODIES: Record<Kind, Shape> = {
   intent: fields({ n: seq, pool: isOid, action: name, vs: opponent, defend: oneOf('mental', 'psych'),
     hand: fields({ yellows: int(-LIMITS.dice, LIMITS.dice), bonus: int(-1000, 1000) }) },
     { row: str(32), type: oneOf(...ROLL_TYPES), alt: name, against: v => [fields({ def: oneOf('mental', 'psych') }),
-      fields({ act: name }), fields({ fld: name }), fields({ skl: name })].some(f => f(v)) }),
+      fields({ act: name }), fields({ fld: name }), fields({ skl: name })].some(f => f(v)), reaction: isOid }),
   roll,
   crit: fields({ id: str(CAPS.id), choice: oneOf('max', 'dbl'), lock: bool }),
   // R314: a take names a page, a count per row; a name is for one waiting Slot (R340: or a Conviction or Burden).

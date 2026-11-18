@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | R321, R306, R316, R319, R364, R381, R382, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R373, R86, R372, R374, R277, R345, R346, R376, R350, R362, R353, R355, R363, R364, R365, R388
+// CRC: crc-RollRow.md | R321, R306, R316, R319, R364, R381, R382, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R373, R86, R372, R374, R277, R345, R346, R376, R350, R362, R353, R355, R363, R364, R365, R388, R429
 // The dice you're about to roll, docked on the pool you roll for, in your view only (the Seat).
 // The decisions are pure (dock, action, hand, row, numbers); the view below draws them.
 
@@ -49,7 +49,8 @@ export function typeOf(label: string): RollType | null {
 // R364: else Skill, when the label names a Field or Skill on the card (`skill`).
 export function withAction(r: Roller, label: string, alt?: string, remembered?: RollType, skill = false): Roller {
   const type = typeOf(alt ?? label.split('/')[0]!) ?? remembered ?? (skill ? 'skill' : '?');
-  const { alt: _, ...rest } = r;
+  // R429: an action ends a Reaction.
+  const { alt: _, reaction: _r, ...rest } = r;
   return { ...rest, action: label, ...(alt && { alt }), type, hand: { yellows: 0, bonus: 0 },
     ...(!r.opponent && { row: null, byHand: false }), ...(type === '?' && r.opponent && { opponent: null }) };
 }
@@ -94,7 +95,7 @@ export function unaimed(r: Roller): Roller {
 // R345, R346: a roll with an action waits until it is aimed, and a `?` one can't be; plain dice don't wait.
 /** Why Roll waits, or null when it can be pressed. */
 export function waits(r: Roller): string | null {
-  if (!r.action) return null;
+  if (!r.action || r.reaction) return null;
   if ((r.type ?? '?') === '?') return 'Say what this roll is, then aim it: drag from the action to a character, or to open table for the world';
   return r.opponent ? null : 'Aim it first: drag from the action to a character, or to open table for the world';
 }
@@ -111,7 +112,8 @@ export const ownerAsViewer = (c: Character): Viewer => c.owner === GM ? { name: 
 export function intentOf(r: Roller): Omit<Intent, 'n'> {
   const row = r.row && (r.byHand || !r.opponent) ? { row: r.row } : {};
   return { pool: r.pool, action: r.action, vs: r.opponent, defend: r.defend, hand: r.hand, ...row,
-    type: r.type ?? '?', ...(r.alt && { alt: r.alt }), ...(r.against && r.opponent && { against: r.against }) };
+    type: r.type ?? '?', ...(r.alt && { alt: r.alt }), ...(r.against && r.opponent && { against: r.against }),
+    ...(r.reaction && { reaction: r.reaction }) };
 }
 
 /** Whether `viewer` may roll for this character: its owner, or the GM for anyone (R381, R71). */
@@ -287,6 +289,15 @@ export class RollRowView {
     this.render();
   }
 
+  // R429: a record's "Reaction ?" die brings the PC's row up as a Reaction from the NPC's card.
+  /** A Reaction's die: false when the viewer can't change that character's row. */
+  react(pc: Oid, npc: Oid): boolean {
+    const c = this.#w.game.get(ridOf(pc)) as Character | undefined;
+    if (!rollsFor(this.#w.viewer, c)) return false;
+    this.#set({ ...dock(rowsOf(this.#w.game)[pc] ?? null, pc), reaction: npc });
+    return true;
+  }
+
   /** An action's die (R76): false when the viewer can't change that character's row. */
   action(oid: Oid, label: string, alt?: string): boolean {
     const c = this.#w.game.get(ridOf(oid)) as Character | undefined;
@@ -341,12 +352,13 @@ export class RollRowView {
       return d;
     };
     const step = (r2: Roller) => { if (mine) this.#set(r2); };
-    const gm = !!this.#w.viewer?.gm, waiting = this.#waiting.has(r.pool);
+    const gm = !!this.#w.viewer?.gm, waiting = this.#waiting.has(r.pool), reacting = !!r.reaction;
     // R72: the White die, with Green or Red and the row's ±1; it opens the Difference menu, the GM's.
     // R374: a player's White is the GM's setting, dice only, locked; the GM's hover shows the Difference.
     const white = doc.createElement('span');
-    white.className = gm ? 'white' : 'white locked';
-    white.title = gm ? `Difference ${rowWords(s.row)}. Click to choose the row.` : `${diceOnly(s.row)} (set by the GM)`;
+    white.className = gm && !reacting ? 'white' : 'white locked';
+    white.title = reacting ? 'A Reaction: the White die on the Default Reaction table'
+      : gm ? `Difference ${rowWords(s.row)}. Click to choose the row.` : `${diceOnly(s.row)} (set by the GM)`;
     white.append(die('W'));
     if (s.row.die) white.append(die(s.row.die));
     if (s.row.mod || s.row.auto) {
@@ -355,7 +367,7 @@ export class RollRowView {
       mod.textContent = s.row.auto ? s.row.words : (s.row.mod > 0 ? '+1' : '−1');
       white.append(mod);
     }
-    gesture(white, { click: () => { if (gm) this.#openMenu(r, s.row.key, els.menu); } });
+    gesture(white, { click: () => { if (gm && !reacting) this.#openMenu(r, s.row.key, els.menu); } });
     // R73: Yellows and bonus; with none, a dashed ghost and a faint +0 (R274).
     const ys = doc.createElement('span');
     ys.className = 'ydice';
@@ -367,7 +379,8 @@ export class RollRowView {
     b.textContent = SIGN(s.bonus);
     if (mine) b.title = 'Success Bonus: click to raise, shift-click to lower';
     gesture(b, { click: () => step(handStep(r, 'bonus', 1)), shift: () => step(handStep(r, 'bonus', -1)) });
-    const parts: HTMLElement[] = [white, die('B', 'Blue: always rolled'), ys, b];
+    // R429: a Reaction is the White die alone.
+    const parts: HTMLElement[] = reacting ? [white] : [white, die('B', 'Blue: always rolled'), ys, b];
     // R319, R321: the type tag, before Roll: what the roll is; a click opens the list.
     const type = r.type ?? '?', t = doc.createElement('button');
     t.className = type === '?' ? 'rtype unsaid' : 'rtype';
@@ -375,7 +388,7 @@ export class RollRowView {
     t.title = type === '?' ? "What is this roll? Click to say. A roll that doesn't say can't be aimed at anyone."
       : `This roll is ${TYPE_WORDS[type]}.${mine ? ' Click to change it.' : ''}`;
     gesture(t, { click: e => { if (mine) this.#types(r, e); } });
-    parts.push(t);
+    if (!reacting) parts.push(t);
     // R275: the GM's private switch.
     if (gm) {
       const p = doc.createElement('button');
@@ -403,7 +416,8 @@ export class RollRowView {
     // R78, R79: the action in the header, its Base and Total Influence where its card can be read; the
     // breakdown on hover; a click clears it. R372: the GM drags from it to aim.
     els.info.replaceChildren();
-    const label = s.label || (r.action ? r.alt ?? r.action : '');
+    const npc = reacting ? this.#w.game.get(ridOf(r.reaction!)) as Character | undefined : undefined;
+    const label = npc ? `${npc.name}'s Reaction` : s.label || (r.action ? r.alt ?? r.action : '');
     if (label) {
       const base = doc.createElement('span');
       base.className = 'base';
@@ -415,7 +429,9 @@ export class RollRowView {
         const breakdown = Object.entries(s.parts).filter(([k, v]) => k !== 'base' && v).map(([k, v]) => `${k[0]!.toUpperCase()}${k.slice(1)} ${SIGN(v)}`);
         base.title = `Total Influence ${s.total}: Base ${s.base}${breakdown.length ? `, ${breakdown.join(', ')}` : ''}.${mine ? ' Click to clear.' : ''}${gm ? ' Drag to aim.' : ''}`;
       }
-      gesture(base, { click: () => step(cleared(r)), ...(gm && { drag: (d: PointerLike, m: PointerLike) => this.#aim(r, d, m) }) });
+      const pc = (this.#w.game.get(ridOf(r.pool)) as Character | undefined)?.name ?? 'them';
+      if (npc) base.title = `How ${npc.name} takes to ${pc} on meeting.${mine ? ' Click to clear.' : ''}`;
+      gesture(base, { click: () => step(cleared(r)), ...(gm && !reacting && { drag: (d: PointerLike, m: PointerLike) => this.#aim(r, d, m) }) });
       els.info.append(base);
     }
     // R86, R374: the opponent; its number only where the viewer can see it; the GM's click stops aiming.

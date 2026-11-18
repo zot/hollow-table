@@ -236,6 +236,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     dragItem: (rid, down, move) => drag?.startItem(rid, down, move),
     // R75–R77: an action's die brings the roll row; the action in use gets its swish.
     useAction: (oid, label, alt) => rollRow?.action(oid, label, alt) ?? false,
+    react: (pc, npc) => rollRow?.react(pc, npc) ?? false,
     inUse: oid => rollRow?.inUse(oid) ?? null,
     taking: () => taking,
     turnPage: k => { if (taking) { taking = { ...taking, k: Math.max(0, Math.min(k, taking.pages.length - 1)) }; redraw(); } },

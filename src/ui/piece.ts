@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -10,7 +10,7 @@ import {
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
-import { connection, level, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
+import { awaits, connection, level, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
 import { blankFront, blankInfo, canSee, type Viewer } from '../rules/visibility.ts';
 import { CATEGORIES, type Category, type Eyes } from './eyes.ts';
 import { clues, entries, type Entry } from '../rules/readmarks.ts';
@@ -56,6 +56,8 @@ export type PieceWith = {
   buryInfo: (oid: Oid, k: number, text: string) => void;
   /** R428: puts an emptied Opinion Record away on Boot Hill with its last words (or just removes it, with none). */
   buryRecord: (oid: Oid, words: string) => void;
+  /** R429: brings the PC's row up as a Reaction from the NPC's card; false when the viewer can't. */
+  react: (pc: Oid, npc: Oid) => boolean;
 };
 
 /** An Attack being taken: whose card, the receipt, the kind, the attacker's name, its Result, the pages and the one shown. */
@@ -582,7 +584,9 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draf
     if (!paper) { paper = recordPaper(doc, rec.rec.oid, w, () => slide(-1)); paper.dataset.k = want; box.prepend(paper); }
     // R419: the first line, drawn by the table: the character and the record's Connection.
     paper.querySelector('.connhead')!.textContent = `➔ ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
-    rewrite(paper.querySelector<HTMLElement>('.text')!, rec.rec.text);
+    const text = paper.querySelector<HTMLElement>('.text')!;
+    rewrite(text, rec.rec.text);
+    reactDie(text, rec.rec, c, w);
   }
   const tabs = el(doc, 'div', 'infotabs');
   for (const k of showing) {
@@ -632,6 +636,26 @@ function recordPaper(doc: Document, oid: Oid, w: PieceWith, away: () => void): H
   });
   paper.append(el(doc, 'div', 'connhead'), text);
   return paper;
+}
+
+const shake = (d: HTMLElement) => d.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200);
+
+// R429: a record of a PC has a White die before its "Reaction ?" line, holding no text, so the record's
+// words stay as written; left alone while the paper is being written in.
+/** The Reaction die on a record's paper, when it waits for one. */
+function reactDie(text: HTMLElement, rec: Opinion, npc: Character, w: PieceWith): void {
+  const doc = text.ownerDocument;
+  if (doc.activeElement && text.contains(doc.activeElement)) return;
+  for (const d of text.querySelectorAll('.reactdie')) d.remove();
+  const pc = w.game.get(ridOf(rec.of)) as Character | undefined;
+  const line = pc?.kind === 'character' ? [...text.children].find(l => awaits(l.textContent ?? '')) : undefined;
+  if (!line) return;
+  const d = el(doc, 'span', 'reactdie');
+  d.contentEditable = 'false';
+  d.title = `Roll ${npc.name}'s Reaction to ${pc!.name}`;
+  d.addEventListener('pointerdown', ev => ev.preventDefault());
+  gesture(d, { click: () => { if (!w.react(pc!.oid, npc.oid)) shake(d); } });
+  line.prepend(d);
 }
 
 /** R393: the eye's category menu, under the arrow; a pick opens the eye on it. */
@@ -687,7 +711,7 @@ function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
       d.contentEditable = 'false';
       d.title = title;
       d.addEventListener('pointerdown', ev => ev.preventDefault());
-      gesture(d, { click: () => { if (!w.useAction(c.oid, label, alt)) d.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); } });
+      gesture(d, { click: () => { if (!w.useAction(c.oid, label, alt)) shake(d); } });
       return d;
     };
     // R355: a variant has a die per alternative of its action, the alternative typing its roll.

@@ -449,6 +449,9 @@
 - **R426:** An NPC in a group shows the group's records, held by the group's row: an edit under one member's card shows under every member's.
 - **R427:** No player's page receives an Opinion Record, and a player's change to one is refused.
 - **R428:** An emptied record is buried once the GM leaves it, named "<NPC or group>: Opinion of <name>" and shown to players as "GM card"; undo digs up the newest buried Info card or record, and dragging one out of the list does too. While it is buried its cell keeps its value; dug up, its Connection is written to its cell.
+- **R429:** On the GM's page, a PC's Opinion Record's "Reaction ?" line has a White die before it; clicking it brings the PC's roll row up as a Reaction from the NPC whose card shows the record: only the White die, locked, and Roll, the header reading "<NPC>'s Reaction". A Reaction row waits for no aim, and an action's die or clearing it starts the row fresh.
+- **R430:** The GM's page resolves a Reaction from its own row: refused unless the NPC's record of the PC (its row's, or its group's) has a "Reaction ?" line; otherwise one d6 on the Default Reaction table (1 -Sig, 2 -Min, 3-4 0, 5 +Min, 6 +Sig), and, in the roll's change, the line becomes "Reaction <Level>", the record's cell takes its new Connection, and the row goes away.
+- **R431:** A Reaction's receipt is one of the PC's numbered rolls and the same on every page: the White die, "White N on the Default Reaction table", and "<NPC>'s Reaction: <Level>".
 
 ## Feature: delivery
 **Source:** specs/delivery.md

@@ -78,3 +78,17 @@
 **Inject:** src/rules/connections.ts:first
 **Pulled:** 2026-11-18 — rang: Jake's Reputation came out +Sig; restored clean
 
+
+## Test: a Reaction
+**Purpose:** R430: the Default Reaction table, and the record's line it writes
+**Input and Expected:**
+1. reactionOf 1 to 6: -2, -1, 0, 0, 1, 2
+2. awaits on `Reaction ?\nProfessional Respect (Tact) +Min`: true; on `Reaction +Min`: false
+3. reacted with 1 on `Reaction ?\nProfessional Respect (Tact) +Min`: `Reaction +Min\nProfessional Respect (Tact) +Min`; with -2 on `  Reaction ?  `: `Reaction -Sig`; on text with no such line: unchanged
+4. recordOf: Devreux's record of Sam when Devreux holds one; a group member's, the group's record
+**Refs:** crc-Connections.md
+**Code:** `src/rules/connections.test.ts`
+**Alarm:** 5
+**Fire alarm:** read the table off by one (the d6's face as the index); red: step 1 gives -1 for a 1
+**Inject:** src/rules/connections.ts:reactionOf
+**Pulled:** 2026-11-18 — 2026-11-18 — rang: reactionOf read 1 as -1, the table shifted by one; restored clean

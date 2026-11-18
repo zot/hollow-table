@@ -17,7 +17,7 @@ Infer; when you Infer Opinions", and "I forgot I renamed Connection Card to Opin
 - [x] ~~**Item 5 — the NPC's menu and its folders.**~~ **LANDED (2026-11-18 — `#30`.)** Replaces Item 2's "+" tab. Before Item 3.
 - [x] ~~**Item 6 — the Connection Table.**~~ **LANDED (2026-11-18 — `#32`.)** Before Item 3, which reads its cells.
 - [x] ~~**Item 3 — Opinion Records.**~~ **LANDED (2026-11-18 — `#31`.)** Takes in the prototype carve's Item 15. After Item 6.
-- [ ] **Item 7 — the Reaction roll.** **OPEN (not queued.)** Split from Item 3; after it.
+- [x] ~~**Item 7 — the Reaction roll.**~~ **LANDED (2026-11-18 — `#33`.)** Split from Item 3; after it.
 - [ ] **Item 8 — tapping Opinions.** **OPEN (not queued.)** After Item 3.
 - [ ] **Item 9 — revealing Opinion Records.** **OPEN (not queued.)** After Item 3.
 
@@ -206,6 +206,13 @@ windows on the same buffer." And on revealing them: "Once a PC successfully Infe
 reveal the group. Opinions are shared and it's OK if the players know about that. I think this will
 simplify things and let the platform mirror the game rules more directly."
 
+DECIDED (Bill, 2026-11-18), Item 7's questions, on Daneel's proposals: the roll is called by "A die on
+the line", a die the GM clicks on the record's "Reaction ?" line, which brings the PC's row up for the
+player to roll (Bunkum: "the Player rolls a d6 for a Reaction value"); records stay made from the
+menu, "Not now; menu only", rather than by the first aim, as Bunkum's "The first time a PC targets a
+particular NPC with an Action" would have it; and the receipt "Names NPC and Level", "Devreux's
+Reaction: +Min", as one of the PC's rolls.
+
 ## Item 1
 
 Torn reveals on the card. The GM's page shows one eye at the upper right of an NPC's card, shut.
@@ -347,10 +354,11 @@ is typed on the card's first line, after the name, where a GM card's words are a
 ## Item 7
 
 The Reaction roll, split from Item 3: a first meeting with no Connection in common rolls a Reaction.
-The PC's dice row comes up on its pool showing only the White die, its menu disabled, and the
-player's Roll rolls that one die, a d6 read on the book's Default Reaction table (1: -Sig, 2: -Min,
-3-4: 0, 5: +Min, 6: +Sig). The die is seen by everyone, as any roll is, and its receipt reads the Level,
-"Reaction: +Min", so the players know how the NPC took to them; the Reaction goes on the NPC's record.
+On the GM's page a record's "Reaction ?" line has a die; clicking it brings the PC's dice row up on its
+pool showing only the White die, its menu disabled, and the player's Roll rolls that one die, a d6 read
+on the book's Default Reaction table (1: -Sig, 2: -Min, 3-4: 0, 5: +Min, 6: +Sig). The die is seen by
+everyone, as any roll is, and its receipt names the NPC and the Level, "Devreux's Reaction: +Min", so
+the players know how the NPC took to them; the line becomes "Reaction +Min" and the row goes away.
 
 ## Item 8
 

@@ -26,8 +26,7 @@ aiming at Devreux, then Impress
 **Alarm:** 2
 **Fire alarm:** In withAction, keep the row whether or not aiming (the mockup's carry-over): Infer keeps Green
 **Inject:** src/ui/rollrow.ts:withAction
-**Pulled:** 2026-11-12 — rang: Infer kept the Green row though not aiming
-
+**Pulled:** 2026-11-18 — 2026-11-18 — re-pulled after withAction began dropping a Reaction; rang: "an action, the hand and the row" failed; restored clean *Earlier —* 2026-11-12 — rang: Infer kept the Green row though not aiming
 ## Test: what the row shows
 **Purpose:** R79–R81: Base and Total Influence with its parts; the card as written until the Bonus
 pool adds, then regrouped; the hand on top; with no action, the hand is the dice
@@ -79,8 +78,7 @@ Red picked by hand
 **Alarm:** 6
 **Fire alarm:** In intentOf, send the row whenever one is set: the Difference row Red goes along
 **Inject:** src/ui/rollrow.ts:intentOf
-**Pulled:** 2026-11-12 — rang: the Difference row Red went along with the request
-
+**Pulled:** 2026-11-18 — 2026-11-18 — re-pulled after intentOf began carrying a Reaction; rang: "a Roll asks by names" failed; restored clean *Earlier —* 2026-11-12 — rang: the Difference row Red went along with the request
 ## Test: the roll type
 **Purpose:** R364: a label's words preselect the type, a label that doesn't say starts at the remembered type, else `?`; R316: the alternative clicked names the roll and picks its type, and goes in the intent; R346: turning a roll to `?` stops aiming, and an Attack goes at its own Defend, a Phys Attack at 0
 **Input:** labels Mental Atk, Psych Atk, Phys Attack, Physical Atk, Req, Request, Infer, Impress, Create Influence, Shoot, Attack; Shoot with and without a remembered `phys`; Infer with a remembered `skill`; `Mental Atk / Req` by its Req die; an aimed Mental Attack turned to `?`, psych, phys and infer, against Defend 6 / 5
@@ -123,8 +121,7 @@ Red picked by hand
 **Alarm:** 10
 **Fire alarm:** in waits, let an unaimed action roll (`return null` in place of the aim check); red: Infer no longer waits
 **Inject:** src/ui/rollrow.ts:waits
-**Pulled:** 2026-11-15 — rang: "the world as opposition" failed, the unaimed Infer no longer waited; restored clean
-
+**Pulled:** 2026-11-18 — 2026-11-18 — re-pulled after waits let a Reaction roll; rang: "the world as opposition" failed; restored clean *Earlier —* 2026-11-15 — rang: "the world as opposition" failed, the unaimed Infer no longer waited; restored clean
 ## Test: a variant suffers its Influence as a card in Main
 **Purpose:** R362: the row's action, when its label is an Influence, puts one `once` card of it in the actor's Main pool, and choosing it again keeps that one; R355: the header names the variant, its type from the alternative, its total less the card; R353: leaving it takes the card away
 **Input:** Beauford docked; Mental Atk; Tricky -Min as Mental Atk; again; the Base cleared

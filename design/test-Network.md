@@ -212,3 +212,14 @@ by the drop
 **Inject:** src/rules/visibility.ts:redact
 **Pulled:** 2026-11-18 — rang (Chromium): Dana's page held the `opinion` record; restored clean
 
+
+## Test: a player rolls a Reaction
+**Purpose:** R429-R431: the GM calls Sam's Reaction from Devreux's record; Dana rolls it from her page, and both tapes hear it, while the record stays the GM's
+**Input:** the GM's table and Dana, Sam given to Dana; the GM makes Devreux's record of Sam and clicks its die; Dana presses Roll on Sam's row
+**Expected:** Dana's Sam row shows a White die and Roll; both tapes' newest receipt reads "Devreux's Reaction: " and a Level; the GM's record reads "Reaction " and that Level; Dana's page holds no `opinion` record
+**Refs:** crc-Rolls.md, crc-RollRow.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 15
+**Fire alarm:** believe the intent over the GM's row (take no `reaction` from the held row); red: Dana's roll prints a plain roll, not a Reaction
+**Inject:** src/net/rolls.ts:#intent
+**Pulled:** 2026-11-18 — 2026-11-18 — rang (Chromium): Dana's roll printed as a plain roll, Success at cost +Maj, not a Reaction; restored clean

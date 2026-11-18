@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R382, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375
+**Requirements:** R382, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375, R430, R431
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -68,6 +68,14 @@ know.
   else the opposition total is the World's number, nothing added. The `vs` line: `the world (4),
   Difference +2` for the GM, and for the roller when their character is the GM's; `the world`
   otherwise and on the table's. No `attack`: an Attack at the world has nothing to take its Damage.
+- resolve a Reaction (R430, R431): an intent with `reaction` (the NPC's card) rolls one White d6 and
+  nothing else: refused unless the GM's own Connection Table gives the NPC's record of the character
+  (Connections.recordOf) a "Reaction ?" line ("Devreux has no Reaction to roll for Sam."); else the
+  Default Reaction (Connections.reactionOf) gives a Level, and one receipt for all three: the White die,
+  resolution "White 5 on the Default Reaction table", outcome "Devreux's Reaction: +Min", no level. Its
+  change counts the roll, writes the line (Connections.reacted) and the record's cell (synced), and
+  takes the character's row away. On the GM's page, as for an aim (R375), the Reaction is taken from
+  its own `rows`, never the intent.
 - resolve with `intent.against` (R326, R336, R330): the base looked up by name in the target's own front (MarkReader.points), a Field or Skill adding the target's attribute the action uses (R337); a name it can't find falls back to Defend.
 
 ## Collaborators

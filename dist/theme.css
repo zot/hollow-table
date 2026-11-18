@@ -339,6 +339,10 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .actdie { display: inline-block; width: 12px; height: 12px; margin: 0 4px 0 0; vertical-align: -1px; border-radius: 3px;
   background: #3d85c6; box-shadow: inset -1.5px -1.5px 0 rgba(0,0,0,.22); cursor: pointer; }
 .actdie:hover { background: #5a9bd5; }
+/* R429: a record's Reaction die, the White die small: it brings the PC's row up as a Reaction. */
+.reactdie { display: inline-block; width: 12px; height: 12px; margin: 0 4px 0 0; vertical-align: -1px; border-radius: 3px;
+  background: #f6f6f2; border: 1px solid #8a8a80; box-sizing: border-box; box-shadow: inset -1.5px -1.5px 0 rgba(0,0,0,.18); cursor: pointer; }
+.reactdie:hover { background: #fff; border-color: #444; }
 /* R77: the action in use, a highlighter swish over its line. */
 .act.inuse { margin: 0 -.25em; padding: 0 .25em; border-radius: .8em .3em .9em .4em; -webkit-box-decoration-break: clone; box-decoration-break: clone;
   background: linear-gradient(104deg, #ffe44d00 .9%, #ffe44df0 2.4%, #ffd633d0 5.8%, #ffe44d99 93%, #ffe44de0 96%, #ffe44d00 98%),

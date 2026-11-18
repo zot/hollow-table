@@ -173,6 +173,8 @@ export type Roller = {
   alt?: string;
   /** R326, R336: what was pointed at on the opponent's card, by name; absent, Defend (R328). */
   against?: Against;
+  /** R429: a Reaction roll, from this NPC's card's record of the character. */
+  reaction?: Oid;
 };
 export type Rows = { rows: Record<Oid, Roller> };
 // R347, R348: the world's Total Influence in the brass tray; `set` false (or no record) is a blank
@@ -292,7 +294,8 @@ const SINGLETONS: Record<string, Shape> = {
     defend: oneOf('mental', 'psych'), row: (v: unknown) => v === null || str(32)(v), byHand: bool,
     hand: fields({ yellows: int(-100, 100), bonus: int(-1000, 1000) }) },
   { priv: bool, type: oneOf(...ROLL_TYPES), alt: str(CAPS.name), against: (v: unknown) => [fields({ def: oneOf('mental', 'psych') }),
-    fields({ act: str(CAPS.name) }), fields({ fld: str(CAPS.name) }), fields({ skl: str(CAPS.name) })].some(f => f(v)) }), 1000) }),
+    fields({ act: str(CAPS.name) }), fields({ fld: str(CAPS.name) }), fields({ skl: str(CAPS.name) })].some(f => f(v)),
+    reaction: isOid }), 1000) }),
   book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     { hillGv: int(0, Number.MAX_SAFE_INTEGER),
       kept: list(fields({ character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },

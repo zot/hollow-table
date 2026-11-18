@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -55,7 +55,8 @@ record crosses the wire, the database and an export file unchanged.
   having reached the table. Die: `{c: W|G|R|B|Y, v, added, dropped}`.
 - Rows (R381): `{rows: {[character oid]: Roller}}`, each character's roll row (action, alternative,
   type, hand, opponent, Defend kind, what was pointed at, the White row and whether picked by hand,
-  the GM's private switch). Written as truth only by the GM's page.
+  the GM's private switch, and `reaction`, the NPC's card, for a Reaction roll, R429). Written as
+  truth only by the GM's page.
 - Yards: `{yards: [{name, named, items: [{name, records: PieceRecord[]}]}]}`; a burial keeps the
   records buried together (a character with its cards, a sticky); an Info card's burial has no
   records and `info: {oid, k, text}` (R403).

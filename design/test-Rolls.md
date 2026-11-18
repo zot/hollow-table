@@ -222,4 +222,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Alarm:** 18
 **Fire alarm:** believe the intent's aim (resolve the intent as sent); red: the first request rolls against Devreux
 **Inject:** src/net/rolls.ts:#intent
-**Pulled:** 2026-11-16 — rang: "a player's roll is aimed as the GM's page holds it" failed, the first request rolled; restored clean
+**Pulled:** 2026-11-18 — 2026-11-18 — re-pulled after #intent began taking the held Reaction; rang: the held-aim test failed, and the Reaction test with it; restored clean *Earlier —* 2026-11-16 — rang: "a player's roll is aimed as the GM's page holds it" failed, the first request rolled; restored clean
+## Test: a Reaction roll
+**Purpose:** R430, R431: a Reaction rolls one White d6 on the Default Reaction table and writes the record; a player's is the Reaction the GM's page holds
+**Input:** the seed's table with Devreux's record of Sam, "Reaction ?"; Sam's row with `reaction` Devreux, the die showing 5; the same Reaction again; a request from Sam's owner naming no Reaction while the GM's row holds one
+**Expected:** one die, White 5; every receipt's outcome "Devreux's Reaction: +Min" and resolution "White 5 on the Default Reaction table"; after the change the record reads "Reaction +Min", Devreux's cell for Sam 1, Sam's row gone, Sam's roll count up by one; the second refused, "Devreux has no Reaction to roll for Sam."; the request rolls the held Reaction, both tapes reading "Devreux's Reaction: +Min"
+**Refs:** crc-Rolls.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 19
+**Fire alarm:** leave the record alone (write no line in the Reaction's change); red: the record still reads "Reaction ?"
+**Inject:** src/net/rolls.ts:resolve
+**Pulled:** 2026-11-18 — 2026-11-18 — rang: the record still read "Reaction ?" after the roll; restored clean

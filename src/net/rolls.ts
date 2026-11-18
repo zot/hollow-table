@@ -1,12 +1,13 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R382, R281, R346, R307, R308, R316, R345, R351, R353, R375
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R382, R281, R346, R307, R308, R316, R345, R351, R353, R375, R430, R431
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
 // tape what its person may know.
 
 import type { Game, Writer } from '../model/game.ts';
-import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opponent, type Receipt, type RollType, type Rows, type Tape, type World } from '../model/records.ts';
-import { roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
+import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opinion, type Opponent, type PieceRecord, type Receipt, type RollType, type Rows, type Tape, type World } from '../model/records.ts';
+import { d6, roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
+import { awaits, level, reacted, reactionOf, recordOf, synced, tableOf } from '../rules/connections.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
 import { COLUMN_OF, fill, pages, same, waitsIn, type Page } from '../rules/absorb.ts';
@@ -32,6 +33,8 @@ export type Intent = {
   alt?: string;
   /** R326, R336: what was pointed at on the opponent's card, by name; the number is looked up here. */
   against?: Against;
+  /** R429: a Reaction roll from this NPC's card; on the GM's page, only as its own row holds it. */
+  reaction?: Oid;
 };
 export type RollMsg = { n: number; receipt: Receipt; sealed: Record<string, Box> };
 export type SealedRoll = { re: number; receipt: Receipt };
@@ -116,6 +119,7 @@ export type Resolved = {
 export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resolved | { refused: string } {
   const character = game.get(ridOf(intent.pool)) as Character | undefined;
   if (character?.kind !== 'character') return { refused: 'That character is not on the table.' };
+  if (intent.reaction) return reaction(game, intent.reaction, character, rng, at);
   // R382: a roll with no action is the row as set: its hand is the dice, and there is no Total Influence.
   const act = intent.action ? marks(parse(character.front), 'act').map(m => readAction(m.text)).find(a => a?.label === intent.action) : null;
   if (intent.action && !act) return { refused: `${character.name} has no action “${intent.action}”.` };
@@ -204,6 +208,32 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
     }
   };
   return { full, roller, table, apply, character };
+}
+
+// R430, R431: a Reaction is one White d6 on the Default Reaction table, written on the NPC's record of
+// the character, its cell following; everyone's receipt is the same, and the row goes away.
+/** Pure: the Reaction the GM's page rolls for `character` from the NPC's card `npcOid`, or why not. */
+function reaction(game: Game, npcOid: Oid, character: Character, rng: Rng, at: number): Resolved | { refused: string } {
+  const all = game.all().map(([, r]) => r as PieceRecord), t = tableOf(all), npc = game.get(ridOf(npcOid)) as Character | undefined;
+  if (npc?.kind !== 'character') return { refused: 'That NPC is not on the table.' };
+  const rec = t && recordOf(all.filter((r): r is Opinion => r.kind === 'opinion'), t, npc, character.oid);
+  if (!t || !rec || !awaits(rec.text)) return { refused: `${npc.name} has no Reaction to roll for ${character.name}.` };
+  const v = d6(rng), n = reactionOf(v);
+  const meta = game.get('meta') as Meta, k = (meta.counts?.[character.oid] ?? 0) + 1;
+  const receipt: Receipt = {
+    id: `roll-${character.oid}-${k}`, at, title: `${character.name}, roll ${k}`, by: character.owner === GM ? 'GM' : character.owner,
+    dice: [{ c: 'W', v, added: false, dropped: false }], resolution: `White ${v} on the Default Reaction table`, level: '',
+    outcome: `${npc.name}'s Reaction: ${level(n)}`,
+  };
+  const apply = (w: Writer) => {
+    w.put('meta', { ...meta, rolls: meta.rolls + 1, counts: { ...meta.counts, [character.oid]: k } });
+    const now = { ...rec, text: reacted(rec.text, n) };
+    w.put(ridOf(rec.oid), now);
+    w.put(ridOf(t.oid), synced(t, now));
+    const { [character.oid]: _, ...rows } = (game.get('rows') as Rows | undefined)?.rows ?? {};
+    w.put('rows', { rows });
+  };
+  return { full: receipt, roller: receipt, table: receipt, apply, character };
 }
 
 /** The receipt after a CRIT choice: the chosen result and its Level; an Attack's amount follows it. */
@@ -342,8 +372,10 @@ export class Rolls {
     if (c?.kind === 'character' && c.owner !== who) { refuse(`${c.name} isn't yours to roll.`); return this.#work; }
     // R375: a player's roll is aimed as the GM's page holds its row, whatever the intent says.
     const held = (game.get('rows') as Rows | undefined)?.rows[intent.pool];
-    const aimed: Intent = { ...intent, vs: held?.opponent ?? null, defend: held?.defend ?? intent.defend, against: held?.against,
-      row: held?.byHand ? held.row ?? undefined : undefined };
+    // R430: and a Reaction only as the GM's page holds it.
+    const { reaction: _asked, ...asked } = intent;
+    const aimed: Intent = { ...asked, vs: held?.opponent ?? null, defend: held?.defend ?? intent.defend, against: held?.against,
+      row: held?.byHand ? held.row ?? undefined : undefined, ...(held?.reaction && { reaction: held.reaction }) };
     const done = resolve(game, aimed, rng, clock.now());
     if ('refused' in done) { refuse(done.refused); return this.#work; }
     game.change(done.apply);
