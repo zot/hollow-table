@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -8,8 +8,9 @@ import type { Game } from '../model/game.ts';
 import {
   DAMAGE, GM, ROWS, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
-  type AttackKind, type Lasting, type LastingColumn,
+  type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
+import { connection, level, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
 import { blankFront, blankInfo, canSee, type Viewer } from '../rules/visibility.ts';
 import { CATEGORIES, type Category, type Eyes } from './eyes.ts';
 import { clues, entries, type Entry } from '../rules/readmarks.ts';
@@ -53,6 +54,8 @@ export type PieceWith = {
   eyes: Eyes;
   /** R403: buries an emptied Info card on Boot Hill with its place and its last words. */
   buryInfo: (oid: Oid, k: number, text: string) => void;
+  /** R428: puts an emptied Opinion Record away on Boot Hill with its last words (or just removes it, with none). */
+  buryRecord: (oid: Oid, words: string) => void;
 };
 
 /** An Attack being taken: whose card, the receipt, the kind, the attacker's name, its Result, the pages and the one shown. */
@@ -538,15 +541,20 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draf
   const doc = e.ownerDocument, box = e.querySelector<HTMLElement>(':scope > .infos')!, rid = ridOf(c.oid);
   const shown = new Set(c.shown ?? []), cards = (c.info ?? []).map(i => (secret ? blankInfo(i, shown) : i));
   const showing = cards.flatMap((t, k) => (secret && !t.trim() ? [] : [k]));
-  const mine = `${c.oid}:`, at = [...w.slid()].find(s => s.startsWith(mine)), want = at ? Number(at.slice(mine.length)) : -1;
-  const out = showing.includes(want) ? want : -1;
-  const slide = (to: number) => w.setSlid(new Set([...w.slid()].filter(s => !s.startsWith(mine)).concat(to < 0 ? [] : [mine + to])));
+  // R419, R426: on the GM's page, the records of the NPC's row (its group's) follow its Info cards.
+  const recs = w.viewer?.gm && c.owner === GM ? records(w.game, c) : [];
+  // Which is slid out: an Info card by its place, a record as `o<oid>` (R397, R419).
+  const mine = `${c.oid}:`, at = [...w.slid()].find(s => s.startsWith(mine)), key = at?.slice(mine.length) ?? '';
+  const rec = key.startsWith('o') ? recs.find(r => r.rec.oid === key.slice(1)) : undefined;
+  const out = key && !key.startsWith('o') && showing.includes(Number(key)) ? Number(key) : -1;
+  const want = rec ? `o${rec.rec.oid}` : String(out);
+  const slide = (to: number | string) => w.setSlid(new Set([...w.slid()].filter(s => !s.startsWith(mine)).concat(to === -1 ? [] : [mine + to])));
   let paper = box.querySelector<HTMLElement>(':scope > .infopaper');
-  if (paper && paper.dataset.k !== String(out)) { paper.remove(); paper = null; }
+  if (paper && paper.dataset.k !== want) { paper.remove(); paper = null; }
   if (out >= 0) {
     if (!paper) {
       paper = el(doc, 'div', 'infopaper');
-      paper.dataset.k = String(out);
+      paper.dataset.k = want;
       // R403: the card's last words, kept as it is written, so undo brings back what it said before it was emptied.
       let words = cards[out]!;
       const text = writable(doc, 'text', words, s => {
@@ -570,6 +578,11 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draf
     if (!draft && text.querySelector('[data-entries]')) delete text.dataset.source;
     rewrite(text, cards[out]!);
     torn(text, c, secret, draft, draft ? w.eyes.cat(c.oid) : null, clues, false);
+  } else if (rec) {
+    if (!paper) { paper = recordPaper(doc, rec.rec.oid, w, () => slide(-1)); paper.dataset.k = want; box.prepend(paper); }
+    // R419: the first line, drawn by the table: the character and the record's Connection.
+    paper.querySelector('.connhead')!.textContent = `➔ ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
+    rewrite(paper.querySelector<HTMLElement>('.text')!, rec.rec.text);
   }
   const tabs = el(doc, 'div', 'infotabs');
   for (const k of showing) {
@@ -577,8 +590,48 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draf
     gesture(t, { click: () => slide(k === out ? -1 : k) });
     tabs.append(t);
   }
+  for (const r of recs) {
+    const on = r === rec, t = el(doc, 'button', `infotab opinion${on ? ' out' : ''}`, r.name);
+    gesture(t, { click: () => slide(on ? -1 : `o${r.rec.oid}`) });
+    tabs.append(t);
+  }
   box.querySelector(':scope > .infotabs')?.remove();
   box.append(tabs);
+}
+
+/** R419, R426: the records an NPC's card shows: its row's (its group's), by their character's name. */
+function records(game: Game, c: Character): { rec: Opinion; name: string }[] {
+  const all = game.all().map(([, r]) => r as PieceRecord), t = tableOf(all);
+  const row = t && rowOf(t, c);
+  if (!t || !row) return [];
+  const chars = all.filter((r): r is Character => r.kind === 'character');
+  return order(all.filter((r): r is Opinion => r.kind === 'opinion' && r.holder === row.id).map(rec => ({ rec, name: nameOf(t, chars, rec.of) })));
+}
+
+/** R421: a record's new words and its cell, in one change. */
+function writeRecord(w: PieceWith, oid: Oid, text: string): void {
+  const rec = w.game.get(ridOf(oid)) as Opinion | undefined;
+  const t = tableOf(w.game.all().map(([, r]) => r as PieceRecord));
+  if (rec?.kind !== 'opinion' || !t) return;
+  const now = { ...rec, text };
+  w.game.change(g => { g.put(ridOf(oid), now); g.put(ridOf(t.oid), synced(t, now)); });
+}
+
+// R419, R421, R425, R428: a record's paper: the table's first line over the GM's writing. Each edit
+// writes the record and its cell; leaving it works Professional Respect out again, or, emptied, buries it.
+function recordPaper(doc: Document, oid: Oid, w: PieceWith, away: () => void): HTMLElement {
+  const paper = el(doc, 'div', 'infopaper opinion'), rid = ridOf(oid);
+  let words = (w.game.get(rid) as Opinion | undefined)?.text ?? '';
+  const text = writable(doc, 'text', words, s => { if (s.trim()) words = s; writeRecord(w, oid, s); });
+  text.addEventListener('focusout', () => {
+    const x = w.game.get(rid) as Opinion | undefined;
+    if (x?.kind !== 'opinion') return;
+    if (!x.text.trim()) { w.buryRecord(oid, words); away(); return; }
+    const pc = w.game.get(ridOf(x.of)) as Character | undefined, fixed = pc?.kind === 'character' ? respected(x.text, pc.front) : x.text;
+    if (fixed !== x.text) { words = fixed; writeRecord(w, oid, fixed); }
+  });
+  paper.append(el(doc, 'div', 'connhead'), text);
+  return paper;
 }
 
 /** R393: the eye's category menu, under the arrow; a pick opens the eye on it. */

@@ -42,7 +42,7 @@ faulty record is refused
 **Fire alarm:** leave `world` out of the singletons; red: the good records are refused
 **Inject:** src/model/records.ts:SINGLETONS
 @alarm-hash: 08fb61028cb0a870
-**Pulled:** 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
+**Pulled:** 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
 ## Test: a card an action suffers
 **Purpose:** R362: an Influence may carry `once: true`, and nothing else in that field
 **Input:** Beauford's Tricky card with `once: true`, and with `once: false`
@@ -52,8 +52,8 @@ faulty record is refused
 **Alarm:** 4
 **Fire alarm:** leave `once` out of the Influence's fields; red: the `once` card is refused
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: da08bd562649e308
-**Pulled:** 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
+@alarm-hash: 2a56c86c0a6fb185
+**Pulled:** 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
 ## Test: a card's revealed entries and Info cards
 **Purpose:** R391: a character's `shown` is a list of revealed entries' keys, absent when none; R400: its `info` a list of texts
 **Input:** Devreux with `shown` as a list of keys; as a list of a number; as a bare string; with `info` as texts; as a list of lists
@@ -63,5 +63,5 @@ faulty record is refused
 **Alarm:** 5
 **Fire alarm:** take any list as `shown`; red: a list of line numbers is taken
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: da08bd562649e308
-**Pulled:** 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean
+@alarm-hash: 2a56c86c0a6fb185
+**Pulled:** 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean

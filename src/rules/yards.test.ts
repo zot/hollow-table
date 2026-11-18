@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, PieceRecord, Yards } from '../model/records.ts';
-import { bury, burialOf, buryInfo, empty, exhume, lastInfo, withInfo, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
+import { bury, burialOf, buryInfo, empty, exhume, lastCard, withInfo, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -95,9 +95,9 @@ test('an Info card is buried with its place and words, and comes back there', ()
   let y = buryInfo(empty(), 0, 'Devreux', { oid: DEVREUX, k: 1, text: 'ANY: old' }, '0000aaaa');
   y = buryInfo(y, 0, ' ', { oid: SAM, k: 0, text: 'ANY: Sam' }, '0000bbbb');
   assert.deepEqual(y.yards[0]!.items.map(b => b.name), ['Devreux: Info card', 'Nameless: Info card']);
-  assert.deepEqual(lastInfo(y, 0, () => true), { yard: 0, item: 1 });
-  assert.deepEqual(lastInfo(y, 0, oid => oid === DEVREUX), { yard: 0, item: 0 });
-  assert.equal(lastInfo(y, 0, () => false), null);
+  assert.deepEqual(lastCard(y, 0, () => true), { yard: 0, item: 1 });
+  assert.deepEqual(lastCard(y, 0, b => b.info?.oid === DEVREUX), { yard: 0, item: 0 });
+  assert.equal(lastCard(y, 0, () => false), null);
   const dug = exhume(y, 0, { yard: 0, item: 0 });
   assert.deepEqual(dug.info, { oid: DEVREUX, k: 1, text: 'ANY: old' });
   assert.deepEqual(dug.records, []);

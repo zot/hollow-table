@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -142,7 +142,13 @@ export type ConnRow = { id: Oid; name: string; oid?: Oid; group?: true };
  */
 export type Connections = { kind: 'connections'; oid: Oid; place: Place; away?: true; rows: ConnRow[]; cells: Record<string, number> };
 
-export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | TornRoll | Reference | Connections;
+/**
+ * R419, R426: an Opinion Record, held by the Connection Table row of its NPC or group (`holder`), of a
+ * row or a PC (`of`): the GM's Opinions, a line each. It has no place: it is drawn under its NPC's card.
+ */
+export type Opinion = { kind: 'opinion'; oid: Oid; holder: Oid; of: Oid; text: Marked };
+
+export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | TornRoll | Reference | Connections | Opinion;
 
 /** R403: an Info card's burial carries its NPC, its place among the NPC's cards and its words, and no records. */
 export type InfoBurial = { oid: Oid; k: number; text: Marked };
@@ -272,6 +278,7 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
   connections: fields({ kind: oneOf('connections'), oid: isOid, place,
     rows: list(fields({ id: isOid, name: str(CAPS.name) }, { oid: isOid, group: oneOf(true) }), 200),
     cells: dict(int(-5, 5), 40_000) }, { away: oneOf(true) }),
+  opinion: fields({ kind: oneOf('opinion'), oid: isOid, holder: isOid, of: isOid, text: marked }),
 };
 const piece: Shape = v => obj(v) && typeof v.kind === 'string' && Object.hasOwn(PIECES, v.kind)
   && PIECES[v.kind as PieceRecord['kind']](v);

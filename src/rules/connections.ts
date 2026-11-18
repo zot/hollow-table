@@ -1,8 +1,10 @@
-// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418
+// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418, R420-426
 // The Connection Table's rules, pure: Levels as words, a card's group, a row for every named NPC,
-// renaming rows, setting cells, and the adventure's table as the seed.
+// renaming rows, setting cells, the adventure's table as the seed, and the Opinion Records: their
+// Connection, their first Opinions, and their cells.
 
-import { GM, type Character, type ConnRow, type Connections, type Oid, type Place } from '../model/records.ts';
+import { GM, OPEN, type Character, type ConnRow, type Connections, type Oid, type Opinion, type PieceRecord, type Place } from '../model/records.ts';
+import { field, skillsLine } from './readmarks.ts';
 
 const WORDS = ['Min', 'Sig', 'Maj', 'Ext', 'Exq'];
 
@@ -110,3 +112,113 @@ export function seed(oid: Oid, place: Place, devreux: Oid): Connections {
   UNTON_LEVELS.forEach((row, a) => row.forEach((n, b) => { t = set(t, id(a), id(b), n); }));
   return t;
 }
+
+// ---- Opinion Records ----
+
+/** The Connection Table among the records, when there is one. */
+export const tableOf = (records: PieceRecord[]): Connections | undefined =>
+  records.find((r): r is Connections => r.kind === 'connections');
+
+const LEVEL_OF: Record<string, number> = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
+/** A line's fixed Level: its first Level word, or a lone 0, outside parentheses; none when it has none. */
+function fixed(line: string): number | undefined {
+  const m = /(?:^|\s)(?:([+-])(Min|Sig|Maj|Ext|Exq)\b|0(?=\s|$))/.exec(line.replace(/\([^)]*\)/g, ' '));
+  return m ? (m[1] ? (m[1] === '-' ? -1 : 1) * LEVEL_OF[m[2]!]! : 0) : undefined;
+}
+
+// R420: the best positive Opinion less the worst negative, by fixed Levels, either 0 when there is none.
+/** A record's Connection, in Levels. */
+export function connection(text: string): number {
+  const all = text.split('\n').map(fixed).filter((n): n is number => n !== undefined);
+  return Math.max(0, ...all) + Math.min(0, ...all);
+}
+
+/** A Skill's name as two cards would both know it: no ✓, †, trailing Level or parentheses. */
+const skillName = (s: string) => s.replace(/\([^)]*\)/g, '').replace(/[✓†]/g, '').replace(/\s\d+\s*$/, '').trim();
+
+// R425: a card's Skills by name and Level: a `Skills N:` line's at N, one under a Field at the Field's
+// Level unless it gives its own.
+export function skills(front: string): Map<string, number> {
+  const out = new Map<string, number>();
+  const add = (name: string, n: number) => { const k = skillName(name); if (k && (out.get(k) ?? -1) < n) out.set(k, n); };
+  let under = 0;
+  for (const raw of front.split('\n')) {
+    const text = raw.replace(/<[^>]*>/g, '');
+    if (raw.startsWith('<fld>')) { under = field(text)?.level ?? 0; continue; }
+    if (!raw.startsWith('<skl>')) continue;
+    const line = skillsLine(text);
+    if (line) { for (const p of line.skills) add(p.name, line.level); continue; }
+    const own = /\s(\d+)\s*$/.exec(text.replace(/\([^)]*\)/g, ''));
+    add(text, own ? Number(own[1]) : under);
+  }
+  return out;
+}
+
+/** R425: 1 Level, plus 2 when the PC has Level 2 in any of the Skills. */
+const respectLevel = (names: string[], pc: Map<string, number>) => 1 + (names.some(n => (pc.get(n) ?? 0) >= 2) ? 2 : 0);
+
+// R425: one line naming the Skills the two cards have in common, in the PC's order.
+/** The Professional Respect line for an NPC's record of a PC, or none. */
+export function respect(npc: string, pc: string): string | undefined {
+  const theirs = skills(npc), mine = skills(pc), common = [...mine.keys()].filter(k => theirs.has(k));
+  return common.length ? `Professional Respect (${common.join(', ')}) ${level(respectLevel(common, mine))}` : undefined;
+}
+
+const RESPECT = /^(\s*Professional Respect\s*)\(([^)]*)\)\s*(?:[+-](?:Min|Sig|Maj|Ext|Exq)\b|0\b)?(.*)$/;
+// R425: the Level worked out again from the Skills left on the line; with none left, the line goes.
+/** A record's text with its Professional Respect line made right for the PC. */
+export function respected(text: string, pc: string): string {
+  const mine = skills(pc);
+  return text.split('\n').flatMap(line => {
+    const m = RESPECT.exec(line);
+    if (!m) return [line];
+    const names = m[2]!.split(',').map(n => n.trim()).filter(Boolean);
+    return names.length ? [`${m[1]}(${names.join(', ')}) ${level(respectLevel(names.map(skillName), mine))}${m[3]}`] : [];
+  }).join('\n');
+}
+
+// R426: a card's row is its group's when it has a group, else its own.
+export function rowOf(t: Connections, c: Character): ConnRow | undefined {
+  const g = groupOf(c.front);
+  return t.rows.find(r => (g ? r.group && r.name === g : r.oid === c.oid));
+}
+
+/** The PCs, players' characters, by name. */
+export const pcsOf = (chars: Character[]) => order(chars.filter(c => c.owner !== GM && c.owner !== OPEN));
+
+// R423, R424, R425: a new record's first Opinions.
+/** The text a new record of `of` held by `holder` starts with; `pc` is the character when `of` is a PC. */
+export function first(t: Connections, records: Opinion[], holder: Oid, of: Oid, npc: Character, pc?: Character): string {
+  if (!pc) return `Opinion ${level(cell(t, holder, of))}`;
+  // R424: of the characters the holder has a cell for, other than 0, those with a record of the PC.
+  const known = t.rows.flatMap(r => {
+    const mine = cell(t, holder, r.id), rec = records.find(x => x.holder === r.id && x.of === pc.oid);
+    return r.id !== holder && mine && rec ? [{ mine, theirs: connection(rec.text) }] : [];
+  });
+  known.sort((a, b) => Math.abs(b.mine) - Math.abs(a.mine) || Math.abs(b.theirs) - Math.abs(a.theirs) || b.theirs - a.theirs);
+  const best = known[0];
+  const lines = [best ? `Reputation ${level(best.mine < 0 ? -best.theirs : best.theirs)}` : 'Reaction ?'];
+  const pr = respect(npc.front, pc.front);
+  return [...lines, ...(pr ? [pr] : [])].join('\n');
+}
+
+// R421, R428: the record's Connection in its cell, kept even when 0, so a PC's cell shows it.
+export function synced(t: Connections, r: Opinion): Connections {
+  return { ...t, cells: { ...t.cells, [`${r.holder}>${r.of}`]: connection(r.text) } };
+}
+
+/** The name of what a record is of: a row's name, or a PC's. */
+export function nameOf(t: Connections, chars: Character[], of: Oid): string {
+  return t.rows.find(r => r.id === of)?.name ?? chars.find(c => c.oid === of)?.name ?? '?';
+}
+
+// R422: the PCs the holder has no record of, by name, then the other rows it has none of, by name.
+/** What the NPC's menu offers under "Opinion of". */
+export function candidates(t: Connections, records: Opinion[], holder: Oid, chars: Character[]): { id: Oid; name: string; pc: boolean }[] {
+  const has = new Set(records.filter(r => r.holder === holder).map(r => r.of));
+  return [
+    ...pcsOf(chars).filter(c => !has.has(c.oid)).map(c => ({ id: c.oid, name: c.name, pc: true })),
+    ...order(t.rows).filter(r => r.id !== holder && !has.has(r.id)).map(r => ({ id: r.id, name: r.name, pc: false })),
+  ];
+}
+

@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287, R366, R369, R380, R407-409, R411, R412, R414-417
+// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287, R366, R369, R380, R407-409, R411, R412, R414-417, R419, R421, R422, R424-426, R428
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
@@ -377,4 +377,54 @@ test('the GM keeps the Connection Table', async ({ page }) => {
   await expect(sheet).toHaveCount(1);
   expect(await kinds(page, 'connections')).toHaveLength(1);
   await expect.poll(async () => (await rec(page, rid)).place.x).not.toBe(before.x);
+});
+
+test('the GM keeps Opinion Records', async ({ page }) => {
+  // R426: Devreux and a second GM card, Hank, both in Unton folk, share the group's records.
+  await page.evaluate(async () => {
+    const g = (await (window as any).hollow.ready).store.game, d = g.get('o:00000003');
+    const front = d.front.replace('<head>Mistress Devreux</head>', '<head>Mistress Devreux (Unton folk)</head>');
+    g.change((w: any) => {
+      w.put('o:00000003', { ...d, front });
+      const { info: _i, shown: _s, ...base } = d;
+      w.put('o:00000020', { ...base, oid: '00000020', name: 'Hank', front: '<head>Hank (Unton folk)</head>',
+        card: { ...d.card, x: 500, y: 650 }, pool: { ...d.pool, x: 500, y: 650 } });
+    });
+  });
+  // R422: the menu's "Opinion of" lists the PCs first; picking Sam makes the record, slid out.
+  const card = page.locator('.obj.card[data-rid="o:00000003"]'), pool = page.locator('.obj.pool[data-rid="o:00000003"]');
+  await pool.locator('.makemenu').click();
+  await expect(pool.locator('.poolmenu .menuhead')).toHaveText('Opinion of');
+  await expect(pool.locator('.poolmenu .opinionof').first()).toHaveText('Beauford');
+  await pool.locator('.poolmenu .opinionof', { hasText: 'Sam' }).click();
+  // R419, R424, R425: a pink record of Sam, Reaction (no Connection in common) and Professional Respect.
+  await expect(card.locator('.infotab.opinion')).toHaveText(['Sam']);
+  const paper = card.locator('.infopaper.opinion');
+  await expect(paper.locator('.text')).toHaveText('Reaction ?Professional Respect (Composure, Suasion, Tact) +Maj');
+  await expect(paper.locator('.connhead')).toHaveText('➔ Sam (Connection +Maj)');
+  // R425: Composure deleted; leaving the record works the Level out again.
+  await paper.locator('.text').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Reaction ?\nProfessional Respect (Suasion, Tact) +Maj');
+  await page.locator('#table').click({ position: { x: 5, y: 300 } });
+  await expect(paper.locator('.text')).toHaveText('Reaction ?Professional Respect (Suasion, Tact) +Min');
+  await expect(paper.locator('.connhead')).toHaveText('➔ Sam (Connection +Min)');
+  // R426: Hank's card shows the group's record too.
+  await expect(page.locator('.obj.card[data-rid="o:00000020"] .infotab.opinion')).toHaveText(['Sam']);
+  // R421: the Connection Table's cell for the group and Sam follows the record.
+  const supply = await at(page, '#bar .supply.links', 20, 10);
+  await dragFromTo(page, supply.x, supply.y, 300, 600);
+  const row = page.locator('.obj.connections tr', { has: page.locator('th.rowname', { hasText: 'Unton folk' }) });
+  await expect(row.locator('td.pc')).toHaveText(['', '+Min']);
+  // R428: emptied, the record is buried once the GM leaves it; undo digs it up.
+  await paper.locator('.text').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Backspace');
+  await page.locator('#table').click({ position: { x: 5, y: 300 } });
+  await expect(card.locator('.infotab.opinion')).toHaveCount(0);
+  await expect(page.locator('#boothill .n')).toHaveText('1');
+  expect(JSON.stringify((await rec(page, 'yards')).yards)).toContain('Unton folk: Opinion of Sam');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(card.locator('.infopaper.opinion .text')).toHaveText('Reaction ?Professional Respect (Suasion, Tact) +Min');
+  await expect(page.locator('#boothill .n')).toHaveText('');
 });

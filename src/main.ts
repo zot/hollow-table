@@ -5,10 +5,10 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, ridOf, type Book, type Character, type Connections, type Image, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
+import { GM, ridOf, type Book, type Character, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
-import { buryInfo, empty as emptyYards } from './rules/yards.ts';
-import { groupOf, keep as keepRow, newConnections } from './rules/connections.ts';
+import { buryInfo, buryRecord, empty as emptyYards } from './rules/yards.ts';
+import { first, groupOf, keep as keepRow, nameOf, newConnections, pcsOf, rowOf, synced, tableOf } from './rules/connections.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
@@ -108,7 +108,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   // R392, R388: the GM's open eyes, this page's own; a change redraws the card and every Roll key.
   const eyes = new Eyes(game, oid => { table.render([ridOf(oid)]); rollRow?.render(); });
   // R401, R404: slides one Info card out of its NPC's card, the rest of that card's tucked back.
-  const slideInfo = (oid: Oid, k: number) => {
+  const slideInfo = (oid: Oid, k: number | string) => {
     const mine = `${oid}:`;
     keep({ ...seat, open: { ...seat.open, info: [...seat.open.info.filter(s => !s.startsWith(mine)), mine + k] } });
     redraw();
@@ -261,6 +261,32 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       game.change(w => w.put(rid, { ...c, info: [...(c.info ?? []), ''] }));
       slideInfo(oid, k);
       document.querySelector<HTMLElement>(`.card[data-rid="${rid}"] .infopaper .text`)?.focus();
+    },
+    // R422-R426: a record made from the NPC's menu, held by its row (its group's, R426), started as the
+    // book's first meeting starts it, its cell in step; the table is made, put away, when there is none.
+    addOpinion: (oid, of) => {
+      const all = game.all().map(([, r]) => r as PieceRecord), chars = all.filter((r): r is Character => r.kind === 'character');
+      const c = chars.find(x => x.oid === oid);
+      let t = tableOf(all) ?? { ...newConnections(mint()(), { x: 0, y: 0, z: 0, tilt: 0 }), away: true };
+      if (!c) return;
+      t = keepRow(t, c, mint()());
+      const holder = rowOf(t, c), pc = pcsOf(chars).find(x => x.oid === of);
+      if (!holder) return;
+      const rec: Opinion = { kind: 'opinion', oid: mint()(), holder: holder.id, of,
+        text: first(t, all.filter((r): r is Opinion => r.kind === 'opinion'), holder.id, of, c, pc) };
+      game.change(w => { w.put(ridOf(t.oid), synced(t, rec)); w.put(ridOf(rec.oid), rec); });
+      slideInfo(oid, `o${rec.oid}`);
+    },
+    // R428: an emptied record is buried whole, with its last words, named for its holder and character.
+    buryRecord: (oid, words) => {
+      const rid = ridOf(oid), rec = game.get(rid) as Opinion | undefined, y = (game.get('yards') as Yards | undefined) ?? emptyYards();
+      const all = game.all().map(([, r]) => r as PieceRecord), t = tableOf(all);
+      if (rec?.kind !== 'opinion' || !t) return;
+      const chars = all.filter((r): r is Character => r.kind === 'character'), cur = Math.min(seat.boothill.cur, y.yards.length - 1);
+      game.change(w => {
+        w.del(rid);
+        if (words.trim()) w.put('yards', buryRecord(y, cur, nameOf(t, chars, rec.holder), nameOf(t, chars, rec.of), { ...rec, text: words }, mint()()));
+      });
     },
     // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die) => {

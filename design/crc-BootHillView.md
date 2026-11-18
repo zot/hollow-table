@@ -1,9 +1,12 @@
 # BootHillView
-**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405
+**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405, R428
 
 The gravestone and its graveyard list.
 
 ## Does
+- R428: an Opinion Record's burial comes up as a record: put back, its Connection written to its cell,
+  slid out under a card of its row; undoCard digs up the newest Info card or record. A record whose
+  row is gone stays buried.
 - badge: the count of the buried in every graveyard; the grey Sancreek stone fades when it's 0 (R289).
 - stone (`src/ui/boothill.ts`): a button after the register; a click opens or closes the list, kept
   in the Seat with the graveyard browsed. Burials are listed by the names Yards.graveName gave them.
@@ -15,7 +18,7 @@ The gravestone and its graveyard list.
   Yards.raised put it back on top, under the pointer, in one change; the list closes and Drag carries it from where it came up (not from the press in the list) (a character by its pool), so dropped
   on the bar it is buried again. An Info card's burial (R405) comes up on its NPC instead
   (Yards.withInfo, slid out by the Seat), with no carry; while its NPC is not on the table it stays.
-- undoCard() (R404): digs up Yards.lastInfo the same way; false when there is none, so the GM's
+- undoCard() (R404, R428): digs up Yards.lastCard the same way, an Info card or a record; false when there is none, so the GM's
   Ctrl+Z / ⌘Z (main, only outside written text: isPageUndo) falls through to the page.
 - doom (R125): a shift-click or a long press arms an item red, saying "Delete forever? Shift-click again"; the
   graveyard's name (shift-click or long press) says "Delete everything here? Shift-click again".

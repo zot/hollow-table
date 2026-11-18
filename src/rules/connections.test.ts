@@ -1,8 +1,8 @@
 // CRC: crc-Connections.md | Test: test-Connections.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { GM, type Character, type Connections } from '../model/records.ts';
-import { cell, groupOf, keep, level, order, rename, seed, set } from './connections.ts';
+import { GM, type Character, type Connections, type Opinion } from '../model/records.ts';
+import { cell, connection, first, groupOf, keep, level, order, rename, respected, seed, set, synced } from './connections.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -67,3 +67,32 @@ test('the seed is the book\'s table', () => {
   assert.equal(cell(t, id(t, 'Jameson'), id(t, 'Jephthah')), -2);
   assert.equal(Object.values(t.cells).reduce((a, b) => a + b, 0), 0);
 });
+
+test("a record's Connection", () => {
+  assert.equal(connection('Reputation -Sig\nProfessional Respect (Composure) +Maj'), 1);
+  assert.equal(connection('Old Friends +Sig (0)'), 2);
+  assert.equal(connection('Reaction ?'), 0);
+  assert.equal(connection('Grudge -Min\nFear -Maj'), -3);
+  assert.equal(connection('Opinion 0'), 0);
+});
+
+test('the first meeting', () => {
+  const t = seed('0000000a', at, DEVREUX), dev = card(DEVREUX), sam = card(SAM);
+  const rec = (holder: string, text: string, oid = 'e0000001'): Opinion => ({ kind: 'opinion', oid, holder: id(t, holder), of: SAM, text });
+  const eliza = [rec('Eliza', 'Old Friends +Sig')];
+  assert.equal(first(t, eliza, id(t, 'Devreux'), id(t, 'Obed'), dev), 'Opinion -Min');
+  assert.equal(first(t, eliza, id(t, 'Devreux'), SAM, dev, sam), 'Reputation +Sig\nProfessional Respect (Composure, Suasion, Tact) +Maj');
+  assert.match(first(t, eliza, id(t, 'Jake'), SAM, dev, sam), /^Reputation -Sig\n/);
+  assert.match(first(t, eliza, id(t, 'Jameson'), SAM, dev, sam), /^Reaction \?\n/);
+  const two = [...eliza, rec('Beatrice', 'Respect +Maj', 'e0000002')];
+  assert.match(first(t, two, id(t, 'Devreux'), SAM, dev, sam), /^Reputation \+Sig\n/);
+  assert.match(first(t, two, id(t, 'Obed'), SAM, dev, sam), /^Reputation \+Maj\n/);
+  const three = [...two, rec('Obed', 'Bad Blood -Ext', 'e0000003')];
+  assert.match(first(t, three, id(t, 'Maggie'), SAM, dev, sam), /^Reputation -Ext\n/);
+  assert.equal(respected('Reaction ?\nProfessional Respect (Suasion, Tact) +Maj', sam.front), 'Reaction ?\nProfessional Respect (Suasion, Tact) +Min');
+  assert.equal(respected('Reaction ?\nProfessional Respect () +Maj', sam.front), 'Reaction ?');
+  const mine: Opinion = { kind: 'opinion', oid: 'e0000004', holder: id(t, 'Devreux'), of: SAM, text: 'Reputation +Sig' };
+  assert.equal(synced(t, mine).cells[`${id(t, 'Devreux')}>${SAM}`], 2);
+  assert.equal(synced(t, { ...mine, text: 'Reaction ?' }).cells[`${id(t, 'Devreux')}>${SAM}`], 0);
+});
+

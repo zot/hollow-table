@@ -200,5 +200,15 @@ by the drop
 **Alarm:** 13
 **Fire alarm:** send the table to everyone (redact returns it whole); red: Dana's page holds a `connections` record
 **Inject:** src/rules/visibility.ts:redact
-**Pulled:** 2026-11-18 — rang (Chromium): Dana's page held the whole `connections` record, Jephthah and all; restored clean
+**Pulled:** 2026-11-18 — re-pulled after the redaction took Opinion Records too; rang (Chromium): Dana's page held the `connections` record; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana's page held the whole `connections` record, Jephthah and all; restored clean
+## Test: Opinion Records never reach a player
+**Purpose:** R427: the GM's record of Sam on Devreux never reaches Dana, and her forged one is refused
+**Input:** the GM's table and Dana; the GM puts a record of Sam under Devreux; Dana's page puts a record
+**Expected:** Dana's page holds no record of kind `opinion` and none of its words; the GM's page holds only its own record
+**Refs:** crc-Visibility.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 14
+**Fire alarm:** send records to everyone (redact returns an Opinion Record whole); red: Dana's page holds it
+**Inject:** src/rules/visibility.ts:redact
+**Pulled:** 2026-11-18 — rang (Chromium): Dana's page held the `opinion` record; restored clean
 

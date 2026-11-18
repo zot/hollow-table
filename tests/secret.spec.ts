@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377, R392, R393, R388, R394, R390, R395, R396, R397, R398, R399, R408, R410
+// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377, R392, R393, R388, R394, R390, R395, R396, R397, R398, R399, R408, R410, R427
 // Eve sits at the table owning nothing: no secret word reaches her page in the clear, though she
 // hears the sealed boxes meant for others. Dana sees what she owns, and nothing more.
 import { expect, test, type Page } from '@playwright/test';
@@ -221,4 +221,20 @@ test('the Connection Table never reaches a player', async ({ browser }) => {
   await hook(dana, h => h.store.game.change((w: any) => w.put('o:0000000a', { kind: 'connections', oid: '0000000a', place: { x: 0, y: 0, z: 0, tilt: 0 }, rows: [], cells: {} })));
   await gm.waitForTimeout(1500);
   expect((await recOf(gm, TABLE)).rows).toHaveLength(8);
+});
+
+test('Opinion Records never reach a player', async ({ browser }) => {
+  // R427: the GM's record of Sam under Devreux never reaches Dana; her forged one is refused.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const RECORD = 'o:00000030';
+  await hook(gm, h => h.store.game.change((w: any) => w.put('o:00000030', { kind: 'opinion', oid: '00000030', holder: 'c0000005', of: '00000001', text: 'Old Grudge -Sig' })));
+  await hook(gm, new Function('h', `const d = h.store.game.get('${DEVREUX}'); h.store.game.change(w => w.put('${DEVREUX}', { ...d, name: 'Devreux the Elder' }));`) as (h: any) => void);
+  await expect.poll(async () => (await recOf(dana, DEVREUX)).name, { timeout: 15_000 }).toBe('Devreux the Elder');
+  expect(await held(dana)).not.toContain('"opinion"');
+  expect(await held(dana)).not.toContain('Old Grudge');
+  await hook(dana, h => h.store.game.change((w: any) => w.put('o:00000031', { kind: 'opinion', oid: '00000031', holder: 'c0000005', of: '00000001', text: 'Forged +Exq' })));
+  await gm.waitForTimeout(1500);
+  expect(await recOf(gm, 'o:00000031')).toBeUndefined();
+  expect((await recOf(gm, RECORD)).text).toBe('Old Grudge -Sig');
 });

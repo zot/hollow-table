@@ -1,5 +1,5 @@
 # Connections
-**Requirements:** R407-418
+**Requirements:** R407-428
 
 The Connection Table: its rules, pure (`src/rules/connections.ts`), and its sheet and the group
 chooser on the GM's page (`src/ui/connections.ts`).
@@ -9,6 +9,9 @@ chooser on the GM's page (`src/ui/connections.ts`).
   A row is `{id, name, oid?, group?}`: an NPC's, linked by `oid` to its card once it has one, or a
   group's. `cells` holds the Levels set, keyed `<row id>><column id>`, -5 to 5; a cell not there is 0.
   `away` is put away (R409): kept, not drawn.
+- Opinion (crc-Records.md): an Opinion Record, a piece with no place, `{kind: 'opinion', oid, holder,
+  of, text}`: `holder` the row of the NPC or group it belongs to, `of` the row or PC it is of, `text`
+  the GM's Opinions, a line each (R419, R426).
 
 ## Does
 - level(n) (R411): "+Min", "-Sig", "+Maj", "-Ext", "+Exq" for 1 to 5 either way, "0" for none.
@@ -23,11 +26,27 @@ chooser on the GM's page (`src/ui/connections.ts`).
   first lines; an NPC's row renames its card.
 - set(table, row, col, n) (R411): one cell.
 - order(rows) (R416): by name, alphabetical, ignoring case.
+- connection(text) (R420): the best positive fixed Level less the worst negative, by each line's first
+  Level word (or a lone 0) outside parentheses; a line without one counts for nothing.
+- skills(front) (R425): the card's Skills by name (a `Skills N:` line's at N, a Skill under a Field at
+  the Field's Level unless it gives its own), names without ✓, †, a trailing Level or parentheses.
+- respect(npc, pc) (R425): "Professional Respect (<common Skills>) <Level>", 1 Level plus 2 when the PC
+  has 2 in any, or none; respected(text, pc) works the Level out again from the Skills left on the line,
+  and drops the line when none are.
+- rowOf(table, c) (R426): a card's row: its group's when it has a group, else its own.
+- first(table, records, holder, of, npc, pc?) (R423, R424, R425): a new record's text: "Opinion <Level>"
+  at the holder's cell for an NPC or group; for a PC, Reputation (the strongest nonzero cell among the
+  holder's characters with a record of the PC; ties to the strongest Connection, then the positive one;
+  inverted when the cell is negative) or "Reaction ?", then Professional Respect.
+- synced(table, record) (R421, R428): the table with the record's Connection in its cell, kept even
+  when 0, so a PC's cell shows it.
+- the menu's candidates (R422): the PCs with no record from the holder, by name, then the other rows
+  with none, by name.
 - seed (R418): *Connections in Unton* from *A Ghoulish Problem*: eight rows, Devreux linked to the
   playtest's card, and the book's Levels.
 - the sheet (R407, R411, R416, R417): a ruled sheet: a header row of names, then a row per row name,
   an X where a row meets itself, each cell its Level; a thick line, then a column for each PC (a
-  player's character), by name, empty (Opinion Records fill them, infer reveals Item 3). A row's name
+  player's character), by name, each cell a record's Connection, blank where none has been (R421). A row's name
   is written in place; on leaving it, rename. Clicking a cell opens the Levels, -Exq to +Exq; picking
   one sets it.
 - the group chooser (R414): on the GM's page, `(` typed in a GM card's first line opens a list of

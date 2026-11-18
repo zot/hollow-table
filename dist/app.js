@@ -131,7 +131,8 @@ var PIECES = {
     place,
     rows: list(fields({ id: isOid, name: str(CAPS.name) }, { oid: isOid, group: oneOf(true) }), 200),
     cells: dict(int(-5, 5), 4e4)
-  }, { away: oneOf(true) })
+  }, { away: oneOf(true) }),
+  opinion: fields({ kind: oneOf("opinion"), oid: isOid, holder: isOid, of: isOid, text: marked })
 };
 var piece = (v) => obj(v) && typeof v.kind === "string" && Object.hasOwn(PIECES, v.kind) && PIECES[v.kind](v);
 var SINGLETONS = {
@@ -231,9 +232,9 @@ var Game = class {
     return changed;
   }
   /** Replaces everything (opening a game, a restore, a full table arriving); every rid is heard. */
-  load(records2) {
+  load(records3) {
     const changed = new Set(this.#records.keys());
-    this.#records = new Map(records2);
+    this.#records = new Map(records3);
     for (const rid2 of this.#records.keys()) changed.add(rid2);
     this.#tell(changed);
   }
@@ -850,9 +851,9 @@ function burialOf(piece2, all2) {
   const inSlot3 = (r) => (r.kind === "chip" || r.kind === "influence") && typeof r.where === "object" && "slot" in r.where && r.where.slot === oid;
   return [piece2, ...all2.filter((r) => r.kind === "influence" && r.home === oid || inSlot3(r) || (r.kind === "sticky" || r.kind === "text" || r.kind === "image") && r.pin?.card === oid)];
 }
-function bury(y, cur, records2, name2) {
+function bury(y, cur, records3, name2) {
   const g = y.yards[cur];
-  return withYard(y, cur, { ...g, items: [...g.items, { name: name2, records: records2 }] });
+  return withYard(y, cur, { ...g, items: [...g.items, { name: name2, records: records3 }] });
 }
 function buryInfo(y, cur, name2, info, gm) {
   const g = y.yards[cur];
@@ -863,10 +864,14 @@ function withInfo(c, info) {
   cards.splice(k, 0, info.text);
   return { character: { ...c, info: cards }, k };
 }
-function lastInfo(y, cur, here2) {
+function lastCard(y, cur, here2) {
   const items = y.yards[cur]?.items ?? [];
-  for (let i = items.length - 1; i >= 0; i--) if (items[i].info && here2(items[i].info.oid)) return { yard: cur, item: i };
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].gm && here2(items[i])) return { yard: cur, item: i };
   return null;
+}
+function buryRecord(y, cur, holder, of, record, gm) {
+  const g = y.yards[cur];
+  return withYard(y, cur, { ...g, items: [...g.items, { name: `${holder.trim() || "Nameless"}: Opinion of ${of}`, records: [record], gm }] });
 }
 function take(y, cur, at3) {
   const g = y.yards[at3.yard], burial = g?.items[at3.item];
@@ -913,15 +918,15 @@ function graveName(piece2) {
       return "Image";
   }
 }
-function raised(records2, at3, z) {
-  const lead = records2[0];
+function raised(records3, at3, z) {
+  const lead = records3[0];
   if (!lead) return [];
   const anchor = lead.kind === "character" ? lead.pool : "place" in lead ? lead.place : null;
-  if (!anchor) return records2;
+  if (!anchor) return records3;
   const grab = lead.kind === "character" ? GRAB_POOL : GRAB_PIECE;
   const dx = Math.round(at3.x - grab.x - anchor.x), dy = Math.round(at3.y - grab.y - anchor.y);
   const moved = (p) => ({ ...p, x: p.x + dx, y: p.y + dy, z });
-  return records2.map((r) => r.kind === "character" ? { ...r, pool: moved(r.pool), card: moved(r.card) } : "place" in r ? { ...r, place: moved(r.place) } : r);
+  return records3.map((r) => r.kind === "character" ? { ...r, pool: moved(r.pool), card: moved(r.card) } : "place" in r ? { ...r, place: moved(r.place) } : r);
 }
 var GRAB_POOL = { x: 30, y: 14 };
 var GRAB_PIECE = { x: 20, y: 14 };
@@ -998,6 +1003,86 @@ function seed(oid, place3, devreux) {
   }));
   return t;
 }
+var tableOf = (records3) => records3.find((r) => r.kind === "connections");
+var LEVEL_OF = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
+function fixed(line) {
+  const m = /(?:^|\s)(?:([+-])(Min|Sig|Maj|Ext|Exq)\b|0(?=\s|$))/.exec(line.replace(/\([^)]*\)/g, " "));
+  return m ? m[1] ? (m[1] === "-" ? -1 : 1) * LEVEL_OF[m[2]] : 0 : void 0;
+}
+function connection(text) {
+  const all2 = text.split("\n").map(fixed).filter((n) => n !== void 0);
+  return Math.max(0, ...all2) + Math.min(0, ...all2);
+}
+var skillName2 = (s) => s.replace(/\([^)]*\)/g, "").replace(/[✓†]/g, "").replace(/\s\d+\s*$/, "").trim();
+function skills(front) {
+  const out = /* @__PURE__ */ new Map();
+  const add = (name2, n) => {
+    const k = skillName2(name2);
+    if (k && (out.get(k) ?? -1) < n) out.set(k, n);
+  };
+  let under = 0;
+  for (const raw of front.split("\n")) {
+    const text = raw.replace(/<[^>]*>/g, "");
+    if (raw.startsWith("<fld>")) {
+      under = field(text)?.level ?? 0;
+      continue;
+    }
+    if (!raw.startsWith("<skl>")) continue;
+    const line = skillsLine(text);
+    if (line) {
+      for (const p of line.skills) add(p.name, line.level);
+      continue;
+    }
+    const own2 = /\s(\d+)\s*$/.exec(text.replace(/\([^)]*\)/g, ""));
+    add(text, own2 ? Number(own2[1]) : under);
+  }
+  return out;
+}
+var respectLevel = (names, pc) => 1 + (names.some((n) => (pc.get(n) ?? 0) >= 2) ? 2 : 0);
+function respect(npc, pc) {
+  const theirs = skills(npc), mine = skills(pc), common = [...mine.keys()].filter((k) => theirs.has(k));
+  return common.length ? `Professional Respect (${common.join(", ")}) ${level(respectLevel(common, mine))}` : void 0;
+}
+var RESPECT = /^(\s*Professional Respect\s*)\(([^)]*)\)\s*(?:[+-](?:Min|Sig|Maj|Ext|Exq)\b|0\b)?(.*)$/;
+function respected(text, pc) {
+  const mine = skills(pc);
+  return text.split("\n").flatMap((line) => {
+    const m = RESPECT.exec(line);
+    if (!m) return [line];
+    const names = m[2].split(",").map((n) => n.trim()).filter(Boolean);
+    return names.length ? [`${m[1]}(${names.join(", ")}) ${level(respectLevel(names.map(skillName2), mine))}${m[3]}`] : [];
+  }).join("\n");
+}
+function rowOf(t, c) {
+  const g = groupOf(c.front);
+  return t.rows.find((r) => g ? r.group && r.name === g : r.oid === c.oid);
+}
+var pcsOf = (chars) => order(chars.filter((c) => c.owner !== GM && c.owner !== OPEN));
+function first(t, records3, holder, of, npc, pc) {
+  if (!pc) return `Opinion ${level(cell(t, holder, of))}`;
+  const known = t.rows.flatMap((r) => {
+    const mine = cell(t, holder, r.id), rec = records3.find((x) => x.holder === r.id && x.of === pc.oid);
+    return r.id !== holder && mine && rec ? [{ mine, theirs: connection(rec.text) }] : [];
+  });
+  known.sort((a, b) => Math.abs(b.mine) - Math.abs(a.mine) || Math.abs(b.theirs) - Math.abs(a.theirs) || b.theirs - a.theirs);
+  const best = known[0];
+  const lines = [best ? `Reputation ${level(best.mine < 0 ? -best.theirs : best.theirs)}` : "Reaction ?"];
+  const pr = respect(npc.front, pc.front);
+  return [...lines, ...pr ? [pr] : []].join("\n");
+}
+function synced(t, r) {
+  return { ...t, cells: { ...t.cells, [`${r.holder}>${r.of}`]: connection(r.text) } };
+}
+function nameOf(t, chars, of) {
+  return t.rows.find((r) => r.id === of)?.name ?? chars.find((c) => c.oid === of)?.name ?? "?";
+}
+function candidates(t, records3, holder, chars) {
+  const has = new Set(records3.filter((r) => r.holder === holder).map((r) => r.of));
+  return [
+    ...pcsOf(chars).filter((c) => !has.has(c.oid)).map((c) => ({ id: c.oid, name: c.name, pc: true })),
+    ...order(t.rows).filter((r) => r.id !== holder && !has.has(r.id)).map((r) => ({ id: r.id, name: r.name, pc: false }))
+  ];
+}
 
 // src/ui/connections.ts
 var el = (doc, tag2, cls, text) => {
@@ -1007,12 +1092,12 @@ var el = (doc, tag2, cls, text) => {
   return e;
 };
 var characters = (game) => game.all().map(([, r]) => r).filter((r) => r.kind === "character");
-var tableOf = (game, rid2) => game.get(rid2);
+var tableOf2 = (game, rid2) => game.get(rid2);
 function connections(e, rid2, w) {
   const doc = e.ownerDocument;
   e.addEventListener("focusout", (ev) => {
     const th = ev.target.closest("th.rowname");
-    const t = tableOf(w.game, rid2);
+    const t = tableOf2(w.game, rid2);
     if (!th || !t) return;
     const { table, changed } = rename2(t, th.dataset.id, th.textContent ?? "", characters(w.game));
     w.game.change((wr) => {
@@ -1037,7 +1122,7 @@ function connections(e, rid2, w) {
       const b = el(doc, "button", n === 0 ? "zero" : n > 0 ? "pos" : "neg", level(n));
       b.addEventListener("click", (ev2) => {
         ev2.stopPropagation();
-        const t = tableOf(w.game, rid2);
+        const t = tableOf2(w.game, rid2);
         pick.remove();
         if (t) w.game.change((wr) => wr.put(rid2, set(t, td.dataset.row, td.dataset.col, n)));
       });
@@ -1076,14 +1161,17 @@ function sheet(e, t, w) {
       td.dataset.col = c.id;
       tr.append(td);
     }
-    tr.append(...players.map((_, k) => el(doc, "td", `pc${k ? "" : " first"}`)));
+    tr.append(...players.map((c, k) => {
+      const n = t.cells[`${r.id}>${c.oid}`];
+      return el(doc, "td", `pc${k ? "" : " first"}${n ? n > 0 ? " pos" : " neg" : ""}`, n === void 0 ? "" : level(n));
+    }));
     grid.append(tr);
   }
   const old = e.querySelector("table.conn");
   if (old) old.replaceWith(grid);
   else e.prepend(grid);
 }
-var pcs = (game) => order(characters(game).filter((c) => c.owner !== GM && c.owner !== OPEN));
+var pcs = (game) => pcsOf(characters(game));
 function groups(game) {
   const names = /* @__PURE__ */ new Set();
   for (const [, r] of game.all()) {
@@ -1216,7 +1304,7 @@ function contribution(i, chars) {
   return !!home && home.owner !== pool.owner;
 }
 function redactPiece(r, viewer, chars) {
-  if (r.kind === "connections") return viewer?.gm ? r : void 0;
+  if (r.kind === "connections" || r.kind === "opinion") return viewer?.gm ? r : void 0;
   if (r.kind === "character") {
     if (canSee(viewer, r)) return r;
     const shown3 = new Set(r.shown ?? []);
@@ -2248,18 +2336,21 @@ function infos(e, c, w, secret, draft) {
   const doc = e.ownerDocument, box2 = e.querySelector(":scope > .infos"), rid2 = ridOf(c.oid);
   const shown3 = new Set(c.shown ?? []), cards = (c.info ?? []).map((i) => secret ? blankInfo(i, shown3) : i);
   const showing = cards.flatMap((t, k) => secret && !t.trim() ? [] : [k]);
-  const mine = `${c.oid}:`, at3 = [...w.slid()].find((s) => s.startsWith(mine)), want = at3 ? Number(at3.slice(mine.length)) : -1;
-  const out = showing.includes(want) ? want : -1;
-  const slide = (to) => w.setSlid(new Set([...w.slid()].filter((s) => !s.startsWith(mine)).concat(to < 0 ? [] : [mine + to])));
+  const recs = w.viewer?.gm && c.owner === GM ? records(w.game, c) : [];
+  const mine = `${c.oid}:`, at3 = [...w.slid()].find((s) => s.startsWith(mine)), key = at3?.slice(mine.length) ?? "";
+  const rec = key.startsWith("o") ? recs.find((r) => r.rec.oid === key.slice(1)) : void 0;
+  const out = key && !key.startsWith("o") && showing.includes(Number(key)) ? Number(key) : -1;
+  const want = rec ? `o${rec.rec.oid}` : String(out);
+  const slide = (to) => w.setSlid(new Set([...w.slid()].filter((s) => !s.startsWith(mine)).concat(to === -1 ? [] : [mine + to])));
   let paper = box2.querySelector(":scope > .infopaper");
-  if (paper && paper.dataset.k !== String(out)) {
+  if (paper && paper.dataset.k !== want) {
     paper.remove();
     paper = null;
   }
   if (out >= 0) {
     if (!paper) {
       paper = el2(doc, "div", "infopaper");
-      paper.dataset.k = String(out);
+      paper.dataset.k = want;
       let words = cards[out];
       const text2 = writable(doc, "text", words, (s) => {
         if (s.trim()) words = s;
@@ -2281,6 +2372,14 @@ function infos(e, c, w, secret, draft) {
     if (!draft && text.querySelector("[data-entries]")) delete text.dataset.source;
     rewrite(text, cards[out]);
     torn(text, c, secret, draft, draft ? w.eyes.cat(c.oid) : null, clues, false);
+  } else if (rec) {
+    if (!paper) {
+      paper = recordPaper(doc, rec.rec.oid, w, () => slide(-1));
+      paper.dataset.k = want;
+      box2.prepend(paper);
+    }
+    paper.querySelector(".connhead").textContent = `\u2794 ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
+    rewrite(paper.querySelector(".text"), rec.rec.text);
   }
   const tabs = el2(doc, "div", "infotabs");
   for (const k of showing) {
@@ -2288,8 +2387,54 @@ function infos(e, c, w, secret, draft) {
     gesture(t, { click: () => slide(k === out ? -1 : k) });
     tabs.append(t);
   }
+  for (const r of recs) {
+    const on = r === rec, t = el2(doc, "button", `infotab opinion${on ? " out" : ""}`, r.name);
+    gesture(t, { click: () => slide(on ? -1 : `o${r.rec.oid}`) });
+    tabs.append(t);
+  }
   box2.querySelector(":scope > .infotabs")?.remove();
   box2.append(tabs);
+}
+function records(game, c) {
+  const all2 = game.all().map(([, r]) => r), t = tableOf(all2);
+  const row2 = t && rowOf(t, c);
+  if (!t || !row2) return [];
+  const chars = all2.filter((r) => r.kind === "character");
+  return order(all2.filter((r) => r.kind === "opinion" && r.holder === row2.id).map((rec) => ({ rec, name: nameOf(t, chars, rec.of) })));
+}
+function writeRecord(w, oid, text) {
+  const rec = w.game.get(ridOf(oid));
+  const t = tableOf(w.game.all().map(([, r]) => r));
+  if (rec?.kind !== "opinion" || !t) return;
+  const now2 = { ...rec, text };
+  w.game.change((g) => {
+    g.put(ridOf(oid), now2);
+    g.put(ridOf(t.oid), synced(t, now2));
+  });
+}
+function recordPaper(doc, oid, w, away) {
+  const paper = el2(doc, "div", "infopaper opinion"), rid2 = ridOf(oid);
+  let words = w.game.get(rid2)?.text ?? "";
+  const text = writable(doc, "text", words, (s) => {
+    if (s.trim()) words = s;
+    writeRecord(w, oid, s);
+  });
+  text.addEventListener("focusout", () => {
+    const x = w.game.get(rid2);
+    if (x?.kind !== "opinion") return;
+    if (!x.text.trim()) {
+      w.buryRecord(oid, words);
+      away();
+      return;
+    }
+    const pc = w.game.get(ridOf(x.of)), fixed2 = pc?.kind === "character" ? respected(x.text, pc.front) : x.text;
+    if (fixed2 !== x.text) {
+      words = fixed2;
+      writeRecord(w, oid, fixed2);
+    }
+  });
+  paper.append(el2(doc, "div", "connhead"), text);
+  return paper;
 }
 function eyeMenu(e, oid, w) {
   const was = e.querySelector(".eyemenu");
@@ -3350,8 +3495,8 @@ var Moves = class {
       }
       if (!this.#w.stamps.fresh(c.rid, c.tab, c.s)) continue;
       this.#w.stamps.mark(c.rid, c.tab, c.s);
-      const first = placed.get(c.rid);
-      if (first && (first.tab !== c.tab || c.s <= first.s)) continue;
+      const first2 = placed.get(c.rid);
+      if (first2 && (first2.tab !== c.tab || c.s <= first2.s)) continue;
       placed.set(c.rid, c);
     }
     run2.length = 0;
@@ -6953,8 +7098,8 @@ var unwrapFrame = (data) => {
   return null;
 };
 var isPeerUnderlyingStale = (peer) => {
-  const { connection, channel } = peer;
-  return peer.isDead || connection.connectionState === "closed" || connection.connectionState === "failed" || connection.iceConnectionState === "closed" || connection.iceConnectionState === "failed" || channel?.readyState === "closing" || channel?.readyState === "closed";
+  const { connection: connection2, channel } = peer;
+  return peer.isDead || connection2.connectionState === "closed" || connection2.connectionState === "failed" || connection2.iceConnectionState === "closed" || connection2.iceConnectionState === "failed" || channel?.readyState === "closing" || channel?.readyState === "closed";
 };
 var getConnectedPeerHealth = (peer) => {
   if (isPeerUnderlyingStale(peer)) return "stale";
@@ -9566,11 +9711,11 @@ var TapeView = class {
     this.#el.classList.toggle("up", this.#w.up());
     const key = JSON.stringify(tape.receipts);
     if (key === this.#shown) return;
-    const first = !this.#shown, was = first ? void 0 : JSON.parse(this.#shown)[0]?.id;
+    const first2 = !this.#shown, was = first2 ? void 0 : JSON.parse(this.#shown)[0]?.id;
     this.#shown = key;
     this.#strip.replaceChildren(...tape.receipts.map((r) => this.#receipt(doc, r)));
     const top = this.#strip.firstElementChild;
-    if (!first && top && tape.receipts[0].id !== was) {
+    if (!first2 && top && tape.receipts[0].id !== was) {
       top.classList.add("printing");
       this.#el.classList.add("raised");
       this.#strip.scrollTop = 0;
@@ -9737,10 +9882,10 @@ var RegisterView = class {
   render() {
     const round = this.#w.game.get("meta")?.round ?? 0;
     if (round === this.#shown) return;
-    const first = this.#shown < 0;
+    const first2 = this.#shown < 0;
     this.#shown = round;
     const reduce = this.#el.ownerDocument.defaultView?.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (first || reduce) {
+    if (first2 || reduce) {
       this.#tab.textContent = String(round);
       return;
     }
@@ -9835,6 +9980,19 @@ function makeMenu(e, oid, w) {
     w.addInfo(oid);
   } });
   m.append(info);
+  const all2 = w.game.all().map(([, r]) => r), chars = all2.filter((r) => r.kind === "character");
+  const t = tableOf(all2) ?? newConnections("", { x: 0, y: 0, z: 0, tilt: 0 });
+  const c = chars.find((x) => x.oid === oid), holder = c && rowOf(t, c);
+  const offer4 = candidates(t, all2.filter((r) => r.kind === "opinion"), holder?.id ?? "", chars);
+  if (offer4.length) m.append(el3(e.ownerDocument, "div", "menuhead", "Opinion of"));
+  for (const o of offer4) {
+    const b = el3(e.ownerDocument, "button", `opinionof${o.pc ? " pc" : ""}`, o.name);
+    gesture(b, { click: () => {
+      m.remove();
+      w.addOpinion(oid, o.id);
+    } });
+    m.append(b);
+  }
   e.append(m);
 }
 function drawPool(c, items, old, w) {
@@ -9986,13 +10144,13 @@ function chip(doc, i, w) {
   return b;
 }
 function pile(doc, p, open, w) {
-  const first = p.members[0]?.oid ?? "";
-  const d = el3(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first) ? " open" : ""}`);
+  const first2 = p.members[0]?.oid ?? "";
+  const d = el3(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first2) ? " open" : ""}`);
   const disc = el3(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
   disc.title = `${p.members.length} acting as one`;
-  gesture(disc, { click: () => w.toggle("piles", first) });
+  gesture(disc, { click: () => w.toggle("piles", first2) });
   d.append(disc);
-  if (open.has(first)) {
+  if (open.has(first2)) {
     const list2 = el3(doc, "div", "members");
     for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
     d.append(list2);
@@ -10285,10 +10443,38 @@ var BootHillView = class {
       return b;
     }));
   }
-  /** R404: digs up the newest Info card buried in this graveyard whose NPC is here; false when none. */
+  /** R404, R428: digs up the newest Info card or record buried in this graveyard whose NPC is here; false when none. */
   undoCard() {
-    const cur = this.#cur(), at3 = lastInfo(this.#yards(), cur, (oid) => !!this.#npc(oid));
-    return !!at3 && this.#infoUp(at3);
+    const cur = this.#cur(), at3 = lastCard(this.#yards(), cur, (b) => b.info ? !!this.#npc(b.info.oid) : !!this.#holderCard(b));
+    return !!at3 && this.#cardUp(at3);
+  }
+  /** A buried record's, and a card of its NPC or group on the table. */
+  #holderCard(b) {
+    const record = b.records[0];
+    if (record?.kind !== "opinion") return void 0;
+    const all2 = this.#w.game.all().map(([, r]) => r);
+    const table = tableOf(all2);
+    const card2 = table && all2.find((c) => c.kind === "character" && rowOf(table, c)?.id === record.holder);
+    return table && card2 ? { record, table, card: card2 } : void 0;
+  }
+  #cardUp(at3) {
+    const b = this.#yards().yards[at3.yard]?.items[at3.item];
+    return b?.info ? this.#infoUp(at3) : this.#recordUp(at3);
+  }
+  // R428: a record comes back, its Connection written to its cell again, slid out under a card of its
+  // NPC or group; while none is on the table it stays buried.
+  #recordUp(at3) {
+    const b = this.#yards().yards[at3.yard]?.items[at3.item], up = b && this.#holderCard(b);
+    if (!up) return false;
+    const dug = exhume(this.#yards(), this.#cur(), at3);
+    this.#w.game.change((x) => {
+      x.put("yards", dug.yards);
+      x.put(ridOf(up.record.oid), up.record);
+      x.put(ridOf(up.table.oid), synced(up.table, up.record));
+    });
+    this.#w.setCur(dug.cur);
+    this.#w.slideInfo(up.card.oid, `o${up.record.oid}`);
+    return true;
   }
   #npc(oid) {
     const c = this.#w.game.get(ridOf(oid));
@@ -10309,8 +10495,8 @@ var BootHillView = class {
   }
   #digUp(item2, e) {
     const cur = this.#cur();
-    if (this.#yards().yards[cur]?.items[item2]?.info) {
-      if (this.#infoUp({ yard: cur, item: item2 })) {
+    if (this.#yards().yards[cur]?.items[item2]?.gm) {
+      if (this.#cardUp({ yard: cur, item: item2 })) {
         this.#w.setOpen(false);
         this.render();
       }
@@ -10852,12 +11038,12 @@ var GameStore = class {
   }
   // R133: New game is an empty table beside the others.
   /** Stores a new game (not opened): its records, and any checkpoints it brings (an import). */
-  async add(name2, records2 = singletons(), checkpoints = [], copyOf, id = this.#id("g")) {
+  async add(name2, records3 = singletons(), checkpoints = [], copyOf, id = this.#id("g")) {
     const now2 = this.#clock.now();
     const info = { id, name: name2, made: now2, opened: now2, ...copyOf && { copyOf } };
     await this.#db.tx(["games", "records", "checkpoints"], "readwrite", async (t) => {
       await t.put("games", id, info);
-      for (const [rid2, rec] of records2) await t.put("records", [id, rid2], rec);
+      for (const [rid2, rec] of records3) await t.put("records", [id, rid2], rec);
       for (const cp of checkpoints) {
         const cid = this.#id("c");
         await t.put("checkpoints", [id, cid], { ...cp, id: cid });
@@ -10868,7 +11054,7 @@ var GameStore = class {
   /** Saves the open game, then opens another. */
   async open(id) {
     await this.save();
-    const { info, records: records2 } = await this.#db.tx(["games", "records"], "readwrite", async (t) => {
+    const { info, records: records3 } = await this.#db.tx(["games", "records"], "readwrite", async (t) => {
       const info2 = await t.get("games", id);
       if (!info2) throw new Error(`no game ${id}`);
       const opened = { ...info2, opened: this.#clock.now() };
@@ -10877,7 +11063,7 @@ var GameStore = class {
     });
     this.#quiet = true;
     try {
-      this.game.load(records2);
+      this.game.load(records3);
     } finally {
       this.#quiet = false;
     }
@@ -10908,10 +11094,10 @@ var GameStore = class {
     const cur = this.current, rids = [...this.#pending];
     this.#pending.clear();
     if (!cur || !rids.length) return this.#saving;
-    const records2 = rids.map((rid2) => [rid2, this.game.get(rid2)]);
+    const records3 = rids.map((rid2) => [rid2, this.game.get(rid2)]);
     this.#busy++;
     this.#saving = this.#saving.then(() => this.#db.tx(["records"], "readwrite", async (t) => {
-      for (const [rid2, rec] of records2) {
+      for (const [rid2, rec] of records3) {
         const stored = await t.get("records", [cur.id, rid2]);
         if (same(stored, rec)) continue;
         if (rec === void 0) await t.del("records", [cur.id, rid2]);
@@ -10922,7 +11108,7 @@ var GameStore = class {
       this.#failed = null;
     }, (e) => {
       this.#failed = e instanceof Error ? e.message : String(e);
-      for (const [rid2] of records2) this.#pending.add(rid2);
+      for (const [rid2] of records3) this.#pending.add(rid2);
     }).finally(() => {
       this.#busy--;
     });
@@ -10957,8 +11143,8 @@ var GameStore = class {
     if (!cp) throw new Error(`no checkpoint ${id}`);
     await this.checkpoint(beforeRestoring(cp.name), true);
     const book2 = this.game.get("book");
-    const records2 = Object.entries(cp.records).filter(([rid2]) => rid2 !== "book");
-    this.game.load(book2 ? [...records2, ["book", book2]] : records2);
+    const records3 = Object.entries(cp.records).filter(([rid2]) => rid2 !== "book");
+    this.game.load(book2 ? [...records3, ["book", book2]] : records3);
     await this.save();
   }
   /** A game as stored, with its checkpoints oldest first (for Exchange). */
@@ -11060,8 +11246,8 @@ function prune(seat, exists, yards) {
 // src/store/exchange.ts
 var FORMAT = "hollow-table-game";
 var VERSION2 = 1;
-function imagesIn(records2, into = /* @__PURE__ */ new Set()) {
-  for (const r of records2) {
+function imagesIn(records3, into = /* @__PURE__ */ new Set()) {
+  for (const r of records3) {
     if ("kind" in r && r.kind === "image") into.add(r.blob);
     if ("yards" in r) for (const g of r.yards) for (const b of g.items) imagesIn(b.records, into);
   }
@@ -11080,8 +11266,8 @@ function fromDataUri(uri) {
   return new Blob([Uint8Array.from(bin, (c) => c.charCodeAt(0))], { type: m[1] });
 }
 async function exportGame(store, blobs, id) {
-  const { info, records: records2, checkpoints } = await store.read(id);
-  const used = imagesIn(records2.map(([, r]) => r));
+  const { info, records: records3, checkpoints } = await store.read(id);
+  const used = imagesIn(records3.map(([, r]) => r));
   for (const cp of checkpoints) imagesIn(Object.values(cp.records), used);
   const images = {};
   for (const hash of used) {
@@ -11092,7 +11278,7 @@ async function exportGame(store, blobs, id) {
     format: FORMAT,
     version: VERSION2,
     name: info.name,
-    records: Object.fromEntries(records2),
+    records: Object.fromEntries(records3),
     checkpoints: checkpoints.map(({ id: _, ...cp }) => cp),
     blobs: images
   };
@@ -11104,7 +11290,7 @@ function fileName(name2) {
 var BadFile = class extends Error {
 };
 var isObject2 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
-function records(v, where2) {
+function records2(v, where2) {
   if (!isObject2(v)) throw new BadFile(`${where2}: no records`);
   return Object.entries(v).map(([rid2, rec]) => {
     if (!check(rid2, rec)) throw new BadFile(`${where2}: ${rid2} is not a well-formed record`);
@@ -11121,13 +11307,13 @@ async function importGame(store, blobs, text) {
   if (!isObject2(file) || file.format !== FORMAT) throw new BadFile("not a Hollow Table game");
   if (file.version !== VERSION2) throw new BadFile(`version ${String(file.version)} is not ${VERSION2}`);
   if (typeof file.name !== "string" || !file.name) throw new BadFile("no name");
-  const game = records(file.records, "the game");
+  const game = records2(file.records, "the game");
   if (!Array.isArray(file.checkpoints)) throw new BadFile("no checkpoints");
   const checkpoints = file.checkpoints.map((cp, i) => {
     if (!isObject2(cp) || typeof cp.name !== "string" || typeof cp.at !== "number" || typeof cp.auto !== "boolean") {
       throw new BadFile(`checkpoint ${i + 1} is malformed`);
     }
-    return { name: cp.name, at: cp.at, auto: cp.auto, records: Object.fromEntries(records(cp.records, `checkpoint \u201C${cp.name}\u201D`)) };
+    return { name: cp.name, at: cp.at, auto: cp.auto, records: Object.fromEntries(records2(cp.records, `checkpoint \u201C${cp.name}\u201D`)) };
   });
   if (!isObject2(file.blobs)) throw new BadFile("no images");
   const images = [];
@@ -11464,7 +11650,7 @@ var Drag = class {
   #itemAim(rid2, doc, x, y, from, isCard, strip) {
     const { game } = this.#w, i = game.get(rid2);
     const hits = doc.elementsFromPoint?.(x, y) ?? [];
-    const first = (sel) => {
+    const first2 = (sel) => {
       for (const h of hits) {
         const m = h.closest?.(sel);
         if (m) return m;
@@ -11472,8 +11658,8 @@ var Drag = class {
       return null;
     };
     const aim2 = {};
-    const into = i?.kind === "influence" && i.tap ? first(".tapped[data-rid]") : null;
-    const slot2 = first(".slot"), kill2 = first(".kill"), drawer2 = first(".drawer");
+    const into = i?.kind === "influence" && i.tap ? first2(".tapped[data-rid]") : null;
+    const slot2 = first2(".slot"), kill2 = first2(".kill"), drawer2 = first2(".drawer");
     if (into && mergeTap(game, rid2, into.dataset.rid, () => "")) aim2.merge = into.dataset.rid;
     else if (slot2) aim2.slot = { owner: slot2.dataset.owner, name: slot2.dataset.slot };
     else if (kill2) {
@@ -11879,8 +12065,12 @@ var TableView = class {
     }
     this.after?.();
   }
-  #render(rids) {
-    const characters3 = /* @__PURE__ */ new Set();
+  #render(changed) {
+    const characters3 = /* @__PURE__ */ new Set(), game = this.#w.game;
+    const rids = [...changed], kind = (rid2) => game.get(rid2)?.kind;
+    if (this.#w.viewer?.gm && rids.some((rid2) => isPiece(rid2) && (!game.get(rid2) || kind(rid2) === "opinion" || kind(rid2) === "connections"))) {
+      for (const [rid2, r] of game.all()) if (r.kind === "character" && !rids.includes(rid2)) rids.push(rid2);
+    }
     let items = false;
     for (const rid2 of rids) {
       if (!isPiece(rid2)) continue;
@@ -12446,6 +12636,40 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       game.change((w) => w.put(rid2, { ...c, info: [...c.info ?? [], ""] }));
       slideInfo(oid, k);
       document.querySelector(`.card[data-rid="${rid2}"] .infopaper .text`)?.focus();
+    },
+    // R422-R426: a record made from the NPC's menu, held by its row (its group's, R426), started as the
+    // book's first meeting starts it, its cell in step; the table is made, put away, when there is none.
+    addOpinion: (oid, of) => {
+      const all2 = game.all().map(([, r]) => r), chars = all2.filter((r) => r.kind === "character");
+      const c = chars.find((x) => x.oid === oid);
+      let t = tableOf(all2) ?? { ...newConnections(mint2()(), { x: 0, y: 0, z: 0, tilt: 0 }), away: true };
+      if (!c) return;
+      t = keep(t, c, mint2()());
+      const holder = rowOf(t, c), pc = pcsOf(chars).find((x) => x.oid === of);
+      if (!holder) return;
+      const rec = {
+        kind: "opinion",
+        oid: mint2()(),
+        holder: holder.id,
+        of,
+        text: first(t, all2.filter((r) => r.kind === "opinion"), holder.id, of, c, pc)
+      };
+      game.change((w) => {
+        w.put(ridOf(t.oid), synced(t, rec));
+        w.put(ridOf(rec.oid), rec);
+      });
+      slideInfo(oid, `o${rec.oid}`);
+    },
+    // R428: an emptied record is buried whole, with its last words, named for its holder and character.
+    buryRecord: (oid, words) => {
+      const rid2 = ridOf(oid), rec = game.get(rid2), y = game.get("yards") ?? empty();
+      const all2 = game.all().map(([, r]) => r), t = tableOf(all2);
+      if (rec?.kind !== "opinion" || !t) return;
+      const chars = all2.filter((r) => r.kind === "character"), cur = Math.min(seat.boothill.cur, y.yards.length - 1);
+      game.change((w) => {
+        w.del(rid2);
+        if (words.trim()) w.put("yards", buryRecord(y, cur, nameOf(t, chars, rec.holder), nameOf(t, chars, rec.of), { ...rec, text: words }, mint2()()));
+      });
     },
     // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die3) => {

@@ -750,3 +750,10 @@ body.tapping, body.tapping * { cursor: pointer !important; }
   padding: 3px 8px; border-radius: 4px; cursor: pointer; }
 .obj.connections .levels button:hover, .obj .groups button:hover, .obj .groups button.on { background: #efe6d2; }
 .obj .groups .new { font: italic 12px var(--mono); padding: 3px 8px; color: #555; }
+
+/* R419: Opinion Records are pink folders after the white Info cards; the table's first line underlined. */
+:root { --opinion: #f9d3dc; }
+.infopaper.opinion { background: var(--opinion); }
+.infotab.opinion::before { background: var(--opinion); }
+.infopaper .connhead { text-decoration: underline; font: 13px var(--mono); margin-bottom: 4px; user-select: none; }
+.poolmenu .menuhead { font: italic 11px var(--mono); color: #666; padding: 6px 8px 2px; border-top: 1px solid #ddd; margin-top: 4px; }

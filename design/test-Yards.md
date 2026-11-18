@@ -61,8 +61,8 @@ record moved alike at z 77; the sticky at 80, 36, z 3; nothing
 **Pulled:** 2026-11-13 — rang: Sam's card stayed where it was buried
 
 ## Test: an Info card is buried with its place and words, and comes back there
-**Purpose:** R403–R405: buryInfo names the burial after its NPC ("Nameless" when blank); lastInfo finds the newest whose NPC is here; exhume gives back the card; withInfo puts it at its place, or last when fewer remain
-**Input:** Devreux's card at place 1 and a blank-named one for Sam buried; lastInfo with everyone here, only Devreux, nobody; Devreux's exhumed; put back on two cards, and on none
+**Purpose:** R403–R405: buryInfo names the burial after its NPC ("Nameless" when blank); lastCard finds the newest whose NPC is here; exhume gives back the card; withInfo puts it at its place, or last when fewer remain
+**Input:** Devreux's card at place 1 and a blank-named one for Sam buried; lastCard with everyone here, only Devreux, nobody; Devreux's exhumed; put back on two cards, and on none
 **Expected:** "Devreux: Info card", "Nameless: Info card"; item 1, item 0, none; the card, no records; `['a', 'ANY: old', 'b']` at 1; `['ANY: old']` at 0; an ordinary exhume has no `info`
 **Refs:** crc-Yards.md
 **Code:** `src/rules/yards.test.ts`

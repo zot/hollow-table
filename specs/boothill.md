@@ -14,6 +14,9 @@ Where put-away work goes, so nothing that holds work is lost by accident.
   its NPC. Dragged out of the list it goes back on its NPC where it was, slid out; while its NPC isn't
   on the table it stays buried. Players see it as **"GM card"** (Bill, 11-18: "let the players see 'GM
   card' rather than 'Devreux: Info card'"), with nothing of what it says or whose it was; only the GM can bring it back or delete it.
+- **An Opinion Record the GM empties is buried the same way** (see `connections.md`), named "Devreux:
+  Opinion of Sam" after its NPC (or group) and character; dragged out it comes back under its NPC's
+  card, and players see "GM card".
 - **The list closes on a press anywhere else**, as the Ledger does (Bill, 11-12).
 - **Putting away** a pool or its character card buries both, with everything on them. Stickies,
   loose writing, images and torn rolls are buried too.

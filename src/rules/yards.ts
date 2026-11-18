@@ -1,8 +1,8 @@
-// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290, R403, R404, R405
+// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290, R403, R404, R405, R428
 // Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever. `cur` is the index
 // of the graveyard being browsed (a seat setting); every operation returns the new yards and cur.
 
-import type { Burial, Character, Graveyard, InfoBurial, Oid, PieceRecord, Place, Yards } from '../model/records.ts';
+import type { Burial, Character, Graveyard, InfoBurial, Oid, Opinion, PieceRecord, Place, Yards } from '../model/records.ts';
 
 export type At = { yard: number; item: number };
 export type Browse = { yards: Yards; cur: number };
@@ -65,11 +65,18 @@ export function withInfo(c: Character, info: InfoBurial): { character: Character
   return { character: { ...c, info: cards }, k };
 }
 
-/** R404: the newest Info card buried in the current graveyard whose NPC is on the table. */
-export function lastInfo(y: Yards, cur: number, here: (oid: Oid) => boolean): At | null {
+/** R404, R428: the newest GM card (an Info card or an Opinion Record) buried in the current graveyard that `here` can bring back. */
+export function lastCard(y: Yards, cur: number, here: (b: Burial) => boolean): At | null {
   const items = y.yards[cur]?.items ?? [];
-  for (let i = items.length - 1; i >= 0; i--) if (items[i]!.info && here(items[i]!.info!.oid)) return { yard: cur, item: i };
+  for (let i = items.length - 1; i >= 0; i--) if (items[i]!.gm && here(items[i]!)) return { yard: cur, item: i };
   return null;
+}
+
+// R428: an emptied Opinion Record, buried whole as a GM card.
+/** Boot Hill with a record buried as "<holder>: Opinion of <name>". */
+export function buryRecord(y: Yards, cur: number, holder: string, of: string, record: Opinion, gm: Oid): Yards {
+  const g = y.yards[cur]!;
+  return withYard(y, cur, { ...g, items: [...g.items, { name: `${holder.trim() || 'Nameless'}: Opinion of ${of}`, records: [record], gm }] });
 }
 
 function take(y: Yards, cur: number, at: At): Browse & { burial: Burial | undefined } {

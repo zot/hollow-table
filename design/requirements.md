@@ -439,6 +439,16 @@
 - **R416:** The Connection Table's rows and columns are in alphabetical order by name.
 - **R417:** After a thick vertical line, the Connection Table has a column for each PC, in alphabetical order, holding only what Opinion Records give it.
 - **R418:** The playtest game starts with the Connection Table put away, holding the eight Unton NPCs of *A Ghoulish Problem* and their Levels.
+- **R419:** An Opinion Record is a pink folder under an NPC's card, after its Info cards and in alphabetical order by its character's name, its tab reading that name; its first line, drawn by the table and underlined, reads "➔ <name> (Connection <Level>)", and under it the GM writes an Opinion a line.
+- **R420:** A record's Connection is its best positive Opinion less its worst negative, by fixed Levels, either 0 when there is none; an adjusted value in parentheses, and a line with no Level, count for nothing. It is written as a Level.
+- **R421:** Whenever a record's Connection changes, the Connection Table's cell for its NPC's row and its character's column takes it, a PC's column included; a PC's cell is blank where no record has given it a value.
+- **R422:** The NPC's menu has "Opinion of": the PCs it has no record of, then the other Connection Table rows it has none of; picking one makes the record, slid out.
+- **R423:** A record of an NPC starts with "Opinion" at the NPC's cell for it.
+- **R424:** A record of a PC starts with Reputation when, of the characters the NPC has a cell for other than 0, any has a record of the PC: the one with the strongest cell by magnitude, a tie going to the strongest Connection to the PC and then to the positive one; the Reputation is that one's Connection to the PC, inverted when the NPC's cell for it is negative. Otherwise it starts with "Reaction ?".
+- **R425:** A record of a PC also starts with one Professional Respect line naming the Skills the two cards have in common, at 1 Level plus 2 when the PC has Level 2 in any of them; on leaving the record its Level is worked out again from the Skills left, and with none left the line goes.
+- **R426:** An NPC in a group shows the group's records, held by the group's row: an edit under one member's card shows under every member's.
+- **R427:** No player's page receives an Opinion Record, and a player's change to one is refused.
+- **R428:** An emptied record is buried once the GM leaves it, named "<NPC or group>: Opinion of <name>" and shown to players as "GM card"; undo digs up the newest buried Info card or record, and dragging one out of the list does too. While it is buried its cell keeps its value; dug up, its Connection is written to its cell.
 
 ## Feature: delivery
 **Source:** specs/delivery.md

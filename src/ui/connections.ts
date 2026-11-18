@@ -1,9 +1,9 @@
-// CRC: crc-Connections.md | R407, R411, R414, R415, R416, R417
+// CRC: crc-Connections.md | R407, R411, R414, R415, R416, R417, R421
 // The Connection Table's sheet, drawn on the GM's page, and the chooser that writes an NPC's group.
 
 import type { Game } from '../model/game.ts';
 import { GM, OPEN, ridOf, type Character, type Connections, type PieceRecord } from '../model/records.ts';
-import { LEVELS, cell, groupOf, level, order, rename, set } from '../rules/connections.ts';
+import { LEVELS, cell, groupOf, level, order, pcsOf, rename, set } from '../rules/connections.ts';
 
 type With = { game: Game };
 
@@ -79,15 +79,18 @@ export function sheet(e: HTMLElement, t: Connections, w: With): void {
       td.dataset.col = c.id;
       tr.append(td);
     }
-    tr.append(...players.map((_, k) => el(doc, 'td', `pc${k ? '' : ' first'}`)));
+    // R421: a PC's cell is a record's Connection, blank where none has given it one.
+    tr.append(...players.map((c, k) => {
+      const n = t.cells[`${r.id}>${c.oid}`];
+      return el(doc, 'td', `pc${k ? '' : ' first'}${n ? (n > 0 ? ' pos' : ' neg') : ''}`, n === undefined ? '' : level(n));
+    }));
     grid.append(tr);
   }
   const old = e.querySelector('table.conn');
   if (old) old.replaceWith(grid); else e.prepend(grid);
 }
 
-/** The PCs: players' characters, by name. */
-const pcs = (game: Game) => order(characters(game).filter(c => c.owner !== GM && c.owner !== OPEN));
+const pcs = (game: Game) => pcsOf(characters(game));
 
 /** The game's groups: the table's group rows and the groups written on GM cards, by name. */
 function groups(game: Game): string[] {

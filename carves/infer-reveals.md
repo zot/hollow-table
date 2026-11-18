@@ -16,7 +16,10 @@ Infer; when you Infer Opinions", and "I forgot I renamed Connection Card to Opin
 - [x] ~~**Item 2 — the slide-out and its Info cards.**~~ **LANDED (2026-11-18 — `#29`.)**
 - [x] ~~**Item 5 — the NPC's menu and its folders.**~~ **LANDED (2026-11-18 — `#30`.)** Replaces Item 2's "+" tab. Before Item 3.
 - [x] ~~**Item 6 — the Connection Table.**~~ **LANDED (2026-11-18 — `#32`.)** Before Item 3, which reads its cells.
-- [ ] **Item 3 — Opinion Records.** **OPEN (#31.)** Takes in the prototype carve's Item 15. After Item 6.
+- [x] ~~**Item 3 — Opinion Records.**~~ **LANDED (2026-11-18 — `#31`.)** Takes in the prototype carve's Item 15. After Item 6.
+- [ ] **Item 7 — the Reaction roll.** **OPEN (not queued.)** Split from Item 3; after it.
+- [ ] **Item 8 — tapping Opinions.** **OPEN (not queued.)** After Item 3.
+- [ ] **Item 9 — revealing Opinion Records.** **OPEN (not queued.)** After Item 3.
 
 ## The rules
 
@@ -194,6 +197,15 @@ card", not from a list the GM keeps; renaming a group's row, "Cards follow the h
 typed on "The card's first line"; and, sent while the spec was being started, "Let's keep the rows
 and columns alphabetized by name".
 
+DECIDED (Bill, 2026-11-18), Item 3's questions, on Daneel's proposals: an Opinion taps like a
+Motivation, "but in a later item" (Item 8); Professional Respect is "One line naming the Skills"; the
+Reaction roll is split off (Item 7); and revealing records is a later item too (Item 9), records staying
+GM-only until then. On a group's records: "The group gets the connection record, not the individual
+NPC. If two NPCs from the same group are on the table, they share the logical card, like two Emacs
+windows on the same buffer." And on revealing them: "Once a PC successfully Infers, I think it's fine to
+reveal the group. Opinions are shared and it's OK if the players know about that. I think this will
+simplify things and let the platform mirror the game rules more directly."
+
 ## Item 1
 
 Torn reveals on the card. The GM's page shows one eye at the upper right of an NPC's card, shut.
@@ -285,20 +297,20 @@ the book's first meeting starts it, filled in by the table:
   entry in the NPC's row with the largest magnitude among them, and that character's Connection to the
   PC as the Level, inverted when the NPC's own Connection to them is negative. A tie goes to the one
   with the strongest Connection to the PC, and a tie there to the positive one.
-- **Professional Respect**, from the Skills the two cards have in common, filled in by the table; the
-  GM deletes any the characters wouldn't know about.
-- **Reaction**, when there is none: the PC's dice row comes up on its pool showing only the White
-  die, its menu disabled, and the player's Roll rolls that one die, a d6 read on the book's Default
-  Reaction table (1: -Sig, 2: -Min, 3-4: 0, 5: +Min, 6: +Sig). The die is seen by everyone, as any
-  roll is, and its receipt reads the Level, "Reaction: +Min", so the players know how the NPC took to them; the
-  Reaction goes on the NPC's record. Inferred with "Opinions of another PC", torn through the back like the
-rest. This is the prototype carve's Item 15 (Bunkum's Opinion Records, on stickies in the 11-08
+- **Professional Respect**, one Opinion for the Skills the two cards have in common (Bunkum: 1 Level,
+  plus 2 if the PC has Level 2 in any of them), on one line naming them, "Professional Respect
+  (Musician, Gambling) +Maj"; the GM deletes a Skill the characters wouldn't know about from the
+  parentheses, and the Level is worked out again; deleting them all removes the line.
+- **Reaction**, when there is none: written "Reaction ?" for the GM to fill in, until Item 7 rolls it.
+
+A group's members share its records (Bill, above): one record for each character the group has an
+Opinion of, shown under every member's card, an edit on one seen on all, its Connection the group's
+cell. Records stay on the GM's page until Item 9. This is the prototype carve's Item 15 (Bunkum's Opinion Records, on stickies in the 11-08
 playtest). Opinions also feed later Actions (Bunkum: an Opinion is a Main Pool Influence), so this
 item may reach past reveals.
 
-Open: whether an Opinion is only a line or an Influence the rolls can use; how Professional Respect names its
-Skills, so the GM can delete one; how a group member's records meet its group's cells (a member's
-record of an NPC moving the group's cell, or a member keeping a row of its own once it has records).
+Digging up a buried record writes its Connection to its cell again; the cell stays as it was while
+the record is buried (a cell can stand without a record).
 
 ## Item 6
 
@@ -331,3 +343,22 @@ a row stays when its card is deleted, and goes when the GM clears its name. Rows
 alphabetical order by name, the PC columns too, after the thick line. Renaming a group's row renames
 the group on its members' cards; a cleared group's members keep the words and find no row. A group
 is typed on the card's first line, after the name, where a GM card's words are already secret.
+
+## Item 7
+
+The Reaction roll, split from Item 3: a first meeting with no Connection in common rolls a Reaction.
+The PC's dice row comes up on its pool showing only the White die, its menu disabled, and the
+player's Roll rolls that one die, a d6 read on the book's Default Reaction table (1: -Sig, 2: -Min,
+3-4: 0, 5: +Min, 6: +Sig). The die is seen by everyone, as any roll is, and its receipt reads the Level,
+"Reaction: +Min", so the players know how the NPC took to them; the Reaction goes on the NPC's record.
+
+## Item 8
+
+Tapping Opinions (Bunkum: "Opinions and Motivations create Main Pool Influences"): an Opinion Record's
+lines tap as a Motivation's do, the adjusted value in parentheses after the fixed one.
+
+## Item 9
+
+Revealing Opinion Records: inferred with "Opinions of another PC", a record is torn through the back
+like the rest of the card, on every member's card when a group holds it (Bill: "it's fine to reveal the
+group").

@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -71,6 +71,11 @@ stickies, loose text, images, torn rolls and reference cards.
 - image: from BlobStore by hash; striped and marked missing with why when absent.
 - tornroll: its receipts, scrolling inside (the wheel scrolls it rather than zooming).
 - reference: the static "How to play the table" and actions cards.
+- records (R419, R426): an NPC's pink Opinion Records follow its Info cards in the slide-out, those
+  of its row (its group's, for a member), alphabetical by their character's name, each tab that name;
+  slid out, the paper shows "➔ <name> (Connection <Level>)" underlined over the GM's writing. An edit
+  writes the record and its cell (synced) in one change; leaving it works Professional Respect out
+  again, and leaving it empty buries it (R428). Which is slid out is kept in the Seat as `<npc>:o<oid>`.
 - connections: the Connection Table's sheet (crc-Connections.md); placeOf gives none while it is
   `away`, so a put-away table is not drawn (R409). On the GM's page a GM card's first line opens the
   group chooser on `(` (R414).

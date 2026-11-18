@@ -88,7 +88,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-RollRow.md → `src/ui/rollrow.ts`
 - [ ] crc-Tape.md → `src/ui/tape.ts`, `src/ui/receipt.ts`
 - [ ] crc-Register.md → `src/ui/register.ts`
-- [ ] crc-BootHillView.md → `src/ui/boothill.ts`
+- [x] crc-BootHillView.md → `src/ui/boothill.ts`
 - [ ] crc-Ledger.md → `src/ui/ledger.ts`
 - [x] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
 - [x] crc-Tray.md → `src/ui/tray.ts`

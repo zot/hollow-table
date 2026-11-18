@@ -47,3 +47,34 @@
 **Input and Expected:** the seed: rows Obed, Beatrice, Eliza, Maggie, Devreux, Jake, Jameson, Jephthah, Devreux linked to the playtest card; Obed → Beatrice 2, Devreux → Jake -2, Jameson → Jephthah -2; the sum of every cell 0
 **Refs:** crc-Connections.md
 **Code:** `src/rules/connections.test.ts`
+
+## Test: a record's Connection
+**Purpose:** R420: best positive less worst negative, by fixed Levels
+**Input and Expected:**
+1. "Reputation -Sig" and "Professional Respect (Composure) +Maj": -2 + 3 = 1
+2. "Old Friends +Sig (0)", the adjusted value left out: 2
+3. "Reaction ?" alone: 0; "Grudge -Min" and "Fear -Maj": -3; "Opinion 0": 0
+**Refs:** crc-Connections.md
+**Code:** `src/rules/connections.test.ts`
+**Alarm:** 3
+**Fire alarm:** count the adjusted value (read the last Level on the line); red: step 2 gives 0
+**Inject:** src/rules/connections.ts:fixed
+**Pulled:** 2026-11-18 — rang: step 2 gave 0 for 2; restored clean (a first injection, dropping the parenthesis stripping, stayed silent: the first Level is read before the adjusted one, so the alarm was pointed at the line reader, `fixed`)
+
+## Test: the first meeting
+**Purpose:** R423-R425: a record's first Opinions, from the adventure's table
+**Input and Expected**, from the seed, with Eliza holding a record of Sam, "Old Friends +Sig":
+1. Devreux of Obed: "Opinion -Min" (Devreux's cell for Obed)
+2. Devreux of Sam: "Reputation +Sig" (her cell for Eliza +Min), then "Professional Respect (Composure, Suasion, Tact) +Maj" (Sam has Composure 2)
+3. Jake of Sam: "Reputation -Sig" (his cell for Eliza -Min inverts it)
+4. Jameson of Sam: "Reaction ?" (his cell for Eliza is 0)
+5. Beatrice also holding a record of Sam at +Maj: Devreux still takes Eliza's (her cell for Beatrice is 0), and Obed takes Beatrice's, "Reputation +Maj" (his cell for her, +Sig, beats his +Min for Eliza); with Obed holding one at -Ext too, Maggie, +Min for both Obed and Eliza, takes Obed's, the stronger Connection: "Reputation -Ext"
+6. respected on "Professional Respect (Suasion, Tact) +Maj": "+Min"; on "Professional Respect () +Maj": the line gone
+7. synced: Devreux's record of Sam at +Sig sets her cell for Sam to 2; a record at 0 keeps a 0 cell
+**Refs:** crc-Connections.md
+**Code:** `src/rules/connections.test.ts`
+**Alarm:** 4
+**Fire alarm:** never invert a Reputation; red: step 3 gives "Reputation +Sig"
+**Inject:** src/rules/connections.ts:first
+**Pulled:** 2026-11-18 — rang: Jake's Reputation came out +Sig; restored clean
+

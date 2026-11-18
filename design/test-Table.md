@@ -307,8 +307,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 22
 **Fire alarm:** dig up nothing on undo (undoCard returns false); red: the card does not come back after Ctrl+Z
 **Inject:** src/ui/boothill.ts:undoCard
-**Pulled:** 2026-11-18 — rang (Chromium): the card did not come back after Ctrl+Z; restored clean
-
+**Pulled:** 2026-11-18 — re-pulled after undoCard took records too; rang (Chromium): the card did not come back after Ctrl+Z; restored clean *Earlier —* 2026-11-18 — rang (Chromium): the card did not come back after Ctrl+Z; restored clean
 ## Test: the GM keeps the Connection Table
 **Purpose:** R407–R409, R411, R412, R414, R416, R417: the GM's bar has the supply; taken, the table shows the seeded rows in order, an X where a row meets itself, the book's Levels, and Sam and Beauford's columns after the thick line; a cell set from its chooser; the `(` chooser writes a group onto Devreux's first line and its row appears; put away on the bar, nothing is buried, and the supply brings the same table back; taken again while out, the same table moves
 **Input:** the GM's table; the Connection Table supply dragged out; Eliza's cell under Obed, "+Sig"; Devreux's first line, typing ` (` then "Unton folk" and Enter; the table dropped on the bar; the supply dragged out twice
@@ -319,4 +318,15 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** put the table away by burying it (drop the `connections` branch of putAway); red: Boot Hill's badge counts it
 **Inject:** src/ui/drag.ts:putAway
 **Pulled:** 2026-11-18 — rang (Chromium): Boot Hill's badge counted the table, 1 for none; restored clean
+
+## Test: the GM keeps Opinion Records
+**Purpose:** R419, R421, R422, R424-R426, R428: the menu's "Opinion of" lists Sam; picked, a pink record of Sam slides out after the Info cards, its first line "➔ Sam (Connection …)"; written, its cell in the Connection Table follows; leaving it works Professional Respect out again; a second card in the same group shows the same record; emptied, it is buried as "Devreux: Opinion of Sam", and undo brings it back
+**Input:** the GM's table; Devreux's ▾, "Opinion of", Sam; the record's text; Professional Respect's Composure deleted and the table clicked; the Connection Table out; Devreux and a new GM card both in a group; the record emptied and the table clicked; Ctrl+Z
+**Expected:** a tab "Sam", pink; the record "Reaction ?" and "Professional Respect (Composure, Suasion, Tact) +Maj", the first line "➔ Sam (Connection +Maj)"; after the edit "+Min" and the sheet's Devreux row reading "+Min" under Sam; the grouped card's tab "Sam" with the same words; then no tab, Boot Hill 1; after Ctrl+Z the record back with its words
+**Refs:** crc-PieceView.md, crc-PoolView.md, crc-Connections.md, crc-BootHillView.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 24
+**Fire alarm:** write a record's text without its cell (drop synced from the edit); red: the sheet's cell for Sam stays "+Maj"
+**Inject:** src/ui/piece.ts:writeRecord
+**Pulled:** 2026-11-18 — rang (Chromium): the sheet's cell for Sam stayed +Maj; restored clean
 

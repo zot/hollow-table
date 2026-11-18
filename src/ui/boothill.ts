@@ -1,10 +1,11 @@
-// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289, R295, R404, R405
+// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289, R295, R404, R405, R428
 // Boot Hill at the bar's right end: the gravestone with its badge, and the graveyard list under it.
 // The rules are Yards' (pure); this draws them, digs up at the press, and arms deleting forever.
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Character, type Oid, type PieceRecord, type Yards } from '../model/records.ts';
-import { empty, exhume, forget, forgetAll, lastInfo, next, prev, raised, rename, withInfo, type At } from '../rules/yards.ts';
+import { ridOf, type Burial, type Character, type Connections, type Oid, type Opinion, type PieceRecord, type Yards } from '../model/records.ts';
+import { empty, exhume, forget, forgetAll, lastCard, next, prev, raised, rename, withInfo, type At } from '../rules/yards.ts';
+import { rowOf, synced, tableOf } from '../rules/connections.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 
 /** How long a first shift-click stays armed (R125). */
@@ -20,8 +21,8 @@ export type BootHillWith = {
   top: () => number;
   /** Carries a dug-up piece from the press (a character by its pool). */
   carry: (lead: PieceRecord, down: PointerLike, move: PointerLike) => void;
-  /** R404, R405: slides an Info card out of its NPC's card (the Seat). */
-  slideInfo: (oid: Oid, k: number) => void;
+  /** R404, R405, R428: slides an Info card (by its place) or a record (`o<oid>`) out of its NPC's card (the Seat). */
+  slideInfo: (oid: Oid, k: number | string) => void;
 };
 
 export class BootHillView {
@@ -142,10 +143,37 @@ export class BootHillView {
     }));
   }
 
-  /** R404: digs up the newest Info card buried in this graveyard whose NPC is here; false when none. */
+  /** R404, R428: digs up the newest Info card or record buried in this graveyard whose NPC is here; false when none. */
   undoCard(): boolean {
-    const cur = this.#cur(), at = lastInfo(this.#yards(), cur, oid => !!this.#npc(oid));
-    return !!at && this.#infoUp(at);
+    const cur = this.#cur(), at = lastCard(this.#yards(), cur, b => (b.info ? !!this.#npc(b.info.oid) : !!this.#holderCard(b)));
+    return !!at && this.#cardUp(at);
+  }
+
+  /** A buried record's, and a card of its NPC or group on the table. */
+  #holderCard(b: Burial): { record: Opinion; table: Connections; card: Character } | undefined {
+    const record = b.records[0];
+    if (record?.kind !== 'opinion') return undefined;
+    const all = this.#w.game.all().map(([, r]) => r as PieceRecord);
+    const table = tableOf(all);
+    const card = table && all.find((c): c is Character => c.kind === 'character' && rowOf(table, c)?.id === record.holder);
+    return table && card ? { record, table, card } : undefined;
+  }
+
+  #cardUp(at: At): boolean {
+    const b = this.#yards().yards[at.yard]?.items[at.item];
+    return b?.info ? this.#infoUp(at) : this.#recordUp(at);
+  }
+
+  // R428: a record comes back, its Connection written to its cell again, slid out under a card of its
+  // NPC or group; while none is on the table it stays buried.
+  #recordUp(at: At): boolean {
+    const b = this.#yards().yards[at.yard]?.items[at.item], up = b && this.#holderCard(b);
+    if (!up) return false;
+    const dug = exhume(this.#yards(), this.#cur(), at);
+    this.#w.game.change(x => { x.put('yards', dug.yards); x.put(ridOf(up.record.oid), up.record); x.put(ridOf(up.table.oid), synced(up.table, up.record)); });
+    this.#w.setCur(dug.cur);
+    this.#w.slideInfo(up.card.oid, `o${up.record.oid}`);
+    return true;
   }
 
   #npc(oid: Oid): Character | undefined {
@@ -166,8 +194,8 @@ export class BootHillView {
 
   #digUp(item: number, e: PointerLike): void {
     const cur = this.#cur();
-    if (this.#yards().yards[cur]?.items[item]?.info) {
-      if (this.#infoUp({ yard: cur, item })) { this.#w.setOpen(false); this.render(); }
+    if (this.#yards().yards[cur]?.items[item]?.gm) {
+      if (this.#cardUp({ yard: cur, item })) { this.#w.setOpen(false); this.render(); }
       return;
     }
     const dug = exhume(this.#yards(), cur, { yard: cur, item });

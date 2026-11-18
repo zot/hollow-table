@@ -1,10 +1,11 @@
-// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R366, R53, R64, R251, R268, R269, R285, R360, R379, R377
+// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R366, R53, R64, R251, R268, R269, R285, R360, R379, R377, R422
 // A character's pool mat: the seven slots, the drawer of Influence cards with its writers, used pile
 // and kill box, and the header. What a click or a drop does is in actions.ts; this only draws and
 // listens.
 
 import type { Game } from '../model/game.ts';
-import { GM, OPEN, SLOTS, ridOf, type Character, type Influence, type Oid, type SlotName } from '../model/records.ts';
+import { GM, OPEN, SLOTS, ridOf, type Character, type Influence, type Oid, type Opinion, type PieceRecord, type SlotName } from '../model/records.ts';
+import { candidates, newConnections, rowOf, tableOf } from '../rules/connections.ts';
 import { levelName } from '../rules/influence.ts';
 import { rollUp, worth, type Item, type Unit } from '../rules/pool.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
@@ -25,6 +26,8 @@ export type PoolWith = {
   poolDie: (oid: Oid, shift: boolean, die: HTMLElement) => void;
   /** R401: makes an Info card on a character the GM owns, slid out with the caret in it. */
   addInfo: (oid: Oid) => void;
+  /** R422: makes an Opinion Record on the NPC (or its group) of a PC or a row, slid out. */
+  addOpinion: (oid: Oid, of: Oid) => void;
 };
 
 // R228: the mat keeps its drawer's width; these are the sizes its slots are laid out with (theme.css
@@ -120,6 +123,17 @@ function makeMenu(e: HTMLElement, oid: Oid, w: PoolWith): void {
   const info = el(e.ownerDocument, 'button', '', 'Info card');
   gesture(info, { click: () => { m.remove(); w.addInfo(oid); } });
   m.append(info);
+  // R422: "Opinion of": the PCs the NPC has no record of, then the other rows it has none of.
+  const all = w.game.all().map(([, r]) => r as PieceRecord), chars = all.filter((r): r is Character => r.kind === 'character');
+  const t = tableOf(all) ?? newConnections('', { x: 0, y: 0, z: 0, tilt: 0 });
+  const c = chars.find(x => x.oid === oid), holder = c && rowOf(t, c);
+  const offer = candidates(t, all.filter((r): r is Opinion => r.kind === 'opinion'), holder?.id ?? '', chars);
+  if (offer.length) m.append(el(e.ownerDocument, 'div', 'menuhead', 'Opinion of'));
+  for (const o of offer) {
+    const b = el(e.ownerDocument, 'button', `opinionof${o.pc ? ' pc' : ''}`, o.name);
+    gesture(b, { click: () => { m.remove(); w.addOpinion(oid, o.id); } });
+    m.append(b);
+  }
   e.append(m);
 }
 

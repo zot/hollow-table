@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -10,6 +10,8 @@ DOM a view of the records.
 - views: rid → its PieceView or PoolView element.
 
 ## Does
+- R419, R421: a change to an Opinion Record or the Connection Table redraws the GM's cards, whose
+  folders show them.
 - render(changed): on Game changes, makes, updates or removes the view of each changed rid; nothing
   else is touched.
 - lift(key, el, at) / place(key, at) / letGo(key) (R220): the hand, for anything held, this page's

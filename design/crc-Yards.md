@@ -1,5 +1,5 @@
 # Yards
-**Requirements:** R119, R120, R121, R122, R123, R124, R125, R290, R403-405
+**Requirements:** R119, R120, R121, R122, R123, R124, R125, R290, R403-405, R428
 
 Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
 
@@ -17,8 +17,10 @@ Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
 - An Info card's burial (R403): `{name, records: [], info: {oid, k, text}}`, its NPC, its place among
   the NPC's cards and its words. buryInfo(yards, cur, name, info) adds one, named "<name>: Info card".
   withInfo(c, info): the character with the card back at its place (or last, if fewer remain), and
-  the place it took. lastInfo(yards, cur, here) (R404): the newest Info burial in the current
-  graveyard whose NPC `here` finds, or none.
+  the place it took. lastCard(yards, cur, here) (R404, R428): the newest GM card's burial (an Info card or a record) in the
+  current graveyard that `here` can bring back, or none.
+- buryRecord(yards, cur, name, record, gm) (R428): a burial `{name: "<holder>: Opinion of <name>",
+  records: [record], gm}`, found by lastCard like an Info card.
 - raised(records, at, z): a burial placed to come up under the pointer: its lead (a character by its
   pool) grabbed 30, 14 in (20, 14 for anything else), everything with it moved by the same offset,
   all at height z (R120).
