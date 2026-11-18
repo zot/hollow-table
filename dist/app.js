@@ -518,8 +518,8 @@ var LEVEL_AT = new RegExp(`^(.*?[+${MINUS}]\\s*)${LEVEL}\\b(.*)$`, "is");
 function spend(text, by) {
   const r = influence(text), m = LEVEL_AT.exec(text);
   if (!r?.level || !m) return null;
-  const left2 = levelsOf(r) - by;
-  return left2 < 0 ? null : m[1] + levelWord(left2) + m[3];
+  const left = levelsOf(r) - by;
+  return left < 0 ? null : m[1] + levelWord(left) + m[3];
 }
 var ADJUSTED = new RegExp(`\\s*\\((?:[+${MINUS}]\\s*)?${LEVEL}\\)\\s*$`, "i");
 function unadjusted(text) {
@@ -534,12 +534,12 @@ function motiveLeft(text) {
 function adjust(text, by) {
   const base = unadjusted(text), r = influence(base);
   if (!r?.level) return null;
-  const left2 = motiveLeft(text) - by;
-  if (left2 < 0) return null;
-  if (left2 >= levelsOf(r)) return base;
-  if (!left2) return `${base} (0)`;
+  const left = motiveLeft(text) - by;
+  if (left < 0) return null;
+  if (left >= levelsOf(r)) return base;
+  if (!left) return `${base} (0)`;
   const sign2 = r.sign === -1 ? "-" : "+";
-  return `${base} (${sign2}${levelWord(left2)})`;
+  return `${base} (${sign2}${levelWord(left)})`;
 }
 var ATT = new RegExp(`\\b([A-Z][a-z]{2})\\s*([+${MINUS}]?\\d+)\\b`, "g");
 var ATT_LINE = new RegExp(`^\\s*(?:[A-Z][a-z]{2}\\s*[+${MINUS}]?\\d+\\s*){2,}$`);
@@ -774,22 +774,22 @@ function free(char, d) {
 var total = (use) => ROWS.reduce((a, r) => a + use[r] * SIZE[r], 0);
 var slots = (use) => ROWS.reduce((a, r) => a + use[r], 0);
 function pages(char, kind, result) {
-  const d = COLUMN_OF[kind], left2 = result - (columnRoom(char, d)?.absorb ?? 0);
-  if (left2 <= 0) return [{ use: none(), overflow: 0 }];
+  const d = COLUMN_OF[kind], left = result - (columnRoom(char, d)?.absorb ?? 0);
+  if (left <= 0) return [{ use: none(), overflow: 0 }];
   const avail = free(char, d), found = [];
   const walk = (i, use) => {
     if (i === ROWS.length) {
       const used = ROWS.filter((r) => use[r] > 0);
       if (!used.length) return;
       const sum2 = total(use), smallest = Math.min(...used.map((r) => SIZE[r]));
-      if (sum2 >= left2 && sum2 - smallest < left2) found.push({ use: { ...use }, overflow: 0 });
+      if (sum2 >= left && sum2 - smallest < left) found.push({ use: { ...use }, overflow: 0 });
       return;
     }
     const row2 = ROWS[i];
     for (let n = 0; n <= avail[row2]; n++) walk(i + 1, { ...use, [row2]: n });
   };
   walk(0, none());
-  if (!found.length) return [{ use: avail, overflow: left2 - total(avail) }];
+  if (!found.length) return [{ use: avail, overflow: left - total(avail) }];
   return found.sort((a, b) => total(a.use) - total(b.use) || slots(a.use) - slots(b.use));
 }
 function same2(a, b) {
@@ -1434,6 +1434,26 @@ var Eyes = class {
 };
 
 // src/rules/tap.ts
+var OPINION_SOURCE = /^o([0-9a-f]{8})\/(.+)$/;
+function inOpinion(char, rest, chars) {
+  const m = OPINION_SOURCE.exec(rest), rec = m ? chars(m[1]) : void 0;
+  if (rec?.kind !== "opinion") return null;
+  const lines = rec.text.split("\n"), reading = (l) => influence(unadjusted(l));
+  const k = lines.findIndex((l) => {
+    const r2 = reading(l);
+    return !!r2 && r2.name === m[2] && !!r2.sign && !!r2.level;
+  });
+  if (k < 0) return null;
+  const line = lines[k], r = reading(line);
+  return {
+    char,
+    name: `${char.name}: ${r.name}`,
+    sign: r.sign,
+    left: motiveLeft(line),
+    mot: true,
+    spend: (n) => ({ ...rec, text: lines.map((l, i) => i === k ? adjust(l, n) ?? l : l).join("\n") })
+  };
+}
 function inFront(char, name2) {
   const lines = parse(char.front);
   for (const m of [...marks(lines, "res"), ...marks(lines, "mot")]) {
@@ -1474,20 +1494,21 @@ function inBack(char, rest) {
   return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
 }
 function mayTap(viewer, char, rest) {
+  if (OPINION_SOURCE.test(rest)) return !!viewer?.gm;
   const s = inBack(char, rest) ?? inFront(char, rest);
   if (!s) return false;
   return !!s.damage || !!s.mot || !!viewer?.gm || char.owner === viewer?.name;
-}
-function left(char, rest) {
-  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
 }
 function source(chars, id) {
   const colon = id.indexOf(":");
   if (colon < 0) return null;
   const char = chars(id.slice(0, colon));
-  if (!char) return null;
+  if (char?.kind !== "character") return null;
   const rest = id.slice(colon + 1);
-  return inBack(char, rest) ?? inFront(char, rest);
+  return inOpinion(char, rest, chars) ?? inBack(char, rest) ?? inFront(char, rest);
+}
+function leftOf(chars, src) {
+  return source(chars, src)?.left ?? 0;
 }
 function tap(chars, src, where2, oid) {
   const s = source(chars, src);
@@ -1532,7 +1553,8 @@ function kill(chars, card2) {
   const now2 = (oid) => out.get(oid) ?? chars(oid);
   for (const [id, n] of Object.entries(card2.tap.ledger)) {
     const s = n > 0 ? source(now2, id) : null;
-    if (s) out.set(s.char.oid, s.spend(-n));
+    const back3 = s?.spend(-n);
+    if (back3) out.set(back3.oid, back3);
   }
   return [...out.values()];
 }
@@ -2073,7 +2095,7 @@ function update(e, r, w) {
       infos(e, r, w, secret, draft);
       rewrite(e.querySelector(".back .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
-      dry(e, r);
+      dry(e, w);
       break;
     }
     case "sticky":
@@ -2316,11 +2338,9 @@ function glyph(doc, source2, w) {
   } });
   return g;
 }
-function dry(e, c) {
-  for (const g of e.querySelectorAll(".glyph")) {
-    const s = g.dataset.source ?? "";
-    g.classList.toggle("dry", left(c, s.slice(s.indexOf(":") + 1)) < 1);
-  }
+function dry(e, w) {
+  const look = (oid) => w.game.get(ridOf(oid));
+  for (const g of e.querySelectorAll(".glyph")) g.classList.toggle("dry", leftOf(look, g.dataset.source ?? "") < 1);
 }
 var named2 = (front, name2) => [`<head>${name2}</head>`, ...front.split("\n").slice(1)].join("\n");
 function rag(oid, line) {
@@ -2393,14 +2413,12 @@ function infos(e, c, w, secret, draft) {
     torn(text, c, secret, draft, draft ? w.eyes.cat(c.oid) : null, clues, false);
   } else if (rec) {
     if (!paper) {
-      paper = recordPaper(doc, rec.rec.oid, w, () => slide(-1));
+      paper = recordPaper(doc, rec.rec.oid, w, () => slide(-1), (t) => recordDrawn(t, rec.rec.oid, c.oid, w));
       paper.dataset.k = want;
       box2.prepend(paper);
     }
     paper.querySelector(".connhead").textContent = `\u2794 ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
-    const text = paper.querySelector(".text");
-    rewrite(text, rec.rec.text);
-    reactDie(text, rec.rec, c, w);
+    recordDrawn(paper.querySelector(".text"), rec.rec.oid, c.oid, w);
   }
   const tabs = el2(doc, "div", "infotabs");
   for (const k of showing) {
@@ -2433,7 +2451,7 @@ function writeRecord(w, oid, text) {
     g.put(ridOf(t.oid), synced(t, now2));
   });
 }
-function recordPaper(doc, oid, w, away) {
+function recordPaper(doc, oid, w, away, drawn) {
   const paper = el2(doc, "div", "infopaper opinion"), rid2 = ridOf(oid);
   let words = w.game.get(rid2)?.text ?? "";
   const text = writable(doc, "text", words, (s) => {
@@ -2448,16 +2466,27 @@ function recordPaper(doc, oid, w, away) {
       away();
       return;
     }
-    const pc = w.game.get(ridOf(x.of)), fixed2 = pc?.kind === "character" ? respected(x.text, pc.front) : x.text;
-    if (fixed2 !== x.text) {
-      words = fixed2;
-      writeRecord(w, oid, fixed2);
+    const pc = w.game.get(ridOf(x.of)), reworked = pc?.kind === "character" ? respected(x.text, pc.front) : x.text;
+    if (reworked !== x.text) {
+      words = reworked;
+      writeRecord(w, oid, reworked);
     }
+    setTimeout(() => {
+      delete text.dataset.source;
+      drawn(text);
+    });
   });
   paper.append(el2(doc, "div", "connhead"), text);
   return paper;
 }
 var shake = (d) => d.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+function recordDrawn(text, oid, npc, w) {
+  const rec = w.game.get(ridOf(oid)), c = w.game.get(ridOf(npc));
+  if (rec?.kind !== "opinion" || c?.kind !== "character") return;
+  rewrite(text, rec.text);
+  reactDie(text, rec, c, w);
+  recordGlyphs(text, rec, c, w);
+}
 function reactDie(text, rec, npc, w) {
   const doc = text.ownerDocument;
   if (doc.activeElement && text.contains(doc.activeElement)) return;
@@ -2473,6 +2502,15 @@ function reactDie(text, rec, npc, w) {
     if (!w.react(pc.oid, npc.oid)) shake(d);
   } });
   line.prepend(d);
+}
+function recordGlyphs(text, rec, npc, w) {
+  const doc = text.ownerDocument;
+  if (doc.activeElement && text.contains(doc.activeElement)) return;
+  for (const g of text.querySelectorAll(".glyph")) g.remove();
+  for (const line of text.children) {
+    const words = line.textContent ?? "", r = influence(unadjusted(words));
+    if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
+  }
 }
 function eyeMenu(e, oid, w) {
   const was = e.querySelector(".eyemenu");
@@ -2619,9 +2657,9 @@ function reference(doc, r) {
     e.append(el2(doc, "b", "", bold), rest);
     return e;
   };
-  const hd = (left2, right) => {
+  const hd = (left, right) => {
     const e = el2(doc, "div", "rhd");
-    e.append(el2(doc, "span", "", left2), el2(doc, "em", "", right));
+    e.append(el2(doc, "span", "", left), el2(doc, "em", "", right));
     return e;
   };
   if (r.which === "actions") {
@@ -4204,8 +4242,8 @@ var Rolls = class {
     game.change((w) => w.put(ridOf(c.oid), { ...c, back: back3 }));
     this.#attack(k, (x) => {
       const rest = x.waiting.filter((w) => w.damage !== body.damage || w.row !== body.row);
-      const { waiting: __, ...left2 } = x;
-      return rest.length ? { ...left2, waiting: rest } : left2;
+      const { waiting: __, ...left } = x;
+      return rest.length ? { ...left, waiting: rest } : left;
     });
     return this.#resend(k);
   }
@@ -10312,8 +10350,8 @@ function gapAt(drawer2, x, y) {
   gap?.remove();
   const r = cards.getBoundingClientRect(), k = r.width / cards.offsetWidth || 1;
   const boxes = drawerCardEls(cards).map((e) => {
-    const left2 = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
-    return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight };
+    const left = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
+    return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
   });
   if (gap) cards.insertBefore(gap, next2);
   return insertAt(boxes, (x - r.left) / k, (y - r.top) / k);
@@ -12024,8 +12062,8 @@ var TableView = class {
     this.#heights.set(rid2, h);
     if (was === void 0 || h <= was || !viewer?.gm) return;
     const box2 = (e, less2 = 0) => {
-      const left2 = parseFloat(e.style.left), top = parseFloat(e.style.top);
-      return { left: left2, top, right: left2 + e.offsetWidth, bottom: top + e.offsetHeight - less2 };
+      const left = parseFloat(e.style.left), top = parseFloat(e.style.top);
+      return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight - less2 };
     };
     const pieces = [];
     for (const [r, e] of this.#els) {

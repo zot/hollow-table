@@ -1,18 +1,22 @@
 // CRC: crc-Tap.md | Test: test-Tap.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Character, Damage, Influence, RowName } from '../model/records.ts';
+import type { Character, Damage, Influence, Opinion, RowName } from '../model/records.ts';
 import { marks, parse } from '../text/marks.ts';
-import { feed, kill, left, mayTap, mildGone, recharge, rechargeMotives, tap, unfeed, type Tapped } from './tap.ts';
+import { feed, kill, leftOf, mayTap, mildGone, recharge, rechargeMotives, tap, unfeed, type Holder, type Tapped } from './tap.ts';
 import { levelName } from './influence.ts';
+import { connection } from './connections.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
+
+/** The Levels a source of this character has left, asked as a glyph asks. */
+const left = (c: Character, rest: string) => leftOf(oid => (oid === c.oid ? c : undefined), `${c.oid}:${rest}`);
 
 /** A table of characters that takes each tap's changes. */
 function table() {
   const chars = new Map(scene().filter((r): r is Character => r.kind === 'character').map(c => [c.oid, c]));
   const look = (oid: string) => chars.get(oid);
   const take = (t: Tapped | null): Influence | null => {
-    for (const c of t?.changed ?? []) chars.set(c.oid, c);
+    for (const c of t?.changed ?? []) chars.set(c.oid, c as Character);
     return t?.card ?? null;
   };
   const resources = (oid: string) => marks(parse(chars.get(oid)!.front), 'res').map(m => m.text).join(', ');
@@ -63,7 +67,7 @@ test('refusals and refunds', () => {
   const lc = `${BEAUFORD}:Liquid Courage`;
   const card = t.take(tap(t.look, lc, where, 'c4'))!;
   assert.equal(t.resources(BEAUFORD), 'Money +Min, Liquid Courage +Sig');
-  for (const c of kill(t.look, card)) t.chars.set(c.oid, c);
+  for (const c of kill(t.look, card)) t.chars.set(c.oid, c as Character);
   assert.equal(t.resources(BEAUFORD), 'Money +Min, Liquid Courage +Maj');
   assert.deepEqual(kill(t.look, { ...card, used: true }), []);
 });
@@ -165,7 +169,7 @@ test('tapping a Motivation', () => {
   const fed = t.take(feed(t.look, card, `${DEVREUX}:Self-Preservation`, 'x'))!;
   assert.equal(fed.points, 4);
   assert.match(mots(), /Self-Preservation \+Sig \(\+Min\)/);
-  for (const c of kill(t.look, fed)) t.chars.set(c.oid, c);
+  for (const c of kill(t.look, fed)) t.chars.set(c.oid, c as Character);
   assert.equal(mots(), 'Keep the Peace +Sig, Self-Preservation +Sig, Old Sympathy for Sparkers +Min', 'a refund back to full');
   const money = t.take(tap(t.look, `${SAM}:Money`, where, 'c2'))!;
   assert.equal(feed(t.look, money, `${DEVREUX}:Keep the Peace`, 'x'), null, 'a Motivation does not feed a Resource card');
@@ -216,4 +220,31 @@ test('what Mild gave goes at End', () => {
   assert.equal(mildGone(unfed), unfed, 'a plain card');
   // A Min slot is not Mild, though it's worth the same.
   assert.equal(mildGone(card({ [`${SAM}:bias/min`]: 1 }, `${SAM}:bias/min`, 2))!.points, 2);
+});
+
+test('tapping an Opinion', () => {
+  // R433, R434: a record's line taps as a Motivation does, into a `mot` card named for the NPC.
+  const dev = scene().find(r => r.oid === DEVREUX) as Character;
+  const holders = new Map<string, Holder>([[DEVREUX, dev], ['e0000001', { kind: 'opinion', oid: 'e0000001', holder: 'c0000005', of: SAM,
+    text: 'Reputation +Sig\nProfessional Respect (Tact) +Min' } satisfies Opinion]]);
+  const look = (oid: string) => holders.get(oid), rec = () => holders.get('e0000001') as Opinion;
+  const take = (t: Tapped | null) => { for (const h of t?.changed ?? []) holders.set(h.oid, h); return t?.card ?? null; };
+  const src = `${DEVREUX}:oe0000001/Reputation`, where = { table: { x: 0, y: 0, z: 0, tilt: 0 } };
+  const card = take(tap(look, src, where, 'c1'))!;
+  assert.deepEqual([card.name, card.mot, card.sign, card.home, card.points], ['Devreux: Reputation', true, 1, DEVREUX, 2]);
+  assert.equal(rec().text.split('\n')[0], 'Reputation +Sig (+Min)');
+  assert.equal(connection(rec().text), 2, 'R434: the Connection counts the fixed Level');
+  const fed = take(feed(look, card, undefined, 'c2'))!;
+  assert.equal(rec().text.split('\n')[0], 'Reputation +Sig (0)');
+  assert.equal(leftOf(look, src), 0);
+  const back = take(unfeed(look, fed))!;
+  assert.equal(rec().text.split('\n')[0], 'Reputation +Sig (+Min)');
+  const refunds = kill(look, back);
+  assert.deepEqual(refunds.map(h => h.oid), ['e0000001']);
+  for (const h of refunds) holders.set(h.oid, h);
+  assert.equal(rec().text, 'Reputation +Sig\nProfessional Respect (Tact) +Min');
+  const pr = take(tap(look, `${DEVREUX}:oe0000001/Professional Respect (Tact)`, where, 'c3'))!;
+  assert.equal(pr.name, 'Devreux: Professional Respect (Tact)');
+  assert.equal(mayTap({ name: 'Dana', gm: false }, dev, 'oe0000001/Reputation'), false, 'R432: only the GM');
+  assert.equal(mayTap({ name: 'GM', gm: true }, dev, 'oe0000001/Reputation'), true);
 });

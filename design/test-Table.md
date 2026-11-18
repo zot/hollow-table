@@ -263,7 +263,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 18
 **Fire alarm:** let anyone drag from the Base to aim (drop the GM test on the drag); red: Sam's row is aimed, `vs Devreux` shows
 **Inject:** src/ui/rollrow.ts:#draw
-**Pulled:** 2026-11-18 — 2026-11-18 — re-pulled after the drag's GM test took in a Reaction; rang (Chromium): Sam's row was aimed from a player's page; restored clean *Earlier —* 2026-11-16 — first silent: the drop on Devreux, hidden from the player, showed nothing either way; with a drag to open table added it rang (Chromium), the blank tray's note opened; restored clean
+**Pulled:** 2026-11-18 — re-pulled after the drag's GM test took in a Reaction; rang (Chromium): Sam's row was aimed from a player's page; restored clean *Earlier —* 2026-11-16 — first silent: the drop on Devreux, hidden from the player, showed nothing either way; with a drag to open table added it rang (Chromium), the blank tray's note opened; restored clean
 ## Test: an older game's Fields are marked and bold when the GM opens it
 **Purpose:** R380, R332 on the GM's page: Sam's front without its Field and Skill marks and meta never marked, the page opened again, marks them, so "Private Investigator 2 (5XP)" is a Field drawn bold, and meta says so
 **Input:** Sam's front stripped of `fld` and `skl`, `marked` taken off meta; the page opened again
@@ -338,5 +338,16 @@ pool's labels selects as text but the build stamp
 **Alarm:** 25
 **Fire alarm:** draw a Reaction row as any other (skip its own drawing); red: Sam's row has a Blue die
 **Inject:** src/ui/rollrow.ts:#draw
-**Pulled:** 2026-11-18 — 2026-11-18 — rang (Chromium): Sam's Reaction row had 3 of the Blue, Yellow ghost, bonus and type; restored clean
+**Pulled:** 2026-11-18 — rang (Chromium): Sam's Reaction row had 3 of the Blue, Yellow ghost, bonus and type; restored clean
+
+## Test: the GM taps an Opinion
+**Purpose:** R432, R433: a record's Opinion lines have glyphs; dragging Reputation into Sam's Main makes "Devreux: Reputation", spends into parentheses, and the cell stays
+**Input:** the GM's table; Devreux's record of Sam written `Reputation +Sig`; the Connection Table out; the Reputation glyph dragged onto Sam's Main slot
+**Expected:** one glyph on the record's line; a card "Devreux: Reputation" in Sam's Main; the record `Reputation +Sig (+Min)`; the sheet's Devreux row reading "+Sig" under Sam before and after
+**Refs:** crc-PieceView.md, crc-Tap.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 26
+**Fire alarm:** draw no glyphs on a record (drop the Opinion glyphs from the paper); red: the record's line has no glyph
+**Inject:** src/ui/piece.ts:recordGlyphs
+**Pulled:** 2026-11-18 — rang (Chromium): the record's line had no glyph; restored clean
 

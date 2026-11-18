@@ -451,3 +451,32 @@ test('the GM calls a Reaction', async ({ page }) => {
   await expect(paper.locator('.reactdie')).toHaveCount(0);
   await expect(row).toHaveCount(0);
 });
+
+test('the GM taps an Opinion', async ({ page }) => {
+  // R432: Devreux's record of Sam, written "Reputation +Sig", has a glyph on that line.
+  const pool = page.locator('.obj.pool[data-rid="o:00000003"]'), card = page.locator('.obj.card[data-rid="o:00000003"]');
+  await pool.locator('.makemenu').click();
+  await pool.locator('.poolmenu .opinionof', { hasText: 'Sam' }).click();
+  const paper = card.locator('.infopaper.opinion');
+  await paper.locator('.text').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Reputation +Sig');
+  await page.locator('#table').click({ position: { x: 5, y: 300 } });
+  await expect(paper.locator('.glyph')).toHaveCount(1);
+  const supply = await at(page, '#bar .supply.links', 20, 10);
+  await dragFromTo(page, supply.x, supply.y, 300, 600);
+  const row = page.locator('.obj.connections tr', { has: page.locator('th.rowname', { hasText: 'Devreux' }) });
+  await expect(row.locator('td.pc')).toHaveText(['', '+Sig']);
+  // R433: dragged onto Sam's Main, it is "Devreux: Reputation", and the record spends into parentheses.
+  const g = await at(page, '.obj.card[data-rid="o:00000003"] .infopaper.opinion .glyph', 5, 5);
+  const main = await at(page, '.obj.pool[data-rid="o:00000001"] .slot-main', 20, 40);
+  await dragFromTo(page, g.x, g.y, main.x, main.y);
+  await expect.poll(() => page.evaluate(async () => {
+    const g = (await (window as any).hollow.ready).store.game;
+    return g.all().map(([, r]: any) => r).filter((r: any) => r.kind === 'influence' && r.name === 'Devreux: Reputation')
+      .map((r: any) => `${r.where.slot}/${r.where.name}`);
+  })).toEqual(['00000001/main']);
+  await expect(paper.locator('.text')).toHaveText('Reputation +Sig (+Min)');
+  // R434: the cell counts the fixed Level only.
+  await expect(row.locator('td.pc')).toHaveText(['', '+Sig']);
+});

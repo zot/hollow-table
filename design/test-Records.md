@@ -41,8 +41,8 @@ faulty record is refused
 **Alarm:** 3
 **Fire alarm:** leave `world` out of the singletons; red: the good records are refused
 **Inject:** src/model/records.ts:SINGLETONS
-@alarm-hash: 08fb61028cb0a870
-**Pulled:** 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
+@alarm-hash: 886762c8939809ef
+**Pulled:** 2026-11-18 — re-pulled after Item 7 added `reaction` to the rows entry in SINGLETONS; rang: "the world's record" failed; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
 ## Test: a card an action suffers
 **Purpose:** R362: an Influence may carry `once: true`, and nothing else in that field
 **Input:** Beauford's Tricky card with `once: true`, and with `once: false`

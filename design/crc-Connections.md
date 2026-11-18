@@ -1,5 +1,5 @@
 # Connections
-**Requirements:** R407-430
+**Requirements:** R407-430, R434
 
 The Connection Table: its rules, pure (`src/rules/connections.ts`), and its sheet and the group
 chooser on the GM's page (`src/ui/connections.ts`).
@@ -26,8 +26,9 @@ chooser on the GM's page (`src/ui/connections.ts`).
   first lines; an NPC's row renames its card.
 - set(table, row, col, n) (R411): one cell.
 - order(rows) (R416): by name, alphabetical, ignoring case.
-- connection(text) (R420): the best positive fixed Level less the worst negative, by each line's first
-  Level word (or a lone 0) outside parentheses; a line without one counts for nothing.
+- connection(text) (R420, R434): the best positive fixed Level less the worst negative, by each line's
+  first Level word (or a lone 0) outside parentheses; a line without one counts for nothing, and a
+  tapped Opinion's adjusted value in parentheses is never read.
 - skills(front) (R425): the card's Skills by name (a `Skills N:` line's at N, a Skill under a Field at
   the Field's Level unless it gives its own), names without ✓, †, a trailing Level or parentheses.
 - respect(npc, pc) (R425): "Professional Respect (<common Skills>) <Level>", 1 Level plus 2 when the PC

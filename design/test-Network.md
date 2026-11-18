@@ -222,4 +222,4 @@ by the drop
 **Alarm:** 15
 **Fire alarm:** believe the intent over the GM's row (take no `reaction` from the held row); red: Dana's roll prints a plain roll, not a Reaction
 **Inject:** src/net/rolls.ts:#intent
-**Pulled:** 2026-11-18 — 2026-11-18 — rang (Chromium): Dana's roll printed as a plain roll, Success at cost +Maj, not a Reaction; restored clean
+**Pulled:** 2026-11-18 — rang (Chromium): Dana's roll printed as a plain roll, Success at cost +Maj, not a Reaction; restored clean

@@ -10,7 +10,7 @@ import {
 } from '../model/records.ts';
 import { lowerCard, lowerChip, raiseCard, raiseChip, MIN } from '../rules/influence.ts';
 import { accepts, type Item } from '../rules/pool.ts';
-import { feed, kill, tap, unfeed, type Lookup, type Tapped } from '../rules/tap.ts';
+import { feed, kill, tap, unfeed, type Holder, type Lookup, type Tapped } from '../rules/tap.ts';
 
 export type Change = (w: Writer) => void;
 
@@ -30,7 +30,7 @@ export function minter(game: Game, gm: boolean, rng: () => number = Math.random)
   };
 }
 
-const lookup = (game: Game): Lookup => oid => game.get(ridOf(oid)) as Character | undefined;
+const lookup = (game: Game): Lookup => oid => game.get(ridOf(oid)) as Holder | undefined;
 const item = (game: Game, rid: Rid): Item | undefined => {
   const r = game.get(rid) as Rec | undefined;
   return r && 'kind' in r && (r.kind === 'chip' || r.kind === 'influence') ? r : undefined;
@@ -177,7 +177,7 @@ export function feedFrom(game: Game, cardRid: Rid, src: string, mint: () => Oid)
 export function mergeTap(game: Game, fromRid: Rid, intoRid: Rid, mint: () => Oid): Change | null {
   const from = item(game, fromRid), into = item(game, intoRid);
   if (fromRid === intoRid || from?.kind !== 'influence' || into?.kind !== 'influence' || !from.tap || !into.tap || from.used) return null;
-  const chars = new Map<Oid, Character>();
+  const chars = new Map<Oid, Holder>();
   const now: Lookup = oid => chars.get(oid) ?? lookup(game)(oid);
   for (const c of kill(now, from)) chars.set(c.oid, c);
   let card = into, fed = false;

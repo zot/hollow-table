@@ -101,9 +101,11 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - **A Motivation is a special Resource held only by NPCs** (Bunkum, *Mental Resources*), written as
   a `<mot>` mark: `Name +Level` or `Name −Level`. **Anyone may tap anyone's Motivations** (Bill,
   11-12), as the story allows. Tapping one makes a **Main Pool Influence** of its sign: the card
-  goes only into a Main slot (dropped in any other slot, it goes home), and only Motivations feed
-  it. Dropped into a Main slot, it joins that character's drawer, so a card made from an NPC's
+  goes only into a Main slot (dropped in any other slot, it goes home), and only Motivations and
+  Opinions feed it. Dropped into a Main slot, it joins that character's drawer, so a card made from an NPC's
   Motivation becomes the tapper's.
+- **An NPC's Opinions tap as its Motivations do** (Bunkum: "Opinions and Motivations create Main Pool
+  Influences"), from its Opinion Records, the GM's alone (see *Opinion Records* in `connections.md`).
 - **What a Motivation spends is temporary.** Its written Level stays, and the Levels left follow it
   in parentheses, as Bunkum writes an adjusted value: *Keep the Peace +Sig (+Min)*, or *(0)* when
   spent out. Motivations **recharge at the end of every scene** (Bill, 11-12), and the parentheses

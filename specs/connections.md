@@ -86,6 +86,17 @@ alone.
   individual NPC ... they share the logical card, like two Emacs windows on the same buffer"): an NPC
   in a group shows the group's records, its Opinions of the characters are the group's, and an edit
   under one member's card shows under every member's.
+- **Tapping Opinions** (Bunkum: "Opinions and Motivations create Main Pool Influences"): every line of
+  a record with a Level is an Opinion (Bill, 11-18: "Every line with a Level") and has a tap glyph
+  before it, as a Motivation does (see *Tapping Resources* in `influence.md`). Dragged out, it makes a
+  Main Pool Influence of its sign named for the NPC and the Opinion (Bill, 11-18: "The NPC and
+  Opinion"), "Devreux: Reputation +Min", at home in the drawer of the NPC whose card it was dragged from;
+  what it spends shows in parentheses after the fixed Level, "Reputation +Sig (+Min)", and leaves the
+  Connection as it was, which counts fixed Levels only. A record of a group is tapped from any
+  member's card, named for that member. Only the GM taps a record, while records are the GM's. The
+  parentheses stay until the GM writes them away (Bill, 11-18: "Like Motivations, later"): a scene's or
+  Event's end that recharges them, and Bunkum's Event Updates that move a fixed value after a large
+  tap, come later.
 - **The GM's alone, for now**: no player's page receives an Opinion Record. Revealing one after an
   Infer comes later (Bill, 11-18: "it's fine to reveal the group").
 - **Emptied, a record is buried** on Boot Hill as "Devreux: Opinion of Sam", as an Info card is (see

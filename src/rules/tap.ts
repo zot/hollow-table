@@ -1,4 +1,4 @@
-// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262, R343, R344
+// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262, R343, R344, R432, R433
 // Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source
 // so every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
 // Resources*), and NPCs' Motivations (Bunkum, *Mental Resources*). Pure: returns the records to
@@ -8,21 +8,40 @@
 // the text), `<damage>/<row>` for a named Damage slot, or `<damage>/<row>#<k>` for its k-th checked
 // box. A Damage slot or box is worth its row's Levels, less what its `spent` holds, and makes a card
 // of its kind named after the slot. `<damage>/lasting` is the column's Conviction or Burden (R343).
+// `o<record oid>/<name>` is an Opinion on that NPC's Opinion Record (R433).
 
-import { DAMAGE, LASTING, ROWS, damageSlots, type Character, type Damage, type Influence, type LastingColumn, type Oid, type RowName, type Sign, type Where } from '../model/records.ts';
+import { DAMAGE, LASTING, ROWS, damageSlots, type Character, type Damage, type Influence, type LastingColumn, type Oid, type Opinion, type RowName, type Sign, type Where } from '../model/records.ts';
 import { lastingLevels } from './absorb.ts';
 import { marks, parse, serialize, setMark } from '../text/marks.ts';
 import { adjust, influence, levelsOf, motiveLeft, spend, unadjusted } from './readmarks.ts';
 import type { Viewer } from './visibility.ts';
 import { MIN, STEP, rowLevels } from './influence.ts';
 
-export type Lookup = (oid: Oid) => Character | undefined;
-/** What a tap writes: the card, and every character whose sources changed. */
-export type Tapped = { card: Influence; changed: Character[] };
+/** A source's holder: a character, or an Opinion Record (R433). */
+export type Holder = Character | Opinion;
+export type Lookup = (oid: Oid) => Holder | undefined;
+/** What a tap writes: the card, and every character or record whose sources changed. */
+export type Tapped = { card: Influence; changed: Holder[] };
 
 type Source = {
-  char: Character; name: string; sign: Sign; left: number; damage?: Damage; mot?: true; spend: (n: number) => Character;
+  char: Character; name: string; sign: Sign; left: number; damage?: Damage; mot?: true; spend: (n: number) => Holder;
 };
+
+const OPINION_SOURCE = /^o([0-9a-f]{8})\/(.+)$/;
+// R433: an Opinion is a line of the NPC's record; it spends as a Motivation does, into parentheses
+// after its fixed Level, and its card is named for the NPC, at home with them.
+function inOpinion(char: Character, rest: string, chars: Lookup): Source | null {
+  const m = OPINION_SOURCE.exec(rest), rec = m ? chars(m[1]!) : undefined;
+  if (rec?.kind !== 'opinion') return null;
+  const lines = rec.text.split('\n'), reading = (l: string) => influence(unadjusted(l));
+  const k = lines.findIndex(l => { const r = reading(l); return !!r && r.name === m![2] && !!r.sign && !!r.level; });
+  if (k < 0) return null;
+  const line = lines[k]!, r = reading(line)!;
+  return {
+    char, name: `${char.name}: ${r.name}`, sign: r.sign!, left: motiveLeft(line), mot: true,
+    spend: n => ({ ...rec, text: lines.map((l, i) => i === k ? adjust(l, n) ?? l : l).join('\n') }),
+  };
+}
 
 // R54, R258: on the front, a `<res>` or a `<mot>` mark is a source. R261: a Motivation spends into
 // its parentheses, its written Level kept.
@@ -73,15 +92,11 @@ function inBack(char: Character, rest: string): Source | null {
 // Motivations and Damage.
 /** Whether `viewer` may tap this character's source (`rest` as after the colon). */
 export function mayTap(viewer: Viewer, char: Character, rest: string): boolean {
+  // R432: an Opinion only the GM, whose records they are.
+  if (OPINION_SOURCE.test(rest)) return !!viewer?.gm;
   const s = inBack(char, rest) ?? inFront(char, rest);
   if (!s) return false;
   return !!s.damage || !!s.mot || !!viewer?.gm || char.owner === viewer?.name;
-}
-
-// R250: a dry source's glyph fades.
-/** The Levels a source of this character (`rest` as after the colon) has left to tap; 0 if none. */
-export function left(char: Character, rest: string): number {
-  return (inBack(char, rest) ?? inFront(char, rest))?.left ?? 0;
 }
 
 /** The source a `<character oid>:<rest>` string names, or null. */
@@ -89,9 +104,15 @@ function source(chars: Lookup, id: string): Source | null {
   const colon = id.indexOf(':');
   if (colon < 0) return null;
   const char = chars(id.slice(0, colon));
-  if (!char) return null;
+  if (char?.kind !== 'character') return null;
   const rest = id.slice(colon + 1);
-  return inBack(char, rest) ?? inFront(char, rest);
+  return inOpinion(char, rest, chars) ?? inBack(char, rest) ?? inFront(char, rest);
+}
+
+// R250: a dry source's glyph fades; R432: asked by the whole source, as an Opinion's is not on its card's own character.
+/** The Levels a source has left to tap; 0 if none or unknown. */
+export function leftOf(chars: Lookup, src: string): number {
+  return source(chars, src)?.left ?? 0;
 }
 
 // R55, R60: born at Min, named after the source, which drops a Level; it may wait loose on the table.
@@ -134,13 +155,14 @@ export function unfeed(chars: Lookup, card: Influence): Tapped | null {
 
 // R59: killing an unused tap gives every source back its Levels.
 /** The characters a killed card refunds (none for a plain or used card). */
-export function kill(chars: Lookup, card: Influence): Character[] {
+export function kill(chars: Lookup, card: Influence): Holder[] {
   if (!card.tap || card.used) return [];
-  const out = new Map<Oid, Character>();
+  const out = new Map<Oid, Holder>();
   const now: Lookup = oid => out.get(oid) ?? chars(oid);
   for (const [id, n] of Object.entries(card.tap.ledger)) {
     const s = n > 0 ? source(now, id) : null;
-    if (s) out.set(s.char.oid, s.spend(-n));
+    const back = s?.spend(-n);
+    if (back) out.set(back.oid, back);
   }
   return [...out.values()];
 }

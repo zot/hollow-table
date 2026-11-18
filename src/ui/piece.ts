@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -10,12 +10,12 @@ import {
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
-import { awaits, connection, level, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
+import { awaits, connection, fixed, level, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
 import { blankFront, blankInfo, canSee, type Viewer } from '../rules/visibility.ts';
 import { CATEGORIES, type Category, type Eyes } from './eyes.ts';
 import { clues, entries, type Entry } from '../rules/readmarks.ts';
-import { action as readAction, influence, suffered, suffers, variants } from '../rules/readmarks.ts';
-import { left } from '../rules/tap.ts';
+import { action as readAction, influence, suffered, suffers, unadjusted, variants } from '../rules/readmarks.ts';
+import { leftOf, type Holder } from '../rules/tap.ts';
 import { LEVELS, columnRoom } from '../rules/influence.ts';
 import { COLUMN_OF, OVERFLOW, fill, isLasting, lastingLevels, lastingTop, type Page } from '../rules/absorb.ts';
 import { parse, read, render, serialize, type Line, type MarkRun } from '../text/marks.ts';
@@ -242,7 +242,7 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
       infos(e, r, w, secret, draft);
       rewrite(e.querySelector('.back .notes')!, r.back.notes);
       damage(e.querySelector('.damage')!, r, w);
-      dry(e, r);
+      dry(e, w);
       break;
     }
     case 'sticky': case 'text':
@@ -491,12 +491,11 @@ function glyph(doc: Document, source: string, w: PieceWith): HTMLElement {
   return g;
 }
 
-// R250: a source with no Levels left shows its glyph faded.
-function dry(e: HTMLElement, c: Character): void {
-  for (const g of e.querySelectorAll<HTMLElement>('.glyph')) {
-    const s = g.dataset.source ?? '';
-    g.classList.toggle('dry', left(c, s.slice(s.indexOf(':') + 1)) < 1);
-  }
+// R250: a source with no Levels left shows its glyph faded; R432: an Opinion's too, asked by its whole
+// source, since its record is not the card's own.
+function dry(e: HTMLElement, w: PieceWith): void {
+  const look = (oid: Oid) => w.game.get(ridOf(oid)) as Holder | undefined;
+  for (const g of e.querySelectorAll<HTMLElement>('.glyph')) g.classList.toggle('dry', leftOf(look, g.dataset.source ?? '') < 1);
 }
 
 // R390: the public name in the first line's place, which holds more than the name.
@@ -581,12 +580,10 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draf
     rewrite(text, cards[out]!);
     torn(text, c, secret, draft, draft ? w.eyes.cat(c.oid) : null, clues, false);
   } else if (rec) {
-    if (!paper) { paper = recordPaper(doc, rec.rec.oid, w, () => slide(-1)); paper.dataset.k = want; box.prepend(paper); }
+    if (!paper) { paper = recordPaper(doc, rec.rec.oid, w, () => slide(-1), t => recordDrawn(t, rec.rec.oid, c.oid, w)); paper.dataset.k = want; box.prepend(paper); }
     // R419: the first line, drawn by the table: the character and the record's Connection.
     paper.querySelector('.connhead')!.textContent = `➔ ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
-    const text = paper.querySelector<HTMLElement>('.text')!;
-    rewrite(text, rec.rec.text);
-    reactDie(text, rec.rec, c, w);
+    recordDrawn(paper.querySelector<HTMLElement>('.text')!, rec.rec.oid, c.oid, w);
   }
   const tabs = el(doc, 'div', 'infotabs');
   for (const k of showing) {
@@ -623,7 +620,7 @@ function writeRecord(w: PieceWith, oid: Oid, text: string): void {
 
 // R419, R421, R425, R428: a record's paper: the table's first line over the GM's writing. Each edit
 // writes the record and its cell; leaving it works Professional Respect out again, or, emptied, buries it.
-function recordPaper(doc: Document, oid: Oid, w: PieceWith, away: () => void): HTMLElement {
+function recordPaper(doc: Document, oid: Oid, w: PieceWith, away: () => void, drawn: (text: HTMLElement) => void): HTMLElement {
   const paper = el(doc, 'div', 'infopaper opinion'), rid = ridOf(oid);
   let words = (w.game.get(rid) as Opinion | undefined)?.text ?? '';
   const text = writable(doc, 'text', words, s => { if (s.trim()) words = s; writeRecord(w, oid, s); });
@@ -631,14 +628,26 @@ function recordPaper(doc: Document, oid: Oid, w: PieceWith, away: () => void): H
     const x = w.game.get(rid) as Opinion | undefined;
     if (x?.kind !== 'opinion') return;
     if (!x.text.trim()) { w.buryRecord(oid, words); away(); return; }
-    const pc = w.game.get(ridOf(x.of)) as Character | undefined, fixed = pc?.kind === 'character' ? respected(x.text, pc.front) : x.text;
-    if (fixed !== x.text) { words = fixed; writeRecord(w, oid, fixed); }
+    const pc = w.game.get(ridOf(x.of)) as Character | undefined, reworked = pc?.kind === 'character' ? respected(x.text, pc.front) : x.text;
+    if (reworked !== x.text) { words = reworked; writeRecord(w, oid, reworked); }
+    // Its lines and marks are left alone while it is written in, and leaving it may change nothing to
+    // redraw it; a browser may even leave the words outside any line. Drawn afresh from the record.
+    setTimeout(() => { delete text.dataset.source; drawn(text); });
   });
   paper.append(el(doc, 'div', 'connhead'), text);
   return paper;
 }
 
 const shake = (d: HTMLElement) => d.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200);
+
+/** A record's paper drawn from the record and the NPC as they are now: its lines, its Reaction die and its glyphs. */
+function recordDrawn(text: HTMLElement, oid: Oid, npc: Oid, w: PieceWith): void {
+  const rec = w.game.get(ridOf(oid)) as Opinion | undefined, c = w.game.get(ridOf(npc)) as Character | undefined;
+  if (rec?.kind !== 'opinion' || c?.kind !== 'character') return;
+  rewrite(text, rec.text);
+  reactDie(text, rec, c, w);
+  recordGlyphs(text, rec, c, w);
+}
 
 // R429: a record of a PC has a White die before its "Reaction ?" line, holding no text, so the record's
 // words stay as written; left alone while the paper is being written in.
@@ -656,6 +665,19 @@ function reactDie(text: HTMLElement, rec: Opinion, npc: Character, w: PieceWith)
   d.addEventListener('pointerdown', ev => ev.preventDefault());
   gesture(d, { click: () => { if (!w.react(pc!.oid, npc.oid)) shake(d); } });
   line.prepend(d);
+}
+
+// R432: every Opinion, a line with a fixed Level other than 0, has a tap glyph before it, its source
+// the NPC's card and the record's line (dry fades it); left alone while the paper is written in.
+/** The tap glyphs on a record's paper. */
+function recordGlyphs(text: HTMLElement, rec: Opinion, npc: Character, w: PieceWith): void {
+  const doc = text.ownerDocument;
+  if (doc.activeElement && text.contains(doc.activeElement)) return;
+  for (const g of text.querySelectorAll('.glyph')) g.remove();
+  for (const line of text.children) {
+    const words = line.textContent ?? '', r = influence(unadjusted(words));
+    if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
+  }
 }
 
 /** R393: the eye's category menu, under the arrow; a pick opens the eye on it. */

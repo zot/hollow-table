@@ -121,7 +121,7 @@ export const tableOf = (records: PieceRecord[]): Connections | undefined =>
 
 const LEVEL_OF: Record<string, number> = { Min: 1, Sig: 2, Maj: 3, Ext: 4, Exq: 5 };
 /** A line's fixed Level: its first Level word, or a lone 0, outside parentheses; none when it has none. */
-function fixed(line: string): number | undefined {
+export function fixed(line: string): number | undefined {
   const m = /(?:^|\s)(?:([+-])(Min|Sig|Maj|Ext|Exq)\b|0(?=\s|$))/.exec(line.replace(/\([^)]*\)/g, ' '));
   return m ? (m[1] ? (m[1] === '-' ? -1 : 1) * LEVEL_OF[m[2]!]! : 0) : undefined;
 }

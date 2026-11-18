@@ -31,7 +31,7 @@ one; Beauford's Resources back to `Liquid Courage +Maj`
 **Alarm:** 2
 **Fire alarm:** Let kill refund a used card too (drop `card.used`): the last check returns Beauford
 **Inject:** src/rules/tap.ts:kill
-**Pulled:** 2026-11-12 — rang: killing the used card returned Beauford instead of nothing
+**Pulled:** 2026-11-18 — re-pulled after kill began keying refunds by the holder they change; rang: the used card refunded Beauford; restored clean *Earlier —* 2026-11-12 — rang: killing the used card returned Beauford instead of nothing
 ## Test: Damage slots
 **Purpose:** a slot needs a name; Damage Levels; a box is a Resource of its own with its slot's name
 (R61, R62, R210)
@@ -88,7 +88,7 @@ the Money card from the Bias; feed the Bias card from its own source
 **Pulled:** 2026-11-12 — rang: the Injury fed the Bias card instead of being refused
 
 ## Test: what a source has left
-**Purpose:** R250: Tap.left gives the Levels a source can still be tapped for, which fades a dry glyph
+**Purpose:** R250: Tap.leftOf gives the Levels a source can still be tapped for, which fades a dry glyph
 **Input:** Sam's Ammo before and after a tap and a feed take both its Levels; Money; an unknown name;
 an unnamed Injury slot; the Sig Bias `Uncertain` with its first box checked, the slot, the box and the
 unchecked second box
@@ -96,10 +96,9 @@ unchecked second box
 **Refs:** crc-Tap.md
 **Code:** `src/rules/tap.test.ts`
 **Alarm:** 7
-**Fire alarm:** In left, read only the front: the named Bias slot has 0 left, its glyph faded
-**Inject:** src/rules/tap.ts:left
-**Pulled:** 2026-11-12 — rang: the named Sig Bias slot read 0 left instead of 2
-
+**Fire alarm:** In source, read only the front: the named Bias slot has 0 left, its glyph faded
+**Inject:** src/rules/tap.ts:source
+**Pulled:** 2026-11-18 — re-pulled after left became leftOf, by the whole source; rang: the named Bias slot read 0 left, and three other tests failed with it; restored clean *Earlier —* 2026-11-12 — rang: the named Sig Bias slot read 0 left instead of 2
 ## Test: tapping a Motivation
 **Purpose:** R260–R262: a Motivation makes a Main Pool card of its sign, spends into its
 parentheses, recharges at a scene's end, refunds back to full, and feeds only Motivation cards
@@ -125,8 +124,7 @@ three; Devreux's Money for two players; Sam's named Sig Bias for another player;
 **Alarm:** 9
 **Fire alarm:** In mayTap, let anyone tap a Resource (drop the owner check): another player taps Sam's Money
 **Inject:** src/rules/tap.ts:mayTap
-**Pulled:** 2026-11-12 — rang: another player could tap Sam's Money
-
+**Pulled:** 2026-11-18 — re-pulled after mayTap gave Opinions to the GM alone; rang: another player could tap Sam's Money; restored clean *Earlier —* 2026-11-12 — rang: another player could tap Sam's Money
 ## Test: tapping a Conviction
 **Purpose:** R343: a named Conviction taps into a Bias card named after it, worth its Levels less what it has spent; End recharges it; an unnamed one, or one the card doesn't have, is no source
 **Input:** Sam with `lasting.bias` `{name: 'Cheats win', points: 7, spent: 0}`; a tap from `bias/lasting`; End; then the Conviction unnamed, and taps from `affliction/lasting` and `injury/lasting`
@@ -148,3 +146,14 @@ three; Devreux's Money for two players; Sam's named Sig Bias for another player;
 **Fire alarm:** count only the Mild slot, not its boxes (drop `(?:#\d+)?` from MILD); red: the card from the Mild slot and its box survives
 **Inject:** src/rules/tap.ts:mildGone
 **Pulled:** 2026-11-15 — rang: "what Mild gave goes at End" failed, the card from the Mild slot and its box survived; restored clean
+
+## Test: tapping an Opinion
+**Purpose:** R433, R434: an Opinion Record's line taps as a Motivation does, into a `mot` card named for the NPC, and its Connection stays
+**Input:** Devreux's record of Sam, `Reputation +Sig` and `Professional Respect (Tact) +Min`; tap `<Devreux>:o<record>/Reputation`, feed it once more, unfeed it, then kill the card; tap `Professional Respect (Tact)`
+**Expected:** a `mot` card named "Devreux: Reputation" at Min, at home with Devreux, the record reading `Reputation +Sig (+Min)`; fed, `Reputation +Sig (0)`, and leftOf 0; unfed, `(+Min)` again; killed, `Reputation +Sig` with nothing changed but the record; the record's Connection +Sig throughout; the Professional Respect card named "Devreux: Professional Respect (Tact)"
+**Refs:** crc-Tap.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 12
+**Fire alarm:** spend an Opinion's fixed Level, as a `<res>` spends (`spend` in place of `adjust`); red: the record reads `Reputation +Min`
+**Inject:** src/rules/tap.ts:inOpinion
+**Pulled:** 2026-11-18 — rang: the record read "Reputation +Min", its fixed Level spent; restored clean

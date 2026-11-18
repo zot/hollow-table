@@ -91,4 +91,4 @@
 **Alarm:** 5
 **Fire alarm:** read the table off by one (the d6's face as the index); red: step 1 gives -1 for a 1
 **Inject:** src/rules/connections.ts:reactionOf
-**Pulled:** 2026-11-18 — 2026-11-18 — rang: reactionOf read 1 as -1, the table shifted by one; restored clean
+**Pulled:** 2026-11-18 — rang: reactionOf read 1 as -1, the table shifted by one; restored clean

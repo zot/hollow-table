@@ -452,6 +452,9 @@
 - **R429:** On the GM's page, a PC's Opinion Record's "Reaction ?" line has a White die before it; clicking it brings the PC's roll row up as a Reaction from the NPC whose card shows the record: only the White die, locked, and Roll, the header reading "<NPC>'s Reaction". A Reaction row waits for no aim, and an action's die or clearing it starts the row fresh.
 - **R430:** The GM's page resolves a Reaction from its own row: refused unless the NPC's record of the PC (its row's, or its group's) has a "Reaction ?" line; otherwise one d6 on the Default Reaction table (1 -Sig, 2 -Min, 3-4 0, 5 +Min, 6 +Sig), and, in the roll's change, the line becomes "Reaction <Level>", the record's cell takes its new Connection, and the row goes away.
 - **R431:** A Reaction's receipt is one of the PC's numbered rolls and the same on every page: the White die, "White N on the Default Reaction table", and "<NPC>'s Reaction: <Level>".
+- **R432:** On the GM's page, every line of an Opinion Record with a fixed Level other than 0 has a tap glyph before it, drawn while the record isn't being written in, faded when it has no Levels left; only the GM may drag it.
+- **R433:** Dragging an Opinion's glyph makes a Main Pool Influence of the Opinion's sign at Min, named "<NPC>: <Opinion>", at home with the NPC whose card it came from: it goes only into a Main slot and is fed only by Motivations and Opinions. Each Level spent is written in parentheses after the Opinion's fixed Level, and comes back when the card is unfed or killed unused, as a Motivation's does.
+- **R434:** Tapping an Opinion leaves the record's Connection and its Connection Table cell as they were: a Connection counts fixed Levels only.
 
 ## Feature: delivery
 **Source:** specs/delivery.md

@@ -18,7 +18,7 @@ Infer; when you Infer Opinions", and "I forgot I renamed Connection Card to Opin
 - [x] ~~**Item 6 — the Connection Table.**~~ **LANDED (2026-11-18 — `#32`.)** Before Item 3, which reads its cells.
 - [x] ~~**Item 3 — Opinion Records.**~~ **LANDED (2026-11-18 — `#31`.)** Takes in the prototype carve's Item 15. After Item 6.
 - [x] ~~**Item 7 — the Reaction roll.**~~ **LANDED (2026-11-18 — `#33`.)** Split from Item 3; after it.
-- [ ] **Item 8 — tapping Opinions.** **OPEN (not queued.)** After Item 3.
+- [x] ~~**Item 8 — tapping Opinions.**~~ **LANDED (2026-11-18 — `#34`.)** After Item 3.
 - [ ] **Item 9 — revealing Opinion Records.** **OPEN (not queued.)** After Item 3.
 
 ## The rules
@@ -213,6 +213,12 @@ menu, "Not now; menu only", rather than by the first aim, as Bunkum's "The first
 particular NPC with an Action" would have it; and the receipt "Names NPC and Level", "Devreux's
 Reaction: +Min", as one of the PC's rolls.
 
+DECIDED (Bill, 2026-11-18), Item 8's questions, on Daneel's proposals: "Every line with a Level" of a
+record taps, with no pen; a tapped Opinion's parentheses stay "Like Motivations, later", until a scene
+or Event end recharges both and Bunkum's Event Updates move a fixed value, which is a later item; and
+the card is named for "The NPC and Opinion", "Devreux: Reputation +Min". Records being the GM's until
+Item 9, only the GM taps them; players ask aloud.
+
 ## Item 1
 
 Torn reveals on the card. The GM's page shows one eye at the upper right of an NPC's card, shut.
@@ -362,8 +368,10 @@ the players know how the NPC took to them; the line becomes "Reaction +Min" and 
 
 ## Item 8
 
-Tapping Opinions (Bunkum: "Opinions and Motivations create Main Pool Influences"): an Opinion Record's
-lines tap as a Motivation's do, the adjusted value in parentheses after the fixed one.
+Tapping Opinions (Bunkum: "Opinions and Motivations create Main Pool Influences"): every line of an
+Opinion Record with a Level has a glyph and taps as a Motivation's does, the adjusted value in
+parentheses after the fixed one, into a Main-only card named "Devreux: Reputation". The GM's alone
+while records are. Recharging, and Event Updates to the fixed value, come later.
 
 ## Item 9
 
