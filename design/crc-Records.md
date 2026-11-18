@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R395
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -16,7 +16,7 @@ record crosses the wire, the database and an export file unchanged.
   `{table: Place}`. Order within a drawer, used pile or slot is a number `n`.
 - Character: `{kind: 'character', oid, owner: Who, name, pool: Place, card: Place, flipped,
   gathered, front: Marked, back: CardBack, shown?: string[]}`. `name` is public; `front` and `back` are
-  secret. `shown` (R391) is the front's revealed lines, each by its text, for an NPC the GM reveals
+  secret. `info` (R395) is an NPC's Info cards, a text each, absent when none. `shown` (R391) is the front's revealed lines, each by its text, for an NPC the GM reveals
   lines of; absent when none.
 - Damage: `bias | affliction | injury`, the back's columns (Hollow Folks, *Injury, Bias, and
   Affliction Pools*), named as their pool slots. Level rows:

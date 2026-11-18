@@ -13,7 +13,7 @@ Infer; when you Infer Opinions", and "I forgot I renamed Connection Card to Opin
 
 - [x] ~~**Item 1 — torn reveals on the card.**~~ **LANDED (2026-11-18 — `#27`.)**
 - [x] ~~**Item 4 — reveal by entry.**~~ **LANDED (2026-11-18 — `#28`.)** Before Item 2, which builds on it.
-- [ ] **Item 2 — the slide-out and its Info cards.** **OPEN (not queued.)**
+- [x] ~~**Item 2 — the slide-out and its Info cards.**~~ **LANDED (2026-11-18 — `#29`.)**
 - [ ] **Item 3 — Opinion Records.** **OPEN (not queued.)** Takes in the prototype carve's Item 15.
 
 ## The rules

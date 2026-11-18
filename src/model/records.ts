@@ -68,8 +68,10 @@ export function damageSlots(f: (d: Damage, r: RowName) => DamageSlot): CardBack[
 export type Character = {
   kind: 'character'; oid: Oid; owner: Who; name: string; pool: Place; card: Place;
   flipped: boolean; gathered: boolean; front: Marked; back: CardBack;
-  /** R391: the front's lines revealed to the table, each by its text; absent when none. */
+  /** R391: the entries revealed to the table, each by its key; absent when none. */
   shown?: string[];
+  /** R395: an NPC's Info cards, a text each; absent when none. */
+  info?: Marked[];
 };
 
 /** A tapped card's ledger: Levels put in by each source (`<character oid>:<name>`). */
@@ -245,7 +247,7 @@ export const receipt = fields(
 
 const PIECES: Record<PieceRecord['kind'], Shape> = {
   character: fields({ kind: oneOf('character'), oid: isOid, owner: str(CAPS.name), name: str(CAPS.name), pool: place,
-    card: place, flipped: bool, gathered: bool, front: marked, back }, { shown: list(marked) }),
+    card: place, flipped: bool, gathered: bool, front: marked, back }, { shown: list(marked), info: list(marked, 20) }),
   influence: fields({ kind: oneOf('influence'), oid: isOid, home: isOid, where, n: int(0, CAPS.list), name: str(CAPS.name),
     sign, points, used: bool, crit: bool },
     { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true) }),

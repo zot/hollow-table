@@ -1,10 +1,10 @@
-// CRC: crc-PieceView.md | R391, R392, R393, R388
+// CRC: crc-PieceView.md | R391, R392, R393, R388, R398
 // The GM's eye on an NPC's card: while it is open the card is in its Infer state, and its revealed
 // entries are a draft on this page alone; shutting the eye writes them to the card. Never saved or sent.
 
 import type { Character, Oid } from '../model/records.ts';
 import { ridOf } from '../model/records.ts';
-import { entries, type InferCategory } from '../rules/readmarks.ts';
+import { clues, entries, type InferCategory } from '../rules/readmarks.ts';
 import type { Game } from '../model/game.ts';
 
 export type Category = InferCategory;
@@ -15,9 +15,12 @@ export const CATEGORIES: { key: Category; word: string }[] = [
   { key: 'motivations', word: 'Motivations' }, { key: 'items', word: 'Items' },
 ];
 
+// R391, R398: what the eye can reveal: the front's entries and the Info cards' clues, by key.
+const revealable = (c: Character) => [entries(c.front), ...(c.info ?? []).map(clues)].flat().map(e => e.key);
+
 /** The character with exactly these entries revealed (R391, by key), `shown` absent when there are none. */
 export function withShown(c: Character, keys: Iterable<string>): Character {
-  const here = new Set(entries(c.front).map(e => e.key)), shown = [...new Set(keys)].filter(k => here.has(k));
+  const here = new Set(revealable(c)), shown = [...new Set(keys)].filter(k => here.has(k));
   const { shown: _, ...rest } = c;
   return shown.length ? { ...rest, shown } : rest;
 }
@@ -55,7 +58,7 @@ export class Eyes {
   /** In the Infer state, a click on an entry (by key) reveals it or hides it again. */
   toggle(oid: Oid, key: string): void {
     const o = this.#open.get(oid), c = this.#card(oid);
-    if (!o || !c || !entries(c.front).some(e => e.key === key)) return;
+    if (!o || !c || !revealable(c).includes(key)) return;
     if (!o.draft.delete(key)) o.draft.add(key);
     this.#changed(oid);
   }

@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377, R392, R393, R388, R394, R390
+// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377, R392, R393, R388, R394, R390, R395, R396, R397, R398, R399
 // Eve sits at the table owning nothing: no secret word reaches her page in the clear, though she
 // hears the sealed boxes meant for others. Dana sees what she owns, and nothing more.
 import { expect, test, type Page } from '@playwright/test';
@@ -164,4 +164,30 @@ test("the GM's eye tears an NPC's entries out for the table", async ({ browser }
   await card.locator('.eye').click();
   await expect.poll(front, { timeout: 15_000 }).not.toContain('Savvy');
   await expect(danaCard.locator('.front .text > div.torn').nth(1)).toHaveText('Skills 3: Streetwise');
+});
+
+test("an NPC's Info cards reach players only as torn clues", async ({ browser }) => {
+  // R395–R399: the GM's Info card on Devreux; Dana has no tab until a clue is torn out; then one tab,
+  // and slid out, only that clue; the ANY and unknown clues light with Motivations.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const card = gm.locator(`.obj.card[data-rid="${DEVREUX}"]`), danaCard = dana.locator(`.obj.card[data-rid="${DEVREUX}"]`);
+  const clues = ['ANY: she watches the door', "MOTIVATION: she wants the town quiet", 'WHAT SHE KNOWS ABOUT SAM: he cheats at faro'];
+  await hook(gm, new Function('h', `const d = h.store.game.get('${DEVREUX}'); h.store.game.change(w => w.put('${DEVREUX}', { ...d, info: [${JSON.stringify(clues.join('\n'))}] }));`) as (h: any) => void);
+  await expect(card.locator('.infotab', { hasText: 'Info' })).toHaveCount(1);
+  await expect.poll(async () => (await recOf(dana, DEVREUX)).info?.length, { timeout: 15_000 }).toBe(1);
+  await expect(danaCard.locator('.infotab')).toHaveCount(0);
+
+  await card.locator('.infotab', { hasText: 'Info' }).click();
+  await card.locator('.eyecat').click();
+  await card.locator('.eyemenu button', { hasText: 'Motivations' }).click();
+  await expect(card.locator('.infopaper .entry.lit')).toHaveCount(3);
+  await card.locator('.infopaper .entry', { hasText: 'MOTIVATION' }).click();
+  await card.locator('.eye').click();
+
+  await expect.poll(async () => (await recOf(dana, DEVREUX)).info?.[0], { timeout: 15_000 }).toBe('\nMOTIVATION: she wants the town quiet\n');
+  expect(await held(dana)).not.toContain('watches');
+  expect(await held(dana)).not.toContain('faro');
+  await danaCard.locator('.infotab').click();
+  await expect(danaCard.locator('.infopaper .text > div.torn')).toHaveText(['MOTIVATION: she wants the town quiet']);
 });

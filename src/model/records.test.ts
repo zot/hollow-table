@@ -64,11 +64,14 @@ test('a card an action suffers', () => {
   assert.ok(!check(ridOf('000000f1'), { ...card, once: false }));
 });
 
-test("a card's revealed lines", () => {
+test("a card's revealed entries and Info cards", () => {
   // R391: `shown` is a list of revealed entries, each its label and text, absent when none.
   const dev = scene().find((r): r is Character => r.kind === 'character' && r.name === 'Devreux')!;
   const rid = ridOf(dev.oid);
   assert.ok(check(rid, { ...dev, shown: ['Keep the Peace +Sig (0)', 'Skills 3: Savvy'] }));
   assert.ok(!check(rid, { ...dev, shown: [7] }), 'a line is its text, not its number');
   assert.ok(!check(rid, { ...dev, shown: 'Keep the Peace' }));
+  // R395: Info cards are texts.
+  assert.ok(check(rid, { ...dev, info: ['ANY: she watches the door', ''] }));
+  assert.ok(!check(rid, { ...dev, info: [['ANY']] }));
 });

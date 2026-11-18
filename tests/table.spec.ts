@@ -2,7 +2,7 @@
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, dragFromTo, kinds, open, rec } from './page.ts';
+import { at, barMiddle, dragFromTo, kinds, open, rec, records } from './page.ts';
 
 const SAM = 'o:00000001', BEAUFORD = 'o:00000002', STICKY = 'o:00000008', CHIP = 'o:00000007';
 
@@ -270,4 +270,28 @@ test('writing shows the text cursor', async ({ page }) => {
   await page.locator(SLOT).first().focus();
   expect(await page.locator(SLOT).first().evaluate(e => e === document.activeElement)).toBe(true);
   expect(await cursor(SLOT)).toBe('text');
+});
+
+test('the GM adds, writes and loses an Info card', async ({ page }) => {
+  // R395, R397: "+" adds a card slid out with the caret in it; written, it stays, and stays slid out
+  // across a reload (the seat); written empty, it is gone once the caret leaves.
+  const card = page.locator('.obj.card[data-rid="o:00000003"]');
+  await card.locator('.infotab.add').click();
+  await expect(card.locator('.infopaper .text')).toBeFocused();
+  await page.keyboard.type('ANY: she watches the door');
+  await page.locator('#table').click({ position: { x: 5, y: 5 } });
+  await expect(card.locator('.infotab', { hasText: 'Info' })).toHaveCount(1);
+  // One card; a fresh writing area may keep a trailing empty line, which is no clue.
+  expect(((await rec(page, 'o:00000003')).info as string[]).map(t => t.trim())).toEqual(['ANY: she watches the door']);
+  // The game is saved a moment after it changes: reload once it is.
+  await expect.poll(async () => (await records(page)).saved).toContain('she watches the door');
+  await page.reload();
+  await expect(card.locator('.infopaper .text')).toHaveText('ANY: she watches the door');
+  await card.locator('.infopaper .text').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.press('Backspace');
+  await page.locator('#table').click({ position: { x: 5, y: 5 } });
+  await expect(card.locator('.infotab', { hasText: 'Info' })).toHaveCount(0);
+  await expect(card.locator('.infopaper')).toHaveCount(0);
+  expect('info' in (await rec(page, 'o:00000003'))).toBe(false);
 });

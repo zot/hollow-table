@@ -94,3 +94,14 @@ the GM's view is unchanged
 **Fire alarm:** let a line with any revealed entry go out whole; red: Profession (Saloon Keeper) reaches Dana
 **Inject:** src/rules/visibility.ts:blankFront
 **Pulled:** 2026-11-18 — re-pulled after entries (#28): "an NPC card reveals only its shown entries" failed, Profession (Saloon Keeper) reaching Dana; restored clean
+
+## Test: an NPC's Info cards reveal only their shown clues
+**Purpose:** R399: a hidden character's Info cards each keep their place, with only revealed clues in words; redacting again changes nothing; a character with none gets no `info`
+**Input:** Devreux with two Info cards and one clue of the first revealed; redacted for Dana, again, and Devreux with none
+**Expected:** the first card with only that clue's line in words, the second blank; no watches, Trudy or Tracking; the second redaction equal; no `info` field
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 9
+**Fire alarm:** send Info cards as they are (skip blankInfo); red: the ANY clue reaches Dana
+**Inject:** src/rules/visibility.ts:redactPiece
+**Pulled:** 2026-11-18 — re-pulled after the simplifier hoisted the shown set: "an NPC's Info cards reveal only their shown clues" failed; restored clean *Earlier —* 2026-11-18 — rang: "an NPC's Info cards reveal only their shown clues" failed, the ANY clue reaching Dana; restored clean

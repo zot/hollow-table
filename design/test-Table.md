@@ -297,3 +297,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** drop the `cursor: text` rule on focused writing; red: Sam's text shows `grab` while it holds the caret
 **Inject:** src/ui/theme.css
 **Pulled:** 2026-11-18 — rang (Chromium): Sam's text showed `grab` while it held the caret; restored clean
+
+## Test: the GM adds, writes and loses an Info card
+**Purpose:** R395, R397: the "+" tab adds a card slid out with the caret in it; written, it stays, and stays slid out across a reload; written empty, it is gone once the caret leaves
+**Input:** Devreux's "+" tab; typing a clue; a click on the table; reload after the save; select all, delete, a click on the table
+**Expected:** the caret in the card; one Info tab; the card's text the clue; after the reload the card slid out with its clue; then no tab, no card, no `info`
+**Refs:** crc-PieceView.md, crc-Seat.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 22
+**Fire alarm:** keep a card written empty (drop the removal when the caret leaves); red: the Info tab is still there
+**Inject:** src/ui/piece.ts:infos
+**Pulled:** 2026-11-18 — rang (Chromium): the Info tab was still there after the card was written empty; restored clean

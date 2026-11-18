@@ -1,8 +1,8 @@
-// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R394
+// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R394, R399
 // Who may read what, and each record as a given viewer may see it. Pure. The invariant: no page
 // ever holds, in the clear, a secret its person may not read.
 
-import { entries, type Entry } from './readmarks.ts';
+import { clues, entries, type Entry } from './readmarks.ts';
 import { parse } from '../text/marks.ts';
 import { OPEN, damageSlots, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Rec, type Yards } from '../model/records.ts';
 
@@ -21,6 +21,13 @@ const blank = (text: string) => text.replace(/[^\n]/g, '');
 // and an ITEMS heading over a revealed Item stays; every other line is blanked, the first too (it holds
 // more than the public name). `shown` holds only revealed words, so it goes with them, and applying
 // this to its own result changes nothing.
+// R399: an Info card keeps its place, with only its revealed clues in words.
+/** An Info card as one who can't read it sees it. */
+export function blankInfo(info: string, shown: ReadonlySet<string>): string {
+  const keep = new Set(clues(info).filter(e => shown.has(e.key)).map(e => e.line));
+  return info.split('\n').map((l, k) => (keep.has(k) ? l : '')).join('\n');
+}
+
 /** The front as one who can't read the card sees it. */
 export function blankFront(c: Character): string {
   const shown = new Set(c.shown ?? []), out = c.front.split('\n').map(() => ''), by = new Map<number, Entry[]>();
@@ -59,7 +66,11 @@ export function contribution(i: Chip | Influence, chars: Characters): boolean {
 
 function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRecord | undefined {
   if (r.kind === 'character') {
-    return canSee(viewer, r) ? r : { ...r, front: blankFront(r), back: blankBack(r.back) };
+    if (canSee(viewer, r)) return r;
+    const shown = new Set(r.shown ?? []);
+    const hidden: Character = { ...r, front: blankFront(r), back: blankBack(r.back) };
+    if (r.info) hidden.info = r.info.map(i => blankInfo(i, shown));
+    return hidden;
   }
   // R378: the private mat of a pool the viewer can't see never reaches them, not even face-down.
   if (r.kind === 'chip' || r.kind === 'influence') {

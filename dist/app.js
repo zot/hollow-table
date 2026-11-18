@@ -96,7 +96,7 @@ var PIECES = {
     gathered: bool,
     front: marked,
     back
-  }, { shown: list(marked) }),
+  }, { shown: list(marked), info: list(marked, 20) }),
   influence: fields(
     {
       kind: oneOf("influence"),
@@ -572,6 +572,15 @@ function label(text) {
   }
   return "";
 }
+var CLUE = { skill: "skills", resource: "resources", motivation: "motivations", item: "items" };
+function clues(info) {
+  return info.split("\n").flatMap((line, k) => {
+    const text = line.trim();
+    if (!text) return [];
+    const word = /^\s*([a-z]+?)s?\s*:/i.exec(text)?.[1]?.toLowerCase() ?? "";
+    return [{ line: k, label: "", text, key: text, cat: CLUE[word] ?? "any" }];
+  });
+}
 function entries(front) {
   const out = [];
   let items = null;
@@ -901,6 +910,10 @@ function canSee(viewer, character2) {
   return !!viewer?.gm || character2.owner === OPEN || !!viewer && character2.owner === viewer.name;
 }
 var blank = (text) => text.replace(/[^\n]/g, "");
+function blankInfo(info, shown3) {
+  const keep = new Set(clues(info).filter((e) => shown3.has(e.key)).map((e) => e.line));
+  return info.split("\n").map((l, k) => keep.has(k) ? l : "").join("\n");
+}
 function blankFront(c) {
   const shown3 = new Set(c.shown ?? []), out = c.front.split("\n").map(() => ""), by = /* @__PURE__ */ new Map();
   for (const e of entries(c.front)) {
@@ -931,7 +944,11 @@ function contribution(i, chars) {
 }
 function redactPiece(r, viewer, chars) {
   if (r.kind === "character") {
-    return canSee(viewer, r) ? r : { ...r, front: blankFront(r), back: blankBack(r.back) };
+    if (canSee(viewer, r)) return r;
+    const shown3 = new Set(r.shown ?? []);
+    const hidden = { ...r, front: blankFront(r), back: blankBack(r.back) };
+    if (r.info) hidden.info = r.info.map((i) => blankInfo(i, shown3));
+    return hidden;
   }
   if (r.kind === "chip" || r.kind === "influence") {
     const pool = poolOf(r, chars);
@@ -973,8 +990,9 @@ var CATEGORIES = [
   { key: "motivations", word: "Motivations" },
   { key: "items", word: "Items" }
 ];
+var revealable = (c) => [entries(c.front), ...(c.info ?? []).map(clues)].flat().map((e) => e.key);
 function withShown(c, keys2) {
-  const here2 = new Set(entries(c.front).map((e) => e.key)), shown3 = [...new Set(keys2)].filter((k) => here2.has(k));
+  const here2 = new Set(revealable(c)), shown3 = [...new Set(keys2)].filter((k) => here2.has(k));
   const { shown: _, ...rest } = c;
   return shown3.length ? { ...rest, shown: shown3 } : rest;
 }
@@ -1008,7 +1026,7 @@ var Eyes = class {
   /** In the Infer state, a click on an entry (by key) reveals it or hides it again. */
   toggle(oid, key) {
     const o = this.#open.get(oid), c = this.#card(oid);
-    if (!o || !c || !entries(c.front).some((e) => e.key === key)) return;
+    if (!o || !c || !revealable(c).includes(key)) return;
     if (!o.draft.delete(key)) o.draft.add(key);
     this.#changed(oid);
   }
@@ -1623,7 +1641,7 @@ function make(doc, r, w) {
         w.eyes.flip(r.oid);
       } });
       gesture(pick, { click: () => eyeMenu(e, r.oid, w) });
-      e.append(flipper, flip, eye, pick, tray(e));
+      e.append(flipper, flip, eye, pick, tray(e), el(doc, "div", "infos"));
       break;
     }
     case "sticky":
@@ -1665,6 +1683,7 @@ function update(e, r, w) {
       rewrite(front, back3 ? named(body, r.name) : body);
       torn(front, r, secret, draft, draft ? w.eyes.cat(r.oid) : null);
       if (!back3) frontGlyphs(front, r, w);
+      infos(e, r, w, secret, eyed, draft);
       rewrite(e.querySelector(".back .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
       dry(e, r);
@@ -1919,11 +1938,11 @@ function rag(oid, line) {
   for (const ch of oid + line) h = h * 31 + ch.charCodeAt(0) | 0;
   return (h >>> 0) % 6;
 }
-function torn(text, c, secret, draft, cat) {
+function torn(text, c, secret, draft, cat, read2 = entries, name2 = true) {
   const src = text.dataset.source ?? "", lines = src.split("\n"), doc = text.ownerDocument, by = /* @__PURE__ */ new Map();
-  if (draft) for (const e of entries(src)) by.set(e.line, [...by.get(e.line) ?? [], e]);
+  if (draft) for (const e of read2(src)) by.set(e.line, [...by.get(e.line) ?? [], e]);
   [...text.children].forEach((div, k) => {
-    const d = div, es = by.get(k), whole = secret ? lines[k] !== "" : !!draft && k === 0;
+    const d = div, es = by.get(k), whole = secret ? lines[k] !== "" : !!draft && name2 && k === 0;
     d.classList.toggle("torn", whole);
     if (whole) d.style.setProperty("--rag", String(rag(c.oid, lines[k] ?? "")));
     else d.style.removeProperty("--rag");
@@ -1932,7 +1951,8 @@ function torn(text, c, secret, draft, cat) {
     if (es[0].label) parts2.push(el(doc, "span", `label${any ? " torn" : ""}`, es[0].label), " ");
     es.forEach((e, i) => {
       if (i) parts2.push(", ");
-      const out = draft.has(e.key), s = el(doc, "span", `entry${out ? " torn" : cat === e.cat ? " lit" : ""}`, e.text);
+      const out = draft.has(e.key), lit = !!cat && (e.cat === cat || e.cat === "any");
+      const s = el(doc, "span", `entry${out ? " torn" : lit ? " lit" : ""}`, e.text);
       s.dataset.key = e.key;
       if (out) s.style.setProperty("--rag", String(rag(c.oid, e.key)));
       parts2.push(s);
@@ -1940,6 +1960,59 @@ function torn(text, c, secret, draft, cat) {
     d.replaceChildren(...parts2);
     d.dataset.entries = "";
   });
+}
+function infos(e, c, w, secret, eyed, draft) {
+  const doc = e.ownerDocument, box2 = e.querySelector(":scope > .infos"), rid2 = ridOf(c.oid);
+  const shown3 = new Set(c.shown ?? []), cards = (c.info ?? []).map((i) => secret ? blankInfo(i, shown3) : i);
+  const showing = cards.flatMap((t, k) => secret && !t.trim() ? [] : [k]);
+  const mine = `${c.oid}:`, at3 = [...w.slid()].find((s) => s.startsWith(mine)), want = at3 ? Number(at3.slice(mine.length)) : -1;
+  const out = showing.includes(want) ? want : -1;
+  const slide = (to) => w.setSlid(new Set([...w.slid()].filter((s) => !s.startsWith(mine)).concat(to < 0 ? [] : [mine + to])));
+  let paper = box2.querySelector(":scope > .infopaper");
+  if (paper && paper.dataset.k !== String(out)) {
+    paper.remove();
+    paper = null;
+  }
+  if (out >= 0) {
+    if (!paper) {
+      paper = el(doc, "div", "infopaper");
+      paper.dataset.k = String(out);
+      const text2 = writable(doc, "text", cards[out], (s) => change(w, rid2, (x) => ({ ...x, info: (x.info ?? []).map((t, j) => j === out ? s : t) })));
+      text2.addEventListener("focusout", () => {
+        const x = w.game.get(rid2);
+        if (x?.info?.[out]?.trim() !== "") return;
+        const { info: _, ...rest } = x, info = x.info.filter((__, j) => j !== out);
+        w.game.change((g) => g.put(rid2, info.length ? { ...rest, info } : rest));
+        slide(-1);
+      });
+      paper.append(text2);
+      box2.prepend(paper);
+    }
+    const text = paper.querySelector(".text");
+    text.contentEditable = secret || draft ? "false" : "true";
+    if (!draft && text.querySelector("[data-entries]")) delete text.dataset.source;
+    rewrite(text, cards[out]);
+    torn(text, c, secret, draft, draft ? w.eyes.cat(c.oid) : null, clues, false);
+  }
+  const tabs = el(doc, "div", "infotabs");
+  for (const k of showing) {
+    const t = el(doc, "button", `infotab${k === out ? " out" : ""}`, cards.length > 1 ? `Info ${k + 1}` : "Info");
+    gesture(t, { click: () => slide(k === out ? -1 : k) });
+    tabs.append(t);
+  }
+  if (eyed && !draft) {
+    const add = el(doc, "button", "infotab add", "+");
+    add.title = "Add an Info card";
+    gesture(add, { click: () => {
+      const n = (c.info ?? []).length;
+      change(w, rid2, (x) => ({ ...x, info: [...x.info ?? [], ""] }));
+      slide(n);
+      box2.querySelector(".infopaper .text")?.focus();
+    } });
+    tabs.append(add);
+  }
+  box2.querySelector(":scope > .infotabs")?.remove();
+  box2.append(tabs);
 }
 function eyeMenu(e, oid, w) {
   const was = e.querySelector(".eyemenu");
@@ -1960,7 +2033,7 @@ function eyeMenu(e, oid, w) {
 }
 function tear(e, oid, ev, w) {
   if (!w.eyes.draft(oid)) return;
-  const entry = ev.target?.closest?.(".front .entry");
+  const entry = ev.target?.closest?.(".entry");
   if (entry?.dataset.key) w.eyes.toggle(oid, entry.dataset.key);
 }
 function frontGlyphs(text, c, w) {
@@ -10584,7 +10657,7 @@ function fresh2() {
     viewAs: null,
     tapeUp: false,
     boothill: { cur: 0, open: false },
-    open: { used: [], piles: [], slots: [], columns: [] },
+    open: { used: [], piles: [], slots: [], columns: [], info: [] },
     types: {}
   };
 }
@@ -10624,7 +10697,8 @@ function prune(seat, exists, yards) {
       used: seat.open.used.filter(here2),
       piles: seat.open.piles.filter(here2),
       slots: seat.open.slots.filter(owner),
-      columns: seat.open.columns.filter(owner)
+      columns: seat.open.columns.filter(owner),
+      info: seat.open.info.filter(owner)
     }
   };
 }
@@ -11932,6 +12006,12 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     opened: () => new Set(seat.open.columns),
     setOpened: (o) => {
       keep({ ...seat, open: { ...seat.open, columns: [...o] } });
+      redraw();
+    },
+    // R397: the Info card slid out of each NPC's card is this viewer's own.
+    slid: () => new Set(seat.open.info),
+    setSlid: (o) => {
+      keep({ ...seat, open: { ...seat.open, info: [...o] } });
       redraw();
     },
     drag: (rid2, down, move) => drag?.start(rid2, down, move),

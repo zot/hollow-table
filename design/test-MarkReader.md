@@ -159,3 +159,14 @@ name with no Level
 **Fire alarm:** split at every comma, parentheses or not; red: Finesse (x2, Rhetoric) comes apart
 **Inject:** src/rules/readmarks.ts:parts
 **Pulled:** 2026-11-18 — rang: "what an Infer can reveal: entries" failed, Finesse (x2, Rhetoric) split, and "Fields, Skills and their pens" with it (the shared splitter); restored clean
+
+## Test: an Info card's clues
+**Purpose:** R396: each non-empty line of an Info card is a clue, whole, keyed by its text; its category is the word before its colon, any case, singular or plural; ANY, an unknown category and a line with no colon are ANY
+**Input:** an Info card: a MOTIVATION clue with commas, an empty line, `skills: Tracking`, `Items: the doll`, an ANY clue, `WHAT IT KNOWS ABOUT TRUDY: …`, a line with no colon
+**Expected:** motivations (whole, commas and all), skills, items, any, any, any, at lines 0, 2, 3, 4, 5, 6
+**Refs:** crc-MarkReader.md
+**Code:** `src/rules/readmarks.test.ts`
+**Alarm:** 13
+**Fire alarm:** read only the singular (drop the optional plural `s`); red: `skills: Tracking` is ANY
+**Inject:** src/rules/readmarks.ts:clues
+**Pulled:** 2026-11-18 — rang: "an Info card's clues" failed, skills: Tracking read as ANY; restored clean

@@ -1,4 +1,4 @@
-// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136, R364
+// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136, R364, R397
 // Your seat at the table: how you're looking, kept per game and per viewer in localStorage, never
 // checkpointed, exported or sent. Every read and write survives a blocked or empty storage.
 
@@ -17,8 +17,8 @@ export type Seat = {
   tapeUp: boolean;
   boothill: { cur: number; open: boolean };
   /** Opened things, each named by the oid it belongs to: used piles and piles by oid, slots as
-   * `<oid>:<slot>`, card columns as `<oid>:<damage>`. */
-  open: { used: Oid[]; piles: Oid[]; slots: string[]; columns: string[] };
+   * `<oid>:<slot>`, card columns as `<oid>:<damage>`, the Info card slid out as `<oid>:<k>` (R397). */
+  open: { used: Oid[]; piles: Oid[]; slots: string[]; columns: string[]; info: string[] };
   /** R364: the roll type this viewer last chose for each action on each card, by `<oid>:<label>`. */
   types: Record<string, RollType>;
 };
@@ -28,7 +28,7 @@ export const seatKey = (game: string, viewer: string) => `hollow.seat.${game}.${
 export function fresh(): Seat {
   return {
     view: null, viewAs: null, tapeUp: false,
-    boothill: { cur: 0, open: false }, open: { used: [], piles: [], slots: [], columns: [] }, types: {},
+    boothill: { cur: 0, open: false }, open: { used: [], piles: [], slots: [], columns: [], info: [] }, types: {},
   };
 }
 
@@ -67,7 +67,7 @@ export function prune(seat: Seat, exists: (rid: Rid) => boolean, yards: number):
     boothill: { ...seat.boothill, cur: Math.max(0, Math.min(seat.boothill.cur, yards - 1)) },
     open: {
       used: seat.open.used.filter(here), piles: seat.open.piles.filter(here),
-      slots: seat.open.slots.filter(owner), columns: seat.open.columns.filter(owner),
+      slots: seat.open.slots.filter(owner), columns: seat.open.columns.filter(owner), info: seat.open.info.filter(owner),
     },
   };
 }

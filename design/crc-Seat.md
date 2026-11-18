@@ -1,5 +1,5 @@
 # Seat
-**Requirements:** R127, R128, R136, R271, R364
+**Requirements:** R127, R128, R136, R271, R364, R381, R397
 
 Your seat at the table: everything about how you're looking, kept per game and per viewer, never
 checkpointed, exported or sent.
@@ -11,15 +11,17 @@ checkpointed, exported or sent.
 - viewAs: who the GM is viewing as.
 - tape: rolled up or down.
 - boothill: the graveyard browsed, and whether the list is open.
-- open: open used piles, open piles, opened narrow slots and card columns.
+- open: open used piles, open piles, opened narrow slots and card columns, and the Info card slid out
+  of each NPC's card (`info`, `<oid>:<k>`, R397).
 
 ## Does
 - types (R364): the roll type this viewer last chose for each action on each card (`<oid>:<label>` → type), so the next roll of it starts there.
 - load(storage, game, viewer) / save(storage, game, viewer, seat): every read and write wrapped so
   a blocked or empty storage still gives a working seat.
 - prune(seat, exists, yards): after a restore, drop what refers to records that no longer exist (`exists(rid)`):
-  a docked roller whose pool vanished, a vanished opponent, open piles, slots and columns of
-  vanished pieces; the graveyard browsed is kept within the yards.
+  open piles, slots, columns and Info cards of vanished pieces; the graveyard browsed is kept within
+  the yards. A seat saved by an older page sheds the roll row it carried, the row being the game's
+  (R381).
 
 ## Collaborators
 - Game: to prune against.

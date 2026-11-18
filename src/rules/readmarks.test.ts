@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { action, adjust, attributes, defend, influence, motiveLeft, offer, spend, unadjusted } from './readmarks.ts';
-import { field, pointed, points, skillNamed, skillsLine, suffered, suffers, variants, entries, type Point } from './readmarks.ts';
+import { field, pointed, points, skillNamed, skillsLine, suffered, suffers, variants, entries, clues, type Point } from './readmarks.ts';
 import { BEAUFORD_FRONT, SAM_FRONT } from '../store/playtest.ts';
 
 test('action lines', () => {
@@ -178,4 +178,15 @@ test('what an Infer can reveal: entries', () => {
     [7, 'items', 'Dice token: Farkas, uses 20'], [8, 'items', '(Free Token, 9 uses)'],
   ]);
   assert.equal(entries(front)[7]!.head, 6, "an Item knows its ITEMS heading");
+});
+
+test("an Info card's clues", () => {
+  // R396: each line whole, keyed by its text; the category is the word before the colon, else ANY.
+  const info = ['MOTIVATION: it doesn\'t like its orders, and would welcome a way out', '', 'skills: Tracking',
+    'Items: the doll', 'ANY: he is scared, not mean', 'WHAT IT KNOWS ABOUT TRUDY: she is the King\'s daughter', 'No colon at all'].join('\n');
+  assert.deepEqual(clues(info).map(e => [e.line, e.cat, e.key]), [
+    [0, 'motivations', "MOTIVATION: it doesn't like its orders, and would welcome a way out"],
+    [2, 'skills', 'skills: Tracking'], [3, 'items', 'Items: the doll'], [4, 'any', 'ANY: he is scared, not mean'],
+    [5, 'any', "WHAT IT KNOWS ABOUT TRUDY: she is the King's daughter"], [6, 'any', 'No colon at all'],
+  ]);
 });

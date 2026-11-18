@@ -12,7 +12,8 @@ test('the seat on its own', () => {
     ...fresh(),
     view: { x: -120, y: 40, zoom: 1.5 },
     tapeUp: true, boothill: { cur: 0, open: true },
-    open: { used: [DEVREUX, BEAUFORD], piles: [], slots: [`${SAM}:main`], columns: [`${DEVREUX}:injury`, `${BEAUFORD}:bias`] },
+    open: { used: [DEVREUX, BEAUFORD], piles: [], slots: [`${SAM}:main`], columns: [`${DEVREUX}:injury`, `${BEAUFORD}:bias`],
+      info: [`${DEVREUX}:0`, `${BEAUFORD}:1`] },
   };
   const p2: Seat = { ...fresh(), view: { x: 5, y: 5, zoom: 1 } };
   save(storage, 'a', 'GM', gm);
@@ -26,13 +27,17 @@ test('the seat on its own', () => {
   const blocked = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
   assert.deepEqual(load(blocked, 'a', 'GM'), fresh());
   assert.doesNotThrow(() => save(blocked, 'a', 'GM', gm));
+  // R397: a seat saved before Info cards opens none.
+  const { info: _, ...older } = gm.open;
+  storage.setItem(seatKey('a', 'GM'), JSON.stringify({ ...gm, open: older }));
+  assert.deepEqual(load(storage, 'a', 'GM').open.info, []);
   storage.setItem(seatKey('a', 'GM'), '{not json');
   assert.deepEqual(load(storage, 'a', 'GM'), fresh());
 
   // A restore where Sam and Devreux are gone.
   const left = new Set([ridOf(BEAUFORD)]);
   const pruned = prune(gm, rid => left.has(rid), 1);
-  assert.deepEqual(pruned.open, { used: [BEAUFORD], piles: [], slots: [], columns: [`${BEAUFORD}:bias`] });
+  assert.deepEqual(pruned.open, { used: [BEAUFORD], piles: [], slots: [], columns: [`${BEAUFORD}:bias`], info: [`${BEAUFORD}:1`] });
   assert.deepEqual(pruned.view, gm.view);
   // R381: a seat saved before still names a roll row; a restore drops it, the row being the game's.
   const old = prune({ ...gm, roller: { pool: DEVREUX, action: 'Attack' } } as Seat, () => true, 1);

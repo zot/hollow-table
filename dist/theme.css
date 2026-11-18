@@ -227,26 +227,44 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .card.inferring::before { content: "Hollow"; position: absolute; inset: 0; border-radius: 22px; display: grid; place-items: center;
   font: 48px/1 "Sancreek", var(--hand); color: rgba(243,233,216,.35); background: #6b4e3b; border: 1.5px solid #2b1e17;
   box-shadow: 0 3px 6px rgba(0,0,0,.35); }
-.card.inferring .front .text { color: rgba(246,236,220,.82); }
-.card.inferring .front .entry { cursor: pointer; }
-.card.secret .front .text > div:empty { min-height: 1.15em; }
+.card.inferring :is(.front, .infopaper) .text { color: rgba(246,236,220,.82); }
+.card.inferring :is(.front, .infopaper) .entry { cursor: pointer; }
+.card.secret :is(.front, .infopaper) .text > div:empty { min-height: 1.15em; }
 /* R393: the chosen category's unrevealed entries, in yellow. */
-.card.inferring .front .entry.lit { background: rgba(255,228,77,.85); color: var(--ink); border-radius: 3px; }
+.card.inferring :is(.front, .infopaper) .entry.lit { background: rgba(255,228,77,.85); color: var(--ink); border-radius: 3px; }
 /* R390: a strip of the front torn through the back: ragged top and bottom, light fibers at the edge,
    the torn piece rolled up at its right end. */
-.card:is(.secret, .inferring) .front .text > div.torn { position: relative; z-index: 0; width: fit-content; max-width: calc(100% - 14px);
+.card:is(.secret, .inferring) :is(.front, .infopaper) .text > div.torn { position: relative; z-index: 0; width: fit-content; max-width: calc(100% - 14px);
   padding: 3px 6px; margin: 2px 0; color: var(--ink); }
 /* R392: in the Infer state an entry is torn out by itself, with its line's label. */
-.card.inferring .front :is(.entry, .label).torn { position: relative; z-index: 0; display: inline-block; padding: 2px 4px; color: var(--ink); }
-.card:is(.secret, .inferring) .front .text > div.torn::before, .card.inferring .front :is(.entry, .label).torn::before { content: ""; position: absolute; inset: -1px 0; z-index: -1; background: #fffdf8;
+.card.inferring :is(.front, .infopaper) :is(.entry, .label).torn { position: relative; z-index: 0; display: inline-block; padding: 2px 4px; color: var(--ink); }
+.card:is(.secret, .inferring) :is(.front, .infopaper) .text > div.torn::before, .card.inferring :is(.front, .infopaper) :is(.entry, .label).torn::before { content: ""; position: absolute; inset: -1px 0; z-index: -1; background: #fffdf8;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 6V3.6L2 2.4 4.5 3.4 7 1.2 9 2.8 11.5 0.9 14 2.6 16 1.6 18.5 3.2 21 1 24 3.6V6Z' fill-opacity='.45'/%3E%3Cpath d='M0 6V4.6L2.5 3.6 5 4.4 7.5 2.6 10 3.9 12.5 2.4 15 3.8 17.5 3 20 4.3 22 2.9 24 4.6V6Z'/%3E%3C/svg%3E") repeat-x, linear-gradient(#000 0 0) no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 0V2.4L2.5 3.5 5 2.3 7.5 4.6 10 3 12 5.1 14.5 3.2 17 4.4 19.5 2.7 22 4.9 24 2.4V0Z' fill-opacity='.45'/%3E%3Cpath d='M0 0V1.4L2 2.5 4.5 1.5 7 3.4 9.5 2 12 3.7 14 2.3 16.5 3.2 19 1.8 21.5 3.6 24 1.4V0Z'/%3E%3C/svg%3E") repeat-x;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 6V3.6L2 2.4 4.5 3.4 7 1.2 9 2.8 11.5 0.9 14 2.6 16 1.6 18.5 3.2 21 1 24 3.6V6Z' fill-opacity='.45'/%3E%3Cpath d='M0 6V4.6L2.5 3.6 5 4.4 7.5 2.6 10 3.9 12.5 2.4 15 3.8 17.5 3 20 4.3 22 2.9 24 4.6V6Z'/%3E%3C/svg%3E") repeat-x, linear-gradient(#000 0 0) no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 0V2.4L2.5 3.5 5 2.3 7.5 4.6 10 3 12 5.1 14.5 3.2 17 4.4 19.5 2.7 22 4.9 24 2.4V0Z' fill-opacity='.45'/%3E%3Cpath d='M0 0V1.4L2 2.5 4.5 1.5 7 3.4 9.5 2 12 3.7 14 2.3 16.5 3.2 19 1.8 21.5 3.6 24 1.4V0Z'/%3E%3C/svg%3E") repeat-x;
   -webkit-mask-size: 24px 6px, 100% calc(100% - 11px), 24px 6px; mask-size: 24px 6px, 100% calc(100% - 11px), 24px 6px;
   -webkit-mask-position: calc(var(--rag, 0) * 5px) 0, 0 5.5px, calc(var(--rag, 0) * -4px) 100%;
   mask-position: calc(var(--rag, 0) * 5px) 0, 0 5.5px, calc(var(--rag, 0) * -4px) 100%; }
-.card:is(.secret, .inferring) .front .text > div.torn::after, .card.inferring .front .entry.torn:not(:has(~ .torn))::after { content: ""; position: absolute; top: 1px; bottom: 1px; right: -11px; width: 12px;
+.card:is(.secret, .inferring) :is(.front, .infopaper) .text > div.torn::after, .card.inferring :is(.front, .infopaper) .entry.torn:not(:has(~ .torn))::after { content: ""; position: absolute; top: 1px; bottom: 1px; right: -11px; width: 12px;
   border-radius: 6px; background: linear-gradient(90deg, #cfc7b8, #fffdf8 35%, #ece6da 65%, #b4ab9b);
   box-shadow: 2px 1px 3px rgba(0,0,0,.35); }
+
+/* R395, R397: Info cards tucked under the NPC's card, their tabs at its bottom edge; the one slid out
+   white below it, or brown and torn as the card is. */
+.card > .infos { position: absolute; top: calc(100% - 12px); left: 30px; right: 30px; z-index: -1; }
+.infopaper { background: #fff; color: var(--ink); border: 1.5px solid #888; border-radius: 0 0 14px 14px; padding: 20px 16px 10px;
+  font: 16px/1.15 var(--hand); box-shadow: 0 3px 6px rgba(0,0,0,.35); animation: infoslide .2s ease-out; }
+@keyframes infoslide { from { transform: translateY(-40%); } }
+.infopaper .text { white-space: pre-wrap; outline: none; min-height: 2.3em; }
+.card.secret .infopaper { background: #5a4030; border-color: #2b1e17; }
+.card.inferring .infopaper { background: #6b4e3b; border-color: #2b1e17; }
+.infotabs { display: flex; gap: 6px; padding-left: 10px; }
+.infopaper + .infotabs { margin-top: -1px; }
+.infos:not(:has(.infopaper)) .infotabs { padding-top: 12px; }
+.infotab { font: 12px var(--mono); color: #222; background: #fff; border: 1.5px solid #888; border-top: none; border-radius: 0 0 8px 8px;
+  padding: 4px 10px; cursor: pointer; box-shadow: 0 2px 3px rgba(0,0,0,.3); }
+.infotab.out { font-weight: 700; }
+.infotab.add { opacity: .6; }
+.infotab.add:hover { opacity: 1; }
 
 /* The back: three Damage columns, then the ruled notes (ui-card.md). */
 .damage { display: flex; gap: 14px; }

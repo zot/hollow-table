@@ -151,3 +151,15 @@ test('an NPC card reveals only its shown entries', () => {
   assert.deepEqual(redact(dana, { name: 'Dana', gm: false }, look), dana, 'redacting again changes nothing');
   assert.deepEqual(redact(revealed, { name: 'GM', gm: true }, look), revealed, 'the GM sees it all');
 });
+
+test("an NPC's Info cards reveal only their shown clues", () => {
+  // R399: every card keeps its place; only revealed clues keep their words.
+  const dev = look(DEVREUX)!, orders = "MOTIVATION: it doesn't like its orders";
+  const info = [`ANY: she watches the door\n${orders}\nWHAT IT KNOWS ABOUT TRUDY: she sat up with her`, 'SKILLS: Tracking'];
+  const revealed: Character = { ...dev, info, shown: [orders] };
+  const dana = redact(revealed, { name: 'Dana', gm: false }, look) as Character;
+  assert.deepEqual(dana.info, [`\n${orders}\n`, ''], 'only the revealed clue has words');
+  for (const w of ['watches', 'Trudy', 'Tracking']) assert.ok(!JSON.stringify(dana).includes(w), w);
+  assert.deepEqual(redact(dana, { name: 'Dana', gm: false }, look), dana, 'redacting again changes nothing');
+  assert.equal('info' in (redact(dev, { name: 'Dana', gm: false }, look) as Character), false, 'no Info cards, no field');
+});

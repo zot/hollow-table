@@ -56,10 +56,10 @@ faulty record is refused
 @alarm-hash: 8f6cabccd94f4eba
 **Pulled:** 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
 
-## Test: a card's revealed lines
-**Purpose:** R391: a character's `shown` is a list of its lines' text, absent when none
-**Input:** Devreux with `shown` as a list of one line; as a list of a number; as a bare string
-**Expected:** taken; refused; refused
+## Test: a card's revealed entries and Info cards
+**Purpose:** R391: a character's `shown` is a list of revealed entries' keys, absent when none; R395: its `info` a list of texts
+**Input:** Devreux with `shown` as a list of keys; as a list of a number; as a bare string; with `info` as texts; as a list of lists
+**Expected:** taken; refused; refused; taken; refused
 **Refs:** crc-Records.md
 **Code:** `src/model/records.test.ts`
 **Alarm:** 5

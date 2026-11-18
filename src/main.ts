@@ -188,6 +188,8 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
     addImage,
     opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); redraw(); },
+    // R397: the Info card slid out of each NPC's card is this viewer's own.
+    slid: () => new Set(seat.open.info), setSlid: o => { keep({ ...seat, open: { ...seat.open, info: [...o] } }); redraw(); },
     drag: (rid, down, move) => drag?.start(rid, down, move),
     // R259: your own Resources only; anyone's Motivations and Damage.
     dragGlyph: (src, down, move) => {

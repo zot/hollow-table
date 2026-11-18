@@ -1,4 +1,4 @@
-// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R362, R354, R355, R363, R364, R391
+// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R362, R354, R355, R363, R364, R391, R396
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
@@ -252,8 +252,9 @@ function parts(text: string, from: number): Part[] {
 
 /** What an Infer reveals (R391): Skills (Fields with them), Resources, Motivations, Items. */
 export type InferCategory = 'skills' | 'resources' | 'motivations' | 'items';
-/** One thing an Infer can reveal: its line, its line's label, its text, its category, and its key. */
-export type Entry = { line: number; label: string; text: string; key: string; cat: InferCategory; head?: number };
+/** One thing an Infer can reveal: its line, its line's label, its text, its category (an Info clue's may
+ * be ANY, R396), and its key. */
+export type Entry = { line: number; label: string; text: string; key: string; cat: InferCategory | 'any'; head?: number };
 const INFER: Partial<Record<MarkName, InferCategory>> = { fld: 'skills', skl: 'skills', res: 'resources', mot: 'motivations' };
 
 /** A line's label: its text through the first colon outside parentheses, or none. */
@@ -266,6 +267,20 @@ function label(text: string): string {
     else if (c === ':' && !depth) return text.slice(0, i + 1).trim();
   }
   return '';
+}
+
+const CLUE: Record<string, InferCategory> = { skill: 'skills', resource: 'resources', motivation: 'motivations', item: 'items' };
+
+// R396: an Info card's clue is a whole line, keyed by its text; its category is the word before its
+// colon, any case, singular or plural, and any other is ANY.
+/** The clues on an Info card, in order. */
+export function clues(info: string): Entry[] {
+  return info.split('\n').flatMap((line, k) => {
+    const text = line.trim();
+    if (!text) return [];
+    const word = /^\s*([a-z]+?)s?\s*:/i.exec(text)?.[1]?.toLowerCase() ?? '';
+    return [{ line: k, label: '', text, key: text, cat: CLUE[word] ?? 'any' }];
+  });
 }
 
 // R391: an entry is a comma-separated part of a line holding a Skill, Field, Resource or Motivation, or

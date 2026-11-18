@@ -49,6 +49,17 @@ The die by the character's name shows GM, open, or the player.
   (its label and those entries), as a strip of the front showing through a tear in its brown "Hollow"
   back, where the line sits, with ragged edges and the torn piece rolled up at the strip's right end.
   Only those words reach a player's page.
+- **Info cards** (Bill, 11-18: "Let's have 'Info N' cards"). An NPC can have white Info cards that
+  slide out from under its card on tabs, "Info 1", "Info 2" when there is more than one. Each is a
+  list of the GM's clues, a line apiece, reading `CATEGORY: DESCRIPTION` ("MOTIVATION: it doesn't like
+  its orders"). A clue is revealed whole, like an entry. Its category is the word before its colon:
+  Skill, Resource, Motivation or Item; any other ("WHAT IT KNOWS ABOUT TRUDY") is up to the GM, so it
+  counts as ANY, which the dropdown lights with every category. The GM writes on an Info card as on the
+  front, and adds another with a "+" tab; a card written empty is gone once the GM leaves it. Which
+  card is slid out is each person's own.
+- **The eye covers the Info cards too**: with it open, a click on a clue tears it out or mends it.
+  A player sees an Info card's tab only once one of its clues is revealed, and the card face-down,
+  each revealed clue torn through its back.
 - **A pool has two mats** (Bill, 11-16: "At the game table, there would be an Influence Pool mat for
   the NPC on the table and another one behind the GM screen"). A **contribution** is an Influence put
   in a pool by someone other than its character's owner: a chip a player (or the GM, on a player's

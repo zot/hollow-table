@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R390, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R390, R395, R397, R398, R399, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -9,9 +9,9 @@ import {
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn,
 } from '../model/records.ts';
-import { blankFront, canSee, type Viewer } from '../rules/visibility.ts';
+import { blankFront, blankInfo, canSee, type Viewer } from '../rules/visibility.ts';
 import { CATEGORIES, type Category, type Eyes } from './eyes.ts';
-import { entries, type Entry } from '../rules/readmarks.ts';
+import { clues, entries, type Entry } from '../rules/readmarks.ts';
 import { action as readAction, influence, suffered, suffers, variants } from '../rules/readmarks.ts';
 import { left } from '../rules/tap.ts';
 import { LEVELS, columnRoom } from '../rules/influence.ts';
@@ -32,6 +32,9 @@ export type PieceWith = {
   /** Columns opened on cards (the Seat): `<oid>:<damage>`. */
   opened: () => Set<string>;
   setOpened: (open: Set<string>) => void;
+  /** R397: the Info card slid out of each NPC's card (the Seat): `<oid>:<k>`. */
+  slid: () => Set<string>;
+  setSlid: (out: Set<string>) => void;
   /** Starts carrying this piece (Drag). */
   drag: (rid: string, down: PointerLike, move: PointerLike) => void;
   /** Starts carrying a tap glyph, `<character oid>:<source>` (Drag). */
@@ -178,7 +181,7 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       pick.setAttribute('aria-label', 'Open the eye on a category');
       gesture(eye, { click: () => { e.querySelector('.eyemenu')?.remove(); w.eyes.flip(r.oid); } });
       gesture(pick, { click: () => eyeMenu(e, r.oid, w) });
-      e.append(flipper, flip, eye, pick, tray(e));
+      e.append(flipper, flip, eye, pick, tray(e), el(doc, 'div', 'infos'));
       break;
     }
     case 'sticky': case 'text':
@@ -224,6 +227,7 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
       torn(front, r, secret, draft, draft ? w.eyes.cat(r.oid) : null);
       // Glyphs and dice are the readable card's: none on a back, nor in the Infer state that shows one.
       if (!back) frontGlyphs(front, r, w);
+      infos(e, r, w, secret, eyed, draft);
       rewrite(e.querySelector('.back .notes')!, r.back.notes);
       damage(e.querySelector('.damage')!, r, w);
       dry(e, r);
@@ -494,12 +498,13 @@ function rag(oid: Oid, line: string): number {
 
 // R390: a face-down card's name and lines with words are torn out of its back, a line at a time.
 // R392, R393: in the GM's Infer state each entry is its own target, torn out with its line's label, or
-// lit when it is in the chosen category and still hidden; the name is torn out too.
-function torn(text: HTMLElement, c: Character, secret: boolean, draft: ReadonlySet<string> | undefined, cat: Category | null): void {
+// lit when it is in the chosen category (or ANY, R398) and still hidden; a front's name is torn out too.
+function torn(text: HTMLElement, c: Character, secret: boolean, draft: ReadonlySet<string> | undefined, cat: Category | null,
+  read: (src: string) => Entry[] = entries, name = true): void {
   const src = text.dataset.source ?? '', lines = src.split('\n'), doc = text.ownerDocument, by = new Map<number, Entry[]>();
-  if (draft) for (const e of entries(src)) by.set(e.line, [...(by.get(e.line) ?? []), e]);
+  if (draft) for (const e of read(src)) by.set(e.line, [...(by.get(e.line) ?? []), e]);
   [...text.children].forEach((div, k) => {
-    const d = div as HTMLElement, es = by.get(k), whole = secret ? lines[k] !== '' : !!draft && k === 0;
+    const d = div as HTMLElement, es = by.get(k), whole = secret ? lines[k] !== '' : !!draft && name && k === 0;
     d.classList.toggle('torn', whole);
     if (whole) d.style.setProperty('--rag', String(rag(c.oid, lines[k] ?? '')));
     else d.style.removeProperty('--rag');
@@ -508,7 +513,8 @@ function torn(text: HTMLElement, c: Character, secret: boolean, draft: ReadonlyS
     if (es[0]!.label) parts.push(el(doc, 'span', `label${any ? ' torn' : ''}`, es[0]!.label), ' ');
     es.forEach((e, i) => {
       if (i) parts.push(', ');
-      const out = draft.has(e.key), s = el(doc, 'span', `entry${out ? ' torn' : cat === e.cat ? ' lit' : ''}`, e.text);
+      const out = draft.has(e.key), lit = !!cat && (e.cat === cat || e.cat === 'any');
+      const s = el(doc, 'span', `entry${out ? ' torn' : lit ? ' lit' : ''}`, e.text);
       s.dataset.key = e.key;
       if (out) s.style.setProperty('--rag', String(rag(c.oid, e.key)));
       parts.push(s);
@@ -516,6 +522,60 @@ function torn(text: HTMLElement, c: Character, secret: boolean, draft: ReadonlyS
     d.replaceChildren(...parts);
     d.dataset.entries = '';
   });
+}
+
+// R395, R397–R399: an NPC's Info cards, on tabs at its bottom edge; the one slid out is written on as
+// the front is, or drawn torn from its back as the front is. A player's tab shows only with words on it.
+function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, eyed: boolean, draft: ReadonlySet<string> | undefined): void {
+  const doc = e.ownerDocument, box = e.querySelector<HTMLElement>(':scope > .infos')!, rid = ridOf(c.oid);
+  const shown = new Set(c.shown ?? []), cards = (c.info ?? []).map(i => (secret ? blankInfo(i, shown) : i));
+  const showing = cards.flatMap((t, k) => (secret && !t.trim() ? [] : [k]));
+  const mine = `${c.oid}:`, at = [...w.slid()].find(s => s.startsWith(mine)), want = at ? Number(at.slice(mine.length)) : -1;
+  const out = showing.includes(want) ? want : -1;
+  const slide = (to: number) => w.setSlid(new Set([...w.slid()].filter(s => !s.startsWith(mine)).concat(to < 0 ? [] : [mine + to])));
+  let paper = box.querySelector<HTMLElement>(':scope > .infopaper');
+  if (paper && paper.dataset.k !== String(out)) { paper.remove(); paper = null; }
+  if (out >= 0) {
+    if (!paper) {
+      paper = el(doc, 'div', 'infopaper');
+      paper.dataset.k = String(out);
+      const text = writable(doc, 'text', cards[out]!, s => change<Character>(w, rid, x => ({ ...x, info: (x.info ?? []).map((t, j) => (j === out ? s : t)) })));
+      // R395: a card written empty is gone once the GM leaves it.
+      text.addEventListener('focusout', () => {
+        const x = w.game.get(rid) as Character | undefined;
+        if (x?.info?.[out]?.trim() !== '') return;
+        const { info: _, ...rest } = x, info = x.info.filter((__, j) => j !== out);
+        w.game.change(g => g.put(rid, info.length ? { ...rest, info } : rest));
+        slide(-1);
+      });
+      paper.append(text);
+      box.prepend(paper);
+    }
+    const text = paper.querySelector<HTMLElement>('.text')!;
+    text.contentEditable = secret || draft ? 'false' : 'true';
+    if (!draft && text.querySelector('[data-entries]')) delete text.dataset.source;
+    rewrite(text, cards[out]!);
+    torn(text, c, secret, draft, draft ? w.eyes.cat(c.oid) : null, clues, false);
+  }
+  const tabs = el(doc, 'div', 'infotabs');
+  for (const k of showing) {
+    const t = el(doc, 'button', `infotab${k === out ? ' out' : ''}`, cards.length > 1 ? `Info ${k + 1}` : 'Info');
+    gesture(t, { click: () => slide(k === out ? -1 : k) });
+    tabs.append(t);
+  }
+  if (eyed && !draft) {
+    const add = el(doc, 'button', 'infotab add', '+');
+    add.title = 'Add an Info card';
+    gesture(add, { click: () => {
+      const n = (c.info ?? []).length;
+      change<Character>(w, rid, x => ({ ...x, info: [...(x.info ?? []), ''] }));
+      slide(n);
+      box.querySelector<HTMLElement>('.infopaper .text')?.focus();
+    } });
+    tabs.append(add);
+  }
+  box.querySelector(':scope > .infotabs')?.remove();
+  box.append(tabs);
 }
 
 /** R393: the eye's category menu, under the arrow; a pick opens the eye on it. */
@@ -534,7 +594,7 @@ function eyeMenu(e: HTMLElement, oid: Oid, w: PieceWith): void {
 // R392: a click on an entry of a card in its Infer state tears it out or mends it.
 function tear(e: HTMLElement, oid: Oid, ev: PointerLike, w: PieceWith): void {
   if (!w.eyes.draft(oid)) return;
-  const entry = (ev.target as Element | null)?.closest?.<HTMLElement>('.front .entry');
+  const entry = (ev.target as Element | null)?.closest?.<HTMLElement>('.entry');
   if (entry?.dataset.key) w.eyes.toggle(oid, entry.dataset.key);
 }
 
