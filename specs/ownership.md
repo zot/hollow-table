@@ -55,8 +55,17 @@ The die by the character's name shows GM, open, or the player.
   its orders"). A clue is revealed whole, like an entry. Its category is the word before its colon:
   Skill, Resource, Motivation or Item; any other ("WHAT IT KNOWS ABOUT TRUDY") is up to the GM, so it
   counts as ANY, which the dropdown lights with every category. The GM writes on an Info card as on the
-  front, and adds another with a "+" tab; a card written empty is gone once the GM leaves it. Which
-  card is slid out is each person's own.
+  front. Which card is slid out is each person's own.
+- **The NPC's menu** (Bill, 11-18: "let's put a dropdown after the GM die and use it for creating stuff
+  on the NPC, like Info and Opinion Records"). On the GM's page, a card the GM owns has a ▾ after the
+  "GM" die on its pool; its **Info card** makes one, slid out with the cursor in it.
+- **The cards under an NPC are tabbed manila folders** (Bill, 11-18: "theme the cards like tabbed
+  manila folders"), each with a folder's tab; Info cards are white.
+- **Emptying a card puts it away** (Bill, 11-18: "let's just make deleting all the text on a card put
+  it away"): a card with all its text deleted is gone once the GM clicks away, buried on Boot Hill
+  with the words it had (Bill, 11-18: "Let's use Boot Hill"; see `boothill.md`). **Undo** (Ctrl+Z, ⌘Z)
+  on the GM's page, outside any text being written, digs up the newest Info card buried in the
+  current graveyard, back where it was and slid out. It undoes nothing else ("Cards only").
 - **The eye covers the Info cards too**: with it open, a click on a clue tears it out or mends it.
   A player sees an Info card's tab only once one of its clues is revealed, and the card face-down,
   each revealed clue torn through its back.

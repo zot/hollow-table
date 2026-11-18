@@ -10,6 +10,10 @@ Where put-away work goes, so nothing that holds work is lost by accident.
   burial is named after its pool (or "Nameless"); a sticky "Note: " and its first line, loose
   writing "Writing: " and its first line (28 characters at most); a receipt by its title; a torn
   roll "Tape: N rolls, last" and the newest receipt's title.
+- **An Info card the GM empties is buried** (see `ownership.md`), named "Devreux: Info card" after
+  its NPC. Dragged out of the list it goes back on its NPC where it was, slid out; while its NPC isn't
+  on the table it stays buried. Players see it as **"GM card"** (Bill, 11-18: "let the players see 'GM
+  card' rather than 'Devreux: Info card'"), with nothing of what it says or whose it was; only the GM can bring it back or delete it.
 - **The list closes on a press anywhere else**, as the Ledger does (Bill, 11-12).
 - **Putting away** a pool or its character card buries both, with everything on them. Stickies,
   loose writing, images and torn rolls are buried too.

@@ -9,6 +9,11 @@ test('check takes the scene and refuses the malformed', () => {
   for (const r of records) assert.ok(check(ridOf(r.oid), r), r.oid);
   assert.ok(check('meta', { round: 0, rolls: 0 }));
   assert.ok(check('yards', { yards: [{ name: 'Graveyard 1', named: false, items: [{ name: 'Sam', records }] }] }));
+  // R403, R406: a buried Info card, and as a player gets it; a card's place is a small number.
+  const info = { oid: '00000003', k: 0, text: 'ANY: she watches the door' };
+  assert.ok(check('yards', { yards: [{ name: '', named: false, items: [{ name: 'Devreux: Info card', records: [], info, gm: '0000aaaa' }] }] }));
+  assert.ok(check('yards', { yards: [{ name: '', named: false, items: [{ name: 'GM card', records: [], gm: '0000aaaa' }] }] }));
+  assert.ok(!check('yards', { yards: [{ name: '', named: false, items: [{ name: 'x', records: [], info: { ...info, k: -1 } }] }] }));
 
   const sam = records[0] as Character, rid = ridOf(sam.oid);
   const roll: TornRoll = { kind: 'tornroll', oid: '0000000c', place: sam.pool, receipts: [{ id: 'r1', at: 1, title: 'Sam #1',
@@ -71,7 +76,7 @@ test("a card's revealed entries and Info cards", () => {
   assert.ok(check(rid, { ...dev, shown: ['Keep the Peace +Sig (0)', 'Skills 3: Savvy'] }));
   assert.ok(!check(rid, { ...dev, shown: [7] }), 'a line is its text, not its number');
   assert.ok(!check(rid, { ...dev, shown: 'Keep the Peace' }));
-  // R395: Info cards are texts.
+  // R400: Info cards are texts.
   assert.ok(check(rid, { ...dev, info: ['ANY: she watches the door', ''] }));
   assert.ok(!check(rid, { ...dev, info: [['ANY']] }));
 });

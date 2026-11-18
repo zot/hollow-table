@@ -1,10 +1,10 @@
-// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289, R295
+// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289, R295, R404, R405
 // Boot Hill at the bar's right end: the gravestone with its badge, and the graveyard list under it.
 // The rules are Yards' (pure); this draws them, digs up at the press, and arms deleting forever.
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type PieceRecord, type Yards } from '../model/records.ts';
-import { empty, exhume, forget, forgetAll, next, prev, raised, rename } from '../rules/yards.ts';
+import { ridOf, type Character, type Oid, type PieceRecord, type Yards } from '../model/records.ts';
+import { empty, exhume, forget, forgetAll, lastInfo, next, prev, raised, rename, withInfo, type At } from '../rules/yards.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 
 /** How long a first shift-click stays armed (R125). */
@@ -20,6 +20,8 @@ export type BootHillWith = {
   top: () => number;
   /** Carries a dug-up piece from the press (a character by its pool). */
   carry: (lead: PieceRecord, down: PointerLike, move: PointerLike) => void;
+  /** R404, R405: slides an Info card out of its NPC's card (the Seat). */
+  slideInfo: (oid: Oid, k: number) => void;
 };
 
 export class BootHillView {
@@ -123,6 +125,8 @@ export class BootHillView {
       const b = doc.createElement('button');
       b.textContent = burial.name;
       b.title = 'Drag this back onto the table. Shift-click or long-press twice to delete it forever.';
+      // R406: a GM card a player sees is the GM's to bring back.
+      if (burial.gm && !burial.info) b.title = 'A card the GM put away';
       // R120, R295: dragged a few pixels it comes up under the pointer and the list closes; a
       // shift-click or a long press arms deleting it forever (R125).
       gesture(b, {
@@ -138,8 +142,35 @@ export class BootHillView {
     }));
   }
 
+  /** R404: digs up the newest Info card buried in this graveyard whose NPC is here; false when none. */
+  undoCard(): boolean {
+    const cur = this.#cur(), at = lastInfo(this.#yards(), cur, oid => !!this.#npc(oid));
+    return !!at && this.#infoUp(at);
+  }
+
+  #npc(oid: Oid): Character | undefined {
+    const c = this.#w.game.get(ridOf(oid)) as Character | undefined;
+    return c?.kind === 'character' ? c : undefined;
+  }
+
+  // R405: an Info card comes up on its NPC, slid out; while its NPC is gone it stays buried.
+  #infoUp(at: At): boolean {
+    const dug = exhume(this.#yards(), this.#cur(), at), c = dug.info && this.#npc(dug.info.oid);
+    if (!dug.info || !c) return false;
+    const back = withInfo(c, dug.info);
+    this.#w.game.change(x => { x.put('yards', dug.yards); x.put(ridOf(c.oid), back.character); });
+    this.#w.setCur(dug.cur);
+    this.#w.slideInfo(c.oid, back.k);
+    return true;
+  }
+
   #digUp(item: number, e: PointerLike): void {
-    const cur = this.#cur(), dug = exhume(this.#yards(), cur, { yard: cur, item });
+    const cur = this.#cur();
+    if (this.#yards().yards[cur]?.items[item]?.info) {
+      if (this.#infoUp({ yard: cur, item })) { this.#w.setOpen(false); this.render(); }
+      return;
+    }
+    const dug = exhume(this.#yards(), cur, { yard: cur, item });
     const recs = raised(dug.records, this.#w.toWorld(e.clientX, e.clientY), this.#w.top());
     if (!recs.length) return;
     this.#w.game.change(x => {
@@ -169,4 +200,13 @@ export class BootHillView {
     const undo = () => { el.classList.remove('doom'); if (input) { el.value = was; el.readOnly = false; } else el.textContent = was; };
     this.#doomed = { el, undo, t: setTimeout(() => { undo(); this.#doomed = null; }, DOOM_MS) };
   }
+}
+
+type KeyLike = { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean; target: EventTarget | null };
+
+/** R404: Ctrl+Z or ⌘Z with the focus in no text being written, which keeps its own undo. */
+export function isPageUndo(ev: KeyLike): boolean {
+  if (ev.key.toLowerCase() !== 'z' || !(ev.ctrlKey || ev.metaKey) || ev.shiftKey || ev.altKey) return false;
+  const t = ev.target as HTMLElement | null;
+  return !(t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? ''));
 }

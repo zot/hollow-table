@@ -300,6 +300,8 @@
 - **R123:** › on the last graveyard makes a new one only if this one has contents or a name of its own, numbered one past the highest "Graveyard N" in use.
 - **R124:** An empty, nameless graveyard disappears when its last item leaves, its name is erased, or it is left; the only graveyard is always kept.
 - **R125:** Shift-clicking an item, or a graveyard's name, twice deletes it (or all of that graveyard) forever; the first arms it red and says so, reverting after 3 s.
+- **R405:** Dragging a buried Info card out of the Boot Hill list puts it back on its NPC, at its place and slid out, and closes the list; while its NPC is not on the table it stays buried.
+- **R406:** A viewer other than the GM sees a buried Info card as "GM card", with none of its words, its NPC or its place, and only the GM can bring it back or delete it.
 
 ## Feature: games and your seat
 **Source:** specs/games.md
@@ -358,11 +360,16 @@
 - **R392:** On the GM's own page (not viewing as a player), a card the GM owns has an eye at its upper right; open, the card is in its Infer state, drawn as the players will see it but for a translucent brown back through which its hidden text reads, and a click on an entry tears it out or mends it instead of placing the caret (a drag still carries the card); the tears stay on the GM's page until the eye shuts, which writes them to the card at once; they are not kept across a reload, and a shut card shows nothing of its reveals.
 - **R393:** A dropdown arrow beside the eye picks a category (Skills, meaning Fields and Skills; Resources; Motivations; Items), opening the eye and highlighting that category's unrevealed entries in yellow.
 - **R394:** A hidden character's front reaches a viewer who can't read it with each line that holds revealed entries written as its label and those entries, joined by commas, in the line's first mark, and every other line blank (the first line too, which holds more than the public name: "Samuel Diamond, Rank 3"); `shown`, holding only revealed words, goes with it.
-- **R395:** A card the GM owns may hold Info cards (`info`, a text each): white cards, each a list of clues one per line reading `CATEGORY: DESCRIPTION`, named "Info 1", "Info 2" when there is more than one ("Info" when one); on the GM's own page a "+" tab adds one, and one written empty is removed when the GM leaves it.
+- **~~R395:~~** (Retired T45 — see R400) A card the GM owns may hold Info cards (`info`, a text each): white cards, each a list of clues one per line reading `CATEGORY: DESCRIPTION`, named "Info 1", "Info 2" when there is more than one ("Info" when one); on the GM's own page a "+" tab adds one, and one written empty is removed when the GM leaves it.
 - **R396:** An Info line is one entry, whole, keyed by its text; its category is the word before its colon, in any case, singular or plural (Skill, Resource, Motivation, Item); any other word is ANY, lit with every category the dropdown picks.
 - **R397:** Info cards slide out from under their NPC's card on tabs at its bottom edge, one at a time; which one is out is the viewer's own, kept in their seat.
 - **R398:** The card's eye covers its Info cards: in the Infer state each clue is a target that a click tears out or mends, and the dropdown lights the chosen category's unrevealed clues, ANY ones always.
 - **R399:** A hidden character's Info cards reach a viewer who can't read them with only their revealed clues in words, every other line blank; such a viewer sees a card's tab only when it holds a revealed clue, and the card face-down, each revealed clue torn through its back.
+- **R400:** A card the GM owns may hold Info cards (`info`, a text each): white cards, each a list of clues one per line reading `CATEGORY: DESCRIPTION`, named "Info 1", "Info 2" when there is more than one ("Info" when one).
+- **R401:** On the GM's page, the pool of a card the GM owns has a menu (▾) after its owner die, for making things on that card; its "Info card" adds an Info card, slid out with the cursor in it.
+- **R402:** The cards under an NPC's card are drawn as tabbed manila folders, each tab a folder's tab; Info cards are white.
+- **R403:** An Info card with all its text deleted is put away once the GM leaves it, buried on Boot Hill in the current graveyard as "<name>: Info card", holding its NPC, its place among the NPC's cards and its words before it was emptied; a card that never had words is simply gone.
+- **R404:** Undo (Ctrl+Z or ⌘Z) on the GM's page, with no text being written, digs up the newest Info card buried in the current graveyard whose NPC is on the table, back at its place among the NPC's cards and slid out; it undoes nothing else.
 
 ## Feature: the network
 **Source:** specs/network.md

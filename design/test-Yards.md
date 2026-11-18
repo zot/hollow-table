@@ -59,3 +59,14 @@ record moved alike at z 77; the sticky at 80, 36, z 3; nothing
 **Fire alarm:** Move only the lead: Sam's card stays where it was buried
 **Inject:** src/rules/yards.ts:raised
 **Pulled:** 2026-11-13 — rang: Sam's card stayed where it was buried
+
+## Test: an Info card is buried with its place and words, and comes back there
+**Purpose:** R403–R405: buryInfo names the burial after its NPC ("Nameless" when blank); lastInfo finds the newest whose NPC is here; exhume gives back the card; withInfo puts it at its place, or last when fewer remain
+**Input:** Devreux's card at place 1 and a blank-named one for Sam buried; lastInfo with everyone here, only Devreux, nobody; Devreux's exhumed; put back on two cards, and on none
+**Expected:** "Devreux: Info card", "Nameless: Info card"; item 1, item 0, none; the card, no records; `['a', 'ANY: old', 'b']` at 1; `['ANY: old']` at 0; an ordinary exhume has no `info`
+**Refs:** crc-Yards.md
+**Code:** `src/rules/yards.test.ts`
+**Alarm:** 5
+**Fire alarm:** put a card back last, ignoring its place (withInfo pushes); red: `['a', 'b', 'ANY: old']`
+**Inject:** src/rules/yards.ts:withInfo
+**Pulled:** 2026-11-18 — rang: the card came back last, `['a', 'b', 'ANY: old']`; restored clean

@@ -167,7 +167,7 @@ test("the GM's eye tears an NPC's entries out for the table", async ({ browser }
 });
 
 test("an NPC's Info cards reach players only as torn clues", async ({ browser }) => {
-  // R395–R399: the GM's Info card on Devreux; Dana has no tab until a clue is torn out; then one tab,
+  // R396–R400: the GM's Info card on Devreux; Dana has no tab until a clue is torn out; then one tab,
   // and slid out, only that clue; the ANY and unknown clues light with Motivations.
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
@@ -190,4 +190,15 @@ test("an NPC's Info cards reach players only as torn clues", async ({ browser })
   expect(await held(dana)).not.toContain('faro');
   await danaCard.locator('.infotab').click();
   await expect(danaCard.locator('.infopaper .text > div.torn')).toHaveText(['MOTIVATION: she wants the town quiet']);
+
+  // R403, R406: the GM empties the card and it is buried; Dana's Boot Hill shows a "GM card" and her
+  // page holds none of its unrevealed words, nor whose it was. (The revealed clue stays in Devreux's
+  // `shown`: she has seen it, and it is shown again if the card comes back.)
+  await card.locator('.infopaper .text').click();
+  await gm.keyboard.press('ControlOrMeta+a');
+  await gm.keyboard.press('Backspace');
+  await gm.locator('#table').click({ position: { x: 5, y: 5 } });
+  await dana.locator('#boothill').click();
+  await expect(dana.locator('#graves .items button')).toHaveText(['GM card'], { timeout: 15_000 });
+  for (const word of ['watches', 'faro', 'Info card', 'Devreux:']) expect(await held(dana)).not.toContain(word);
 });

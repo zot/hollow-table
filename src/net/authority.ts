@@ -5,7 +5,7 @@
 // its own version.
 
 import { same, type Game } from '../model/game.ts';
-import { TOMBS, isPiece, type Book, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
+import { TOMBS, isPiece, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
 import { mayChange } from '../rules/ownership.ts';
 import { redact, type Characters, type Viewer } from '../rules/visibility.ts';
 import { why, whoIs } from './claims.ts';
@@ -42,19 +42,27 @@ const forged = (old: Rec | undefined, rec: Rec, who: string) => 'kind' in rec &&
   && rec.by !== undefined && rec.by !== who && rec.by !== (old && 'kind' in old && old.kind === 'chip' ? old.by : undefined);
 
 // R191: Boot Hill from a player: what they can only see redacted is put back as the GM has it; if they
-// left out something they couldn't read, the change is refused (a burial would lose it).
+// left out something they couldn't read, the change is refused (a burial would lose it). R406: a GM card
+// comes back whole by its `gm` name, and one the player made up is dropped.
 function mergeYards(real: Yards | undefined, mine: Yards, viewer: Viewer, chars: Characters): Yards | null {
-  const truth = new Map<string, Rec>(), secret = new Set<string>();
-  for (const g of real?.yards ?? []) for (const b of g.items) for (const r of b.records) {
-    truth.set(r.oid, r);
-    if (!seen(r, viewer, chars)) secret.add(r.oid);
+  const truth = new Map<string, Rec>(), secret = new Set<string>(), cards = new Map<string, Burial>();
+  for (const g of real?.yards ?? []) for (const b of g.items) {
+    if (b.gm) { cards.set(b.gm, b); if (!viewer?.gm) secret.add(b.gm); }
+    for (const r of b.records) {
+      truth.set(r.oid, r);
+      if (!seen(r, viewer, chars)) secret.add(r.oid);
+    }
   }
   const kept = new Set<string>();
-  const yards = mine.yards.map(g => ({ ...g, items: g.items.map(b => ({ ...b, records: b.records.map(r => {
-    if (!secret.has(r.oid)) return r;
-    kept.add(r.oid);
-    return truth.get(r.oid) as typeof r;
-  }) })) }));
+  const yards = mine.yards.map(g => ({ ...g, items: g.items.flatMap((b): Burial[] => {
+    if (b.gm && secret.has(b.gm)) { kept.add(b.gm); return [cards.get(b.gm)!]; }
+    if (b.gm && !viewer?.gm) return [];
+    return [{ ...b, records: b.records.map(r => {
+      if (!secret.has(r.oid)) return r;
+      kept.add(r.oid);
+      return truth.get(r.oid) as typeof r;
+    }) }];
+  }) }));
   return [...secret].every(o => kept.has(o)) ? { yards } : null;
 }
 

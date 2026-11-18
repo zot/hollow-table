@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
 import { ridOf, type Book, type Character, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
+import { redact } from '../rules/visibility.ts';
 import { handOver, whoIs } from './claims.ts';
 import { FakeRoom } from './fakeroom.ts';
 import { Sealer } from './seal.ts';
@@ -231,4 +232,24 @@ test('a player puts away their own row, never a private one or another\'s', () =
   const book = game.get('book') as Book;
   const v = judge(game, { s: 1, base: book.gv, puts: [{ rid: 'rows', rec: { rows: {} } }], dels: [] }, 'Dana');
   assert.deepEqual(Object.keys((v.puts[0]!.rec as Rows).rows).sort(), [BEAUFORD, DEVREUX].sort());
+});
+
+test("a player's Boot Hill keeps the GM's cards whole", () => {
+  // R406: Dana sees a buried Info card as "GM card"; her Boot Hill comes back with it whole, she can't
+  // take one away, and one she makes up is dropped.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const card = { name: 'Devreux: Info card', records: [], info: { oid: DEVREUX, k: 0, text: 'ANY: she watches the door' }, gm: '0000aaaa' };
+  game.change(w => w.put('yards', { yards: [{ name: '', named: false, items: [card] }] }));
+  const chars = (oid: string) => game.get(ridOf(oid)) as Character | undefined;
+  const seen = redact(game.get('yards')!, { name: 'Dana', gm: false }, chars) as Yards;
+  assert.deepEqual(seen.yards[0]!.items, [{ name: 'GM card', records: [], gm: '0000aaaa' }]);
+  const sticky = { kind: 'sticky', oid: '0000bbbb', place: { x: 0, y: 0, z: 1 }, text: 'mine' } as Sticky;
+  const put = (items: Yards['yards'][0]['items']) => judge(game, { s: 1, base: 4, puts: [{ rid: 'yards', rec: { yards: [{ name: '', named: false, items }] } }], dels: [] }, 'Dana');
+  const taken = put([...seen.yards[0]!.items, { name: 'Note: mine', records: [sticky] }]);
+  assert.deepEqual(taken.refused, []);
+  assert.deepEqual((taken.puts[0]!.rec as Yards).yards[0]!.items, [card, { name: 'Note: mine', records: [sticky] }], 'the card comes back whole');
+  assert.deepEqual(put([]).refused, ['yards'], 'taking the card away is refused');
+  const forged = put([...seen.yards[0]!.items, { name: 'GM card', records: [], gm: '0000cccc' }]);
+  assert.deepEqual((forged.puts[0]!.rec as Yards).yards[0]!.items, [card], 'a made-up GM card is dropped');
 });

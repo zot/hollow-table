@@ -1,8 +1,8 @@
-// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290
+// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290, R403, R404, R405
 // Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever. `cur` is the index
 // of the graveyard being browsed (a seat setting); every operation returns the new yards and cur.
 
-import type { Burial, Graveyard, Oid, PieceRecord, Place, Yards } from '../model/records.ts';
+import type { Burial, Character, Graveyard, InfoBurial, Oid, PieceRecord, Place, Yards } from '../model/records.ts';
 
 export type At = { yard: number; item: number };
 export type Browse = { yards: Yards; cur: number };
@@ -52,6 +52,26 @@ export function bury(y: Yards, cur: number, records: PieceRecord[], name: string
   return withYard(y, cur, { ...g, items: [...g.items, { name, records }] });
 }
 
+// R403: an emptied Info card is buried with its NPC, its place and its words, named after its NPC.
+export function buryInfo(y: Yards, cur: number, name: string, info: InfoBurial, gm: Oid): Yards {
+  const g = y.yards[cur]!;
+  return withYard(y, cur, { ...g, items: [...g.items, { name: `${name.trim() || 'Nameless'}: Info card`, records: [], info, gm }] });
+}
+
+/** R404, R405: the character with a buried Info card back at its place (last, if fewer remain), and that place. */
+export function withInfo(c: Character, info: InfoBurial): { character: Character; k: number } {
+  const cards = [...(c.info ?? [])], k = Math.min(info.k, cards.length);
+  cards.splice(k, 0, info.text);
+  return { character: { ...c, info: cards }, k };
+}
+
+/** R404: the newest Info card buried in the current graveyard whose NPC is on the table. */
+export function lastInfo(y: Yards, cur: number, here: (oid: Oid) => boolean): At | null {
+  const items = y.yards[cur]?.items ?? [];
+  for (let i = items.length - 1; i >= 0; i--) if (items[i]!.info && here(items[i]!.info!.oid)) return { yard: cur, item: i };
+  return null;
+}
+
 function take(y: Yards, cur: number, at: At): Browse & { burial: Burial | undefined } {
   const g = y.yards[at.yard], burial = g?.items[at.item];
   if (!g || !burial) return { yards: y, cur, burial: undefined };
@@ -59,10 +79,10 @@ function take(y: Yards, cur: number, at: At): Browse & { burial: Burial | undefi
 }
 
 // R120, R124: dragging a name out brings it back; a graveyard left empty and nameless goes.
-/** Removes a burial and returns its records. */
-export function exhume(y: Yards, cur: number, at: At): Browse & { records: PieceRecord[] } {
+/** Removes a burial and returns its records, or the Info card it holds (R405). */
+export function exhume(y: Yards, cur: number, at: At): Browse & { records: PieceRecord[]; info?: InfoBurial } {
   const { burial, ...b } = take(y, cur, at);
-  return { ...b, records: burial?.records ?? [] };
+  return { ...b, records: burial?.records ?? [], ...(burial?.info ? { info: burial.info } : {}) };
 }
 
 // R123, R124: › on the last graveyard makes a new one only if this one has something or a name.

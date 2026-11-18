@@ -106,6 +106,8 @@ function redactYards(y: Yards, viewer: Viewer, chars: Characters): Yards {
     yards: y.yards.map(g => ({
       ...g,
       items: g.items.map(b => {
+        // R406: a buried Info card is the GM's: anyone else sees only that it is a GM card.
+        if (b.gm) return viewer?.gm ? b : { name: 'GM card', records: [], gm: b.gm };
         // A buried character's cards are buried with it, so look there first.
         const buried = new Map(b.records.filter((r): r is Character => r.kind === 'character').map(c => [c.oid, c]));
         const look: Characters = oid => buried.get(oid) ?? chars(oid);

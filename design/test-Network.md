@@ -181,12 +181,12 @@ by the drop
 **Pulled:** 2026-11-18 — re-pulled after entries (#28), rang (Chromium): Dana's front held Savvy while the eye was open; restored clean
 
 ## Test: an NPC's Info cards reach players only as torn clues
-**Purpose:** R395–R399 over the wire: the GM's Info card on Devreux reaches Dana blank, with no tab; on Motivations its ANY, MOTIVATION and unknown clues are lit; the MOTIVATION clue torn out and the eye shut, Dana's card holds only that line, her tab shows, and slid out the clue is torn through the back
+**Purpose:** R396–R400, R403, R406 over the wire: the GM's Info card on Devreux reaches Dana blank, with no tab; on Motivations its ANY, MOTIVATION and unknown clues are lit; the MOTIVATION clue torn out and the eye shut, Dana's card holds only that line, her tab shows, and slid out the clue is torn through the back
 **Input:** the GM's table and Dana; three clues written on Devreux; the GM's Info tab, the eye's arrow, Motivations, the MOTIVATION clue, the eye; Dana's tab
-**Expected:** the GM's Info tab; Dana's one blank card and no tab; 3 lit; Dana's card the clue alone, no watches or faro; one torn strip, the MOTIVATION clue
+**Expected:** the GM's Info tab; Dana's one blank card and no tab; 3 lit; Dana's card the clue alone, no watches or faro; one torn strip, the MOTIVATION clue; then, the GM emptying the card, Dana's Boot Hill lists one "GM card" and her page holds no watches, faro, "Info card" or "Devreux:"
 **Refs:** crc-PieceView.md, crc-Visibility.md
 **Code:** `tests/secret.spec.ts`
 **Alarm:** 12
 **Fire alarm:** show players a tab for every Info card (drop the face-down filter); red: Dana has a tab before anything is revealed
 **Inject:** src/ui/piece.ts:infos
-**Pulled:** 2026-11-18 — rang (Chromium): Dana had a tab before anything was revealed; restored clean
+**Pulled:** 2026-11-18 — re-pulled after infos changed for burial; rang (Chromium): Dana had a tab before anything was revealed; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana had a tab before anything was revealed; restored clean

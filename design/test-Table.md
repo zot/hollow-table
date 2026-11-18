@@ -298,13 +298,13 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/theme.css
 **Pulled:** 2026-11-18 — rang (Chromium): Sam's text showed `grab` while it held the caret; restored clean
 
-## Test: the GM adds, writes and loses an Info card
-**Purpose:** R395, R397: the "+" tab adds a card slid out with the caret in it; written, it stays, and stays slid out across a reload; written empty, it is gone once the caret leaves
-**Input:** Devreux's "+" tab; typing a clue; a click on the table; reload after the save; select all, delete, a click on the table
-**Expected:** the caret in the card; one Info tab; the card's text the clue; after the reload the card slid out with its clue; then no tab, no card, no `info`
-**Refs:** crc-PieceView.md, crc-Seat.md
+## Test: the GM adds, writes, buries and gets back an Info card
+**Purpose:** R401, R397, R403–R405: the menu (on Devreux's pool, not Sam's) makes a card slid out with the caret in it; written, it stays, and stays slid out across a reload; emptied, it is buried once the caret leaves; undo outside the text digs it up, slid out, and a second undo does nothing; emptied again, dragging it out of Boot Hill's list brings it back
+**Input:** Sam's pool; Devreux's ▾ and "Info card"; typing a clue; a click on the table; reload after the save; select all, delete, a click on the table; Ctrl+Z twice; emptied again; Boot Hill, "Devreux: Info card" dragged out
+**Expected:** no ▾ on Sam's pool; the menu closed and the caret in the card; one Info tab; the card's text the clue; after the reload the card slid out with its clue; then no card, no `info`, Boot Hill's badge 1; after undo the card slid out with its clue and no badge, still one tab after the second; after the drag the card back with its clue, the list closed, no badge
+**Refs:** crc-PieceView.md, crc-PoolView.md, crc-BootHillView.md, crc-Seat.md
 **Code:** `tests/table.spec.ts`
 **Alarm:** 22
-**Fire alarm:** keep a card written empty (drop the removal when the caret leaves); red: the Info tab is still there
-**Inject:** src/ui/piece.ts:infos
-**Pulled:** 2026-11-18 — rang (Chromium): the Info tab was still there after the card was written empty; restored clean
+**Fire alarm:** dig up nothing on undo (undoCard returns false); red: the card does not come back after Ctrl+Z
+**Inject:** src/ui/boothill.ts:undoCard
+**Pulled:** 2026-11-18 — rang (Chromium): the card did not come back after Ctrl+Z; restored clean

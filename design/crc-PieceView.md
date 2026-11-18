@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R395, R397-399
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -22,11 +22,12 @@ stickies, loose text, images, torn rolls and reference cards.
   mends it in the draft, its line's label torn with it. Shutting the
   eye writes the draft as `shown` in one change (absent when empty). The dropdown's category opens
   the eye and highlights that category's unrevealed entries yellow. A shut card shows nothing of `shown`.
-- Info cards (R395, R397–R399): tabs on a card's bottom edge, "Info 1", "Info 2" ("Info" for one),
-  and on the GM's own page a "+" tab adding an empty card; a tab slides its white card out from under
-  the NPC's card, another tab or the same one tucking it back. Which is out is the Seat's
-  (`open.info`, `<oid>:<k>`). The GM writes on one as on the front; one written empty is dropped when
-  it loses the caret. In the Infer state its clues (MarkReader.clues) are targets as the front's
+- Info cards (R400, R397–R399, R402): manila-folder tabs on a card's bottom edge, "Info 1", "Info 2"
+  ("Info" for one); a tab slides its white card out from under the NPC's card, another tab or the same
+  one tucking it back. Which is out is the Seat's (`open.info`, `<oid>:<k>`). The GM writes on one as
+  on the front. addInfo(oid) (R401, from the pool's menu) appends an empty card, slides it out and puts
+  the caret in it. An emptied card (R403) is dropped when it loses the caret, and buried with its
+  last words before emptying (kept as it is written); a card that never had words leaves no burial. In the Infer state its clues (MarkReader.clues) are targets as the front's
   entries are, lit for the chosen category when ANY or of it. A face-down card's tabs show only for
   cards with words, and such a card slides out face-down, each line with words torn through its back.
 - torn from the back (R390, and R392 in the Infer state): a face-down card shows its front's face in brown, "Hollow" across it,

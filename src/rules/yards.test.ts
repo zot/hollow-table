@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, PieceRecord, Yards } from '../model/records.ts';
-import { bury, burialOf, empty, exhume, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
+import { bury, burialOf, buryInfo, empty, exhume, lastInfo, withInfo, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -86,4 +86,22 @@ test('a burial comes up under the pointer, with everything on it', () => {
   const [n] = raised([note], { x: 100, y: 50 }, 3) as Extract<PieceRecord, { place: unknown }>[];
   assert.deepEqual([n!.place.x, n!.place.y, n!.place.z], [80, 36, 3]);
   assert.deepEqual(raised([], { x: 0, y: 0 }, 1), []);
+});
+
+test('an Info card is buried with its place and words, and comes back there', () => {
+  // R403: buried named after its NPC; R405: exhumed it gives back the card; withInfo puts it at its
+  // place, or last when fewer remain. R404: the newest whose NPC is here.
+  const c = scene().find((r): r is Character => r.kind === 'character' && r.oid === DEVREUX)!;
+  let y = buryInfo(empty(), 0, 'Devreux', { oid: DEVREUX, k: 1, text: 'ANY: old' }, '0000aaaa');
+  y = buryInfo(y, 0, ' ', { oid: SAM, k: 0, text: 'ANY: Sam' }, '0000bbbb');
+  assert.deepEqual(y.yards[0]!.items.map(b => b.name), ['Devreux: Info card', 'Nameless: Info card']);
+  assert.deepEqual(lastInfo(y, 0, () => true), { yard: 0, item: 1 });
+  assert.deepEqual(lastInfo(y, 0, oid => oid === DEVREUX), { yard: 0, item: 0 });
+  assert.equal(lastInfo(y, 0, () => false), null);
+  const dug = exhume(y, 0, { yard: 0, item: 0 });
+  assert.deepEqual(dug.info, { oid: DEVREUX, k: 1, text: 'ANY: old' });
+  assert.deepEqual(dug.records, []);
+  assert.deepEqual(withInfo({ ...c, info: ['a', 'b'] }, dug.info!), { character: { ...c, info: ['a', 'ANY: old', 'b'] }, k: 1 });
+  assert.deepEqual(withInfo({ ...c, info: undefined }, dug.info!), { character: { ...c, info: ['ANY: old'] }, k: 0 });
+  assert.equal('info' in exhume(empty(), 0, { yard: 0, item: 0 }), false);
 });

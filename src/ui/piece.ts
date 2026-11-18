@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R390, R395, R397, R398, R399, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -50,6 +50,8 @@ export type PieceWith = {
   cancelTake: () => void;
   /** R392: the GM's open eyes on this page. */
   eyes: Eyes;
+  /** R403: buries an emptied Info card on Boot Hill with its place and its last words. */
+  buryInfo: (oid: Oid, k: number, text: string) => void;
 };
 
 /** An Attack being taken: whose card, the receipt, the kind, the attacker's name, its Result, the pages and the one shown. */
@@ -227,7 +229,7 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
       torn(front, r, secret, draft, draft ? w.eyes.cat(r.oid) : null);
       // Glyphs and dice are the readable card's: none on a back, nor in the Infer state that shows one.
       if (!back) frontGlyphs(front, r, w);
-      infos(e, r, w, secret, eyed, draft);
+      infos(e, r, w, secret, draft);
       rewrite(e.querySelector('.back .notes')!, r.back.notes);
       damage(e.querySelector('.damage')!, r, w);
       dry(e, r);
@@ -524,9 +526,9 @@ function torn(text: HTMLElement, c: Character, secret: boolean, draft: ReadonlyS
   });
 }
 
-// R395, R397–R399: an NPC's Info cards, on tabs at its bottom edge; the one slid out is written on as
-// the front is, or drawn torn from its back as the front is. A player's tab shows only with words on it.
-function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, eyed: boolean, draft: ReadonlySet<string> | undefined): void {
+// R400, R397–R399, R402: an NPC's Info cards, on folder tabs at its bottom edge; the one slid out is written
+// on as the front is, or drawn torn from its back as the front is. A player's tab shows only with words on it.
+function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draft: ReadonlySet<string> | undefined): void {
   const doc = e.ownerDocument, box = e.querySelector<HTMLElement>(':scope > .infos')!, rid = ridOf(c.oid);
   const shown = new Set(c.shown ?? []), cards = (c.info ?? []).map(i => (secret ? blankInfo(i, shown) : i));
   const showing = cards.flatMap((t, k) => (secret && !t.trim() ? [] : [k]));
@@ -539,13 +541,19 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, eyed
     if (!paper) {
       paper = el(doc, 'div', 'infopaper');
       paper.dataset.k = String(out);
-      const text = writable(doc, 'text', cards[out]!, s => change<Character>(w, rid, x => ({ ...x, info: (x.info ?? []).map((t, j) => (j === out ? s : t)) })));
-      // R395: a card written empty is gone once the GM leaves it.
+      // R403: the card's last words, kept as it is written, so undo brings back what it said before it was emptied.
+      let words = cards[out]!;
+      const text = writable(doc, 'text', words, s => {
+        if (s.trim()) words = s;
+        change<Character>(w, rid, x => ({ ...x, info: (x.info ?? []).map((t, j) => (j === out ? s : t)) }));
+      });
+      // R403: a card emptied is put away once the GM leaves it, buried on Boot Hill with its last words.
       text.addEventListener('focusout', () => {
         const x = w.game.get(rid) as Character | undefined;
         if (x?.info?.[out]?.trim() !== '') return;
         const { info: _, ...rest } = x, info = x.info.filter((__, j) => j !== out);
         w.game.change(g => g.put(rid, info.length ? { ...rest, info } : rest));
+        if (words.trim()) w.buryInfo(c.oid, out, words);
         slide(-1);
       });
       paper.append(text);
@@ -562,17 +570,6 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, eyed
     const t = el(doc, 'button', `infotab${k === out ? ' out' : ''}`, cards.length > 1 ? `Info ${k + 1}` : 'Info');
     gesture(t, { click: () => slide(k === out ? -1 : k) });
     tabs.append(t);
-  }
-  if (eyed && !draft) {
-    const add = el(doc, 'button', 'infotab add', '+');
-    add.title = 'Add an Info card';
-    gesture(add, { click: () => {
-      const n = (c.info ?? []).length;
-      change<Character>(w, rid, x => ({ ...x, info: [...(x.info ?? []), ''] }));
-      slide(n);
-      box.querySelector<HTMLElement>('.infopaper .text')?.focus();
-    } });
-    tabs.append(add);
   }
   box.querySelector(':scope > .infotabs')?.remove();
   box.append(tabs);

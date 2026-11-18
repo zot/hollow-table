@@ -5,9 +5,9 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, ridOf, type Book, type Character, type Image, type Meta, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
+import { GM, ridOf, type Book, type Character, type Image, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
-import { empty as emptyYards } from './rules/yards.ts';
+import { buryInfo, empty as emptyYards } from './rules/yards.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
@@ -28,7 +28,7 @@ import { Eyes } from './ui/eyes.ts';
 import { TapeView } from './ui/tape.ts';
 import { RegisterView } from './ui/register.ts';
 import { BarView, type Supply } from './ui/bar.ts';
-import { BootHillView } from './ui/boothill.ts';
+import { BootHillView, isPageUndo } from './ui/boothill.ts';
 import { FolksView, arrivalName, gmName, viewAsChoices, type Here, type Me } from './ui/folks.ts';
 import { newCharacter, newChip, newHowTo, newSticky, newText } from './rules/supplies.ts';
 import { handOver } from './net/claims.ts';
@@ -106,6 +106,12 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   let drag: Drag | undefined, rollRow: RollRowView | undefined;
   // R392, R388: the GM's open eyes, this page's own; a change redraws the card and every Roll key.
   const eyes = new Eyes(game, oid => { table.render([ridOf(oid)]); rollRow?.render(); });
+  // R401, R404: slides one Info card out of its NPC's card, the rest of that card's tucked back.
+  const slideInfo = (oid: Oid, k: number) => {
+    const mine = `${oid}:`;
+    keep({ ...seat, open: { ...seat.open, info: [...seat.open.info.filter(s => !s.startsWith(mine)), mine + k] } });
+    redraw();
+  };
   // Seq: seq-take.md#1, seq-take.md#1.1, seq-take.md#1.2, seq-take.md#1.3, seq-take.md#1.4 | R308–R312
   // An Attack being taken on this page: its pages on the target's card, which turns to its back with
   // the Attack's column in front. Escape or a click off the card backs out (a pan doesn't); nothing is saved.
@@ -220,6 +226,22 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     },
     cancelTake,
     eyes,
+    // R403: an emptied Info card is buried in the graveyard being browsed, with its own name for the merge.
+    buryInfo: (oid, k, text) => {
+      const c = game.get(ridOf(oid)) as Character | undefined, y = (game.get('yards') as Yards | undefined) ?? emptyYards();
+      if (c?.kind !== 'character') return;
+      const cur = Math.min(seat.boothill.cur, y.yards.length - 1);
+      game.change(w => w.put('yards', buryInfo(y, cur, c.name, { oid, k, text }, mint()())));
+    },
+    // R401: the GM's menu on a pool makes an Info card on it, slid out with the caret in it.
+    addInfo: oid => {
+      const rid = ridOf(oid), c = game.get(rid) as Character | undefined;
+      if (c?.kind !== 'character') return;
+      const k = (c.info ?? []).length;
+      game.change(w => w.put(rid, { ...c, info: [...(c.info ?? []), ''] }));
+      slideInfo(oid, k);
+      document.querySelector<HTMLElement>(`.card[data-rid="${rid}"] .infopaper .text`)?.focus();
+    },
     // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die) => {
       const c = game.get(ridOf(oid)) as Character | undefined;
@@ -264,12 +286,15 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     redraw();
   } });
   // R118–R125, R289: Boot Hill after the register; a dug-up piece is carried from the press.
-  new BootHillView(document.getElementById('bar')!, document.body, {
+  const hill = new BootHillView(document.getElementById('bar')!, document.body, {
     game, cur: () => seat.boothill.cur, setCur: cur => keep({ ...seat, boothill: { ...seat.boothill, cur } }),
     open: () => seat.boothill.open, setOpen: open => keep({ ...seat, boothill: { ...seat.boothill, open } }),
     toWorld: (x, y) => table.toWorld(x, y), top: topZ,
+    slideInfo,
     carry: (lead, down, move) => lead.kind === 'character' ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridOf(lead.oid), down, move),
   });
+  // R404: on the GM's page, Ctrl+Z / ⌘Z outside written text digs up the newest Info card buried.
+  if (gm) addEventListener('keydown', ev => { if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault(); });
   hang();
   addEventListener('resize', hang);
   void document.fonts?.ready.then(hang);

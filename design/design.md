@@ -213,3 +213,4 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T42: R386 retired by R392 (reveal by entry, not whole lines (Bill, 2026-11-18))
 - T43: R387 retired by R393 (reveal by entry, not whole lines (Bill, 2026-11-18))
 - T44: R389 retired by R394 (reveal by entry, not whole lines (Bill, 2026-11-18))
+- T45: R395 retired by R400 (Item 5 of infer reveals: the "+" tab gave way to the NPC menu (R401), and putting a card away became R403 and R404)

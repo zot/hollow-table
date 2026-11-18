@@ -131,7 +131,7 @@ var SINGLETONS = {
   yards: fields({ yards: list(fields({
     name: str(CAPS.name),
     named: bool,
-    items: list(fields({ name: str(CAPS.name), records: list(piece) }))
+    items: list(fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid }))
   }), 100) }),
   meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1e3, 1e3) }),
@@ -847,6 +847,20 @@ function bury(y, cur, records2, name2) {
   const g = y.yards[cur];
   return withYard(y, cur, { ...g, items: [...g.items, { name: name2, records: records2 }] });
 }
+function buryInfo(y, cur, name2, info, gm) {
+  const g = y.yards[cur];
+  return withYard(y, cur, { ...g, items: [...g.items, { name: `${name2.trim() || "Nameless"}: Info card`, records: [], info, gm }] });
+}
+function withInfo(c, info) {
+  const cards = [...c.info ?? []], k = Math.min(info.k, cards.length);
+  cards.splice(k, 0, info.text);
+  return { character: { ...c, info: cards }, k };
+}
+function lastInfo(y, cur, here2) {
+  const items = y.yards[cur]?.items ?? [];
+  for (let i = items.length - 1; i >= 0; i--) if (items[i].info && here2(items[i].info.oid)) return { yard: cur, item: i };
+  return null;
+}
 function take(y, cur, at3) {
   const g = y.yards[at3.yard], burial = g?.items[at3.item];
   if (!g || !burial) return { yards: y, cur, burial: void 0 };
@@ -854,7 +868,7 @@ function take(y, cur, at3) {
 }
 function exhume(y, cur, at3) {
   const { burial, ...b } = take(y, cur, at3);
-  return { ...b, records: burial?.records ?? [] };
+  return { ...b, records: burial?.records ?? [], ...burial?.info ? { info: burial.info } : {} };
 }
 function next(y, cur) {
   if (cur < y.yards.length - 1) return sweep(y, cur, cur + 1);
@@ -975,6 +989,7 @@ function redactYards(y, viewer, chars) {
     yards: y.yards.map((g) => ({
       ...g,
       items: g.items.map((b) => {
+        if (b.gm) return viewer?.gm ? b : { name: "GM card", records: [], gm: b.gm };
         const buried = new Map(b.records.filter((r) => r.kind === "character").map((c) => [c.oid, c]));
         const look = (oid) => buried.get(oid) ?? chars(oid);
         return { ...b, records: b.records.map((r) => redactPiece(r, viewer, look)).filter((r) => !!r) };
@@ -1683,7 +1698,7 @@ function update(e, r, w) {
       rewrite(front, back3 ? named(body, r.name) : body);
       torn(front, r, secret, draft, draft ? w.eyes.cat(r.oid) : null);
       if (!back3) frontGlyphs(front, r, w);
-      infos(e, r, w, secret, eyed, draft);
+      infos(e, r, w, secret, draft);
       rewrite(e.querySelector(".back .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
       dry(e, r);
@@ -1961,7 +1976,7 @@ function torn(text, c, secret, draft, cat, read2 = entries, name2 = true) {
     d.dataset.entries = "";
   });
 }
-function infos(e, c, w, secret, eyed, draft) {
+function infos(e, c, w, secret, draft) {
   const doc = e.ownerDocument, box2 = e.querySelector(":scope > .infos"), rid2 = ridOf(c.oid);
   const shown3 = new Set(c.shown ?? []), cards = (c.info ?? []).map((i) => secret ? blankInfo(i, shown3) : i);
   const showing = cards.flatMap((t, k) => secret && !t.trim() ? [] : [k]);
@@ -1977,12 +1992,17 @@ function infos(e, c, w, secret, eyed, draft) {
     if (!paper) {
       paper = el(doc, "div", "infopaper");
       paper.dataset.k = String(out);
-      const text2 = writable(doc, "text", cards[out], (s) => change(w, rid2, (x) => ({ ...x, info: (x.info ?? []).map((t, j) => j === out ? s : t) })));
+      let words = cards[out];
+      const text2 = writable(doc, "text", words, (s) => {
+        if (s.trim()) words = s;
+        change(w, rid2, (x) => ({ ...x, info: (x.info ?? []).map((t, j) => j === out ? s : t) }));
+      });
       text2.addEventListener("focusout", () => {
         const x = w.game.get(rid2);
         if (x?.info?.[out]?.trim() !== "") return;
         const { info: _, ...rest } = x, info = x.info.filter((__, j) => j !== out);
         w.game.change((g) => g.put(rid2, info.length ? { ...rest, info } : rest));
+        if (words.trim()) w.buryInfo(c.oid, out, words);
         slide(-1);
       });
       paper.append(text2);
@@ -1999,17 +2019,6 @@ function infos(e, c, w, secret, eyed, draft) {
     const t = el(doc, "button", `infotab${k === out ? " out" : ""}`, cards.length > 1 ? `Info ${k + 1}` : "Info");
     gesture(t, { click: () => slide(k === out ? -1 : k) });
     tabs.append(t);
-  }
-  if (eyed && !draft) {
-    const add = el(doc, "button", "infotab add", "+");
-    add.title = "Add an Info card";
-    gesture(add, { click: () => {
-      const n = (c.info ?? []).length;
-      change(w, rid2, (x) => ({ ...x, info: [...x.info ?? [], ""] }));
-      slide(n);
-      box2.querySelector(".infopaper .text")?.focus();
-    } });
-    tabs.append(add);
   }
   box2.querySelector(":scope > .infotabs")?.remove();
   box2.append(tabs);
@@ -2314,17 +2323,30 @@ var characters = (game) => (oid) => game.get(`o:${oid}`);
 var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
 var forged = (old, rec, who) => "kind" in rec && rec.kind === "chip" && rec.by !== void 0 && rec.by !== who && rec.by !== (old && "kind" in old && old.kind === "chip" ? old.by : void 0);
 function mergeYards(real2, mine, viewer, chars) {
-  const truth = /* @__PURE__ */ new Map(), secret = /* @__PURE__ */ new Set();
-  for (const g of real2?.yards ?? []) for (const b of g.items) for (const r of b.records) {
-    truth.set(r.oid, r);
-    if (!seen(r, viewer, chars)) secret.add(r.oid);
+  const truth = /* @__PURE__ */ new Map(), secret = /* @__PURE__ */ new Set(), cards = /* @__PURE__ */ new Map();
+  for (const g of real2?.yards ?? []) for (const b of g.items) {
+    if (b.gm) {
+      cards.set(b.gm, b);
+      if (!viewer?.gm) secret.add(b.gm);
+    }
+    for (const r of b.records) {
+      truth.set(r.oid, r);
+      if (!seen(r, viewer, chars)) secret.add(r.oid);
+    }
   }
   const kept = /* @__PURE__ */ new Set();
-  const yards = mine.yards.map((g) => ({ ...g, items: g.items.map((b) => ({ ...b, records: b.records.map((r) => {
-    if (!secret.has(r.oid)) return r;
-    kept.add(r.oid);
-    return truth.get(r.oid);
-  }) })) }));
+  const yards = mine.yards.map((g) => ({ ...g, items: g.items.flatMap((b) => {
+    if (b.gm && secret.has(b.gm)) {
+      kept.add(b.gm);
+      return [cards.get(b.gm)];
+    }
+    if (b.gm && !viewer?.gm) return [];
+    return [{ ...b, records: b.records.map((r) => {
+      if (!secret.has(r.oid)) return r;
+      kept.add(r.oid);
+      return truth.get(r.oid);
+    }) }];
+  }) }));
   return [...secret].every((o) => kept.has(o)) ? { yards } : null;
 }
 function mergeRows(real2, mine, who, chars) {
@@ -9532,6 +9554,21 @@ var run = (game, c) => {
 };
 var isPile2 = (u) => "members" in u;
 var at = (i, owner, slot2) => typeof i.where === "object" && "slot" in i.where && i.where.slot === owner && (!slot2 || i.where.name === slot2);
+function makeMenu(e, oid, w) {
+  const was = e.querySelector(":scope > .poolmenu");
+  if (was) {
+    was.remove();
+    return;
+  }
+  const m = el2(e.ownerDocument, "div", "poolmenu");
+  const info = el2(e.ownerDocument, "button", "", "Info card");
+  gesture(info, { click: () => {
+    m.remove();
+    w.addInfo(oid);
+  } });
+  m.append(info);
+  e.append(m);
+}
 function drawPool(c, items, old, w) {
   const doc = old?.ownerDocument ?? document, rid2 = ridOf(c.oid);
   const e = old ?? make3(doc, c, w);
@@ -9542,6 +9579,7 @@ function drawPool(c, items, old, w) {
   const die3 = e.querySelector(".die-own");
   die3.textContent = ownerWord(c);
   die3.title = c.owner === OPEN ? "Open: click to claim this character" : "Click to roll for this character; shift-click to open it for someone else";
+  e.querySelector(".makemenu").hidden = !(w.viewer?.gm && c.owner === GM);
   e.querySelector(".gather").hidden = c.gathered;
   const opened = w.poolOpen(), shown3 = /* @__PURE__ */ new Map(), drawn = /* @__PURE__ */ new Map();
   const slotEls = [...e.querySelectorAll(".slot")];
@@ -9593,7 +9631,10 @@ function make3(doc, c, w) {
   const name2 = el2(doc, "span", "name");
   const die3 = el2(doc, "button", "die-own");
   gesture(die3, { click: () => w.poolDie(c.oid, false, die3), shift: () => w.poolDie(c.oid, true, die3) });
-  hd.append(name2, die3, gather);
+  const menu = el2(doc, "button", "makemenu", "\u25BE");
+  menu.title = "Make something on this character";
+  gesture(menu, { click: () => makeMenu(e, c.oid, w) });
+  hd.append(name2, die3, menu, gather);
   const slots2 = el2(doc, "div", "slots");
   for (const s of SLOTS) {
     const slot2 = el2(doc, "div", `slot slot-${s}`);
@@ -9956,6 +9997,7 @@ var BootHillView = class {
       const b = doc.createElement("button");
       b.textContent = burial.name;
       b.title = "Drag this back onto the table. Shift-click or long-press twice to delete it forever.";
+      if (burial.gm && !burial.info) b.title = "A card the GM put away";
       gesture(b, {
         drag: (_down, move) => this.#digUp(item2, move),
         shift: () => this.#doom(b, "Delete forever? Shift-click again", () => {
@@ -9968,8 +10010,38 @@ var BootHillView = class {
       return b;
     }));
   }
+  /** R404: digs up the newest Info card buried in this graveyard whose NPC is here; false when none. */
+  undoCard() {
+    const cur = this.#cur(), at3 = lastInfo(this.#yards(), cur, (oid) => !!this.#npc(oid));
+    return !!at3 && this.#infoUp(at3);
+  }
+  #npc(oid) {
+    const c = this.#w.game.get(ridOf(oid));
+    return c?.kind === "character" ? c : void 0;
+  }
+  // R405: an Info card comes up on its NPC, slid out; while its NPC is gone it stays buried.
+  #infoUp(at3) {
+    const dug = exhume(this.#yards(), this.#cur(), at3), c = dug.info && this.#npc(dug.info.oid);
+    if (!dug.info || !c) return false;
+    const back3 = withInfo(c, dug.info);
+    this.#w.game.change((x) => {
+      x.put("yards", dug.yards);
+      x.put(ridOf(c.oid), back3.character);
+    });
+    this.#w.setCur(dug.cur);
+    this.#w.slideInfo(c.oid, back3.k);
+    return true;
+  }
   #digUp(item2, e) {
-    const cur = this.#cur(), dug = exhume(this.#yards(), cur, { yard: cur, item: item2 });
+    const cur = this.#cur();
+    if (this.#yards().yards[cur]?.items[item2]?.info) {
+      if (this.#infoUp({ yard: cur, item: item2 })) {
+        this.#w.setOpen(false);
+        this.render();
+      }
+      return;
+    }
+    const dug = exhume(this.#yards(), cur, { yard: cur, item: item2 });
     const recs = raised(dug.records, this.#w.toWorld(e.clientX, e.clientY), this.#w.top());
     if (!recs.length) return;
     this.#w.game.change((x) => {
@@ -10013,6 +10085,11 @@ var BootHillView = class {
     }, DOOM_MS) };
   }
 };
+function isPageUndo(ev) {
+  if (ev.key.toLowerCase() !== "z" || !(ev.ctrlKey || ev.metaKey) || ev.shiftKey || ev.altKey) return false;
+  const t = ev.target;
+  return !(t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? ""));
+}
 
 // src/ui/folks.ts
 function tags(me, people, held = () => void 0) {
@@ -11916,6 +11993,11 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     table.render([ridOf(oid)]);
     rollRow?.render();
   });
+  const slideInfo = (oid, k) => {
+    const mine = `${oid}:`;
+    keep({ ...seat, open: { ...seat.open, info: [...seat.open.info.filter((s) => !s.startsWith(mine)), mine + k] } });
+    redraw();
+  };
   let taking = null;
   const cancelTake = () => {
     if (!taking) return;
@@ -12050,6 +12132,22 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     },
     cancelTake,
     eyes,
+    // R403: an emptied Info card is buried in the graveyard being browsed, with its own name for the merge.
+    buryInfo: (oid, k, text) => {
+      const c = game.get(ridOf(oid)), y = game.get("yards") ?? empty();
+      if (c?.kind !== "character") return;
+      const cur = Math.min(seat.boothill.cur, y.yards.length - 1);
+      game.change((w) => w.put("yards", buryInfo(y, cur, c.name, { oid, k, text }, mint2()())));
+    },
+    // R401: the GM's menu on a pool makes an Info card on it, slid out with the caret in it.
+    addInfo: (oid) => {
+      const rid2 = ridOf(oid), c = game.get(rid2);
+      if (c?.kind !== "character") return;
+      const k = (c.info ?? []).length;
+      game.change((w) => w.put(rid2, { ...c, info: [...c.info ?? [], ""] }));
+      slideInfo(oid, k);
+      document.querySelector(`.card[data-rid="${rid2}"] .infopaper .text`)?.focus();
+    },
     // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die3) => {
       const c = game.get(ridOf(oid));
@@ -12098,7 +12196,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     keep(prune(seat, (rid2) => game.get(rid2) !== void 0, yards.yards.length));
     redraw();
   } });
-  new BootHillView(document.getElementById("bar"), document.body, {
+  const hill = new BootHillView(document.getElementById("bar"), document.body, {
     game,
     cur: () => seat.boothill.cur,
     setCur: (cur) => keep({ ...seat, boothill: { ...seat.boothill, cur } }),
@@ -12106,7 +12204,11 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     setOpen: (open) => keep({ ...seat, boothill: { ...seat.boothill, open } }),
     toWorld: (x, y) => table.toWorld(x, y),
     top: topZ,
+    slideInfo,
     carry: (lead, down, move) => lead.kind === "character" ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridOf(lead.oid), down, move)
+  });
+  if (gm) addEventListener("keydown", (ev) => {
+    if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault();
   });
   hang();
   addEventListener("resize", hang);

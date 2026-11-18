@@ -4,7 +4,7 @@
 // listens.
 
 import type { Game } from '../model/game.ts';
-import { OPEN, SLOTS, ridOf, type Character, type Influence, type Oid, type SlotName } from '../model/records.ts';
+import { GM, OPEN, SLOTS, ridOf, type Character, type Influence, type Oid, type SlotName } from '../model/records.ts';
 import { levelName } from '../rules/influence.ts';
 import { rollUp, worth, type Item, type Unit } from '../rules/pool.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
@@ -23,6 +23,8 @@ export type PoolWith = {
   dragPool: (rid: string, down: PointerLike, move: PointerLike) => void;
   /** The die by the pool's name (R142, R381): claim, open, or dock the roll row; shift for the other. */
   poolDie: (oid: Oid, shift: boolean, die: HTMLElement) => void;
+  /** R401: makes an Info card on a character the GM owns, slid out with the caret in it. */
+  addInfo: (oid: Oid) => void;
 };
 
 // R228: the mat keeps its drawer's width; these are the sizes its slots are laid out with (theme.css
@@ -110,6 +112,17 @@ const isPile = (u: Unit): u is Exclude<Unit, Item> => 'members' in u;
 const at = (i: Item, owner: Oid, slot?: SlotName) =>
   typeof i.where === 'object' && 'slot' in i.where && i.where.slot === owner && (!slot || i.where.name === slot);
 
+// R401: the menu's list, under its ▾; a pick or a second click closes it.
+function makeMenu(e: HTMLElement, oid: Oid, w: PoolWith): void {
+  const was = e.querySelector(':scope > .poolmenu');
+  if (was) { was.remove(); return; }
+  const m = el(e.ownerDocument, 'div', 'poolmenu');
+  const info = el(e.ownerDocument, 'button', '', 'Info card');
+  gesture(info, { click: () => { m.remove(); w.addInfo(oid); } });
+  m.append(info);
+  e.append(m);
+}
+
 /** Draws (or redraws) a character's pool from the items on the table. */
 export function drawPool(c: Character, items: Item[], old: HTMLElement | undefined, w: PoolWith): HTMLElement {
   const doc = old?.ownerDocument ?? document, rid = ridOf(c.oid);
@@ -121,6 +134,7 @@ export function drawPool(c: Character, items: Item[], old: HTMLElement | undefin
   const die = e.querySelector<HTMLElement>('.die-own')!;
   die.textContent = ownerWord(c);
   die.title = c.owner === OPEN ? 'Open: click to claim this character' : 'Click to roll for this character; shift-click to open it for someone else';
+  e.querySelector<HTMLElement>('.makemenu')!.hidden = !(w.viewer?.gm && c.owner === GM);
   e.querySelector<HTMLElement>('.gather')!.hidden = c.gathered;
   const opened = w.poolOpen(), shown: Shown = new Map(), drawn = new Map<string, HTMLElement>();
   const slotEls = [...e.querySelectorAll<HTMLElement>('.slot')];
@@ -186,7 +200,11 @@ function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
   // R142, R381: the die by the name shows the owner; click claims or docks the roll row, shift opens.
   const die = el(doc, 'button', 'die-own');
   gesture(die, { click: () => w.poolDie(c.oid, false, die), shift: () => w.poolDie(c.oid, true, die) });
-  hd.append(name, die, gather);
+  // R401: the GM's menu of what can be made on a character the GM owns.
+  const menu = el(doc, 'button', 'makemenu', '\u25BE');
+  menu.title = 'Make something on this character';
+  gesture(menu, { click: () => makeMenu(e, c.oid, w) });
+  hd.append(name, die, menu, gather);
   const slots = el(doc, 'div', 'slots');
   for (const s of SLOTS) {
     const slot = el(doc, 'div', `slot slot-${s}`);

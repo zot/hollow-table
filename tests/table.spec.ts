@@ -272,26 +272,51 @@ test('writing shows the text cursor', async ({ page }) => {
   expect(await cursor(SLOT)).toBe('text');
 });
 
-test('the GM adds, writes and loses an Info card', async ({ page }) => {
-  // R395, R397: "+" adds a card slid out with the caret in it; written, it stays, and stays slid out
-  // across a reload (the seat); written empty, it is gone once the caret leaves.
-  const card = page.locator('.obj.card[data-rid="o:00000003"]');
-  await card.locator('.infotab.add').click();
+test('the GM adds, writes, buries and gets back an Info card', async ({ page }) => {
+  // R401, R397: the pool's menu (a GM-owned character's alone) makes a card slid out with the caret in
+  // it; written, it stays, and stays slid out across a reload (the seat). R403: emptied, it is buried
+  // once the caret leaves; R404: undo outside the text digs it up, slid out; R405: so does dragging it
+  // out of Boot Hill's list.
+  await expect(page.locator(`.obj.pool[data-rid="${SAM}"] .makemenu`)).toBeHidden();
+  const card = page.locator('.obj.card[data-rid="o:00000003"]'), pool = page.locator('.obj.pool[data-rid="o:00000003"]');
+  await pool.locator('.makemenu').click();
+  await pool.locator('.poolmenu button', { hasText: 'Info card' }).click();
+  await expect(pool.locator('.poolmenu')).toHaveCount(0);
   await expect(card.locator('.infopaper .text')).toBeFocused();
   await page.keyboard.type('ANY: she watches the door');
   await page.locator('#table').click({ position: { x: 5, y: 5 } });
   await expect(card.locator('.infotab', { hasText: 'Info' })).toHaveCount(1);
   // One card; a fresh writing area may keep a trailing empty line, which is no clue.
-  expect(((await rec(page, 'o:00000003')).info as string[]).map(t => t.trim())).toEqual(['ANY: she watches the door']);
+  const clues = async () => ((await rec(page, 'o:00000003')).info as string[] | undefined)?.map(t => t.trim());
+  expect(await clues()).toEqual(['ANY: she watches the door']);
   // The game is saved a moment after it changes: reload once it is.
   await expect.poll(async () => (await records(page)).saved).toContain('she watches the door');
   await page.reload();
   await expect(card.locator('.infopaper .text')).toHaveText('ANY: she watches the door');
-  await card.locator('.infopaper .text').click();
-  await page.keyboard.press('ControlOrMeta+a');
-  await page.keyboard.press('Backspace');
-  await page.locator('#table').click({ position: { x: 5, y: 5 } });
+  const empty = async () => {
+    await card.locator('.infopaper .text').click();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.press('Backspace');
+    await page.locator('#table').click({ position: { x: 5, y: 5 } });
+    await expect(card.locator('.infopaper')).toHaveCount(0);
+    expect(await clues()).toBeUndefined();
+  };
+  await empty();
   await expect(card.locator('.infotab', { hasText: 'Info' })).toHaveCount(0);
-  await expect(card.locator('.infopaper')).toHaveCount(0);
-  expect('info' in (await rec(page, 'o:00000003'))).toBe(false);
+  await expect(page.locator('#boothill .n')).toHaveText('1');
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(card.locator('.infopaper .text')).toHaveText('ANY: she watches the door');
+  expect(await clues()).toEqual(['ANY: she watches the door']);
+  await expect(page.locator('#boothill .n')).toHaveText('');
+  // Nothing more is buried, so a second undo does nothing.
+  await page.keyboard.press('ControlOrMeta+z');
+  await expect(card.locator('.infotab', { hasText: 'Info' })).toHaveCount(1);
+  await empty();
+  await page.locator('#boothill').click();
+  const grave = page.locator('#graves .items button', { hasText: 'Devreux: Info card' });
+  const g = (await grave.boundingBox())!;
+  await dragFromTo(page, g.x + 20, g.y + g.height / 2, 400, 500);
+  await expect(card.locator('.infopaper .text')).toHaveText('ANY: she watches the door');
+  await expect(page.locator('#graves')).toBeHidden();
+  await expect(page.locator('#boothill .n')).toHaveText('');
 });

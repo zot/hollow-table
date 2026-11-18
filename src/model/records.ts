@@ -70,7 +70,7 @@ export type Character = {
   flipped: boolean; gathered: boolean; front: Marked; back: CardBack;
   /** R391: the entries revealed to the table, each by its key; absent when none. */
   shown?: string[];
-  /** R395: an NPC's Info cards, a text each; absent when none. */
+  /** R400: an NPC's Info cards, a text each; absent when none. */
   info?: Marked[];
 };
 
@@ -136,7 +136,10 @@ export type Reference = { kind: 'reference'; oid: Oid; place: Place; which: 'how
 
 export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | TornRoll | Reference;
 
-export type Burial = { name: string; records: PieceRecord[] };
+/** R403: an Info card's burial carries its NPC, its place among the NPC's cards and its words, and no records. */
+export type InfoBurial = { oid: Oid; k: number; text: Marked };
+/** `gm` names a GM card's burial (R403, R406), kept when it is masked, so a player's Boot Hill merges back. */
+export type Burial = { name: string; records: PieceRecord[]; info?: InfoBurial; gm?: Oid };
 export type Graveyard = { name: string; named: boolean; items: Burial[] };
 export type Yards = { yards: Graveyard[] };
 // R278: `counts` numbers each character's rolls on their own.
@@ -264,7 +267,7 @@ const piece: Shape = v => obj(v) && typeof v.kind === 'string' && Object.hasOwn(
 
 const SINGLETONS: Record<string, Shape> = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool,
-    items: list(fields({ name: str(CAPS.name), records: list(piece) })) }), 100) }),
+    items: list(fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid })) }), 100) }),
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1000, 1000) }),
   rows: fields({ rows: dict(fields({ pool: isOid, action: str(CAPS.name), opponent: (v: unknown) => v === null || v === WORLD || isOid(v),

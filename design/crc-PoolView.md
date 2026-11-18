@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285, R360, R366, R379, R369, R377
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285, R360, R366, R379, R369, R377, R401
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -13,6 +13,8 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
 - die (R142, R144, R146): the die by the pool's name shows its owner (GM, open, or the player);
   click claims an open character or docks the roll row (Ownership.click), shift-click opens it
   (Ownership.shiftClick); a refusal shakes the die and titles it with why.
+- menu (R401): on the GM's page, a ▾ after the die on a GM-owned character's pool opens a list of
+  what can be made on it, now "Info card" (PieceView.addInfo); a pick or a second click closes it.
 - toSlot and addLoose (actions, R360): a chip dropped on a slot or added in one takes `by`, the
   acting person's name (the viewer's); raising and lowering keep it.
 - toSlot (actions): a `mot` card dropped into a Main slot joins that character's drawer, its
@@ -66,7 +68,7 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   their name on hover; piles (from Pool.rollUp) as one disc, opened and closed by click.
 - empty slot space: click adds a +1, shift-click (or long press) a −1.
 - drawer: its cards, the + and − writers, the used pile count (click opens it), the kill box.
-- header: name, die (owner shown), gather, and the docked roll row's action and opponent.
+- header: name, die (owner shown), the GM's menu, gather, and the docked roll row's action and opponent.
 - drag the pool: brings its card if gathered; Gather snaps the card under the drawer.
 - held (R220): a chip or card in hand isn't among the items TableView gives it, so redrawing the
   pool while it's carried doesn't draw it again (and its slot settles without it).

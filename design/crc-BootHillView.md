@@ -1,5 +1,5 @@
 # BootHillView
-**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295
+**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405
 
 The gravestone and its graveyard list.
 
@@ -13,7 +13,10 @@ The gravestone and its graveyard list.
   leaving the name (change) applies Yards.rename, so an erased, empty one goes (R124).
 - dig up (R120, R295): once a burial is dragged a few pixels (Gesture), Yards.exhume and
   Yards.raised put it back on top, under the pointer, in one change; the list closes and Drag carries it from where it came up (not from the press in the list) (a character by its pool), so dropped
-  on the bar it is buried again.
+  on the bar it is buried again. An Info card's burial (R405) comes up on its NPC instead
+  (Yards.withInfo, slid out by the Seat), with no carry; while its NPC is not on the table it stays.
+- undoCard() (R404): digs up Yards.lastInfo the same way; false when there is none, so the GM's
+  Ctrl+Z / ⌘Z (main, only outside written text: isPageUndo) falls through to the page.
 - doom (R125): a shift-click or a long press arms an item red, saying "Delete forever? Shift-click again"; the
   graveyard's name (shift-click or long press) says "Delete everything here? Shift-click again".
   Either reverts after 3 s; a second one deletes (Yards.forget, Yards.forgetAll).

@@ -2,7 +2,7 @@
 **Source:** crc-Records.md
 
 ## Test: check takes the scene and refuses the malformed
-**Purpose:** every record of the playtest scene passes `check`; anything off is refused whole
+**Purpose:** every record of the playtest scene passes `check`, and a buried Info card whole or as a player gets it (R403, R406); anything off is refused whole
 **Input:** each scene record under its key; then one fault at a time: an unknown field, a missing
 field, a wrong type, an oid not matching its key, an oversized string, a die showing 7, an unknown
 kind, an unknown singleton, an array or a class instance where a record belongs, a negative spent
@@ -57,7 +57,7 @@ faulty record is refused
 **Pulled:** 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
 
 ## Test: a card's revealed entries and Info cards
-**Purpose:** R391: a character's `shown` is a list of revealed entries' keys, absent when none; R395: its `info` a list of texts
+**Purpose:** R391: a character's `shown` is a list of revealed entries' keys, absent when none; R400: its `info` a list of texts
 **Input:** Devreux with `shown` as a list of keys; as a list of a number; as a bare string; with `info` as texts; as a list of lists
 **Expected:** taken; refused; refused; taken; refused
 **Refs:** crc-Records.md

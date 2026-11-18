@@ -104,3 +104,14 @@ is tombed
 **Fire alarm:** never take a put-away (drop the removal loop); red: Sam's row stays
 **Inject:** src/net/authority.ts:mergeRows
 **Pulled:** 2026-11-16 — rang: "a player puts away their own row" failed, Sam's row stayed; restored clean
+
+## Test: a player's Boot Hill keeps the GM's cards whole
+**Purpose:** R406: a buried Info card reaches a player as "GM card", nothing else; their Boot Hill change has it put back whole by its `gm` name; leaving it out is refused; a GM card they made up is dropped
+**Input:** Devreux's Info card buried; Dana's view of Boot Hill; her change adding her sticky's burial; her change with nothing; her change adding a GM card of her own
+**Expected:** `{name: "GM card", records: [], gm}`; taken, the card whole and her sticky after it; refused; only the real card
+**Refs:** crc-Authority.md, crc-Visibility.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 9
+**Fire alarm:** take a player's GM card as they sent it (drop the `gm` branch of mergeYards); red: the card comes back masked
+**Inject:** src/net/authority.ts:mergeYards
+**Pulled:** 2026-11-18 — rang: "the card comes back whole" failed, the card came back masked; restored clean

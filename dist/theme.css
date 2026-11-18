@@ -248,7 +248,7 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
   border-radius: 6px; background: linear-gradient(90deg, #cfc7b8, #fffdf8 35%, #ece6da 65%, #b4ab9b);
   box-shadow: 2px 1px 3px rgba(0,0,0,.35); }
 
-/* R395, R397: Info cards tucked under the NPC's card, their tabs at its bottom edge; the one slid out
+/* R400, R397: Info cards tucked under the NPC's card, their tabs at its bottom edge; the one slid out
    white below it, or brown and torn as the card is. */
 .card > .infos { position: absolute; top: calc(100% - 12px); left: 30px; right: 30px; z-index: -1; }
 .infopaper { background: #fff; color: var(--ink); border: 1.5px solid #888; border-radius: 0 0 14px 14px; padding: 20px 16px 10px;
@@ -257,14 +257,15 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .infopaper .text { white-space: pre-wrap; outline: none; min-height: 2.3em; }
 .card.secret .infopaper { background: #5a4030; border-color: #2b1e17; }
 .card.inferring .infopaper { background: #6b4e3b; border-color: #2b1e17; }
-.infotabs { display: flex; gap: 6px; padding-left: 10px; }
+.infotabs { display: flex; gap: 2px; padding-left: 14px; }
 .infopaper + .infotabs { margin-top: -1px; }
 .infos:not(:has(.infopaper)) .infotabs { padding-top: 12px; }
-.infotab { font: 12px var(--mono); color: #222; background: #fff; border: 1.5px solid #888; border-top: none; border-radius: 0 0 8px 8px;
-  padding: 4px 10px; cursor: pointer; box-shadow: 0 2px 3px rgba(0,0,0,.3); }
+/* R402: a manila folder's tab, its sides slanting in toward the label, under the folder it pulls. */
+.infotab { position: relative; z-index: 0; font: 12px var(--mono); color: #222; background: none; border: 0; padding: 4px 16px 5px;
+  cursor: pointer; }
+.infotab::before { content: ""; position: absolute; inset: 0; z-index: -1; background: #fff; border: 1.5px solid #888; border-top: none;
+  border-radius: 0 0 7px 7px; transform: perspective(14px) rotateX(-3deg); transform-origin: top; box-shadow: 0 2px 3px rgba(0,0,0,.3); }
 .infotab.out { font-weight: 700; }
-.infotab.add { opacity: .6; }
-.infotab.add:hover { opacity: 1; }
 
 /* The back: three Damage columns, then the ruled notes (ui-card.md). */
 .damage { display: flex; gap: 14px; }
@@ -445,6 +446,14 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 /* R142: the die by the name shows the owner; it claims, opens, or docks the roll row. */
 .pool .die-own { min-width: 30px; height: 26px; padding: 0 6px; border-radius: 5px; border: 1.5px solid #2a2a2a; background: #f6f6f2;
   color: #222; font: 700 12px var(--mono); box-shadow: 1.5px 1.5px 0 #2a2a2a; cursor: pointer; }
+/* R401: the GM's menu after the die, of what can be made on a character the GM owns. */
+.pool .makemenu { margin-left: -6px; align-self: center; background: none; border: 0; padding: 0 4px; font: 14px var(--mono);
+  color: #f3e9d8; opacity: .6; cursor: pointer; }
+.pool .makemenu:hover { opacity: 1; }
+.poolmenu { position: absolute; top: 34px; left: 40px; z-index: 6; background: #fbfaf6; color: #222; border-radius: 8px; padding: 6px;
+  display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+.poolmenu button { text-align: left; font: 12px var(--mono); background: none; border: 0; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.poolmenu button:hover, .poolmenu button:focus-visible { background: #efe6d2; outline: none; }
 /* R78, R79: the action and opponent in the header; the action in the hand font, its number bold. */
 .rollinfo { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
 .rollinfo .base { font: 17px var(--hand); color: #f3e9d8; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
