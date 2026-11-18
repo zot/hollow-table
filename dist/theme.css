@@ -206,6 +206,46 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
   font: 48px/1 "Sancreek", var(--hand); color: #f3e9d8; background: #5a4030; border: 1.5px solid #2b1e17;
   box-shadow: 0 3px 6px rgba(0,0,0,.35); }
 
+/* ---- R386, R387, R390: the GM's eye, and a card torn from its back ---- */
+.card > .eye, .card > .eyecat { display: none; position: absolute; top: 9px; z-index: 3; border: none; padding: 0; cursor: pointer; }
+.card.eyed:not(.flipped) > .eye, .card.eyed:not(.flipped) > .eyecat { display: block; }
+.card > .eye { right: 30px; width: 26px; height: 16px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 16'%3E%3Cg fill='none' stroke='%23333' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M3 6q10 8 20 0'/%3E%3Cpath d='M7 9.5l-1.5 3M13 11v3.2M19 9.5l1.5 3'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; opacity: .55; }
+.card.inferring > .eye { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 16'%3E%3Cpath d='M2 8q11-11 22 0q-11 11-22 0Z' fill='%23fff' stroke='%23333' stroke-width='1.6'/%3E%3Ccircle cx='13' cy='8' r='3.6' fill='%23333'/%3E%3C/svg%3E"); opacity: 1; }
+.card > .eye:hover, .card > .eyecat:hover { opacity: 1; }
+.card > .eyecat { right: 12px; width: 16px; height: 16px; background: none; font: 12px/16px var(--mono); color: #333; opacity: .55; }
+.card > .eyecat::before { content: "\25BE"; }
+.card.inferring > .eyecat { color: #f3e9d8; }
+.eyemenu { position: absolute; top: 30px; right: 8px; z-index: 4; background: #fbfaf6; color: #222; border-radius: 8px; padding: 6px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.35); display: flex; flex-direction: column; }
+.eyemenu button { text-align: left; font: 12px var(--mono); background: none; border: 0; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.eyemenu button:hover, .eyemenu button:focus-visible { background: #efe6d2; outline: none; }
+/* The face drawn as the brown back: face-down for one who can't read it, translucent in the GM's
+   Infer state, where the hidden lines read through it in a muted ink. */
+.card.secret .flipper { visibility: visible; }
+.card:is(.secret, .inferring) .face.back { display: none !important; }
+.card:is(.secret, .inferring) .face.front { display: block !important; background: transparent; border-color: transparent; box-shadow: none; }
+.card.inferring::before { content: "Hollow"; position: absolute; inset: 0; border-radius: 22px; display: grid; place-items: center;
+  font: 48px/1 "Sancreek", var(--hand); color: rgba(243,233,216,.35); background: #6b4e3b; border: 1.5px solid #2b1e17;
+  box-shadow: 0 3px 6px rgba(0,0,0,.35); }
+.card.inferring .front .text { color: rgba(246,236,220,.82); }
+.card.inferring .front .text > div { cursor: pointer; }
+.card.secret .front .text > div:empty { min-height: 1.15em; }
+/* R387: the chosen category's unrevealed lines, in yellow. */
+.card.inferring .front .text > div.lit { background: rgba(255,228,77,.85); color: var(--ink); border-radius: 3px; width: fit-content; }
+/* R390: a strip of the front torn through the back: ragged top and bottom, light fibers at the edge,
+   the torn piece rolled up at its right end. */
+.card:is(.secret, .inferring) .front .text > div.torn { position: relative; z-index: 0; width: fit-content; max-width: calc(100% - 14px);
+  padding: 3px 6px; margin: 2px 0; color: var(--ink); }
+.card:is(.secret, .inferring) .front .text > div.torn::before { content: ""; position: absolute; inset: -1px 0; z-index: -1; background: #fffdf8;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 6V3.6L2 2.4 4.5 3.4 7 1.2 9 2.8 11.5 0.9 14 2.6 16 1.6 18.5 3.2 21 1 24 3.6V6Z' fill-opacity='.45'/%3E%3Cpath d='M0 6V4.6L2.5 3.6 5 4.4 7.5 2.6 10 3.9 12.5 2.4 15 3.8 17.5 3 20 4.3 22 2.9 24 4.6V6Z'/%3E%3C/svg%3E") repeat-x, linear-gradient(#000 0 0) no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 0V2.4L2.5 3.5 5 2.3 7.5 4.6 10 3 12 5.1 14.5 3.2 17 4.4 19.5 2.7 22 4.9 24 2.4V0Z' fill-opacity='.45'/%3E%3Cpath d='M0 0V1.4L2 2.5 4.5 1.5 7 3.4 9.5 2 12 3.7 14 2.3 16.5 3.2 19 1.8 21.5 3.6 24 1.4V0Z'/%3E%3C/svg%3E") repeat-x;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 6V3.6L2 2.4 4.5 3.4 7 1.2 9 2.8 11.5 0.9 14 2.6 16 1.6 18.5 3.2 21 1 24 3.6V6Z' fill-opacity='.45'/%3E%3Cpath d='M0 6V4.6L2.5 3.6 5 4.4 7.5 2.6 10 3.9 12.5 2.4 15 3.8 17.5 3 20 4.3 22 2.9 24 4.6V6Z'/%3E%3C/svg%3E") repeat-x, linear-gradient(#000 0 0) no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='6'%3E%3Cpath d='M0 0V2.4L2.5 3.5 5 2.3 7.5 4.6 10 3 12 5.1 14.5 3.2 17 4.4 19.5 2.7 22 4.9 24 2.4V0Z' fill-opacity='.45'/%3E%3Cpath d='M0 0V1.4L2 2.5 4.5 1.5 7 3.4 9.5 2 12 3.7 14 2.3 16.5 3.2 19 1.8 21.5 3.6 24 1.4V0Z'/%3E%3C/svg%3E") repeat-x;
+  -webkit-mask-size: 24px 6px, 100% calc(100% - 11px), 24px 6px; mask-size: 24px 6px, 100% calc(100% - 11px), 24px 6px;
+  -webkit-mask-position: calc(var(--rag, 0) * 5px) 0, 0 5.5px, calc(var(--rag, 0) * -4px) 100%;
+  mask-position: calc(var(--rag, 0) * 5px) 0, 0 5.5px, calc(var(--rag, 0) * -4px) 100%; }
+.card:is(.secret, .inferring) .front .text > div.torn::after { content: ""; position: absolute; top: 1px; bottom: 1px; right: -11px; width: 12px;
+  border-radius: 6px; background: linear-gradient(90deg, #cfc7b8, #fffdf8 35%, #ece6da 65%, #b4ab9b);
+  box-shadow: 2px 1px 3px rgba(0,0,0,.35); }
+
 /* The back: three Damage columns, then the ruled notes (ui-card.md). */
 .damage { display: flex; gap: 14px; }
 .column { flex: 1; min-width: 0; }

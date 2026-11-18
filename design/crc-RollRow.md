@@ -1,5 +1,5 @@
 # RollRow
-**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R376, R350, R362, R353, R355, R362-365, R372-376, R381-383
+**Requirements:** R67-73, R76-78, R86-88, R274-277, R306, R307, R316, R319-321, R326-330, R336, R337, R345, R346, R376, R350, R362, R353, R355, R362-365, R372-376, R381-383, R388
 
 The dice about to be rolled for a character: one row per character, a piece of the table kept in
 the game's `rows` record (R381), shown on its pool on every page, changed only by its owner and the GM.
@@ -62,6 +62,8 @@ the game's `rows` record (R381), shown on its pool on every page, changed only b
   picked (by hand, or set with no action and so nobody aimed at), never numbers (R100). On the GM's page Rolls.roll,
   private when switched; on a player's, Rolls.request, Roll reading "GM…" while waiting (R102); why
   not goes to Rolls.note (R281).
+- While any card's eye is open on the GM's page (R388), every Roll key there is disabled, its title
+  saying to shut the eye first. The eyes are the GM's page's own, so a player's page doesn't know.
 
 - Pointing (R326–R330): the Roller keeps `against`, what was pointed at by name (MarkReader.points),
   set by a drop on it and cleared by the next aim; shown() and the GM's page take the base from it

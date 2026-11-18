@@ -1,5 +1,5 @@
 # Visibility
-**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R378, R381, R377, R378
+**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R378, R381, R377, R378, R389
 
 Who may read what, and each record as a given viewer may see it. Pure. The invariant it serves: no
 page ever holds, in the clear, a secret its person may not read.
@@ -16,7 +16,11 @@ page ever holds, in the clear, a secret its person may not read.
   not see it at all.
   - A chip or card in a pool whose character the viewer can't see, that isn't a contribution and isn't
     in its Stagger slot: nothing (the private mat, R378). Stagger is always seen (R377).
-  - A character it can't see: `front` and `back` blanked to their shape (lines kept, text gone; Damage
+  - A character it can't see: `front` and `back` blanked to their shape, but for the front's lines in
+    `shown`, which keep their words; `shown` goes too, holding only revealed words (R389), so
+    blankFront(c) draws a face-down card the same on every page. The first line is blanked like
+    the rest: it holds more than the public name ("Samuel Diamond, Rank 3").
+    Otherwise lines kept, text gone; Damage
     slots unnamed and waiting for nothing (R313), boxes unchecked, nothing spent, absorb 0, and no
     Conviction or Burden, R341).
   - An Influence card whose `home` it can't see: name gone; points gone unless the card is in a

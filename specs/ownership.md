@@ -28,6 +28,22 @@ The die by the character's name shows GM, open, or the player.
 - **What's public.** The character's name and place, the number of cards in its drawer, the sheet's
   shape, and what others put in its pool (below).
 - To everyone else, a hidden character's card is face-down, and its drawer's cards are face-down.
+- **Infer reveals** (Bill, 11-18; Infer reveals one item per Success Level, ruled 11-15). The GM can
+  reveal lines of an NPC's front to the whole table: its Skills, Fields, Resources and Motivations,
+  a line at a time. "The players are responsible for roleplaying their characters' ignorance", so
+  the GM can hide a revealed line again. A revealed line is known by its words: if the GM rewrites
+  it, it is hidden again until revealed anew.
+- **The eye.** On the GM's page an NPC's card has an eye at its upper right, shut. Opening it puts the
+  card in its Infer state, showing it as the players will see it: a translucent brown back over it,
+  its hidden lines readable through it, its revealed lines torn out. Clicking an inferrable line
+  tears it out or mends it, and nothing reaches the players until the eye shuts. Changes made with the
+  eye open are lost if the page reloads. A dropdown arrow beside the eye picks a category (Skills,
+  Resources, Motivations), opening the eye and highlighting that category's unrevealed lines in
+  yellow. A shut card shows nothing of what is revealed (Bill, 11-18).
+- **An open eye can't be forgotten:** while any eye is open, every Roll key on the table is disabled.
+- **Torn from the back.** A face-down card shows its name, and each revealed line, as a strip of the
+  front showing through a tear in its brown "Hollow" back, where the line sits, with ragged edges and
+  the torn piece rolled up at the strip's right end. Only those lines' words reach a player's page.
 - **A pool has two mats** (Bill, 11-16: "At the game table, there would be an Influence Pool mat for
   the NPC on the table and another one behind the GM screen"). A **contribution** is an Influence put
   in a pool by someone other than its character's owner: a chip a player (or the GM, on a player's

@@ -96,7 +96,7 @@ var PIECES = {
     gathered: bool,
     front: marked,
     back
-  }),
+  }, { shown: list(marked) }),
   influence: fields(
     {
       kind: oneOf("influence"),
@@ -869,6 +869,10 @@ function canSee(viewer, character2) {
   return !!viewer?.gm || character2.owner === OPEN || !!viewer && character2.owner === viewer.name;
 }
 var blank = (text) => text.replace(/[^\n]/g, "");
+function blankFront(c) {
+  const shown3 = new Set(c.shown ?? []);
+  return c.front.split("\n").map((l) => shown3.has(l) ? l : "").join("\n");
+}
 var blankBack = (b) => ({
   notes: blank(b.notes),
   absorb: { bias: 0, affliction: 0, injury: 0 },
@@ -884,7 +888,9 @@ function contribution(i, chars) {
   return !!home && home.owner !== pool.owner;
 }
 function redactPiece(r, viewer, chars) {
-  if (r.kind === "character") return canSee(viewer, r) ? r : { ...r, front: blank(r.front), back: blankBack(r.back) };
+  if (r.kind === "character") {
+    return canSee(viewer, r) ? r : { ...r, front: blankFront(r), back: blankBack(r.back) };
+  }
   if (r.kind === "chip" || r.kind === "influence") {
     const pool = poolOf(r, chars);
     const stagger = typeof r.where === "object" && "slot" in r.where && r.where.name === "stagger";
@@ -917,6 +923,76 @@ function redactYards(y, viewer, chars) {
     }))
   };
 }
+
+// src/ui/eyes.ts
+var CATEGORIES = [
+  { key: "skills", word: "Skills", marks: ["fld", "skl"] },
+  { key: "resources", word: "Resources", marks: ["res"] },
+  { key: "motivations", word: "Motivations", marks: ["mot"] }
+];
+function categories(line) {
+  const marks2 = new Set(parse(line)[0].flatMap((r) => typeof r === "string" ? [] : [r.mark]));
+  return CATEGORIES.filter((c) => c.marks.some((m) => marks2.has(m))).map((c) => c.key);
+}
+function withShown(c, lines) {
+  const here2 = new Set(c.front.split("\n")), shown3 = [...new Set(lines)].filter((l) => here2.has(l));
+  const { shown: _, ...rest } = c;
+  return shown3.length ? { ...rest, shown: shown3 } : rest;
+}
+var Eyes = class {
+  #open = /* @__PURE__ */ new Map();
+  #game;
+  #changed;
+  constructor(game, changed) {
+    this.#game = game;
+    this.#changed = changed;
+  }
+  /** R388: whether any eye is open. */
+  any() {
+    return this.#open.size > 0;
+  }
+  /** The draft of an open card's revealed lines; undefined when its eye is shut. */
+  draft(oid) {
+    return this.#open.get(oid)?.draft;
+  }
+  /** The category washed on an open card, if one was picked. */
+  cat(oid) {
+    return this.#open.get(oid)?.cat ?? null;
+  }
+  /** Opens a card's eye, its draft begun from what is shown; a category washes its unrevealed lines (R387). */
+  open(oid, cat = null) {
+    const was = this.#open.get(oid), c = this.#card(oid);
+    if (!c) return;
+    this.#open.set(oid, { draft: was?.draft ?? new Set(c.shown ?? []), cat });
+    this.#changed(oid);
+  }
+  /** In the Infer state, a click on a line that can be inferred reveals it or hides it again. */
+  toggle(oid, line) {
+    const o = this.#open.get(oid);
+    if (!o || categories(line).length === 0) return;
+    if (!o.draft.delete(line)) o.draft.add(line);
+    this.#changed(oid);
+  }
+  /** Shuts the eye, writing the draft to the card when it changed what is shown. */
+  shut(oid) {
+    const o = this.#open.get(oid), c = this.#card(oid);
+    this.#open.delete(oid);
+    if (o && c) {
+      const next2 = withShown(c, o.draft);
+      if (JSON.stringify(next2.shown ?? []) !== JSON.stringify(c.shown ?? [])) this.#game.change((w) => w.put(ridOf(oid), next2));
+    }
+    this.#changed(oid);
+  }
+  /** The eye's click: open it, or shut it. */
+  flip(oid) {
+    if (this.#open.has(oid)) this.shut(oid);
+    else this.open(oid);
+  }
+  #card(oid) {
+    const c = this.#game.get(ridOf(oid));
+    return c && "kind" in c && c.kind === "character" ? c : void 0;
+  }
+};
 
 // src/rules/tap.ts
 function inFront(char, name2) {
@@ -1474,10 +1550,16 @@ function make(doc, r, w) {
     const t = ev.target;
     if (t.isContentEditable && t.ownerDocument.activeElement === t.closest("[contenteditable]")) ev.stopPropagation();
   }, true);
-  gesture(e, { drag: (down, move) => {
-    doc.activeElement?.blur?.();
-    w.drag(rid2, down, move);
-  } });
+  gesture(e, {
+    drag: (down, move) => {
+      doc.activeElement?.blur?.();
+      w.drag(rid2, down, move);
+    },
+    // R386: in the Infer state, a click on a line tears it out or mends it.
+    click: (ev) => {
+      if (r.kind === "character") tear(e, r.oid, ev, w);
+    }
+  });
   switch (r.kind) {
     case "character": {
       const flipper = el(doc, "div", "flipper");
@@ -1494,7 +1576,15 @@ function make(doc, r, w) {
       const flip = el(doc, "button", "flip");
       flip.setAttribute("aria-label", "Flip the card");
       gesture(flip, { click: () => change(w, rid2, (c) => ({ ...c, flipped: !c.flipped })) });
-      e.append(flipper, flip, tray(e));
+      const eye = el(doc, "button", "eye"), pick = el(doc, "button", "eyecat");
+      eye.setAttribute("aria-label", "Infer: show the table lines of this card");
+      pick.setAttribute("aria-label", "Open the eye on a category");
+      gesture(eye, { click: () => {
+        e.querySelector(".eyemenu")?.remove();
+        w.eyes.flip(r.oid);
+      } });
+      gesture(pick, { click: () => eyeMenu(e, r.oid, w) });
+      e.append(flipper, flip, eye, pick, tray(e));
       break;
     }
     case "sticky":
@@ -1523,10 +1613,18 @@ function update(e, r, w) {
   switch (r.kind) {
     case "character": {
       if (e.classList.contains("flipped") !== r.flipped) turn(e, r.flipped);
-      e.classList.toggle("secret", !canSee(w.viewer, r));
+      const secret = !canSee(w.viewer, r), eyed = !!w.viewer?.gm && r.owner === GM;
+      const draft = eyed ? w.eyes.draft(r.oid) : void 0;
+      const back3 = secret || !!draft;
+      e.classList.toggle("secret", secret);
+      e.classList.toggle("eyed", eyed);
+      e.classList.toggle("inferring", !!draft);
       const front = e.querySelector(".front > .text");
-      rewrite(front, r.front);
-      frontGlyphs(front, r, w);
+      front.contentEditable = back3 ? "false" : "true";
+      const body = secret ? blankFront(r) : r.front;
+      rewrite(front, back3 ? named(body, r.name) : body);
+      torn(front, r, secret ? new Set(r.shown ?? []) : draft, draft ? w.eyes.cat(r.oid) : null);
+      if (!back3) frontGlyphs(front, r, w);
       rewrite(e.querySelector(".back .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
       dry(e, r);
@@ -1774,6 +1872,48 @@ function dry(e, c) {
     const s = g.dataset.source ?? "";
     g.classList.toggle("dry", left(c, s.slice(s.indexOf(":") + 1)) < 1);
   }
+}
+var named = (front, name2) => [`<head>${name2}</head>`, ...front.split("\n").slice(1)].join("\n");
+function rag(oid, line) {
+  let h = 7;
+  for (const ch of oid + line) h = h * 31 + ch.charCodeAt(0) | 0;
+  return (h >>> 0) % 6;
+}
+function torn(text, c, out, cat) {
+  const lines = (text.dataset.source ?? "").split("\n");
+  [...text.children].forEach((div, k) => {
+    const line = lines[k] ?? "", d = div;
+    const tear2 = !!out && (k === 0 || out.has(line));
+    d.classList.toggle("torn", tear2);
+    d.classList.toggle("lit", !!cat && !tear2 && categories(line).includes(cat));
+    if (tear2) d.style.setProperty("--rag", String(rag(c.oid, line)));
+    else d.style.removeProperty("--rag");
+  });
+}
+function eyeMenu(e, oid, w) {
+  const was = e.querySelector(".eyemenu");
+  if (was) {
+    was.remove();
+    return;
+  }
+  const m = el(e.ownerDocument, "div", "eyemenu");
+  for (const c of CATEGORIES) {
+    const b = el(e.ownerDocument, "button", "", c.word);
+    gesture(b, { click: () => {
+      m.remove();
+      w.eyes.open(oid, c.key);
+    } });
+    m.append(b);
+  }
+  e.append(m);
+}
+function tear(e, oid, ev, w) {
+  if (!w.eyes.draft(oid)) return;
+  const text = e.querySelector(".front > .text");
+  const div = ev.target?.closest?.("div");
+  if (!div || div.parentElement !== text) return;
+  const k = [...text.children].indexOf(div);
+  w.eyes.toggle(oid, (text.dataset.source ?? "").split("\n")[k] ?? "");
 }
 function frontGlyphs(text, c, w) {
   const doc = text.ownerDocument, using = w.inUse(c.oid);
@@ -3419,8 +3559,8 @@ var Rolls = class {
     if (from && c.owner !== this.#w.whoIs?.(from)) return this.#work;
     if (!pages(c, a.kind, a.result).some((p) => same2(p, body.page))) return this.#work;
     const next2 = fill(c, a.kind, body.page, { name: by.name, id: body.id }), d = COLUMN_OF[a.kind];
-    const named2 = (ch, r) => waitsIn(ch, d, r)?.naming?.id === body.id;
-    const waiting = [...ROWS, "lasting"].filter((r) => named2(next2, r) && !named2(c, r)).map((row2) => ({ damage: d, row: row2 }));
+    const named3 = (ch, r) => waitsIn(ch, d, r)?.naming?.id === body.id;
+    const waiting = [...ROWS, "lasting"].filter((r) => named3(next2, r) && !named3(c, r)).map((row2) => ({ damage: d, row: row2 }));
     game.change((w) => w.put(ridOf(c.oid), next2));
     this.#attack(k, (x) => ({ ...x, taken: true, ...waiting.length && { waiting } }));
     return this.#resend(k);
@@ -3435,8 +3575,8 @@ var Rolls = class {
     if (from && by.owner !== this.#w.whoIs?.(from)) return this.#work;
     const slot2 = waitsIn(c, body.damage, body.row);
     if (slot2?.naming?.id !== body.id) return this.#work;
-    const { naming: _, ...named2 } = { ...slot2, name: text };
-    const back3 = body.row === "lasting" ? { ...c.back, lasting: { ...c.back.lasting, [body.damage]: named2 } } : { ...c.back, damage: { ...c.back.damage, [body.damage]: { ...c.back.damage[body.damage], [body.row]: named2 } } };
+    const { naming: _, ...named3 } = { ...slot2, name: text };
+    const back3 = body.row === "lasting" ? { ...c.back, lasting: { ...c.back.lasting, [body.damage]: named3 } } : { ...c.back, damage: { ...c.back.damage, [body.damage]: { ...c.back.damage[body.damage], [body.row]: named3 } } };
     game.change((w) => w.put(ridOf(c.oid), { ...c, back: back3 }));
     this.#attack(k, (x) => {
       const rest = x.waiting.filter((w) => w.damage !== body.damage || w.row !== body.row);
@@ -8688,11 +8828,12 @@ var RollRowView = class {
       parts.push(p);
     }
     if (mine) {
-      const roll3 = doc.createElement("button"), why3 = waits(r);
+      const roll3 = doc.createElement("button"), eye = !!this.#w.inferring?.(), why3 = waits(r);
       roll3.className = "roll";
       roll3.textContent = waiting ? "GM\u2026" : "Roll";
-      roll3.disabled = waiting || !!why3;
+      roll3.disabled = waiting || eye || !!why3;
       if (waiting) roll3.title = "Waiting for the GM's page to roll";
+      else if (eye) roll3.title = "Shut the eye first: a card is open to show the table";
       else if (why3) roll3.title = why3;
       gesture(roll3, { click: () => {
         if (!waiting) this.#w.roll(r);
@@ -8958,7 +9099,7 @@ var EMPTY = { receipts: [] };
 function retitled(tape, id, title) {
   return { receipts: tape.receipts.map((r) => r.id === id ? { ...r, title } : r) };
 }
-function torn(tape, oid, place3) {
+function torn2(tape, oid, place3) {
   return { kind: "tornroll", oid, place: place3, receipts: tape.receipts };
 }
 function mayTake(viewer, r, targetOwner) {
@@ -9082,7 +9223,7 @@ var TapeView = class {
       stop();
       const oid = this.#w.mint(), at3 = this.#w.toWorld(box2.left, box2.top);
       this.#w.game.change((w) => {
-        w.put(ridOf(oid), torn(tape, oid, { x: Math.round(at3.x), y: Math.round(at3.y), z: 0, tilt: 0 }));
+        w.put(ridOf(oid), torn2(tape, oid, { x: Math.round(at3.x), y: Math.round(at3.y), z: 0, tilt: 0 }));
         w.put("tape", EMPTY);
       });
       this.#el.classList.remove("raised");
@@ -10533,7 +10674,7 @@ function stamp(at3) {
 function offer3(round, now2) {
   return `Round ${round}, ${time(now2)}`;
 }
-function named(answer) {
+function named2(answer) {
   return answer === null ? null : answer.trim() || "Checkpoint";
 }
 function newGame(now2) {
@@ -10613,7 +10754,7 @@ var LedgerView = class {
       acts.append(a);
     };
     if (!w.player) act("Checkpoint", "Save a named copy of the table as it is now", async () => {
-      const n = named(prompt("Name this checkpoint", offer3(w.round(), w.now())));
+      const n = named2(prompt("Name this checkpoint", offer3(w.round(), w.now())));
       if (n === null) return;
       await w.checkpoint(n);
       await this.render();
@@ -11649,6 +11790,10 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
   const redraw = () => table.render(game.all().map(([rid2]) => rid2));
   const mint2 = () => minter(game, gm);
   let drag, rollRow;
+  const eyes = new Eyes(game, (oid) => {
+    table.render([ridOf(oid)]);
+    rollRow?.render();
+  });
   let taking = null;
   const cancelTake = () => {
     if (!taking) return;
@@ -11776,6 +11921,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       if (t) void rolling().take(t.id, t.pages[t.k]);
     },
     cancelTake,
+    eyes,
     // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die3) => {
       const c = game.get(ridOf(oid));
@@ -11843,6 +11989,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     viewer,
     tray: tray2,
     mint: () => mint2()(),
+    inferring: () => eyes.any(),
     // R364: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),

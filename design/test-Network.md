@@ -168,3 +168,14 @@ by the drop
 **Fire alarm:** leave a hidden pool's Stagger unpiled (drop the `stagger` case from `pileUp`); red: Dana's Stagger shows three −2s, no pile
 **Inject:** src/ui/pool.ts:drawPool
 **Pulled:** 2026-11-16 — rang (Chromium): Dana's Stagger had no −4 pile; restored clean
+
+## Test: the GM's eye tears an NPC's lines out for the table
+**Purpose:** R386–R390 over the wire: with Devreux's eye open on Motivations, his three are lit; Keep the Peace torn out stays on the GM's page, and the GM's Roll key is disabled; shutting the eye sends it, and Dana's page holds that line and no other secret, drawn as a torn strip after the name; mended, it leaves her page
+**Input:** the GM's table and Dana; the eye's arrow, Motivations; a click on Keep the Peace; Sam's die; the eye; then the eye, Keep the Peace, the eye
+**Expected:** the Infer state; 3 lit, then 2 and the torn line; Roll disabled; Dana's front without Keep the Peace; Roll enabled; Dana's front with it, no other secret, torn strips Devreux and Keep the Peace; then without it, Devreux's strip alone
+**Refs:** crc-PieceView.md, crc-Visibility.md, crc-RollRow.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 11
+**Fire alarm:** write each tear to the game as it is made (no draft until the eye shuts); red: Dana's front holds Keep the Peace while the eye is open
+**Inject:** src/ui/eyes.ts:toggle
+**Pulled:** 2026-11-18 — rang (Chromium): Dana's front held Keep the Peace while the eye was open; restored clean

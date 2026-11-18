@@ -83,3 +83,14 @@ the GM's view is unchanged
 **Fire alarm:** treat Stagger like any private slot (drop the `stagger` exception); red: the Stagger chip is absent
 **Inject:** src/rules/visibility.ts:redactPiece
 **Pulled:** 2026-11-16 — rang: "Stagger is always seen" failed, the Stagger chip absent; restored clean
+
+## Test: an NPC card reveals only its shown lines
+**Purpose:** R389: a hidden character's front reaches another viewer with only its `shown` lines in words, the first line blanked too (it holds more than the public name), `shown` going with it; redacting again changes nothing; the GM sees all
+**Input:** Devreux with `shown` holding Keep the Peace; redacted for Dana, again for Dana, and for the GM
+**Expected:** the same line count; one line with words, Keep the Peace; the first line empty; no Proprietor, Preservation or Gossip anywhere; `shown` is that line; the second redaction equal; the GM's record unchanged
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 8
+**Fire alarm:** keep the front's first line for the name, as first designed; red: the first line still holds "Mistress Devreux"
+**Inject:** src/rules/visibility.ts:blankFront
+**Pulled:** 2026-11-18 — rang: "only the revealed line has words" failed with the first line kept, and "no secret survives redaction" with it; restored clean

@@ -55,3 +55,15 @@ faulty record is refused
 **Inject:** src/model/records.ts:PIECES
 @alarm-hash: 8f6cabccd94f4eba
 **Pulled:** 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
+
+## Test: a card's revealed lines
+**Purpose:** R385: a character's `shown` is a list of its lines' text, absent when none
+**Input:** Devreux with `shown` as a list of one line; as a list of a number; as a bare string
+**Expected:** taken; refused; refused
+**Refs:** crc-Records.md
+**Code:** `src/model/records.test.ts`
+**Alarm:** 5
+**Fire alarm:** take any list as `shown`; red: a list of line numbers is taken
+**Inject:** src/model/records.ts:PIECES
+@alarm-hash: 96e0ca260554c46c
+**Pulled:** 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean

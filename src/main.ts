@@ -24,6 +24,7 @@ import { click, shiftClick } from './rules/ownership.ts';
 import { TrayView } from './ui/tray.ts';
 import { markOlder } from './ui/pens.ts';
 import { RollRowView, intentOf } from './ui/rollrow.ts';
+import { Eyes } from './ui/eyes.ts';
 import { TapeView } from './ui/tape.ts';
 import { RegisterView } from './ui/register.ts';
 import { BarView, type Supply } from './ui/bar.ts';
@@ -103,6 +104,8 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const redraw = () => table.render(game.all().map(([rid]) => rid));
   const mint = () => minter(game, gm);
   let drag: Drag | undefined, rollRow: RollRowView | undefined;
+  // R386, R388: the GM's open eyes, this page's own; a change redraws the card and every Roll key.
+  const eyes = new Eyes(game, oid => { table.render([ridOf(oid)]); rollRow?.render(); });
   // Seq: seq-take.md#1, seq-take.md#1.1, seq-take.md#1.2, seq-take.md#1.3, seq-take.md#1.4 | R308–R312
   // An Attack being taken on this page: its pages on the target's card, which turns to its back with
   // the Attack's column in front. Escape or a click off the card backs out (a pan doesn't); nothing is saved.
@@ -214,6 +217,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       if (t) void rolling().take(t.id, t.pages[t.k]!);
     },
     cancelTake,
+    eyes,
     // R142, R144, R146, R381: the die by a pool's name claims, opens, or docks the roll row.
     poolDie: (oid, shift, die) => {
       const c = game.get(ridOf(oid)) as Character | undefined;
@@ -271,6 +275,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const tray = new TrayView(bar.oppo, { game, viewer });
   rollRow = new RollRowView({
     game, viewer, tray, mint: () => mint()(),
+    inferring: () => eyes.any(),
     // R364: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
     remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),

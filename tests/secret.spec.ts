@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377
+// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377, R386, R387, R388, R389, R390
 // Eve sits at the table owning nothing: no secret word reaches her page in the clear, though she
 // hears the sealed boxes meant for others. Dana sees what she owns, and nothing more.
 import { expect, test, type Page } from '@playwright/test';
@@ -118,4 +118,40 @@ test('Stagger is seen, and piled, by everyone', async ({ browser }) => {
   const pool = (page: Page) => page.locator(`.obj.pool[data-rid="${DEVREUX}"]`);
   await expect(pool(dana).locator('.slot-stagger .pile .disc')).toHaveText('−4', { timeout: 15_000 });
   await expect(pool(dana).locator('.slot-main .chip')).toHaveCount(0);
+});
+
+test("the GM's eye tears an NPC's lines out for the table", async ({ browser }) => {
+  // R386–R390: Devreux's Keep the Peace torn out with the eye open reaches no one until it shuts; then
+  // Dana's page holds that line alone, torn through the back; mended, it is gone again.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const card = gm.locator(`.obj.card[data-rid="${DEVREUX}"]`), daneCard = dana.locator(`.obj.card[data-rid="${DEVREUX}"]`);
+  const front = async () => (await recOf(dana, DEVREUX)).front as string;
+  const others = (text: string) => leaks(text).filter(w => w !== 'Keep the Peace');
+
+  await card.locator('.eyecat').click();
+  await card.locator('.eyemenu button', { hasText: 'Motivations' }).click();
+  await expect(card).toHaveClass(/inferring/);
+  await expect(card.locator('.front .text > div.lit')).toHaveCount(3);
+  await card.locator('.front .text > div', { hasText: 'Keep the Peace' }).click();
+  await expect(card.locator('.front .text > div.torn', { hasText: 'Keep the Peace' })).toHaveCount(1);
+  await expect(card.locator('.front .text > div.lit')).toHaveCount(2);
+  // R388: no roll while the eye is open.
+  await gm.locator(`.obj.pool[data-rid="${SAM}"] .die-own`).click();
+  await expect(gm.locator('.roller .roll')).toBeDisabled();
+  await gm.waitForTimeout(1500);
+  expect(await front()).not.toContain('Keep the Peace');
+
+  await card.locator('.eye').click();
+  await expect(gm.locator('.roller .roll')).toBeEnabled();
+  await expect.poll(front, { timeout: 15_000 }).toContain('Keep the Peace');
+  expect(others(await held(dana))).toEqual([]);
+  await expect(daneCard.locator('.front .text > div.torn')).toHaveText(['Devreux', 'Keep the Peace +Sig (0)']);
+
+  // Taken back: the players roleplay their ignorance.
+  await card.locator('.eye').click();
+  await card.locator('.front .text > div', { hasText: 'Keep the Peace' }).click();
+  await card.locator('.eye').click();
+  await expect.poll(front, { timeout: 15_000 }).not.toContain('Keep the Peace');
+  await expect(daneCard.locator('.front .text > div.torn')).toHaveText(['Devreux']);
 });

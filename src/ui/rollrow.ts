@@ -1,4 +1,4 @@
-// CRC: crc-RollRow.md | R321, R306, R316, R319, R364, R381, R382, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R373, R86, R372, R374, R277, R345, R346, R376, R350, R362, R353, R355, R363, R364, R365
+// CRC: crc-RollRow.md | R321, R306, R316, R319, R364, R381, R382, R71, R72, R73, R76, R78, R79, R80, R81, R82, R274, R275, R276, R83, R84, R373, R86, R372, R374, R277, R345, R346, R376, R350, R362, R353, R355, R363, R364, R365, R388
 // The dice you're about to roll, docked on the pool you roll for, in your view only (the Seat).
 // The decisions are pure (dock, action, hand, row, numbers); the view below draws them.
 
@@ -195,6 +195,8 @@ export type RollRowWith = {
   pool: (oid: Oid) => HTMLElement | undefined;
   /** R362: new oids, for the card an action suffers. */
   mint: () => Oid;
+  /** R388: whether a card's eye is open on this page, holding every Roll. */
+  inferring?: () => boolean;
   /** Redraws these characters' cards (the swish, R77). */
   redraw: (oids: Oid[]) => void;
   /** Rolls what the row shows: at once on the GM's page; a request from a player's (R100). */
@@ -386,11 +388,13 @@ export class RollRowView {
     }
     // R102: while a roll waits on the GM's page, Roll reads "GM…". R345: an action waits until aimed.
     if (mine) {
-      const roll = doc.createElement('button'), why = waits(r);
+      // R388: no roll while a card's eye is open, so the GM can't forget to shut it.
+      const roll = doc.createElement('button'), eye = !!this.#w.inferring?.(), why = waits(r);
       roll.className = 'roll';
       roll.textContent = waiting ? 'GM…' : 'Roll';
-      roll.disabled = waiting || !!why;
+      roll.disabled = waiting || eye || !!why;
       if (waiting) roll.title = "Waiting for the GM's page to roll";
+      else if (eye) roll.title = 'Shut the eye first: a card is open to show the table';
       else if (why) roll.title = why;
       gesture(roll, { click: () => { if (!waiting) this.#w.roll(r); } });
       parts.push(roll);

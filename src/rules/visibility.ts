@@ -1,4 +1,4 @@
-// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377
+// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R389
 // Who may read what, and each record as a given viewer may see it. Pure. The invariant: no page
 // ever holds, in the clear, a secret its person may not read.
 
@@ -15,6 +15,13 @@ export function canSee(viewer: Viewer, character: Character): boolean {
 
 // R356: the sheet's shape is public: the same lines, the text gone.
 const blank = (text: string) => text.replace(/[^\n]/g, '');
+// R389: the front's revealed lines keep their words; every other line is blanked, the first too (it
+// holds more than the public name). `shown` holds only revealed words, so it goes with them.
+/** The front as one who can't read the card sees it. */
+export function blankFront(c: Character): string {
+  const shown = new Set(c.shown ?? []);
+  return c.front.split('\n').map(l => (shown.has(l) ? l : '')).join('\n');
+}
 const blankBack = (b: CardBack): CardBack => ({
   notes: blank(b.notes),
   absorb: { bias: 0, affliction: 0, injury: 0 },
@@ -37,7 +44,9 @@ export function contribution(i: Chip | Influence, chars: Characters): boolean {
 }
 
 function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRecord | undefined {
-  if (r.kind === 'character') return canSee(viewer, r) ? r : { ...r, front: blank(r.front), back: blankBack(r.back) };
+  if (r.kind === 'character') {
+    return canSee(viewer, r) ? r : { ...r, front: blankFront(r), back: blankBack(r.back) };
+  }
   // R378: the private mat of a pool the viewer can't see never reaches them, not even face-down.
   if (r.kind === 'chip' || r.kind === 'influence') {
     const pool = poolOf(r, chars);

@@ -133,3 +133,18 @@ test('Stagger is always seen', () => {
   assert.deepEqual(redact(chip('stagger'), dana, look), chip('stagger'));
   assert.equal(redact(chip('main'), dana, look), undefined);
 });
+
+test('an NPC card reveals only its shown lines', () => {
+  // R389: Devreux's Keep the Peace revealed; every other line blank, the first too.
+  const dev = look(DEVREUX)!, peace = '<mot>Keep the Peace +Sig (0)</mot>';
+  const shown: Character = { ...dev, shown: [peace] };
+  const dana = redact(shown, { name: 'Dana', gm: false }, look) as Character;
+  const lines = dana.front.split('\n');
+  assert.equal(lines.length, dev.front.split('\n').length, 'the shape is kept');
+  assert.deepEqual(lines.filter(l => l), [peace], 'only the revealed line has words');
+  assert.equal(lines[0], '', 'the first line holds more than the public name');
+  assert.deepEqual(dana.shown, [peace], 'shown holds only revealed words');
+  assert.deepEqual(redact(dana, { name: 'Dana', gm: false }, look), dana, 'redacting again changes nothing');
+  for (const w of ['Proprietor', 'Preservation', 'Gossip']) assert.ok(!JSON.stringify(dana).includes(w), w);
+  assert.deepEqual(redact(shown, { name: 'GM', gm: true }, look), shown, 'the GM sees it all');
+});
