@@ -251,6 +251,9 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .ruled > svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .ruled line { stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
 [contenteditable]:focus { background-color: rgba(61,133,198,.06); border-radius: 4px; }
+/* R384: writing shows the I-beam, over its words and marks; glyphs, action dice and Slot boxes set the
+   pointing hand themselves and keep it. Without the caret a press carries the piece: the open hand. */
+[contenteditable]:focus { cursor: text; }
 
 /* ---- marks: each pen's highlight and its non-color cue (manifest-ui.md, R11), shown only while
    the paper is being written on, pens out (R245); at rest the card reads as printed ---- */

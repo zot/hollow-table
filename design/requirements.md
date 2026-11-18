@@ -99,6 +99,7 @@
 - **R341:** A character's back holds at most one Conviction, on a line under the Biases' Maj slot, and one Burden under the Afflictions': its name, its Level, and its points toward the next Level, *Sig (5/6)*. Its Level follows its points: Min to 2, Sig to 6, Maj to 12, Ext to 20, Exq beyond. The line shows only while the card has one, and it keeps its column from collapsing.
 - **R342:** A Conviction's or Burden's name and points are edited in place, which is how the GM does Recovery; one with no name and no points is gone.
 - **R380:** The first time the GM's page opens a game made before Field and Skill marks, it marks, top to bottom and without asking, every line of each character's front that the table would offer the Field or Skill pen for, and records in the game's meta that it has, so it never runs again; only Fields and Skills are marked, and a character buried in Boot Hill is left as it is.
+- **R384:** Text holding the caret (any written place: card text, stickies, loose text, Damage slot names, Lasting lines, a receipt's title) shows the I-beam over its words and marks; glyphs, action dice, Slot boxes and pens keep the pointing hand, and the paper's margins and text without the caret keep the open hand. An Influence card's name, written in place, shows the I-beam with or without the caret.
 
 ## Feature: Influence
 **Source:** specs/influence.md

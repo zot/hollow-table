@@ -286,3 +286,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** let the die start the row fresh as before (always bring it up); red: the row is still there after the second click
 **Inject:** src/ui/rollrow.ts:dock
 **Pulled:** 2026-11-16 — rang (Chromium): the row was still there after the second click; restored clean
+
+## Test: writing shows the text cursor
+**Purpose:** R384: text holding the caret shows the I-beam over its words and marks, while the controls inside it keep the pointing hand; text without the caret keeps the open hand
+**Input:** Sam's card text before and after clicking into it; a mark, a Resource glyph and an action die in it; a pen; a sticky's text and a Damage slot's name, each holding the caret
+**Expected:** `grab` before; `text` on the text and the mark; `pointer` on the glyph, the die and the pen; `text` on the sticky and the slot name
+**Refs:** manifest-ui.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 21
+**Fire alarm:** drop the `cursor: text` rule on focused writing; red: Sam's text shows `grab` while it holds the caret
+**Inject:** src/ui/theme.css
+**Pulled:** 2026-11-18 — rang (Chromium): Sam's text showed `grab` while it held the caret; restored clean

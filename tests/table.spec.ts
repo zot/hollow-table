@@ -247,3 +247,27 @@ test("an older game's Fields are marked and bold when the GM opens it", async ({
   expect(await field.evaluate(e => getComputedStyle(e).fontWeight)).toBe('700');
   expect((await rec(page, 'meta')).marked).toBe(true);
 });
+
+test('writing shows the text cursor', async ({ page }) => {
+  // R384: text holding the caret takes the I-beam, over its words and marks; the controls in it keep
+  // the pointing hand; without the caret a press carries the piece, so the open hand.
+  const cursor = (sel: string) => page.locator(sel).first().evaluate(e => getComputedStyle(e).cursor);
+  const SAM = '.obj.card[data-rid="o:00000001"] .front .writes';
+  expect(await cursor(SAM)).toBe('grab');
+  await page.locator(SAM).focus();
+  expect(await cursor(SAM)).toBe('text');
+  expect(await cursor(`${SAM} .act`)).toBe('text');
+  expect(await cursor(`${SAM} .glyph`)).toBe('pointer');
+  expect(await cursor(`${SAM} .actdie`)).toBe('pointer');
+  expect(await cursor('.obj.card[data-rid="o:00000001"] .pen')).toBe('pointer');
+  const STICKY = '.obj.sticky .writes';
+  await page.locator(STICKY).first().focus();
+  expect(await cursor(STICKY)).toBe('text');
+  // A slot is written on with the card turned over and its column open, as a player would.
+  const CARD = '.obj.card[data-rid="o:00000001"]', SLOT = `${CARD} .col-bias .slotline .name`;
+  await page.locator(`${CARD} .flip`).first().click();
+  await page.locator(`${CARD} .col-bias .hd`).click();
+  await page.locator(SLOT).first().focus();
+  expect(await page.locator(SLOT).first().evaluate(e => e === document.activeElement)).toBe(true);
+  expect(await cursor(SLOT)).toBe('text');
+});

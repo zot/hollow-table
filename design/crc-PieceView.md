@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -13,6 +13,10 @@ stickies, loose text, images, torn rolls and reference cards.
 - draw(record, old): makes or updates a piece's element; text written in place is left alone while
   it holds the caret. The card's front reads in two columns, as printed. A card its viewer may not
   read lies face-down ("Hollow").
+- the pointer over writing (R384): text written in place takes the I-beam while it holds the caret,
+  its marks with it; the glyphs and action dice in it keep the pointing hand, and text without the
+  caret keeps the open hand, a press there carrying the piece. A stylesheet rule
+  (manifest-ui.md, Global rules), so a receipt's title on the tape gets it too.
 - glyphs (R54, R249, R258): a tap glyph, drawn as a tiny card, before each `<res>` and `<mot>` mark on the front, before each named Damage slot,
   and for each checked box; it starts Drag.startGlyph, and refuses the native drag and selection a
   press inside written text would start.

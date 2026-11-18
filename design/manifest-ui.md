@@ -1,5 +1,5 @@
 # UI manifest
-**Requirements:** R1-4, R6, R7, R11-13, R17, R219, R221, R240, R252, R255, R258, R263, R267
+**Requirements:** R1-4, R6, R7, R11-13, R17, R219, R221, R240, R384, R252, R255, R258, R263, R267
 
 One page, no routes. The table fills the window under the bar. Everything is paper and table
 furniture; the chrome is the bar.
@@ -91,6 +91,11 @@ What a carried thing would land on lights up while it's over it.
   gradient stripe breaks into steps when tilted, a soft one fades unevenly zoomed out, and one sized
   from the zoom still steps (all three compared at 0.58 and 1.6, 11-12).
 - Chrome (labels, slot rows, drawer tools, roll row, register, bar) is `user-select: none`.
+- Writing shows the text cursor (R384): `[contenteditable]:focus` takes `cursor: text`, which its
+  words and marks inherit; glyphs, action dice and Slot boxes set the pointing hand themselves, so
+  they keep it inside the text, and the pens are beside it. Text without the caret keeps the open
+  hand, because a press there carries the piece; an Influence card's name (`.iname`) has the I-beam
+  always.
 - The slimmest DOM that draws it: one element per piece and per slot, more only where a control
   needs its own target.
 

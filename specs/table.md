@@ -59,6 +59,11 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
   checked boxes, chips, Influence cards and slots. It stays the pointing hand for the whole drag of
   a chip, a card or a tap, and while aiming from the roll row. Large things (paper, pools, the
   table) take the open hand, closed while panning.
+- **Writing shows the text cursor** (Bill, 11-16): while a card, sticky or any other written place
+  holds the caret, the pointer over its words, marks included, is the I-beam, so it reads as
+  writing rather than as a piece to carry. Glyphs, action dice, Slot boxes and pens keep the
+  pointing hand; the paper's margins, and text not being written in, keep the open hand. An
+  Influence card's name, written in place, always shows the I-beam.
 - While you carry something, the place it would land lights up: the slot, the chip a +1 would
   ride, the card a sticky would pin to, the drawer a card would go home to. Over the bar it says
   whether letting go puts it away or buries it.
