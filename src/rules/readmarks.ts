@@ -1,4 +1,4 @@
-// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R362, R354, R355, R363, R364
+// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R362, R354, R355, R363, R364, R391
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
@@ -225,14 +225,20 @@ export function field(text: string): { name: string; level: number } | null {
 // R324: `Skills N: a, b (c), d`: each Skill, split at commas outside parentheses, at Level N.
 const SKILLS = /^\s*Skills\s+(\d+)\s*:/i;
 /** A `Skills N:` line's Level and each Skill with its start and end in the text; null for any other line. */
-export function skillsLine(text: string): { level: number; skills: { name: string; start: number; end: number }[] } | null {
+export function skillsLine(text: string): { level: number; skills: Part[] } | null {
   const m = SKILLS.exec(text);
-  if (!m) return null;
-  const skills: { name: string; start: number; end: number }[] = [];
-  let depth = 0, from = m[0].length;
+  return m ? { level: Number(m[1]), skills: parts(text, m[0].length) } : null;
+}
+
+type Part = { name: string; start: number; end: number };
+// R324, R391: a list split at commas outside parentheses, each part trimmed, empty ones dropped.
+/** The parts of `text` from `from` on, each with its start and end in the text. */
+function parts(text: string, from: number): Part[] {
+  const out: Part[] = [];
+  let depth = 0;
   const take = (to: number) => {
     const raw = text.slice(from, to), lead = raw.length - raw.trimStart().length, name = raw.trim();
-    if (name) skills.push({ name, start: from + lead, end: from + lead + name.length });
+    if (name) out.push({ name, start: from + lead, end: from + lead + name.length });
   };
   for (let i = from; i < text.length; i++) {
     const c = text[i];
@@ -241,7 +247,45 @@ export function skillsLine(text: string): { level: number; skills: { name: strin
     else if (c === ',' && !depth) { take(i); from = i + 1; }
   }
   take(text.length);
-  return { level: Number(m[1]), skills };
+  return out;
+}
+
+/** What an Infer reveals (R391): Skills (Fields with them), Resources, Motivations, Items. */
+export type InferCategory = 'skills' | 'resources' | 'motivations' | 'items';
+/** One thing an Infer can reveal: its line, its line's label, its text, its category, and its key. */
+export type Entry = { line: number; label: string; text: string; key: string; cat: InferCategory; head?: number };
+const INFER: Partial<Record<MarkName, InferCategory>> = { fld: 'skills', skl: 'skills', res: 'resources', mot: 'motivations' };
+
+/** A line's label: its text through the first colon outside parentheses, or none. */
+function label(text: string): string {
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '(') depth++;
+    else if (c === ')') depth = Math.max(0, depth - 1);
+    else if (c === ':' && !depth) return text.slice(0, i + 1).trim();
+  }
+  return '';
+}
+
+// R391: an entry is a comma-separated part of a line holding a Skill, Field, Resource or Motivation, or
+// a whole line under an ITEMS heading; its key is its label and text, what the table will be shown.
+/** Everything on a card's front an Infer can reveal, in order. */
+export function entries(front: string): Entry[] {
+  const out: Entry[] = [];
+  let items: number | null = null;
+  parse(front).forEach((line, k) => {
+    const heads = line.filter(r => typeof r !== 'string' && r.mark === 'head');
+    if (heads.length) { items = /^\s*items?\s*$/i.test(plain(line)) ? k : null; return; }
+    const text = plain(line).trim();
+    if (!text) return;
+    const mark = line.map(r => (typeof r === 'string' ? undefined : INFER[r.mark])).find(Boolean);
+    if (mark) {
+      const lab = label(text);
+      for (const p of parts(text, lab.length)) out.push({ line: k, label: lab, text: p.name, key: lab ? `${lab} ${p.name}` : p.name, cat: mark });
+    } else if (items !== null) out.push({ line: k, label: '', text, key: text, cat: 'items', head: items });
+  });
+  return out;
 }
 
 /** A Field Skill line's name: its ✓, its XP-cost note (`(x2)`, `(x2, Rhetoric)`) and any written Level after it set aside. */

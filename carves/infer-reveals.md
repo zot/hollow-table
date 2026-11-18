@@ -12,7 +12,8 @@ Infer; when you Infer Opinions", and "I forgot I renamed Connection Card to Opin
 ## Status
 
 - [x] ~~**Item 1 — torn reveals on the card.**~~ **LANDED (2026-11-18 — `#27`.)**
-- [ ] **Item 2 — the slide-out and its Infer clues.** **OPEN (not queued.)**
+- [x] ~~**Item 4 — reveal by entry.**~~ **LANDED (2026-11-18 — `#28`.)** Before Item 2, which builds on it.
+- [ ] **Item 2 — the slide-out and its Info cards.** **OPEN (not queued.)**
 - [ ] **Item 3 — Opinion Records.** **OPEN (not queued.)** Takes in the prototype carve's Item 15.
 
 ## The rules
@@ -66,7 +67,10 @@ revealable thing' in its category. The GM should be able to highlight unrevealed
 An unrevealed item with category, 'ANY,' would always highlight in this case. An unknown category,
 like 'WHAT IT KNOWS ABOUT TRUDY: she is the King's daughter, lost sixteen years. It will say so only if
 it believes saying it serves the clan,' is up to the GM so the table should treat it as 'ANY'." And:
-"An Items card should be a white card with a list of items, not just one item per card."
+"An Items card should be a white card with a list of items, not just one item per card." Renamed
+the same day (Bill: "let's use 'Info' for the cards. Items should be listed on the main card, like
+resources and motivations are anyway"), since Items are what a character carries: they are **Info
+cards**, "Info 1", "Info 2".
 
 DECIDED (Bill, 2026-11-18), **one eye per card**, in place of an eye per item: "These cards aren't
 super large and I'm thinking that the eyeballs will take up space. What about an eyeball at the upper
@@ -123,15 +127,35 @@ highlights a category's unrevealed items to choose among them.)
 
 ## Item 2
 
-The slide-out: tabs that slide out from the bottom of an NPC's card, the GM's and, once something in
-it is revealed, the players'. The Infer tab holds the NPC's Infer clues, each written by the GM with
-its category (any Infer, Skills, Resources, Motivations, Opinions, or what the NPC knows about a named
-character), revealed the same way as the front's lines, through the card's eye. A player sees only
-revealed clues. The clues are written on **Items cards**: white cards, each a list of items reading
-`CATEGORY: DESCRIPTION`, numbered "Items 1", "Items 2" when an NPC has more than one. An item whose
-category the table doesn't know is treated as ANY.
+The slide-out and its **Info cards**: white cards that slide out from the bottom of an NPC's card on
+tabs, "Info 1", "Info 2" when there is more than one (and, in Item 3, an Opinion Record per PC). Each
+is a list of clues reading `CATEGORY: DESCRIPTION`, written by the GM as on the front, a "+" tab adding
+another card. Agreed with Bill 2026-11-18 (on Daneel's proposal, unopposed):
+- They live on the NPC's record, a text per card; a revealed clue goes in the same `shown` as the
+  front's entries, so redaction, the eye and the torn drawing carry over.
+- A clue's category is the word before its colon, any case, singular or plural: Skill(s),
+  Resource(s), Motivation(s) and Item(s) match the dropdown's categories; ANY, and any category the
+  table doesn't know ("WHAT IT KNOWS ABOUT TRUDY"), is ANY, lit with every category.
+- The card's one eye covers its slide-out: open, a click tears a clue out or mends it, and the
+  dropdown lights clues as it lights the front.
+- A player sees a tab once something on it is revealed; its card slides out face-down, the revealed
+  clues torn through its back.
+- Which tab is slid out is each viewer's own, kept in their seat.
 
-Open: whether the Items cards are the slide-out's tabs or cards of their own beside the NPC's.
+## Item 4
+
+Reveal by entry, in place of #27's whole lines. DECIDED (Bill, 2026-11-18): "Items on the main card
+should also be revealable, like Devreux's Dead Man's Die. Comma separated things like skills should be
+individually revealable". On Daneel's four proposals ("1: yes 2: yes 3: this works -- the parenthetical
+is for GMs only so they can leave it unrevealed 4: yes"):
+1. The unit revealed is an **entry**: a comma-separated part of an inferrable line, split only at
+   commas outside parentheses ("Rhetoric (x2, Style)" is one entry); a line without commas is one.
+2. A revealed entry carries its line's label, so a Skill comes with its Level: players see "Skills 3:
+   Savvy" as one strip, and "Skills 3: Savvy, Streetwise" when both are revealed.
+3. Each line under an ITEMS heading is an entry, so a parenthetical line under an Item ("(Free Token,
+   9 uses)") is the GM's to leave unrevealed. The dropdown gains an **Items** category.
+4. A reveal is still recorded by its text, now its line's and its entry's, so an edit hides what it
+   changes and nothing can leak.
 
 ## Item 3
 

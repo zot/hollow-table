@@ -68,7 +68,7 @@ export function damageSlots(f: (d: Damage, r: RowName) => DamageSlot): CardBack[
 export type Character = {
   kind: 'character'; oid: Oid; owner: Who; name: string; pool: Place; card: Place;
   flipped: boolean; gathered: boolean; front: Marked; back: CardBack;
-  /** R385: the front's lines revealed to the table, each by its text; absent when none. */
+  /** R391: the front's lines revealed to the table, each by its text; absent when none. */
   shown?: string[];
 };
 

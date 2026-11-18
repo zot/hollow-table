@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R386-388, R390
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -13,16 +13,17 @@ stickies, loose text, images, torn rolls and reference cards.
 - draw(record, old): makes or updates a piece's element; text written in place is left alone while
   it holds the caret. The card's front reads in two columns, as printed. A card its viewer may not
   read lies face-down ("Hollow").
-- the eye (R386–R388): on the GM's own page, a card the GM owns has an eye at its front's upper right
+- the eye (R388, R392, R393): on the GM's own page, a card the GM owns has an eye at its front's upper right
   and a dropdown arrow beside it (Skills, Resources, Motivations). The open eyes are the page's own,
-  never saved or sent (Eyes): each open card keeps a draft of its revealed lines, begun from `shown`.
+  never saved or sent (Eyes): each open card keeps a draft of its revealed entries, begun from `shown`.
   Open, the card is drawn torn from the back as below, but the back is translucent and its hidden
-  lines are written in a muted ink; its text takes no caret, and a click on an inferrable line
-  (holding a `fld`, `skl`, `res` or `mot` mark) tears it out or mends it in the draft. Shutting the
+  text is written in a muted ink, each line with entries (MarkReader.entries) drawn as its label and
+  its entries, each its own target; its text takes no caret, and a click on an entry tears it out or
+  mends it in the draft, its line's label torn with it. Shutting the
   eye writes the draft as `shown` in one change (absent when empty). The dropdown's category opens
-  the eye and highlights that category's unrevealed lines yellow. A shut card shows nothing of `shown`.
-- torn from the back (R390, and R386 in the Infer state): a face-down card shows its front's face in brown, "Hollow" across it,
-  its public `name` in its first line's place, and each line with words (its revealed lines, R389),
+  the eye and highlights that category's unrevealed entries yellow. A shut card shows nothing of `shown`.
+- torn from the back (R390, and R392 in the Infer state): a face-down card shows its front's face in brown, "Hollow" across it,
+  its public `name` in its first line's place, and each line with words (its revealed entries, R394),
   as a white strip torn through it,
   in the text's own flow: ragged top and bottom edges picked from the card's oid and the line, and
   the torn piece rolled at its right end.

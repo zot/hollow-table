@@ -14,6 +14,10 @@ carries `// CRC: … | R…` comments back to the design. Read the design docs b
 - Every behaviour change gets a spec line and a requirement first. A change that replaces old
   behaviour rewrites or retires the old spec and design text too, so nothing describes it as live.
 - Where the specs and the rule books disagree on a rule, the book wins.
+- **Commit messages name carve items, not work-queue numbers.** The carves in `carves/` are in this
+  repository, but the work queue and its `#N` numbers are not, so a reader of the log can't follow
+  `#27`. Name the carve and its item instead ("infer reveals, Item 1: torn reveals on the card"), and
+  do the same for a carve that isn't published ("prototype, Item 42: a text cursor while writing").
 
 ## Rules and table text
 

@@ -169,13 +169,13 @@ by the drop
 **Inject:** src/ui/pool.ts:drawPool
 **Pulled:** 2026-11-16 — rang (Chromium): Dana's Stagger had no −4 pile; restored clean
 
-## Test: the GM's eye tears an NPC's lines out for the table
-**Purpose:** R386–R390 over the wire: with Devreux's eye open on Motivations, his three are lit; Keep the Peace torn out stays on the GM's page, and the GM's Roll key is disabled; shutting the eye sends it, and Dana's page holds that line and no other secret, drawn as a torn strip after the name; mended, it leaves her page
-**Input:** the GM's table and Dana; the eye's arrow, Motivations; a click on Keep the Peace; Sam's die; the eye; then the eye, Keep the Peace, the eye
-**Expected:** the Infer state; 3 lit, then 2 and the torn line; Roll disabled; Dana's front without Keep the Peace; Roll enabled; Dana's front with it, no other secret, torn strips Devreux and Keep the Peace; then without it, Devreux's strip alone
+## Test: the GM's eye tears an NPC's entries out for the table
+**Purpose:** R388, R390, R392–R394 over the wire: with Devreux's eye open on Motivations his three are lit; Keep the Peace, Savvy and Streetwise torn out (the label Skills 3: with them), then on Items both lines lit and Dead Man's Die torn, all stay on the GM's page while the GM's Roll key is disabled; shutting the eye sends them, and Dana's page holds only those, drawn as strips of label and entries, with no Profession or Free Token; Savvy mended leaves her page
+**Input:** the GM's table and Dana; the eye's arrow, Motivations; Keep the Peace, Savvy, Streetwise; the arrow, Items; Dead Man's Die; Sam's die; the eye; then the eye, Savvy, the eye
+**Expected:** the Infer state; 3 lit, then 2; the label torn; Dead Man's Die and (Free Token, 9 uses) lit; Roll disabled; Dana's front without Savvy; Roll enabled; Dana's front with it, no other secret, strips Devreux, Skills 3: Savvy, Streetwise, Keep the Peace +Sig (0), Items, Dead Man's Die; then Skills 3: Streetwise
 **Refs:** crc-PieceView.md, crc-Visibility.md, crc-RollRow.md
 **Code:** `tests/secret.spec.ts`
 **Alarm:** 11
-**Fire alarm:** write each tear to the game as it is made (no draft until the eye shuts); red: Dana's front holds Keep the Peace while the eye is open
+**Fire alarm:** write each tear to the game as it is made (no draft until the eye shuts); red: Dana's front holds Savvy while the eye is open
 **Inject:** src/ui/eyes.ts:toggle
-**Pulled:** 2026-11-18 — rang (Chromium): Dana's front held Keep the Peace while the eye was open; restored clean
+**Pulled:** 2026-11-18 — re-pulled after entries (#28), rang (Chromium): Dana's front held Savvy while the eye was open; restored clean

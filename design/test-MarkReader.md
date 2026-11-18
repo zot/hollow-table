@@ -148,3 +148,14 @@ name with no Level
 **Fire alarm:** let a lone Influence suffer itself (return `suffered(label)` in place of the variant check); red: the lone Audience -Sig suffers
 **Inject:** src/rules/readmarks.ts:suffers
 **Pulled:** 2026-11-16 — rang: "which Influence an action suffers" failed, the lone Audience -Sig suffered; restored clean
+
+## Test: what an Infer can reveal: entries
+**Purpose:** R391: a card's entries, in order: parts of Skill, Field, Resource and Motivation lines split at commas outside parentheses, each keyed with its line's label; two Resources on one line apart; each line under ITEMS whole, knowing its heading; a line under another heading not an entry
+**Input:** a front: the name, an unmarked line, `Skills 3: Savvy, Profession (Saloon Keeper), Streetwise`, `Finesse (x2, Rhetoric)`, two Resources on a line, a Motivation, ITEMS with `Dice token: Farkas, uses 20` and `(Free Token, 9 uses)`, a Notes heading over a plain line
+**Expected:** Skills 3: Savvy, Skills 3: Profession (Saloon Keeper), Skills 3: Streetwise; Finesse (x2, Rhetoric) whole; Money +Min and Liquid Courage +Maj; Keep the Peace; the two Item lines whole, under the heading's line 6; nothing under Notes
+**Refs:** crc-MarkReader.md
+**Code:** `src/rules/readmarks.test.ts`
+**Alarm:** 12
+**Fire alarm:** split at every comma, parentheses or not; red: Finesse (x2, Rhetoric) comes apart
+**Inject:** src/rules/readmarks.ts:parts
+**Pulled:** 2026-11-18 — rang: "what an Infer can reveal: entries" failed, Finesse (x2, Rhetoric) split, and "Fields, Skills and their pens" with it (the shared splitter); restored clean

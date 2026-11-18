@@ -209,3 +209,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T38: R368 retired by R379 (a hidden pool's Stagger shows piled (#23))
 - T39: R371 retired by R381 (the die toggles the row (#25))
 - T40: R69 retired by R382 (the die no longer starts fresh; clicking the Base does (#25))
+- T41: R385 retired by R391 (reveal by entry, not whole lines (Bill, 2026-11-18))
+- T42: R386 retired by R392 (reveal by entry, not whole lines (Bill, 2026-11-18))
+- T43: R387 retired by R393 (reveal by entry, not whole lines (Bill, 2026-11-18))
+- T44: R389 retired by R394 (reveal by entry, not whole lines (Bill, 2026-11-18))

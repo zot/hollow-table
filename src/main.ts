@@ -104,7 +104,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const redraw = () => table.render(game.all().map(([rid]) => rid));
   const mint = () => minter(game, gm);
   let drag: Drag | undefined, rollRow: RollRowView | undefined;
-  // R386, R388: the GM's open eyes, this page's own; a change redraws the card and every Roll key.
+  // R392, R388: the GM's open eyes, this page's own; a change redraws the card and every Roll key.
   const eyes = new Eyes(game, oid => { table.render([ridOf(oid)]); rollRow?.render(); });
   // Seq: seq-take.md#1, seq-take.md#1.1, seq-take.md#1.2, seq-take.md#1.3, seq-take.md#1.4 | R308–R312
   // An Attack being taken on this page: its pages on the target's card, which turns to its back with

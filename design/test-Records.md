@@ -57,7 +57,7 @@ faulty record is refused
 **Pulled:** 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
 
 ## Test: a card's revealed lines
-**Purpose:** R385: a character's `shown` is a list of its lines' text, absent when none
+**Purpose:** R391: a character's `shown` is a list of its lines' text, absent when none
 **Input:** Devreux with `shown` as a list of one line; as a list of a number; as a bare string
 **Expected:** taken; refused; refused
 **Refs:** crc-Records.md

@@ -1,5 +1,5 @@
 # Visibility
-**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R378, R381, R377, R378, R389
+**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R378, R381, R377, R378, R394
 
 Who may read what, and each record as a given viewer may see it. Pure. The invariant it serves: no
 page ever holds, in the clear, a secret its person may not read.
@@ -16,10 +16,12 @@ page ever holds, in the clear, a secret its person may not read.
   not see it at all.
   - A chip or card in a pool whose character the viewer can't see, that isn't a contribution and isn't
     in its Stagger slot: nothing (the private mat, R378). Stagger is always seen (R377).
-  - A character it can't see: `front` and `back` blanked to their shape, but for the front's lines in
-    `shown`, which keep their words; `shown` goes too, holding only revealed words (R389), so
-    blankFront(c) draws a face-down card the same on every page. The first line is blanked like
-    the rest: it holds more than the public name ("Samuel Diamond, Rank 3").
+  - A character it can't see: `front` and `back` blanked to their shape, but for each line holding
+    entries in `shown` (MarkReader.entries), written as its label and those entries joined by commas,
+    in the line's first mark, and the ITEMS heading over a revealed Item; `shown` goes too, holding
+    only revealed words (R394). So blankFront(c) is the same applied twice, and draws a face-down card
+    the same on every page. The first line is blanked like the rest: it holds more than the public
+    name ("Samuel Diamond, Rank 3").
     Otherwise lines kept, text gone; Damage
     slots unnamed and waiting for nothing (R313), boxes unchecked, nothing spent, absorb 0, and no
     Conviction or Burden, R341).

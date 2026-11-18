@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { action, adjust, attributes, defend, influence, motiveLeft, offer, spend, unadjusted } from './readmarks.ts';
-import { field, pointed, points, skillNamed, skillsLine, suffered, suffers, variants, type Point } from './readmarks.ts';
+import { field, pointed, points, skillNamed, skillsLine, suffered, suffers, variants, entries, type Point } from './readmarks.ts';
 import { BEAUFORD_FRONT, SAM_FRONT } from '../store/playtest.ts';
 
 test('action lines', () => {
@@ -160,4 +160,22 @@ test('which Influence an action suffers, and which label names a Skill', () => {
   assert.equal(suffers('<act>Audience -Sig: 3, 1d</act>', 'Audience -Sig'), null, 'a lone Influence is no action');
   // R364: a label names a Field or Skill on the card, before any comma, whatever its case.
   assert.deepEqual(['Tact', 'sparker', 'Tact, Audience -Sig', 'Shoot', 'Infer'].map(l => skillNamed(SAM_FRONT, l)), [true, true, true, false, false]);
+});
+
+test('what an Infer can reveal: entries', () => {
+  // R391: parts split at commas outside parentheses, each with its line's label; Items whole lines.
+  const front = [
+    '<head>Mistress Devreux</head>', 'Saloon Proprietor, Rank 3',
+    '<skl>Skills 3: Savvy, Profession (Saloon Keeper), Streetwise</skl>', '<skl>Finesse (x2, Rhetoric)</skl>',
+    '<res>Money +Min</res>, <res>Liquid Courage +Maj</res>', '<mot>Keep the Peace +Sig (0)</mot>',
+    '<head>Items</head>', 'Dice token: Farkas, uses 20', '(Free Token, 9 uses)', '<head>Notes</head>', 'Not an Item',
+  ].join('\n');
+  assert.deepEqual(entries(front).map(e => [e.line, e.cat, e.key]), [
+    [2, 'skills', 'Skills 3: Savvy'], [2, 'skills', 'Skills 3: Profession (Saloon Keeper)'], [2, 'skills', 'Skills 3: Streetwise'],
+    [3, 'skills', 'Finesse (x2, Rhetoric)'],
+    [4, 'resources', 'Money +Min'], [4, 'resources', 'Liquid Courage +Maj'],
+    [5, 'motivations', 'Keep the Peace +Sig (0)'],
+    [7, 'items', 'Dice token: Farkas, uses 20'], [8, 'items', '(Free Token, 9 uses)'],
+  ]);
+  assert.equal(entries(front)[7]!.head, 6, "an Item knows its ITEMS heading");
 });

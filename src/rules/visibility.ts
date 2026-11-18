@@ -1,7 +1,9 @@
-// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R389
+// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R394
 // Who may read what, and each record as a given viewer may see it. Pure. The invariant: no page
 // ever holds, in the clear, a secret its person may not read.
 
+import { entries, type Entry } from './readmarks.ts';
+import { parse } from '../text/marks.ts';
 import { OPEN, damageSlots, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Rec, type Yards } from '../model/records.ts';
 
 /** Who is looking: a name and whether they are the GM; null for someone who owns nothing. */
@@ -15,12 +17,24 @@ export function canSee(viewer: Viewer, character: Character): boolean {
 
 // R356: the sheet's shape is public: the same lines, the text gone.
 const blank = (text: string) => text.replace(/[^\n]/g, '');
-// R389: the front's revealed lines keep their words; every other line is blanked, the first too (it
-// holds more than the public name). `shown` holds only revealed words, so it goes with them.
+// R394: a line holding revealed entries is written as its label and those entries, in its first mark,
+// and an ITEMS heading over a revealed Item stays; every other line is blanked, the first too (it holds
+// more than the public name). `shown` holds only revealed words, so it goes with them, and applying
+// this to its own result changes nothing.
 /** The front as one who can't read the card sees it. */
 export function blankFront(c: Character): string {
-  const shown = new Set(c.shown ?? []);
-  return c.front.split('\n').map(l => (shown.has(l) ? l : '')).join('\n');
+  const shown = new Set(c.shown ?? []), out = c.front.split('\n').map(() => ''), by = new Map<number, Entry[]>();
+  for (const e of entries(c.front)) {
+    if (!shown.has(e.key)) continue;
+    by.set(e.line, [...(by.get(e.line) ?? []), e]);
+    if (e.head !== undefined) out[e.head] = c.front.split('\n')[e.head]!;
+  }
+  for (const [k, es] of by) {
+    const words = (es[0]!.label ? `${es[0]!.label} ` : '') + es.map(e => e.text).join(', ');
+    const mark = parse(c.front.split('\n')[k]!)[0]!.find(r => typeof r !== 'string');
+    out[k] = mark && typeof mark !== 'string' ? `<${mark.mark}>${words}</${mark.mark}>` : words;
+  }
+  return out.join('\n');
 }
 const blankBack = (b: CardBack): CardBack => ({
   notes: blank(b.notes),

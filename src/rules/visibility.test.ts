@@ -134,17 +134,20 @@ test('Stagger is always seen', () => {
   assert.equal(redact(chip('main'), dana, look), undefined);
 });
 
-test('an NPC card reveals only its shown lines', () => {
-  // R389: Devreux's Keep the Peace revealed; every other line blank, the first too.
-  const dev = look(DEVREUX)!, peace = '<mot>Keep the Peace +Sig (0)</mot>';
-  const shown: Character = { ...dev, shown: [peace] };
-  const dana = redact(shown, { name: 'Dana', gm: false }, look) as Character;
+test('an NPC card reveals only its shown entries', () => {
+  // R394: Devreux's Savvy and Streetwise share their line's label; Keep the Peace; Dead Man's Die under
+  // its ITEMS heading, its parenthetical kept back. Every other line blank, the first too.
+  const dev = look(DEVREUX)!, shown = ['Skills 3: Savvy', 'Skills 3: Streetwise', 'Keep the Peace +Sig (0)', "Dead Man's Die"];
+  const revealed: Character = { ...dev, shown };
+  const dana = redact(revealed, { name: 'Dana', gm: false }, look) as Character;
   const lines = dana.front.split('\n');
   assert.equal(lines.length, dev.front.split('\n').length, 'the shape is kept');
-  assert.deepEqual(lines.filter(l => l), [peace], 'only the revealed line has words');
+  assert.deepEqual(lines.filter(l => l), [
+    '<skl>Skills 3: Savvy, Streetwise</skl>', '<mot>Keep the Peace +Sig (0)</mot>', '<head>Items</head>', "Dead Man's Die",
+  ], 'only the revealed entries have words');
   assert.equal(lines[0], '', 'the first line holds more than the public name');
-  assert.deepEqual(dana.shown, [peace], 'shown holds only revealed words');
+  for (const w of ['Proprietor', 'Profession', 'Preservation', 'Gossip', 'Free Token']) assert.ok(!JSON.stringify(dana).includes(w), w);
+  assert.deepEqual(dana.shown, shown, 'shown holds only revealed words');
   assert.deepEqual(redact(dana, { name: 'Dana', gm: false }, look), dana, 'redacting again changes nothing');
-  for (const w of ['Proprietor', 'Preservation', 'Gossip']) assert.ok(!JSON.stringify(dana).includes(w), w);
-  assert.deepEqual(redact(shown, { name: 'GM', gm: true }, look), shown, 'the GM sees it all');
+  assert.deepEqual(redact(revealed, { name: 'GM', gm: true }, look), revealed, 'the GM sees it all');
 });

@@ -84,13 +84,13 @@ the GM's view is unchanged
 **Inject:** src/rules/visibility.ts:redactPiece
 **Pulled:** 2026-11-16 — rang: "Stagger is always seen" failed, the Stagger chip absent; restored clean
 
-## Test: an NPC card reveals only its shown lines
-**Purpose:** R389: a hidden character's front reaches another viewer with only its `shown` lines in words, the first line blanked too (it holds more than the public name), `shown` going with it; redacting again changes nothing; the GM sees all
-**Input:** Devreux with `shown` holding Keep the Peace; redacted for Dana, again for Dana, and for the GM
-**Expected:** the same line count; one line with words, Keep the Peace; the first line empty; no Proprietor, Preservation or Gossip anywhere; `shown` is that line; the second redaction equal; the GM's record unchanged
-**Refs:** crc-Visibility.md
+## Test: an NPC card reveals only its shown entries
+**Purpose:** R394: a hidden character's front reaches another viewer with only its revealed entries in words, each line as its label and those entries in its mark, an ITEMS heading over a revealed Item, the first line blanked (it holds more than the public name); `shown` goes with it; redacting again changes nothing; the GM sees all
+**Input:** Devreux with `shown` holding Skills 3: Savvy and Streetwise, Keep the Peace, and Dead Man's Die; redacted for Dana, again for Dana, and for the GM
+**Expected:** the same line count; four lines with words: Skills 3: Savvy, Streetwise in its mark, Keep the Peace, the Items heading, Dead Man's Die; the first line empty; no Proprietor, Profession, Preservation, Gossip or Free Token anywhere; `shown` as given; the second redaction equal; the GM's record unchanged
+**Refs:** crc-Visibility.md, crc-MarkReader.md
 **Code:** `src/rules/visibility.test.ts`
 **Alarm:** 8
-**Fire alarm:** keep the front's first line for the name, as first designed; red: the first line still holds "Mistress Devreux"
+**Fire alarm:** let a line with any revealed entry go out whole; red: Profession (Saloon Keeper) reaches Dana
 **Inject:** src/rules/visibility.ts:blankFront
-**Pulled:** 2026-11-18 — rang: "only the revealed line has words" failed with the first line kept, and "no secret survives redaction" with it; restored clean
+**Pulled:** 2026-11-18 — re-pulled after entries (#28): "an NPC card reveals only its shown entries" failed, Profession (Saloon Keeper) reaching Dana; restored clean

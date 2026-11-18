@@ -292,9 +292,9 @@ function mark(lines, range, tag2) {
   if (typeof r !== "string" || range.start < 0 || range.end > r.length || range.start >= range.end) return lines;
   const text = r.slice(range.start, range.end);
   if (!fits(tag2, text)) return lines;
-  const parts = [r.slice(0, range.start), { mark: tag2, text }, r.slice(range.end)].filter((x) => x !== "");
+  const parts2 = [r.slice(0, range.start), { mark: tag2, text }, r.slice(range.end)].filter((x) => x !== "");
   const line = lines[range.line];
-  return replaceLine(lines, range.line, [...line.slice(0, range.run), ...parts, ...line.slice(range.run + 1)]);
+  return replaceLine(lines, range.line, [...line.slice(0, range.run), ...parts2, ...line.slice(range.run + 1)]);
 }
 function unmark(lines, at3) {
   const line = lines[at3.line], r = line?.[at3.run];
@@ -410,16 +410,16 @@ var DICE2 = new RegExp(`^\\s*(?:(\\d+)d)?\\s*([+${MINUS}]\\s*\\d+)?(?:\\s|\\(|$)
 function action(text) {
   const colon = text.indexOf(":");
   if (colon <= 0) return null;
-  const label = text.slice(0, colon).trim();
-  const parts = splitComma(text.slice(colon + 1));
-  if (!label || !parts) return null;
-  const b = BASE.exec(parts[0]), d = DICE2.exec(parts[1]);
+  const label2 = text.slice(0, colon).trim();
+  const parts2 = splitComma(text.slice(colon + 1));
+  if (!label2 || !parts2) return null;
+  const b = BASE.exec(parts2[0]), d = DICE2.exec(parts2[1]);
   if (!b || !d || d[1] === void 0 && d[2] === void 0) return null;
-  return { label, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0, att: actionAtt(text.slice(colon + 1)) };
+  return { label: label2, base: signed(b[1]), yellows: d[1] ? Number(d[1]) : 0, bonus: d[2] ? signed(d[2]) : 0, att: actionAtt(text.slice(colon + 1)) };
 }
 function actionAtt(text) {
-  const entries3 = [...text.matchAll(/\(([^)]*)\)/g)].flatMap((m) => m[1].split(",").map((e) => e.trim().toLowerCase()));
-  return entries3.includes("no att") ? null : entries3.includes("int") ? "Int" : "Cha";
+  const entries4 = [...text.matchAll(/\(([^)]*)\)/g)].flatMap((m) => m[1].split(",").map((e) => e.trim().toLowerCase()));
+  return entries4.includes("no att") ? null : entries4.includes("int") ? "Int" : "Cha";
 }
 var LEVEL_WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
 var LEVEL = `(${LEVEL_WORDS.join("|")}|\\d+)`;
@@ -433,8 +433,8 @@ function influence(text) {
   }
   return t ? { name: t, sign: null, level: null } : null;
 }
-function suffered(label) {
-  const r = influence(label);
+function suffered(label2) {
+  const r = influence(label2);
   return r?.sign && r.level ? r : null;
 }
 function variants(front) {
@@ -453,13 +453,13 @@ function variants(front) {
   });
   return out;
 }
-function suffers(front, label) {
-  const comma = label.lastIndexOf(",");
-  if (comma > 0 && label.slice(0, comma).trim()) return suffered(label.slice(comma + 1));
-  return variants(front).some((v) => v.label === label) ? suffered(label) : null;
+function suffers(front, label2) {
+  const comma = label2.lastIndexOf(",");
+  if (comma > 0 && label2.slice(0, comma).trim()) return suffered(label2.slice(comma + 1));
+  return variants(front).some((v) => v.label === label2) ? suffered(label2) : null;
 }
-function skillNamed(front, label) {
-  const name2 = label.split(",")[0].trim().toLowerCase();
+function skillNamed(front, label2) {
+  const name2 = label2.split(",")[0].trim().toLowerCase();
   return points2(front).some((p) => ("fld" in p.against ? p.against.fld : "skl" in p.against ? p.against.skl : "").toLowerCase() === name2);
 }
 var N = "(\\d+)";
@@ -540,12 +540,14 @@ function field(text) {
 var SKILLS = /^\s*Skills\s+(\d+)\s*:/i;
 function skillsLine(text) {
   const m = SKILLS.exec(text);
-  if (!m) return null;
-  const skills = [];
-  let depth = 0, from = m[0].length;
+  return m ? { level: Number(m[1]), skills: parts(text, m[0].length) } : null;
+}
+function parts(text, from) {
+  const out = [];
+  let depth = 0;
   const take2 = (to) => {
     const raw = text.slice(from, to), lead = raw.length - raw.trimStart().length, name2 = raw.trim();
-    if (name2) skills.push({ name: name2, start: from + lead, end: from + lead + name2.length });
+    if (name2) out.push({ name: name2, start: from + lead, end: from + lead + name2.length });
   };
   for (let i = from; i < text.length; i++) {
     const c = text[i];
@@ -557,7 +559,37 @@ function skillsLine(text) {
     }
   }
   take2(text.length);
-  return { level: Number(m[1]), skills };
+  return out;
+}
+var INFER = { fld: "skills", skl: "skills", res: "resources", mot: "motivations" };
+function label(text) {
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth = Math.max(0, depth - 1);
+    else if (c === ":" && !depth) return text.slice(0, i + 1).trim();
+  }
+  return "";
+}
+function entries(front) {
+  const out = [];
+  let items = null;
+  parse(front).forEach((line, k) => {
+    const heads = line.filter((r) => typeof r !== "string" && r.mark === "head");
+    if (heads.length) {
+      items = /^\s*items?\s*$/i.test(plain(line)) ? k : null;
+      return;
+    }
+    const text = plain(line).trim();
+    if (!text) return;
+    const mark2 = line.map((r) => typeof r === "string" ? void 0 : INFER[r.mark]).find(Boolean);
+    if (mark2) {
+      const lab = label(text);
+      for (const p of parts(text, lab.length)) out.push({ line: k, label: lab, text: p.name, key: lab ? `${lab} ${p.name}` : p.name, cat: mark2 });
+    } else if (items !== null) out.push({ line: k, label: "", text, key: text, cat: "items", head: items });
+  });
+  return out;
 }
 var skillName = (text) => text.replace(/^\s*✓\s*/, "").replace(/\s+\d+\s*$/, "").replace(/\s*\(x\d+[^)]*\)/gi, "").trim();
 function points2(front, att = "Cha") {
@@ -870,8 +902,18 @@ function canSee(viewer, character2) {
 }
 var blank = (text) => text.replace(/[^\n]/g, "");
 function blankFront(c) {
-  const shown3 = new Set(c.shown ?? []);
-  return c.front.split("\n").map((l) => shown3.has(l) ? l : "").join("\n");
+  const shown3 = new Set(c.shown ?? []), out = c.front.split("\n").map(() => ""), by = /* @__PURE__ */ new Map();
+  for (const e of entries(c.front)) {
+    if (!shown3.has(e.key)) continue;
+    by.set(e.line, [...by.get(e.line) ?? [], e]);
+    if (e.head !== void 0) out[e.head] = c.front.split("\n")[e.head];
+  }
+  for (const [k, es] of by) {
+    const words = (es[0].label ? `${es[0].label} ` : "") + es.map((e) => e.text).join(", ");
+    const mark2 = parse(c.front.split("\n")[k])[0].find((r) => typeof r !== "string");
+    out[k] = mark2 && typeof mark2 !== "string" ? `<${mark2.mark}>${words}</${mark2.mark}>` : words;
+  }
+  return out.join("\n");
 }
 var blankBack = (b) => ({
   notes: blank(b.notes),
@@ -926,16 +968,13 @@ function redactYards(y, viewer, chars) {
 
 // src/ui/eyes.ts
 var CATEGORIES = [
-  { key: "skills", word: "Skills", marks: ["fld", "skl"] },
-  { key: "resources", word: "Resources", marks: ["res"] },
-  { key: "motivations", word: "Motivations", marks: ["mot"] }
+  { key: "skills", word: "Skills" },
+  { key: "resources", word: "Resources" },
+  { key: "motivations", word: "Motivations" },
+  { key: "items", word: "Items" }
 ];
-function categories(line) {
-  const marks2 = new Set(parse(line)[0].flatMap((r) => typeof r === "string" ? [] : [r.mark]));
-  return CATEGORIES.filter((c) => c.marks.some((m) => marks2.has(m))).map((c) => c.key);
-}
-function withShown(c, lines) {
-  const here2 = new Set(c.front.split("\n")), shown3 = [...new Set(lines)].filter((l) => here2.has(l));
+function withShown(c, keys2) {
+  const here2 = new Set(entries(c.front).map((e) => e.key)), shown3 = [...new Set(keys2)].filter((k) => here2.has(k));
   const { shown: _, ...rest } = c;
   return shown3.length ? { ...rest, shown: shown3 } : rest;
 }
@@ -951,7 +990,7 @@ var Eyes = class {
   any() {
     return this.#open.size > 0;
   }
-  /** The draft of an open card's revealed lines; undefined when its eye is shut. */
+  /** The draft of an open card's revealed entries, by key; undefined when its eye is shut. */
   draft(oid) {
     return this.#open.get(oid)?.draft;
   }
@@ -959,18 +998,18 @@ var Eyes = class {
   cat(oid) {
     return this.#open.get(oid)?.cat ?? null;
   }
-  /** Opens a card's eye, its draft begun from what is shown; a category washes its unrevealed lines (R387). */
+  /** Opens a card's eye, its draft begun from what is shown; a category washes its unrevealed lines (R393). */
   open(oid, cat = null) {
     const was = this.#open.get(oid), c = this.#card(oid);
     if (!c) return;
     this.#open.set(oid, { draft: was?.draft ?? new Set(c.shown ?? []), cat });
     this.#changed(oid);
   }
-  /** In the Infer state, a click on a line that can be inferred reveals it or hides it again. */
-  toggle(oid, line) {
-    const o = this.#open.get(oid);
-    if (!o || categories(line).length === 0) return;
-    if (!o.draft.delete(line)) o.draft.add(line);
+  /** In the Infer state, a click on an entry (by key) reveals it or hides it again. */
+  toggle(oid, key) {
+    const o = this.#open.get(oid), c = this.#card(oid);
+    if (!o || !c || !entries(c.front).some((e) => e.key === key)) return;
+    if (!o.draft.delete(key)) o.draft.add(key);
     this.#changed(oid);
   }
   /** Shuts the eye, writing the draft to the card when it changed what is shown. */
@@ -1241,15 +1280,15 @@ function apply(lines, a, b, tag2) {
   if (typeof r !== "string") return lines;
   if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag2);
   if (tag2 === "res" || tag2 === "mot") {
-    const each = entries(r, tag2);
+    const each = entries2(r, tag2);
     if (each) return replaceRun(lines, from.line, from.run, each);
   }
   const start = r.length - r.trimStart().length, end = r.trimEnd().length;
   return mark(lines, { line: from.line, run: from.run, start, end }, tag2);
 }
-function entries(run2, tag2 = "res") {
-  const parts = run2.split(",");
-  if (!parts.every((p) => {
+function entries2(run2, tag2 = "res") {
+  const parts2 = run2.split(",");
+  if (!parts2.every((p) => {
     const r = influence(p);
     return !!r?.level && (tag2 === "mot" || r.sign === 1);
   })) return null;
@@ -1260,7 +1299,7 @@ function entries(run2, tag2 = "res") {
     if (typeof last === "string") out[out.length - 1] = last + s;
     else out.push(s);
   };
-  parts.forEach((p, k) => {
+  parts2.forEach((p, k) => {
     if (k > 0) plainRun(",");
     const t = p.trim(), at3 = p.indexOf(t);
     plainRun(p.slice(0, at3));
@@ -1555,7 +1594,7 @@ function make(doc, r, w) {
       doc.activeElement?.blur?.();
       w.drag(rid2, down, move);
     },
-    // R386: in the Infer state, a click on a line tears it out or mends it.
+    // R392: in the Infer state, a click on an entry tears it out or mends it.
     click: (ev) => {
       if (r.kind === "character") tear(e, r.oid, ev, w);
     }
@@ -1622,8 +1661,9 @@ function update(e, r, w) {
       const front = e.querySelector(".front > .text");
       front.contentEditable = back3 ? "false" : "true";
       const body = secret ? blankFront(r) : r.front;
+      if (!draft && front.querySelector("[data-entries]")) delete front.dataset.source;
       rewrite(front, back3 ? named(body, r.name) : body);
-      torn(front, r, secret ? new Set(r.shown ?? []) : draft, draft ? w.eyes.cat(r.oid) : null);
+      torn(front, r, secret, draft, draft ? w.eyes.cat(r.oid) : null);
       if (!back3) frontGlyphs(front, r, w);
       rewrite(e.querySelector(".back .notes"), r.back.notes);
       damage2(e.querySelector(".damage"), r, w);
@@ -1879,15 +1919,26 @@ function rag(oid, line) {
   for (const ch of oid + line) h = h * 31 + ch.charCodeAt(0) | 0;
   return (h >>> 0) % 6;
 }
-function torn(text, c, out, cat) {
-  const lines = (text.dataset.source ?? "").split("\n");
+function torn(text, c, secret, draft, cat) {
+  const src = text.dataset.source ?? "", lines = src.split("\n"), doc = text.ownerDocument, by = /* @__PURE__ */ new Map();
+  if (draft) for (const e of entries(src)) by.set(e.line, [...by.get(e.line) ?? [], e]);
   [...text.children].forEach((div, k) => {
-    const line = lines[k] ?? "", d = div;
-    const tear2 = !!out && (k === 0 || out.has(line));
-    d.classList.toggle("torn", tear2);
-    d.classList.toggle("lit", !!cat && !tear2 && categories(line).includes(cat));
-    if (tear2) d.style.setProperty("--rag", String(rag(c.oid, line)));
+    const d = div, es = by.get(k), whole = secret ? lines[k] !== "" : !!draft && k === 0;
+    d.classList.toggle("torn", whole);
+    if (whole) d.style.setProperty("--rag", String(rag(c.oid, lines[k] ?? "")));
     else d.style.removeProperty("--rag");
+    if (!es || !draft) return;
+    const any = es.some((e) => draft.has(e.key)), parts2 = [];
+    if (es[0].label) parts2.push(el(doc, "span", `label${any ? " torn" : ""}`, es[0].label), " ");
+    es.forEach((e, i) => {
+      if (i) parts2.push(", ");
+      const out = draft.has(e.key), s = el(doc, "span", `entry${out ? " torn" : cat === e.cat ? " lit" : ""}`, e.text);
+      s.dataset.key = e.key;
+      if (out) s.style.setProperty("--rag", String(rag(c.oid, e.key)));
+      parts2.push(s);
+    });
+    d.replaceChildren(...parts2);
+    d.dataset.entries = "";
   });
 }
 function eyeMenu(e, oid, w) {
@@ -1909,11 +1960,8 @@ function eyeMenu(e, oid, w) {
 }
 function tear(e, oid, ev, w) {
   if (!w.eyes.draft(oid)) return;
-  const text = e.querySelector(".front > .text");
-  const div = ev.target?.closest?.("div");
-  if (!div || div.parentElement !== text) return;
-  const k = [...text.children].indexOf(div);
-  w.eyes.toggle(oid, (text.dataset.source ?? "").split("\n")[k] ?? "");
+  const entry = ev.target?.closest?.(".front .entry");
+  if (entry?.dataset.key) w.eyes.toggle(oid, entry.dataset.key);
 }
 function frontGlyphs(text, c, w) {
   const doc = text.ownerDocument, using = w.inUse(c.oid);
@@ -1931,17 +1979,17 @@ function frontGlyphs(text, c, w) {
     if (name2) span.before(glyph(doc, `${c.oid}:${name2}`, w));
   }
   for (const span of text.querySelectorAll("span.act")) {
-    const label = action(span.textContent ?? "")?.label;
-    if (!label || suffered(label) && !suffers(c.front, label)) continue;
-    const alts = label.split("/").map((a) => a.trim()).filter(Boolean);
-    const die3 = (alt, title = `Roll this: ${alt ?? label}`) => {
+    const label2 = action(span.textContent ?? "")?.label;
+    if (!label2 || suffered(label2) && !suffers(c.front, label2)) continue;
+    const alts = label2.split("/").map((a) => a.trim()).filter(Boolean);
+    const die3 = (alt, title = `Roll this: ${alt ?? label2}`) => {
       const d = doc.createElement("span");
       d.className = "actdie";
       d.contentEditable = "false";
       d.title = title;
       d.addEventListener("pointerdown", (ev) => ev.preventDefault());
       gesture(d, { click: () => {
-        if (!w.useAction(c.oid, label, alt)) d.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
+        if (!w.useAction(c.oid, label2, alt)) d.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
       } });
       return d;
     };
@@ -1949,7 +1997,7 @@ function frontGlyphs(text, c, w) {
     while (line.parentElement && line.parentElement !== text) line = line.parentElement;
     const v = vars.get([...text.children].indexOf(line));
     if (v) {
-      for (const alt of v.of.split("/").map((a) => a.trim()).filter(Boolean)) span.before(die3(alt, `Roll this: ${label} as ${alt}`));
+      for (const alt of v.of.split("/").map((a) => a.trim()).filter(Boolean)) span.before(die3(alt, `Roll this: ${label2} as ${alt}`));
       continue;
     }
     if (alts.length < 2) {
@@ -2994,9 +3042,9 @@ var CHECK_MS = 1e3;
 var HEART_MS = 1e4;
 var STALE_MS = 25e3;
 var GONE_MS = 6e4;
-function newRoom(label = "table") {
+function newRoom(label2 = "table") {
   const hex = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "table"}-${hex}`;
+  return `${label2.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "table"}-${hex}`;
 }
 function invite(base, room2, gm) {
   const u = new URL(base);
@@ -3167,7 +3215,7 @@ var ADV = [
 function row(difference) {
   return ADV.find((r) => difference >= r.min);
 }
-var sum = (parts) => ({ total: Object.values(parts).reduce((a, b) => a + b, 0), parts });
+var sum = (parts2) => ({ total: Object.values(parts2).reduce((a, b) => a + b, 0), parts: parts2 });
 function total2(base, p) {
   return sum({ base, main: p.main, edge: p.edge, bias: p.bias, affliction: p.affliction, injury: p.injury });
 }
@@ -3253,9 +3301,9 @@ function resolutionWords(r, dice) {
   return read2 + (r.mod ? ` ${r.mod > 0 ? "+" : "\u2212"} 1` : "");
 }
 function levelWords(dice, bonus2, failure) {
-  const parts = dice.filter((d) => (d.c === "B" || d.c === "Y") && !d.dropped).map((d) => String(d.v));
+  const parts2 = dice.filter((d) => (d.c === "B" || d.c === "Y") && !d.dropped).map((d) => String(d.v));
   const b = failure || !bonus2 ? "" : ` ${bonus2 > 0 ? "+" : "\u2212"} ${Math.abs(bonus2)} bonus`;
-  return parts.join(" + ") + b;
+  return parts2.join(" + ") + b;
 }
 var SHORT = { Minor: "Min", Significant: "Sig", Major: "Maj", Extreme: "Ext", Exquisite: "Exq" };
 function outcomeWords(outcome, result, attack = false) {
@@ -3381,9 +3429,9 @@ function choose(r, choice, lock) {
     ...r.attack && !r.attack.taken && { attack: { ...r.attack, result: value2 } }
   };
 }
-function alternative(label, alt) {
-  const alts = label.split("/").map((a) => a.trim());
-  return alt && alts.includes(alt) ? alt : label;
+function alternative(label2, alt) {
+  const alts = label2.split("/").map((a) => a.trim());
+  return alt && alts.includes(alt) ? alt : label2;
 }
 var Rolls = class {
   #w;
@@ -4281,7 +4329,7 @@ var genId = (n) => alloc(n, () => charSet[floor(Math.random() * 62)] ?? "").join
 var selfId = genId(20);
 var all = Promise.all.bind(Promise);
 var isBrowser = typeof window !== "undefined";
-var { entries: entries2, fromEntries, keys, values } = Object;
+var { entries: entries3, fromEntries, keys, values } = Object;
 var noOp = () => {
 };
 var candidateType = "candidate";
@@ -4301,7 +4349,7 @@ var decoder = new TextDecoder();
 var encodeBytes = (txt) => encoder.encode(txt);
 var decodeBytes = (buffer) => decoder.decode(buffer);
 var toHex = (buffer) => buffer.reduce((a, c) => a + c.toString(16).padStart(2, "0"), "");
-var topicPath = (...parts) => parts.join("@");
+var topicPath = (...parts2) => parts2.join("@");
 var shuffle = (xs, seed) => {
   const a = [...xs];
   const rand = () => {
@@ -4421,7 +4469,7 @@ var createRelayManager = (getSocket) => {
     },
     keyOf,
     scoped,
-    getSockets: () => fromEntries(entries2(relays).flatMap(([key, relay]) => {
+    getSockets: () => fromEntries(entries3(relays).flatMap(([key, relay]) => {
       const socket = getSocket(relay);
       return socket ? [[key, socket]] : [];
     }))
@@ -5810,7 +5858,7 @@ var createActionManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeerErro
     waiter.controller.abort();
   };
   const rejectPendingRequestsForPeer = (id, error) => {
-    entries2(pendingRequestWaiters).forEach(([requestId, waiter]) => {
+    entries3(pendingRequestWaiters).forEach(([requestId, waiter]) => {
       if (waiter.peerId !== id) return;
       clearPendingRequestWaiter(requestId);
       waiter.reject(error);
@@ -6333,7 +6381,7 @@ var room_default = (onPeer, onPeerLeave, onSelfLeave, { onPeerHandshake, onHands
     await new Promise((res) => setTimeout(res, 99));
     controller.abort();
     try {
-      entries2(peerMap).forEach(([id, peer]) => {
+      entries3(peerMap).forEach(([id, peer]) => {
         peer.destroy();
         clearPeerState(id, mkErr("room left"));
       });
@@ -6449,7 +6497,7 @@ var room_default = (onPeer, onPeerLeave, onSelfLeave, { onPeerHandshake, onHands
       return Date.now() - start;
     },
     isPassive: () => isPassive,
-    getPeers: () => fromEntries(entries2(activePeerMap).map(([id, peer]) => [id, peer.connection])),
+    getPeers: () => fromEntries(entries3(activePeerMap).map(([id, peer]) => [id, peer.connection])),
     addStream: (stream, options = {}) => mediaManager.addStream(stream, options, streamMetaAction.send),
     removeStream: (stream, options = {}) => {
       mediaManager.removeStream(stream, options.target);
@@ -7576,7 +7624,7 @@ var strategy_default = ({ init, subscribe, announce, deactivate }) => {
     const checkDeactivate = () => {
       if (!isPassive || !ctx.isActive) return;
       let hasActiveWork = false;
-      entries2(ctx.peerStates).forEach(([peerId, state]) => {
+      entries3(ctx.peerStates).forEach(([peerId, state]) => {
         if (state.connectedPeer || state.answeringPeer || state.offerInitPromise || state.offerPeer || state.offerRelays.some(Boolean)) hasActiveWork = true;
         else delete ctx.peerStates[peerId];
       });
@@ -7715,7 +7763,7 @@ var strategy_default = ({ init, subscribe, announce, deactivate }) => {
       releaseOccupiedRoom();
       clearLeavingCleanup();
       membership.leave();
-      entries2(ctx.peerStates).forEach(([peerId, state]) => {
+      entries3(ctx.peerStates).forEach(([peerId, state]) => {
         if (state.connectedPeer && !state.connectedPeer.isDead) {
           if (!sharedPeers.owns(appId, peerId, state.connectedPeer)) state.connectedPeer.destroy();
         }
@@ -8287,9 +8335,9 @@ var TrayView = class {
     });
     this.#tray = doc.createElement("div");
     this.#tray.className = "oppotray";
-    const label = doc.createElement("span");
-    label.className = "who";
-    label.textContent = "The world";
+    const label2 = doc.createElement("span");
+    label2.className = "who";
+    label2.textContent = "The world";
     if (gm) {
       const field2 = doc.createElement("input");
       field2.inputMode = "numeric";
@@ -8308,7 +8356,7 @@ var TrayView = class {
       this.#value = doc.createElement("span");
       this.#value.className = "total";
     }
-    this.#tray.append(label, this.#value);
+    this.#tray.append(label2, this.#value);
     slot2.replaceChildren(this.#button, this.#tray);
     w.game.listen(() => this.render());
     this.render();
@@ -8518,8 +8566,8 @@ function fresh(pool) {
 function dock(r, pool) {
   return { ...fresh(pool), ...r?.priv && { priv: true } };
 }
-function typeOf(label) {
-  const w = label.toLowerCase(), has = (re) => re.test(w);
+function typeOf(label2) {
+  const w = label2.toLowerCase(), has = (re) => re.test(w);
   if (has(/\b(atk|attack)\b/)) {
     if (has(/\bmental\b/)) return "mental";
     if (has(/\bpsych/)) return "psych";
@@ -8532,12 +8580,12 @@ function typeOf(label) {
   if (has(/\binfluence\b/)) return "influence";
   return null;
 }
-function withAction(r, label, alt, remembered, skill = false) {
-  const type = typeOf(alt ?? label.split("/")[0]) ?? remembered ?? (skill ? "skill" : "?");
+function withAction(r, label2, alt, remembered, skill = false) {
+  const type = typeOf(alt ?? label2.split("/")[0]) ?? remembered ?? (skill ? "skill" : "?");
   const { alt: _, ...rest } = r;
   return {
     ...rest,
-    action: label,
+    action: label2,
     ...alt && { alt },
     type,
     hand: { yellows: 0, bonus: 0 },
@@ -8594,8 +8642,8 @@ function intentOf(r) {
 function rollsFor(viewer, c) {
   return !!viewer && !!c && c.owner !== OPEN && (viewer.gm || c.owner === viewer.name);
 }
-function actionOf(c, label) {
-  return marks(parse(c.front), "act").map((m) => action(m.text)).find((a) => a?.label === label) ?? null;
+function actionOf(c, label2) {
+  return marks(parse(c.front), "act").map((m) => action(m.text)).find((a) => a?.label === label2) ?? null;
 }
 function shown(game, r, live = true) {
   const c = game.get(ridOf(r.pool));
@@ -8725,11 +8773,11 @@ var RollRowView = class {
     this.render();
   }
   /** An action's die (R76): false when the viewer can't change that character's row. */
-  action(oid, label, alt) {
+  action(oid, label2, alt) {
     const c = this.#w.game.get(ridOf(oid));
     if (!rollsFor(this.#w.viewer, c)) return false;
-    const r = rowsOf(this.#w.game)[oid] ?? dock(null, oid), name2 = alt ?? label;
-    this.#set(withAction(r, label, alt, this.#w.remembered(oid, name2), skillNamed(c.front, name2)));
+    const r = rowsOf(this.#w.game)[oid] ?? dock(null, oid), name2 = alt ?? label2;
+    this.#set(withAction(r, label2, alt, this.#w.remembered(oid, name2), skillNamed(c.front, name2)));
     return true;
   }
   /** The action in use on this character, for its swish (R77). */
@@ -8810,7 +8858,7 @@ var RollRowView = class {
     b.textContent = SIGN(s.bonus);
     if (mine) b.title = "Success Bonus: click to raise, shift-click to lower";
     gesture(b, { click: () => step(handStep(r, "bonus", 1)), shift: () => step(handStep(r, "bonus", -1)) });
-    const parts = [white, die3("B", "Blue: always rolled"), ys, b];
+    const parts2 = [white, die3("B", "Blue: always rolled"), ys, b];
     const type = r.type ?? "?", t = doc.createElement("button");
     t.className = type === "?" ? "rtype unsaid" : "rtype";
     t.textContent = TAG_WORDS[type] ?? TYPE_WORDS[type];
@@ -8818,14 +8866,14 @@ var RollRowView = class {
     gesture(t, { click: (e) => {
       if (mine) this.#types(r, e);
     } });
-    parts.push(t);
+    parts2.push(t);
     if (gm) {
       const p = doc.createElement("button");
       p.className = r.priv ? "priv on" : "priv";
       p.textContent = r.priv ? "private" : "to table";
       p.title = r.priv ? "Behind the screen: this roll prints on your tape only. Click to show rolls to the table." : "Rolls go to everyone at the table (what they would see: the dice and the result). Click to roll behind the screen.";
       gesture(p, { click: () => step({ ...r, priv: !r.priv }) });
-      parts.push(p);
+      parts2.push(p);
     }
     if (mine) {
       const roll3 = doc.createElement("button"), eye = !!this.#w.inferring?.(), why3 = waits(r);
@@ -8838,15 +8886,15 @@ var RollRowView = class {
       gesture(roll3, { click: () => {
         if (!waiting) this.#w.roll(r);
       } });
-      parts.push(roll3);
+      parts2.push(roll3);
     }
-    els.row.replaceChildren(...parts);
+    els.row.replaceChildren(...parts2);
     els.info.replaceChildren();
-    const label = s.label || (r.action ? r.alt ?? r.action : "");
-    if (label) {
+    const label2 = s.label || (r.action ? r.alt ?? r.action : "");
+    if (label2) {
       const base = doc.createElement("span");
       base.className = "base";
-      base.append(label);
+      base.append(label2);
       if (s.label) {
         const n = doc.createElement("b");
         n.textContent = s.total !== s.base ? `${s.base} \u2192 ${s.total}` : String(s.base);
@@ -9193,16 +9241,16 @@ var TapeView = class {
     }
     if (mayName(this.#w.viewer, r)) {
       for (const { damage: damage3, row: row2 } of r.attack.waiting) {
-        const label = doc.createElement("label"), input = doc.createElement("input");
-        label.className = "naming";
-        label.append(nameWords(r.attack.name, damage3, row2), input);
+        const label2 = doc.createElement("label"), input = doc.createElement("input");
+        label2.className = "naming";
+        label2.append(nameWords(r.attack.name, damage3, row2), input);
         input.spellcheck = false;
         input.addEventListener("keydown", (ev) => {
           if (ev.key !== "Enter" || !input.value.trim()) return;
           this.#w.name(r.id, damage3, row2, input.value.trim());
           input.disabled = true;
         });
-        e.append(label);
+        e.append(label2);
       }
     }
     return e;
@@ -9478,11 +9526,11 @@ function make3(doc, c, w) {
     const slot2 = el2(doc, "div", `slot slot-${s}`);
     slot2.dataset.slot = s;
     slot2.dataset.owner = c.oid;
-    const label = el2(doc, "span", "label", LABEL[s]);
-    label.dataset.letter = LABEL[s][0];
-    if (s === "stagger") label.append(el2(doc, "small", "", "opposition only"));
+    const label2 = el2(doc, "span", "label", LABEL[s]);
+    label2.dataset.letter = LABEL[s][0];
+    if (s === "stagger") label2.append(el2(doc, "small", "", "opposition only"));
     slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
-    slot2.append(label, el2(doc, "div", "pos"), el2(doc, "div", "neg"));
+    slot2.append(label2, el2(doc, "div", "pos"), el2(doc, "div", "neg"));
     gesture(slot2, {
       click: (ev) => {
         if (ev.target.closest(".chip, .pile")) return;
@@ -10000,8 +10048,8 @@ Shift-click or long-press to close the table.`;
     const va = this.#w.viewAs;
     this.#youAre.replaceChildren();
     if (va) {
-      const label = doc.createElement("small"), b = doc.createElement("button");
-      label.textContent = "You are";
+      const label2 = doc.createElement("small"), b = doc.createElement("button");
+      label2.textContent = "You are";
       b.className = "tag viewas";
       b.textContent = va.current();
       b.title = "View the table as this person sees it. Click for the next.";
@@ -10009,7 +10057,7 @@ Shift-click or long-press to close the table.`;
         const all2 = va.choices(), i = all2.indexOf(va.current());
         va.choose(all2[(i + 1) % all2.length]);
       });
-      this.#youAre.append(label, b);
+      this.#youAre.append(label2, b);
     }
   }
 };
@@ -10782,9 +10830,9 @@ var LedgerView = class {
     }
     this.#said = null;
     this.#showStatus();
-    const parts = [name2, acts, this.#status, picker];
+    const parts2 = [name2, acts, this.#status, picker];
     if (w.player) {
-      parts.splice(2, 0, el3("p", "copy", "The GM's page holds this game. This browser keeps a copy so a reload shows the table at once; the GM checkpoints and restores."));
+      parts2.splice(2, 0, el3("p", "copy", "The GM's page holds this game. This browser keeps a copy so a reload shows the table at once; the GM checkpoints and restores."));
     } else {
       const list2 = el3("div", "entries");
       if (!cps.length) list2.append(el3("p", "none", "None yet. End makes one at the end of every conflict."));
@@ -10813,9 +10861,9 @@ var LedgerView = class {
         else b.disabled = true;
         gl.append(b);
       }
-      parts.push(el3("h4", "", "Checkpoints"), list2, el3("h4", "", "Games"), gl);
+      parts2.push(el3("h4", "", "Checkpoints"), list2, el3("h4", "", "Games"), gl);
     }
-    this.#page.replaceChildren(...parts);
+    this.#page.replaceChildren(...parts2);
   }
   #entry(text, at3, cls, title) {
     const doc = this.#page.ownerDocument, b = doc.createElement("button"), span = doc.createElement("span"), t = doc.createElement("time");
@@ -11155,8 +11203,8 @@ var TableView = class {
   after = null;
   /** Inside still(): a redraw that moves a piece doesn't glide (R226). */
   #still = false;
-  #sized = new ResizeObserver((entries3) => {
-    for (const e of entries3) {
+  #sized = new ResizeObserver((entries4) => {
+    for (const e of entries4) {
       const rid2 = e.target.dataset.rid;
       if (rid2) {
         this.#snap(rid2);
@@ -11906,7 +11954,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     },
     dragItem: (rid2, down, move) => drag?.startItem(rid2, down, move),
     // R75–R77: an action's die brings the roll row; the action in use gets its swish.
-    useAction: (oid, label, alt) => rollRow?.action(oid, label, alt) ?? false,
+    useAction: (oid, label2, alt) => rollRow?.action(oid, label2, alt) ?? false,
     inUse: (oid) => rollRow?.inUse(oid) ?? null,
     taking: () => taking,
     turnPage: (k) => {
@@ -11991,8 +12039,8 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     mint: () => mint2()(),
     inferring: () => eyes.any(),
     // R364: the type last chosen for an action on a card, in this viewer's seat.
-    remembered: (oid, label) => seat.types[`${oid}:${label}`],
-    remember: (oid, label, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label}`]: type } }),
+    remembered: (oid, label2) => seat.types[`${oid}:${label2}`],
+    remember: (oid, label2, type) => keep({ ...seat, types: { ...seat.types, [`${oid}:${label2}`]: type } }),
     pool: (oid) => table.pool(ridOf(oid)),
     redraw: (oids) => table.render(oids.map(ridOf)),
     // R100–R104, R281: the GM's page rolls at once (privately if switched); a player's asks it, Roll
