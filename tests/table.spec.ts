@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287, R366, R369, R380
+// CRC: crc-TableView.md | Test: test-Table.md | R18, R19, R20, R31, R32, R33, R34, R35, R118, R119, R120, R244, R251, R287, R366, R369, R380, R407-409, R411, R412, R414-417
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
@@ -319,4 +319,62 @@ test('the GM adds, writes, buries and gets back an Info card', async ({ page }) 
   await expect(card.locator('.infopaper .text')).toHaveText('ANY: she watches the door');
   await expect(page.locator('#graves')).toBeHidden();
   await expect(page.locator('#boothill .n')).toHaveText('');
+});
+
+test('the GM keeps the Connection Table', async ({ page }) => {
+  // R408: the GM's bar has the supply; R407, R416, R417: the seeded rows by name, an X where a row
+  // meets itself, the book's Levels, and the PCs' columns after the thick line.
+  const supply = await at(page, '#bar .supply.links', 20, 10);
+  await dragFromTo(page, supply.x, supply.y, 500, 420);
+  const sheet = page.locator('.obj.connections');
+  await expect(sheet).toHaveCount(1);
+  await expect(sheet.locator('th.rowname')).toHaveText(['Beatrice', 'Devreux', 'Eliza', 'Jake', 'Jameson', 'Jephthah', 'Maggie', 'Obed']);
+  await expect(sheet.locator('th.col.pc')).toHaveText(['Beauford', 'Sam']);
+  const row = (name: string) => sheet.locator('tr', { has: page.locator('th.rowname', { hasText: name }) });
+  const under = (name: string, col: string) => row(name).locator(`td:nth-child(${['Beatrice', 'Devreux', 'Eliza', 'Jake', 'Jameson', 'Jephthah', 'Maggie', 'Obed'].indexOf(col) + 2})`);
+  await expect(under('Obed', 'Obed')).toHaveText('X');
+  await expect(under('Obed', 'Beatrice')).toHaveText('+Sig');
+  await expect(row('Obed').locator('td.pc')).toHaveText(['', '']);
+  // R411: a cell set from its chooser.
+  await under('Eliza', 'Obed').click();
+  await sheet.locator('.levels button', { hasText: '+Sig' }).click();
+  await expect(under('Eliza', 'Obed')).toHaveText('+Sig');
+  await expect(sheet.locator('.levels')).toHaveCount(0);
+  // R414, R412: `(` on Devreux's first line opens the chooser; a new group is written and closed, and
+  // its row appears.
+  const front = page.locator('.obj.card[data-rid="o:00000003"] .front .text');
+  await front.locator('.head').first().click();
+  await page.keyboard.press('End');
+  await page.keyboard.type(' (');
+  await expect(page.locator('.obj.card[data-rid="o:00000003"] .groups')).toBeVisible();
+  await page.keyboard.type('Unton folk');
+  await expect(page.locator('.obj.card .groups .new')).toHaveText('New group: Unton folk');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.obj.card .groups')).toHaveCount(0);
+  await expect.poll(async () => (await rec(page, 'o:00000003')).front.split('\n')[0]).toContain('Mistress Devreux (Unton folk)');
+  await page.locator('#table').click({ position: { x: 5, y: 300 } });
+  await expect(sheet.locator('th.rowname.group')).toHaveText(['Unton folk']);
+  // R415: renaming the group's row renames the group on Devreux's card.
+  await sheet.locator('th.rowname.group').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Unton');
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await rec(page, 'o:00000003')).front.split('\n')[0]).toContain('Mistress Devreux (Unton)');
+  await expect(sheet.locator('th.rowname.group')).toHaveText(['Unton']);
+  // R409: dropped on the bar it is put away, not buried; the supply brings the same table back.
+  const corner = await at(page, '.obj.connections th.corner', 10, 10), bar = await barMiddle(page);
+  await dragFromTo(page, corner.x, corner.y, bar.x, bar.y);
+  await expect(sheet).toHaveCount(0);
+  await expect(page.locator('#boothill .n')).toHaveText('');
+  const [rid, t] = (await kinds(page, 'connections'))[0]!;
+  expect(t.away).toBe(true);
+  await dragFromTo(page, supply.x, supply.y, 450, 380);
+  await expect(sheet).toHaveCount(1);
+  await expect(under('Eliza', 'Obed')).toHaveText('+Sig');
+  // R408: taken again while it is out, the same table moves.
+  const before = (await rec(page, rid)).place;
+  await dragFromTo(page, supply.x, supply.y, 600, 450);
+  await expect(sheet).toHaveCount(1);
+  expect(await kinds(page, 'connections')).toHaveLength(1);
+  await expect.poll(async () => (await rec(page, rid)).place.x).not.toBe(before.x);
 });

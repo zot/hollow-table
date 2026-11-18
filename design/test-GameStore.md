@@ -19,7 +19,7 @@ exercised by the browser tests (test-Network, test-Seat)
 ## Test: checkpoints and restore
 **Purpose:** the checkpoint and restore round trip
 **Input and Expected**, in order:
-1. first visit: the playtest scene (9 pieces, round 0, no images, nothing buried) saved as a game
+1. first visit: the playtest scene (10 pieces, the Connection Table among them, round 0, no images, nothing buried) saved as a game
 2. changes (Devreux moved, a chip, two rolls, round 2, an image, a burial); reopen: identical
 3. checkpoint "Two rolls in", roll a third time (3 rolls)
 4. restore "Two rolls in": 2 rolls, and only the records that differ (meta, tape) written;

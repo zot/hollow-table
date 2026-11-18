@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377, R392, R393, R388, R394, R390, R395, R396, R397, R398, R399
+// CRC: crc-Authority.md | Test: test-Network.md | R150, R167, R172, R185, R193, R297, R358, R378, R360, R361, R379, R377, R392, R393, R388, R394, R390, R395, R396, R397, R398, R399, R408, R410
 // Eve sits at the table owning nothing: no secret word reaches her page in the clear, though she
 // hears the sealed boxes meant for others. Dana sees what she owns, and nothing more.
 import { expect, test, type Page } from '@playwright/test';
@@ -201,4 +201,24 @@ test("an NPC's Info cards reach players only as torn clues", async ({ browser })
   await dana.locator('#boothill').click();
   await expect(dana.locator('#graves .items button')).toHaveText(['GM card'], { timeout: 15_000 });
   for (const word of ['watches', 'faro', 'Info card', 'Devreux:']) expect(await held(dana)).not.toContain(word);
+});
+
+test('the Connection Table never reaches a player', async ({ browser }) => {
+  // R408, R410: Dana's bar has no supply; with the GM's table out, her page holds no Connection Table,
+  // and her forged change to it is refused.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  await expect(dana.locator('#bar .supply.links')).toHaveCount(0);
+  const TABLE = 'o:0000000a';
+  await hook(gm, new Function('h', `const t = h.store.game.get('${TABLE}'); const { away, ...out } = t; h.store.game.change(w => w.put('${TABLE}', out));`) as (h: any) => void);
+  await expect(gm.locator('.obj.connections')).toHaveCount(1);
+  // A change Dana can see reaches her after the table's, so by then the table would have too.
+  await hook(gm, new Function('h', `const d = h.store.game.get('${DEVREUX}'); h.store.game.change(w => w.put('${DEVREUX}', { ...d, name: 'Devreux the Elder' }));`) as (h: any) => void);
+  await expect.poll(async () => (await recOf(dana, DEVREUX)).name, { timeout: 15_000 }).toBe('Devreux the Elder');
+  expect(await held(dana)).not.toContain('"connections"');
+  expect(await held(dana)).not.toContain('Jephthah');
+  await expect(dana.locator('.obj.connections')).toHaveCount(0);
+  await hook(dana, h => h.store.game.change((w: any) => w.put('o:0000000a', { kind: 'connections', oid: '0000000a', place: { x: 0, y: 0, z: 0, tilt: 0 }, rows: [], cells: {} })));
+  await gm.waitForTimeout(1500);
+  expect((await recOf(gm, TABLE)).rows).toHaveLength(8);
 });

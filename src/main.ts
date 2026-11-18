@@ -5,9 +5,10 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, ridOf, type Book, type Character, type Image, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
+import { GM, ridOf, type Book, type Character, type Connections, type Image, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
 import { buryInfo, empty as emptyYards } from './rules/yards.ts';
+import { groupOf, keep as keepRow, newConnections } from './rules/connections.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
@@ -157,7 +158,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   });
   // R18, R19, R287, R34: a supply is made at the press and carried; a new character's pool pops out
   // above its card.
-  const made = (what: Supply, oid: string, at: { x: number; y: number }): PieceRecord => {
+  const made = (what: Exclude<Supply, 'connections'>, oid: string, at: { x: number; y: number }): PieceRecord => {
     switch (what) {
       case 'character': return newCharacter(oid, viewer, at);
       case 'sticky': return newSticky(oid, at);
@@ -165,6 +166,24 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       case 'howto': return newHowTo(oid, at);
       default: return newChip(oid, what.sign, what.points, at);
     }
+  };
+  // R408: the one Connection Table: taken while out, or put away, the same table comes to the pointer;
+  // made, it keeps a row for every named GM card (R412).
+  const takeTable = (e: PointerEvent) => {
+    const at = table.toWorld(e.clientX, e.clientY), place = { x: Math.round(at.x - 40), y: Math.round(at.y - 20), z: topZ(), tilt: 0 };
+    const found = game.all().find(([, r]) => (r as PieceRecord).kind === 'connections') as [string, Connections] | undefined;
+    if (found) {
+      const { away: _away, ...t } = found[1];
+      game.change(w => w.put(found[0], { ...t, place }));
+      drag?.start(found[0], e, e);
+      return;
+    }
+    const oid = mint()(), rid = ridOf(oid);
+    let t = newConnections(oid, place);
+    for (const [, r] of game.all()) if ((r as PieceRecord).kind === 'character') t = keepRow(t, r as Character, mint()());
+    game.change(w => w.put(rid, t));
+    drag?.fresh(rid);
+    drag?.start(rid, e, e);
   };
   // R35: a new pool never lies under the bar; with no room above, it and its card slide down.
   const clearOfBar = (rid: string) => {
@@ -175,8 +194,9 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     if (dy > 0) game.change(w => w.put(rid, { ...c, pool: { ...c.pool, y: top }, card: { ...c.card, y: c.card.y + dy } }));
   };
   const bar = new BarView(document.getElementById('bar')!, {
-    version: HOLLOW_VERSION, date: HOLLOW_DATE,
+    version: HOLLOW_VERSION, date: HOLLOW_DATE, gm,
     take: (what, e) => {
+      if (what === 'connections') { takeTable(e); return; }
       const oid = mint()(), rid = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
       game.change(w => w.put(rid, rec));
       drag?.fresh(rid);
@@ -295,6 +315,25 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   });
   // R404: on the GM's page, Ctrl+Z / ⌘Z outside written text digs up the newest Info card buried.
   if (gm) addEventListener('keydown', ev => { if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault(); });
+  // R412, R415: a GM card's row follows its name and group as they change; a card first seen is only
+  // remembered, so a row the GM cleared stays cleared until its card is renamed.
+  if (gm) {
+    const sig = (c: Character) => `${c.name.trim()}\n${groupOf(c.front) ?? ''}`, seen = new Map<Oid, string>();
+    const npc = (r: unknown): r is Character => { const p = r as PieceRecord | undefined; return p?.kind === 'character' && p.owner === GM; };
+    for (const [, r] of game.all()) if (npc(r)) seen.set(r.oid, sig(r));
+    game.listen(rids => queueMicrotask(() => {
+      const found = game.all().find(([, r]) => (r as PieceRecord).kind === 'connections') as [string, Connections] | undefined;
+      let t = found?.[1];
+      for (const rid of rids) {
+        const c = game.get(rid);
+        if (!npc(c)) continue;
+        const was = seen.get(c.oid), now = sig(c);
+        seen.set(c.oid, now);
+        if (t && was !== undefined && was !== now) t = keepRow(t, c, mint()());
+      }
+      if (found && t !== found[1]) game.change(w => w.put(found[0], t!));
+    }));
+  }
   hang();
   addEventListener('resize', hang);
   void document.fonts?.ready.then(hang);

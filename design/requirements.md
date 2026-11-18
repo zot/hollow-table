@@ -30,7 +30,7 @@
 - **R221:** Things that aim (Resource glyphs, checked boxes, chips, Influence cards, slots) take the pointing hand, its fingertip the hotspot, for the whole drag of a chip, card or tap and while aiming; paper, pools and the table take the open hand, closed while panning.
 - **R222:** While something is carried, the place it would land lights up (a slot, the chip a +1 would ride, the card a sticky would pin to, a drawer); over the bar it says whether letting go puts it away or buries it.
 - **R223:** Picking something up leaves any writing and clears the text selection.
-- **R18:** The bar runs along the top and holds supplies: character, sticky, loose text, image, the "How to play the table" card, and chips 2, 4, 6 and +1 in each color.
+- **R18:** The bar runs along the top and holds supplies: character, sticky, loose text, image, the "How to play the table" card, and chips 2, 4, 6 and +1 in each color; on the GM's bar, the Connection Table.
 - **R19:** Dragging a supply onto the table makes one; dropping it back on the bar makes nothing.
 - **R20:** The bar shows the people at the table, and the register, the Ledger and Boot Hill at its right end.
 - **~~R286:~~** (Retired T14 — see R304) The bar is a walnut-dark strip 92 px high; left to right: the wordmark with its build stamp (the bar's one selectable text), the paper supplies (a stacked white card, a yellow note, "Aa", an image), the chips 2, 4, 6 and +1 of each color in two rows (+1 smaller), the people, "You are", then the register, the Ledger and Boot Hill.
@@ -424,6 +424,21 @@
 - **R194:** Image bytes stay in each page's store named by hash; a page missing one asks the table, keeps the first answer that hashes right, and can then answer others.
 - **R195:** A missing image shows striped and marked missing with why, and is asked for again every 10 s.
 - **R361:** A piece someone may not see at all is left out of a batch's public part and sealed to those who may; when it stops being public, its removal goes out without a tomb, and a tab that alone stops seeing it gets the removal sealed; no page sends its carry to the room.
+
+## Feature: connections
+**Source:** specs/connections.md
+- **R407:** The Connection Table is a sheet laid out as *Connections in Unton* in *A Ghoulish Problem*: read across, the row's Connection to the column, an X where a row meets itself.
+- **R408:** There is one Connection Table per game, a supply on the GM's bar only: dragged out it goes on the table, and taken from the supply while it is out, the same table moves to where it is dropped.
+- **R409:** Dropped on the bar, the Connection Table is put away, not buried: nothing goes on Boot Hill, no "→" shows over the bar, and the supply brings the same table back.
+- **R410:** No player's page receives the Connection Table, and a player's change to it is refused.
+- **R411:** Every Connection Table value is a capitalized Level ("+Min", "-Sig", "+Maj", "-Ext", "+Exq") or "0"; clicking a cell opens a chooser of the Levels, -Exq to +Exq, that sets it.
+- **R412:** Every GM card given a name has a row and column, or its group's when it has a group; a row stays when its card is put away, and goes when the GM clears its name in the table.
+- **R413:** An NPC's group is the word or phrase in parentheses after the name on its card's first line, and a group has one row and column for all its members.
+- **R414:** Typing `(` in the first line of a GM card opens a chooser of the game's groups; picking one, or typing a new name, writes it and closes the `)`.
+- **R415:** Renaming a group's row renames the group on its members' cards, and renaming an NPC's row renames the NPC; renaming an NPC on its pool renames its row.
+- **R416:** The Connection Table's rows and columns are in alphabetical order by name.
+- **R417:** After a thick vertical line, the Connection Table has a column for each PC, in alphabetical order, holding only what Opinion Records give it.
+- **R418:** The playtest game starts with the Connection Table put away, holding the eight Unton NPCs of *A Ghoulish Problem* and their Levels.
 
 ## Feature: delivery
 **Source:** specs/delivery.md

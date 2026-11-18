@@ -1,8 +1,9 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
 
+import { connections, groupChooser, sheet } from './connections.ts';
 import type { Game } from '../model/game.ts';
 import {
   DAMAGE, GM, ROWS, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
@@ -128,6 +129,7 @@ function change<R extends PieceRecord>(w: PieceWith, rid: Rid, fn: (cur: R) => R
 /** Where on the table a piece sits: a character by its card. */
 export function placeOf(r: PieceRecord): Place | null {
   if (r.kind === 'character') return r.card;
+  if (r.kind === 'connections' && r.away) return null;   // R409: put away, not drawn
   if ('place' in r) return r.place;
   return null;
 }
@@ -170,6 +172,8 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       front.append(text);
       // R335: in capture, beside the listener above that keeps a press while writing from the piece.
       e.addEventListener('pointerdown', ev => checkPress(ev, text), true);
+      // R414: on the GM's page, `(` on a GM card's first line opens the group chooser.
+      if (w.viewer?.gm) groupChooser(text, w, () => (w.game.get(rid) as Character | undefined)?.owner === GM);
       back.append(el(doc, 'div', 'damage'), el(doc, 'div', 'notes-hd', 'Notes'),
         ruled(doc, writable(doc, 'notes', r.back.notes, s => change<Character>(w, rid, c => ({ ...c, back: { ...c.back, notes: s } })))));
       flipper.append(front, back);
@@ -196,6 +200,7 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       break;
     }
     case 'reference': e.append(...reference(doc, r)); break;
+    case 'connections': connections(e, rid, w); break;
     case 'tornroll':
       // R283: the wheel scrolls a torn roll, and zooms the table only once it can scroll no further.
       e.addEventListener('wheel', ev => {
@@ -242,6 +247,7 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
     case 'image': image(e, r, w); break;
     case 'tornroll': tornroll(e, r); break;
     case 'reference': break;
+    case 'connections': sheet(e, r, w); break;
   }
 }
 

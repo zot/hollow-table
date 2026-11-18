@@ -1,16 +1,18 @@
-// CRC: crc-Bar.md | R9, R18, R19, R20, R287, R304, R305, R347
+// CRC: crc-Bar.md | R9, R18, R19, R20, R287, R304, R305, R347, R408
 // The bar along the top: the wordmark and build stamp, the supplies, the chips, and room for the
 // people and "You are"; the register, the Ledger and Boot Hill append themselves at its right end.
 
 import type { Sign } from '../model/records.ts';
 import { chipFace } from './pool.ts';
 
-export type Supply = 'character' | 'sticky' | 'text' | 'howto' | { sign: Sign; points: number };
+export type Supply = 'character' | 'sticky' | 'text' | 'howto' | 'connections' | { sign: Sign; points: number };
 
 export type BarWith = {
   /** The version (a release's tag, or "dev") and the date (a release's day, the test rig's publish time, or none). */
   version: string;
   date: string;
+  /** R408: the GM's bar has the Connection Table's supply. */
+  gm: boolean;
   /** A supply pressed: made and taken into the hand at once (R287). */
   take: (what: Supply, down: PointerEvent) => void;
   /** Images picked from the image supply's file picker. */
@@ -23,6 +25,8 @@ const PAPER: [Supply, string, string, string][] = [
   ['text', 'supply aa', 'Aa', 'Write on the table'],
   ['howto', 'supply howto', 'how to play', 'The "How to play the table" card'],
 ];
+// R408: the GM's alone.
+const CONNECTIONS: [Supply, string, string, string] = ['connections', 'supply links', 'connections', 'The Connection Table: how the characters view each other'];
 
 export class BarView {
   /** R347: where the Opposition button and its tray go (TrayView). */
@@ -50,7 +54,11 @@ export class BarView {
       ev.preventDefault();
       w.take(what, ev);
     });
-    const papers = PAPER.map(([what, cls, text, title]) => { const e = el('div', cls, text, title); take(e, what); return e; });
+    const paper = ([what, cls, text, title]: [Supply, string, string, string]) => { const e = el('div', cls, text, title); take(e, what); return e; };
+    const papers: HTMLElement[] = PAPER.map(paper);
+    // R408: on the GM's bar the Connection Table's supply stacks under the "How to play" card, so the
+    // bar keeps its width.
+    if (w.gm) { const refs = el('div', 'refs'); refs.append(papers.pop()!, paper(CONNECTIONS)); papers.push(refs); }
     // R287: the image supply opens a file picker.
     const image = el('div', 'supply image', 'image', 'Add an image'), file = doc.createElement('input');
     file.type = 'file';

@@ -723,3 +723,30 @@ body.tapping, body.tapping * { cursor: pointer !important; }
   content: '✓'; display: inline-block; width: 1.05em; margin-left: -1.05em; opacity: .3; }
 /* R332: a Field is bold, at rest and while written on, to tell it from its Skills. */
 .front .text .fld { font-weight: 700; }
+
+/* R407, R408, R411, R417: the Connection Table, a ruled sheet behind the GM's screen; its supply on the GM's bar. */
+#bar .supply.links { width: 60px; height: 30px; background: var(--paper); color: #222; border: 1px solid #888; border-radius: 3px;
+  font: 9px/1.1 var(--mono); }
+#bar .refs { display: flex; flex-direction: column; gap: 4px; flex: none; }
+#bar .refs .supply.howto { height: 30px; }
+.obj.connections { background: var(--paper); color: var(--ink); padding: 10px 12px 12px; border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: grab; }
+.conn { border-collapse: collapse; font: 13px var(--mono); }
+.conn th, .conn td { border: 1px solid var(--rule); padding: 3px 6px; text-align: center; white-space: nowrap; }
+.conn th.corner { border: 0; }
+.conn th.col { font-weight: 600; writing-mode: vertical-rl; transform: rotate(180deg); text-align: left; padding: 6px 3px; }
+.conn th.rowname { text-align: left; font-weight: 600; cursor: text; min-width: 4em; }
+.conn th.group { font-style: italic; }
+.conn td.self { color: #999; }
+.conn td.cell { cursor: pointer; min-width: 3.2em; }
+.conn td.cell:hover { background: #efe6d2; }
+.conn td.pos { color: #2e6b1f; }
+.conn td.neg { color: #a32020; }
+.conn .first { border-left: 4px solid var(--ink); }
+.conn td.pc { min-width: 3.2em; background: #f3f0e8; }
+.obj.connections .levels, .obj .groups { position: absolute; z-index: 6; background: #fbfaf6; color: #222; border-radius: 8px; padding: 6px;
+  display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+.obj.connections .levels button, .obj .groups button { text-align: left; font: 12px var(--mono); background: none; border: 0;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+.obj.connections .levels button:hover, .obj .groups button:hover, .obj .groups button.on { background: #efe6d2; }
+.obj .groups .new { font: italic 12px var(--mono); padding: 3px 8px; color: #555; }

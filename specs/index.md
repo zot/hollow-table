@@ -10,6 +10,7 @@ The GM's browser holds the game; players join with an invite link.
 - [influence.md](influence.md) — chips, Influence cards, Roll Up, tapping Resources, used cards
 - [rolls.md](rolls.md) — the roll row, actions, pointing at an opponent, resolving, receipts and the tape, the register
 - [boothill.md](boothill.md) — putting away, graveyards, deleting forever
+- [connections.md](connections.md) — the Connection Table: how the characters view each other, NPC groups
 
 ### The game
 - [games.md](games.md) — the game and your seat, saving, the game list, checkpoints, export and import
@@ -25,7 +26,8 @@ The GM's browser holds the game; players join with an invite link.
 
 - **Who may know what.** Each page shows only what its person may know. Touches `ownership.md`
   (what's secret), `network.md` (sealing, redaction), and `rolls.md` (the roll row follows the
-  rolling character's owner; the table view of a receipt). The invariant: no page ever holds, in the
+  rolling character's owner; the table view of a receipt), and `connections.md` (the Connection Table
+  never reaches a player's page). The invariant: no page ever holds, in the
   clear, a secret its person may not read.
 - **The GM's page has the final say.** `network.md` (the game lives there; deletions and versions),
   `rolls.md` (rolls resolve there), `games.md` (a player's page holds a copy).

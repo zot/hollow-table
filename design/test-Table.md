@@ -308,3 +308,15 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** dig up nothing on undo (undoCard returns false); red: the card does not come back after Ctrl+Z
 **Inject:** src/ui/boothill.ts:undoCard
 **Pulled:** 2026-11-18 — rang (Chromium): the card did not come back after Ctrl+Z; restored clean
+
+## Test: the GM keeps the Connection Table
+**Purpose:** R407–R409, R411, R412, R414, R416, R417: the GM's bar has the supply; taken, the table shows the seeded rows in order, an X where a row meets itself, the book's Levels, and Sam and Beauford's columns after the thick line; a cell set from its chooser; the `(` chooser writes a group onto Devreux's first line and its row appears; put away on the bar, nothing is buried, and the supply brings the same table back; taken again while out, the same table moves
+**Input:** the GM's table; the Connection Table supply dragged out; Eliza's cell under Obed, "+Sig"; Devreux's first line, typing ` (` then "Unton folk" and Enter; the table dropped on the bar; the supply dragged out twice
+**Expected:** the row names Beatrice, Devreux, Eliza, Jake, Jameson, Jephthah, Maggie, Obed; Obed's row reads X under Obed and "+Sig" under Beatrice; columns Beauford, Sam after the line, empty; the cell "+Sig"; the first line ends "(Unton folk)" and a row "Unton folk" shows; after the drop no table, Boot Hill's badge unchanged; the supply's table still has "+Sig" for Eliza → Obed; one table on the table after the second take, where it was dropped
+**Refs:** crc-Connections.md, crc-Bar.md, crc-Drag.md, crc-PieceView.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 23
+**Fire alarm:** put the table away by burying it (drop the `connections` branch of putAway); red: Boot Hill's badge counts it
+**Inject:** src/ui/drag.ts:putAway
+**Pulled:** 2026-11-18 — rang (Chromium): Boot Hill's badge counted the table, 1 for none; restored clean
+

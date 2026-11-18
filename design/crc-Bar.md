@@ -1,5 +1,5 @@
 # Bar
-**Requirements:** R9, R18, R20, R287, R288, R304, R305, R19, R34, R35, R347
+**Requirements:** R9, R18, R20, R287, R288, R304, R305, R19, R34, R35, R347, R408
 
 The bar along the top: the wordmark, supplies, the people at the table, and the furniture at the
 right end.
@@ -25,6 +25,10 @@ right end.
   vanish; an Influence card goes home.
 - supplies: character, sticky, loose text, image (a file picker), the "How to play the table"
   card, and chips 2, 4, 6 and +1 in each sign; each starts a Drag.
+- the Connection Table's supply (R408), on the GM's bar alone, stacked under the "How to play" card
+  (`refs`) so the bar keeps its width: taken while none is out, it makes the
+  table (or brings back the put-away one) with a row kept for every named GM card; taken while it is
+  out, it lifts that same table to the pointer.
 - the people, the GM's invite and "You are" go in the slots BarView leaves for them: see
   crc-Folks.md.
 - version and date (R305): under the wordmark, the version (`stamp version`), and under it the date

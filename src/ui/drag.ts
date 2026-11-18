@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R260, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -136,7 +136,7 @@ export class Drag {
         const f: Frame = less(table.toWorld(cx, cy), grip), card = pins ? this.#cardAt(el.ownerDocument, cx, cy, el) : undefined;
         return card ? { ...f, aim: { card: ridOf(card.oid) } } : f;
       },
-      buries: rec.kind !== 'reference' && !this.#fresh.has(rid),
+      buries: rec.kind !== 'reference' && rec.kind !== 'connections' && !this.#fresh.has(rid),
       drop: (last, away, z) => away ? this.#putAway(rec) : this.#drop(rec, 'card', from, last, z, last.aim),
     }, down, move);
   }
@@ -286,6 +286,8 @@ export class Drag {
     const { game } = this.#w, rid = ridOf(rec.oid);
     // R19: a supply dropped back on the bar makes nothing.
     if (this.#fresh.delete(rid) || rec.kind === 'reference') return w => w.del(rid);
+    // R409: the Connection Table is put away, kept for its supply, not buried.
+    if (rec.kind === 'connections') return w => w.put(rid, { ...rec, away: true });
     const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
     const recs = burialOf(rec, all), y = (game.get('yards') as Yards | undefined) ?? empty();
     const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);

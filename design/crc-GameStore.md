@@ -1,5 +1,5 @@
 # GameStore
-**Requirements:** R129, R130, R131, R133, R134, R135, R137, R140, R141, R291, R292
+**Requirements:** R129, R130, R131, R133, R134, R135, R137, R140, R141, R291, R292, R418
 
 The browser's games: the list, each game's records, checkpoints, and the write-through that keeps
 them current. Talks to the database only through Db.
@@ -12,7 +12,8 @@ them current. Talks to the database only through Db.
 - The playtest scene (`src/store/playtest.ts`): the 11-08 playtest of *A Ghoulish Problem* as
   records, Sam, Beauford and Devreux with Devreux's Influences (each tapped in full from her
   Motivation of that name, which reads `(0)`, R260, R261), a chip, the sticky and the reference
-  card, plus the singletons. The first visit makes "The 11-08 playtest" from it (R131).
+  card, the Connection Table put away with *Connections in Unton* (Connections seed, R418), plus the
+  singletons. The first visit makes "The 11-08 playtest" from it (R131).
 - The clock, timers and localStorage are passed in, so a test runs on a fake clock and memory.
 
 ## Does

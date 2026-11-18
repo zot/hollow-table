@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -134,7 +134,15 @@ export type Receipt = {
 export type TornRoll = { kind: 'tornroll'; oid: Oid; place: Place; receipts: Receipt[] };
 export type Reference = { kind: 'reference'; oid: Oid; place: Place; which: 'howto' | 'actions' };
 
-export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | TornRoll | Reference;
+/** R407, R412, R413: a Connection Table row: an NPC's, linked to its card by `oid` once it has one, or a group's. */
+export type ConnRow = { id: Oid; name: string; oid?: Oid; group?: true };
+/**
+ * R407-409: the Connection Table, one per game and the GM's alone: its rows, and the Levels set, -5
+ * to 5, keyed `<row id>><column id>` (a cell not there is 0). `away` is put away: kept, not drawn.
+ */
+export type Connections = { kind: 'connections'; oid: Oid; place: Place; away?: true; rows: ConnRow[]; cells: Record<string, number> };
+
+export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | TornRoll | Reference | Connections;
 
 /** R403: an Info card's burial carries its NPC, its place among the NPC's cards and its words, and no records. */
 export type InfoBurial = { oid: Oid; k: number; text: Marked };
@@ -261,6 +269,9 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
     w: int(1, 100_000), h: int(1, 100_000) }, { pin }),
   tornroll: fields({ kind: oneOf('tornroll'), oid: isOid, place, receipts: list(receipt, 10_000) }),
   reference: fields({ kind: oneOf('reference'), oid: isOid, place, which: oneOf('howto', 'actions') }),
+  connections: fields({ kind: oneOf('connections'), oid: isOid, place,
+    rows: list(fields({ id: isOid, name: str(CAPS.name) }, { oid: isOid, group: oneOf(true) }), 200),
+    cells: dict(int(-5, 5), 40_000) }, { away: oneOf(true) }),
 };
 const piece: Shape = v => obj(v) && typeof v.kind === 'string' && Object.hasOwn(PIECES, v.kind)
   && PIECES[v.kind as PieceRecord['kind']](v);

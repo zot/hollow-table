@@ -15,8 +15,8 @@ Infer; when you Infer Opinions", and "I forgot I renamed Connection Card to Opin
 - [x] ~~**Item 4 — reveal by entry.**~~ **LANDED (2026-11-18 — `#28`.)** Before Item 2, which builds on it.
 - [x] ~~**Item 2 — the slide-out and its Info cards.**~~ **LANDED (2026-11-18 — `#29`.)**
 - [x] ~~**Item 5 — the NPC's menu and its folders.**~~ **LANDED (2026-11-18 — `#30`.)** Replaces Item 2's "+" tab. Before Item 3.
-- [ ] **Item 3 — Opinion Records.** **OPEN (not queued.)** Takes in the prototype carve's Item 15.
-- [ ] **Item 6 — the Connection Table.** **OPEN (not queued.)** After Item 3, whose Connections fill it.
+- [x] ~~**Item 6 — the Connection Table.**~~ **LANDED (2026-11-18 — `#32`.)** Before Item 3, which reads its cells.
+- [ ] **Item 3 — Opinion Records.** **OPEN (#31.)** Takes in the prototype carve's Item 15. After Item 6.
 
 ## The rules
 
@@ -184,6 +184,16 @@ maybe there's a way we can use Boot Hill instead of a wastebasket", then, on Dan
 use Boot Hill but let the players see 'GM card' rather than 'Devreux: Info card'". This replaces "No
 Boot Hill entry" above.
 
+DECIDED (Bill, 2026-11-18), the order: "Swap 3 and 6". Item 6 comes first, so Opinion Records
+read real cells from the start: an NPC's record of another NPC starts at its cell, and a first meeting
+can be a Reputation. The table's PC columns stay empty until Item 3's records fill them.
+
+DECIDED (Bill, 2026-11-18), Item 6's questions, on Daneel's proposals: how records meet cells goes to
+Item 3 ("Move them to Item 3"), so Item 6 is the table alone; its rows come from "Every named NPC
+card", not from a list the GM keeps; renaming a group's row, "Cards follow the header"; the group is
+typed on "The card's first line"; and, sent while the spec was being started, "Let's keep the rows
+and columns alphabetized by name".
+
 ## Item 1
 
 Torn reveals on the card. The GM's page shows one eye at the upper right of an NPC's card, shut.
@@ -287,7 +297,8 @@ playtest). Opinions also feed later Actions (Bunkum: an Opinion is a Main Pool I
 item may reach past reveals.
 
 Open: whether an Opinion is only a line or an Influence the rolls can use; how Professional Respect names its
-Skills, so the GM can delete one.
+Skills, so the GM can delete one; how a group member's records meet its group's cells (a member's
+record of an NPC moving the group's cell, or a member keeping a row of its own once it has records).
 
 ## Item 6
 
@@ -309,12 +320,14 @@ An NPC's group is a word or phrase in parentheses after its name on its card, th
 `(` there opens a chooser of the game's groups: the GM picks one or types a new name, and the chooser
 closes the `)`.
 
-A cell and an Opinion Record keep in step: when a record's Connection changes, its cell takes the new
-value. A cell can stand without a record, and for an NPC with no record of another NPC the cell is its
+For Item 3, which owns it now (Bill, 2026-11-18: "Move them to Item 3"): a cell and an Opinion Record
+keep in step, so when a record's Connection changes, its cell takes the new value. A cell can stand without a record, and for an NPC with no record of another NPC the cell is its
 Connection to them. Naming a record for an NPC (Item 3) gives it a first Opinion, "Opinion", at the
 cell's Level; a record for a PC starts with Reputation or Reaction, as the book's first meeting does. The PC columns come only from records, an NPC's Connection to a PC being kept nowhere
 else.
 
-Open: how a member's records meet its group's cells (a member's record of an NPC moving the group's
-cell, or a member keeping a row of its own once it has records); where a group's row stands when the
-GM renames or empties the group; the table's row order.
+The rows: every named NPC card has one, or its group's when it has a group, besides the seeded rows;
+a row stays when its card is deleted, and goes when the GM clears its name. Rows and columns are in
+alphabetical order by name, the PC columns too, after the thick line. Renaming a group's row renames
+the group on its members' cards; a cleared group's members keep the words and find no row. A group
+is typed on the card's first line, after the name, where a GM card's words are already secret.

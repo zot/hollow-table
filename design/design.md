@@ -78,6 +78,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-ImageExchange.md → `src/net/images.ts`
 - [x] crc-Rolls.md → `src/net/rolls.ts`
 - [x] crc-Yards.md → `src/rules/yards.ts`
+- [x] crc-Connections.md → `src/rules/connections.ts`, `src/ui/connections.ts`
 - [x] crc-TableView.md → `src/ui/table.ts`
 - [x] crc-PieceView.md → `src/ui/piece.ts`
 - [x] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
@@ -154,6 +155,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Copy.md → `src/net/copy.test.ts`
 - [x] test-Crypto.md → `src/net/identity.test.ts`, `src/net/seal.test.ts`, `src/net/envelope.test.ts`
 - [x] test-Yards.md → `src/rules/yards.test.ts`
+- [x] test-Connections.md → `src/rules/connections.test.ts`
 - [x] test-Table.md → `tests/table.spec.ts`, `tests/rolls-local.spec.ts`, `tests/floor.spec.ts`, `tests/drag.spec.ts`, `tests/card.spec.ts`
 - [x] test-Network.md → `tests/sync.spec.ts`, `tests/secret.spec.ts`, `tests/away.spec.ts`, `tests/deletion.spec.ts`, `tests/images.spec.ts`, `tests/rolls.spec.ts`, `tests/relays.spec.ts`
 

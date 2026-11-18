@@ -76,8 +76,9 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 The bar runs along the top. It holds:
 
 - **Supplies**: a character, a sticky note, loose text, an image, the "How to play the table"
-  reference card, and chips (2, 4, 6 and +1 in each color). Drag one onto the table to take one;
-  dropped back on the bar, nothing is made.
+  reference card, and chips (2, 4, 6 and +1 in each color); on the GM's bar, the Connection Table
+  (see `connections.md`). Drag one onto the table to take one; dropped back on the bar, nothing is
+  made.
 - The **Opposition** button and the brass tray it slides out, the world's number (see `rolls.md`,
   *The world as opposition*).
 - The people at the table (see `network.md`).
@@ -99,7 +100,7 @@ the register, the Ledger and Boot Hill.
   there; an Influence card goes home to its drawer.
 - **Putting away:** dropping something on the bar puts it away. Characters, stickies, loose writing,
   images and roll receipts are buried on Boot Hill (see `boothill.md`); plain chips just vanish;
-  Influence cards go home to their drawer.
+  Influence cards go home to their drawer; the Connection Table is put away, kept for its supply.
 
 ## Pieces
 

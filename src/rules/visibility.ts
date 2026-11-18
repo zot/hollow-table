@@ -1,4 +1,4 @@
-// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R394, R399
+// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R394, R399, R410
 // Who may read what, and each record as a given viewer may see it. Pure. The invariant: no page
 // ever holds, in the clear, a secret its person may not read.
 
@@ -65,6 +65,8 @@ export function contribution(i: Chip | Influence, chars: Characters): boolean {
 }
 
 function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRecord | undefined {
+  // R410: the Connection Table is the GM's alone; no one else's page receives it.
+  if (r.kind === 'connections') return viewer?.gm ? r : undefined;
   if (r.kind === 'character') {
     if (canSee(viewer, r)) return r;
     const shown = new Set(r.shown ?? []);

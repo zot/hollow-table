@@ -1,10 +1,11 @@
-// CRC: crc-GameStore.md | R131
+// CRC: crc-GameStore.md | R131, R418
 // The 11-08 playtest of *A Ghoulish Problem* as records: Sam, Beauford and Devreux, Devreux's three
 // Influences, Beauford's Stagger chip, the sticky and the reference card. The first visit makes a
 // game of it, and the tests use it. Owners are parameters so each test can name its players.
 
 import { damageSlots, ridOf, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Place, type RowName, type Sticky, type Reference, type Rec, type Rid } from '../model/records.ts';
 import { empty } from '../rules/yards.ts';
+import { seed } from '../rules/connections.ts';
 
 export const SAM = '00000001', BEAUFORD = '00000002', DEVREUX = '00000003';
 
@@ -132,6 +133,8 @@ export function scene(sam = 'Player 1', beauford = 'Player 2'): PieceRecord[] {
     infl('00000005', 'Self-Preservation', 4, 1),
     infl('00000006', 'Old Sympathy for Sparkers', 2, 2),
     chip, sticky, ref,
+    // R418: the Connection Table, put away, holding the adventure's *Connections in Unton*.
+    seed('0000000a', at(1430, 900), DEVREUX),
   ];
 }
 

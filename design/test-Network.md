@@ -190,3 +190,15 @@ by the drop
 **Fire alarm:** show players a tab for every Info card (drop the face-down filter); red: Dana has a tab before anything is revealed
 **Inject:** src/ui/piece.ts:infos
 **Pulled:** 2026-11-18 — re-pulled after infos changed for burial; rang (Chromium): Dana had a tab before anything was revealed; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana had a tab before anything was revealed; restored clean
+
+## Test: the Connection Table never reaches a player
+**Purpose:** R410: with the table on the GM's table, Dana's page holds no Connection Table and her bar has no supply; a forged change from her is refused
+**Input:** the GM's table and Dana; the GM takes the Connection Table out; Dana's page sends a put of the table
+**Expected:** Dana's bar has no Connection Table supply; her page holds no record of kind `connections` and none of "Jephthah"; the GM's table keeps its Levels
+**Refs:** crc-Visibility.md, crc-Authority.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 13
+**Fire alarm:** send the table to everyone (redact returns it whole); red: Dana's page holds a `connections` record
+**Inject:** src/rules/visibility.ts:redact
+**Pulled:** 2026-11-18 — rang (Chromium): Dana's page held the whole `connections` record, Jephthah and all; restored clean
+

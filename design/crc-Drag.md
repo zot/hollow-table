@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260, R273, R19, R119, R122, R288
+**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260, R273, R19, R119, R122, R288, R409
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -9,7 +9,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
 ## Does
 - over the bar (R288): while anything is carried over it the bar is `toss`, and `bury` with "→" and the
   current graveyard's name when letting go would bury; letting go there puts away (putAway): a
-  fresh supply is never made (R19), the reference card vanishes, anything else is buried in the
+  fresh supply is never made (R19), the reference card vanishes, the Connection Table is put away
+  (`away`, kept for its supply, and no "→", R409), anything else is buried in the
   current graveyard with burialOf's records under graveName (R119, R122, R290). Chips and cards go
   by their own bar target (vanish, or home).
 - carrying a card lifts its pinned pieces with it; they stay drawn over it (`pinned` and `lifted`, R273).
