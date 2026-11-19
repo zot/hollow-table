@@ -267,3 +267,18 @@ test('a player never writes a record, however much is revealed', () => {
   assert.equal((t as { kind: string }).kind, 'connections');
   assert.deepEqual(judge(game, edit([{ rid: ridOf('0000000a'), rec: { ...(t as object), away: true } as never }]), 'Dana').refused, [ridOf('0000000a')]);
 });
+
+test("a player's own piece is theirs while a hidden piece lies in it", () => {
+  // R174, R188 (prototype Item 22): records don't nest, so a GM card in Sam's Stagger leaves Sam whole to
+  // Dana; only the GM's card itself, which she sees redacted, is refused.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const sam = game.get(ridOf(SAM)) as Character;
+  const glare: Influence = { kind: 'influence', oid: '0000000e', home: DEVREUX, where: { slot: SAM, name: 'stagger' }, n: 0, name: 'Glare',
+    sign: -1, points: 4, used: false, crit: false };
+  game.change(w => { w.put(ridOf(SAM), { ...sam, owner: 'Dana' }); w.put(ridOf(glare.oid), glare); });
+  const own = game.get(ridOf(SAM)) as Character, edit = (puts: Edit['puts']): Edit => ({ s: 1, base: 9, puts, dels: [] });
+  for (const rec of [{ ...own, front: `${own.front}\nA new line` }, { ...own, card: { ...own.card, x: own.card.x + 5 } },
+    { ...own, pool: { ...own.pool, x: own.pool.x + 5 } }]) assert.deepEqual(judge(game, edit([{ rid: ridOf(SAM), rec }]), 'Dana').refused, []);
+  assert.deepEqual(judge(game, edit([{ rid: ridOf(glare.oid), rec: { ...glare, where: { slot: SAM, name: 'main' } } }]), 'Dana').refused, [ridOf(glare.oid)]);
+});

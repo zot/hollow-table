@@ -126,3 +126,14 @@ is tombed
 **Fire alarm:** judge records as any other piece (drop the GM-only rule); red: Dana's rewrite is taken
 **Inject:** src/net/authority.ts:judge
 **Pulled:** 2026-11-19 — rang: Dana's rewrite of the record was taken; restored clean
+
+## Test: a player's own piece is theirs while a hidden piece lies in it
+**Purpose:** R174, R188: records don't nest, so a hidden GM card in Sam's Stagger leaves Sam whole to Dana: her changes to his front, card and pool are taken; her move of the GM's card, which she sees redacted, is refused (Bill, 2026-11-19: "Right as it is")
+**Input:** Sam given to Dana; Devreux's Influence Glare in Sam's Stagger; Dana's change to Sam's front, to his card's place and to his pool's; Dana's move of Glare to Sam's Main
+**Expected:** the three changes to Sam taken; the move of Glare refused
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 11
+**Fire alarm:** refuse a player's change to a character while anything in its pool is hidden from them (the mockup's nesting, prototype Item 22); red: Dana's changes to Sam are refused
+**Inject:** src/net/authority.ts:judge
+**Pulled:** 2026-11-19 — rang: Dana's changes to Sam were refused; restored clean
