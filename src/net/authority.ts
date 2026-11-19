@@ -1,11 +1,11 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
 // its own version.
 
 import { same, type Game } from '../model/game.ts';
-import { TOMBS, isPiece, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
+import { TOMBS, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
 import { mayChange } from '../rules/ownership.ts';
 import { redact, type Characters, type Viewer } from '../rules/visibility.ts';
 import { why, whoIs } from './claims.ts';
@@ -44,7 +44,9 @@ const forged = (old: Rec | undefined, rec: Rec, who: string) => 'kind' in rec &&
 // R191: Boot Hill from a player: what they can only see redacted is put back as the GM has it; if they
 // left out something they couldn't read, the change is refused (a burial would lose it). R406: a GM card
 // comes back whole by its `gm` name, and one the player made up is dropped.
-function mergeYards(real: Yards | undefined, mine: Yards, viewer: Viewer, chars: Characters): Yards | null {
+// R442: what lies buried is the GM's copy, and a new burial holds only the pieces this change deletes
+// and the GM's page takes the deletion of (`deleted`, as the GM holds them); a burial left empty goes.
+function mergeYards(real: Yards | undefined, mine: Yards, viewer: Viewer, chars: Characters, deleted: Map<string, PieceRecord>): Yards | null {
   const truth = new Map<string, Rec>(), secret = new Set<string>(), cards = new Map<string, Burial>();
   for (const g of real?.yards ?? []) for (const b of g.items) {
     if (b.gm) { cards.set(b.gm, b); if (!viewer?.gm) secret.add(b.gm); }
@@ -57,11 +59,12 @@ function mergeYards(real: Yards | undefined, mine: Yards, viewer: Viewer, chars:
   const yards = mine.yards.map(g => ({ ...g, items: g.items.flatMap((b): Burial[] => {
     if (b.gm && secret.has(b.gm)) { kept.add(b.gm); return [cards.get(b.gm)!]; }
     if (b.gm && !viewer?.gm) return [];
-    return [{ ...b, records: b.records.map(r => {
-      if (!secret.has(r.oid)) return r;
-      kept.add(r.oid);
-      return truth.get(r.oid) as typeof r;
-    }) }];
+    const records = b.records.flatMap((r): PieceRecord[] => {
+      if (truth.has(r.oid)) { if (secret.has(r.oid)) kept.add(r.oid); return [truth.get(r.oid) as PieceRecord]; }
+      const d = deleted.get(r.oid);
+      return d ? [d] : [];
+    });
+    return records.length || b.info ? [{ ...b, records }] : [];
   }) }));
   return [...secret].every(o => kept.has(o)) ? { yards } : null;
 }
@@ -115,7 +118,8 @@ export function judge(game: Game, edit: Edit, who: string | null): { puts: { rid
   for (const { rid, rec } of edit.puts) {
     if (!all.includes(rid)) continue;
     if (rid === 'yards') {
-      const merged = mergeYards(game.get('yards') as Yards | undefined, rec as Yards, viewer, chars);
+      const deleted = new Map(dels.map(d => [oidOf(d), game.get(d) as PieceRecord]));
+      const merged = mergeYards(game.get('yards') as Yards | undefined, rec as Yards, viewer, chars, deleted);
       if (merged) puts.push({ rid, rec: merged }); else refused.push(rid);
     } else if (rid === 'rows') puts.push({ rid, rec: mergeRows(game.get('rows') as Rows | undefined, rec as Rows, who, chars) });
     else if (!isPiece(rid) || (book.tomb[rid] ?? 0) > edit.base) refused.push(rid);       // R192

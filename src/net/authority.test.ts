@@ -2,9 +2,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Book, type Character, type Opinion, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
+import { ridOf, type Book, type Character, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
+import { burialOf, bury } from '../rules/yards.ts';
 import { handOver, whoIs } from './claims.ts';
 import { FakeRoom } from './fakeroom.ts';
 import { Sealer } from './seal.ts';
@@ -244,9 +245,12 @@ test("a player's Boot Hill keeps the GM's cards whole", () => {
   const chars = (oid: string) => game.get(ridOf(oid)) as Character | undefined;
   const seen = redact(game.get('yards')!, { name: 'Dana', gm: false }, chars) as Yards;
   assert.deepEqual(seen.yards[0]!.items, [{ name: 'GM card', records: [], gm: '0000aaaa' }]);
-  const sticky = { kind: 'sticky', oid: '0000bbbb', place: { x: 0, y: 0, z: 1 }, text: 'mine' } as Sticky;
-  const put = (items: Yards['yards'][0]['items']) => judge(game, { s: 1, base: 4, puts: [{ rid: 'yards', rec: { yards: [{ name: '', named: false, items }] } }], dels: [] }, 'Dana');
-  const taken = put([...seen.yards[0]!.items, { name: 'Note: mine', records: [sticky] }]);
+  // R442: her own burial is of a sticky on the table that the same change deletes.
+  const sticky = { kind: 'sticky', oid: '0000bbbb', place: { x: 0, y: 0, z: 1, tilt: 0 }, text: 'mine' } as Sticky;
+  game.change(w => w.put(ridOf(sticky.oid), sticky));
+  const put = (items: Yards['yards'][0]['items'], dels: string[] = []) =>
+    judge(game, { s: 1, base: 4, puts: [{ rid: 'yards', rec: { yards: [{ name: '', named: false, items }] } }], dels }, 'Dana');
+  const taken = put([...seen.yards[0]!.items, { name: 'Note: mine', records: [sticky] }], [ridOf(sticky.oid)]);
   assert.deepEqual(taken.refused, []);
   assert.deepEqual((taken.puts[0]!.rec as Yards).yards[0]!.items, [card, { name: 'Note: mine', records: [sticky] }], 'the card comes back whole');
   assert.deepEqual(put([]).refused, ['yards'], 'taking the card away is refused');
@@ -281,4 +285,45 @@ test("a player's own piece is theirs while a hidden piece lies in it", () => {
   for (const rec of [{ ...own, front: `${own.front}\nA new line` }, { ...own, card: { ...own.card, x: own.card.x + 5 } },
     { ...own, pool: { ...own.pool, x: own.pool.x + 5 } }]) assert.deepEqual(judge(game, edit([{ rid: ridOf(SAM), rec }]), 'Dana').refused, []);
   assert.deepEqual(judge(game, edit([{ rid: ridOf(glare.oid), rec: { ...glare, where: { slot: SAM, name: 'main' } } }]), 'Dana').refused, [ridOf(glare.oid)]);
+});
+
+test('a player buries only what they delete', () => {
+  // R442: a new burial keeps only the pieces the change deletes and the GM's page takes, as the GM holds them.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const sam = game.get(ridOf(SAM)) as Character;
+  const glare: Influence = { kind: 'influence', oid: '0000000e', home: DEVREUX, where: { slot: SAM, name: 'stagger' }, n: 0, name: 'Glare',
+    sign: -1, points: 4, used: false, crit: false };
+  game.change(w => { w.put(ridOf(SAM), { ...sam, owner: 'Dana' }); w.put(ridOf(glare.oid), glare); });
+  const chars = (o: string) => game.get(ridOf(o)) as Character | undefined, dana = { name: 'Dana', gm: false };
+  const all = () => game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
+  const seen = (r: PieceRecord) => redact(r, dana, chars) as PieceRecord;
+  const yards = () => game.get('yards') as Yards, base = () => (game.get('book') as Book).gv;
+  const buried = (y: Yards) => y.yards.flatMap(g => g.items);
+  const send = (records: PieceRecord[], name: string, dels: string[]): ReturnType<typeof judge> =>
+    judge(game, { s: 1, base: base(), puts: [{ rid: 'yards', rec: bury(yards(), 0, records, name) }], dels }, 'Dana');
+
+  // Ann's Beauford, from Dana's blank copy: his deletion refused, and no burial of him.
+  const beau = game.get(ridOf(BEAUFORD)) as Character;
+  const b = send([seen(beau)], 'Beauford', [ridOf(BEAUFORD)]);
+  assert.deepEqual(b.refused, [ridOf(BEAUFORD)]);
+  assert.equal(buried(b.puts.find(p => p.rid === 'yards')!.rec as Yards).some(i => i.name === 'Beauford'), false);
+
+  // Her own Sam, rewritten in her burial: the GM's Sam and his own cards, not the GM's Glare.
+  const recs = burialOf(game.get(ridOf(SAM)) as Character, all()).map(seen);
+  const forged = recs.map(r => (r.oid === SAM ? { ...r, front: 'Forged' } : r));
+  const s = send(forged, 'Sam', recs.map(r => ridOf(r.oid)));
+  assert.deepEqual(s.refused, [ridOf(glare.oid)]);
+  const grave = buried(s.puts.find(p => p.rid === 'yards')!.rec as Yards).find(i => i.name === 'Sam')!;
+  assert.ok(grave.records.some(r => r.oid === SAM && r.kind === 'character' && r.front === (game.get(ridOf(SAM)) as Character).front), "the GM's Sam");
+  assert.equal(grave.records.some(r => r.oid === glare.oid), false, 'Glare stays in play');
+
+  // What lies buried is the GM's copy, whatever she sends.
+  const STICKY = ridOf('00000008'), sticky = game.get(STICKY) as Sticky;
+  game.change(w => { w.put('yards', bury(yards(), 0, [sticky], 'Note')); w.del(STICKY); });
+  const y = yards(), rewritten: Yards = { yards: y.yards.map(g => ({ ...g, items: g.items.map(i => ({ ...i,
+    records: i.records.map(r => (r.oid === sticky.oid ? { ...r, text: 'Rewritten' } : r)) })) })) };
+  const t = judge(game, { s: 1, base: base(), puts: [{ rid: 'yards', rec: rewritten }], dels: [] }, 'Dana');
+  const note = buried(t.puts.find(p => p.rid === 'yards')!.rec as Yards).find(i => i.name === 'Note')!;
+  assert.equal((note.records[0] as Sticky).text, sticky.text);
 });

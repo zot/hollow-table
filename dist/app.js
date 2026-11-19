@@ -2876,7 +2876,7 @@ var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters2 = (game) => (oid) => game.get(`o:${oid}`);
 var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
 var forged = (old, rec, who) => "kind" in rec && rec.kind === "chip" && rec.by !== void 0 && rec.by !== who && rec.by !== (old && "kind" in old && old.kind === "chip" ? old.by : void 0);
-function mergeYards(real2, mine, viewer, chars) {
+function mergeYards(real2, mine, viewer, chars, deleted) {
   const truth = /* @__PURE__ */ new Map(), secret = /* @__PURE__ */ new Set(), cards = /* @__PURE__ */ new Map();
   for (const g of real2?.yards ?? []) for (const b of g.items) {
     if (b.gm) {
@@ -2895,11 +2895,15 @@ function mergeYards(real2, mine, viewer, chars) {
       return [cards.get(b.gm)];
     }
     if (b.gm && !viewer?.gm) return [];
-    return [{ ...b, records: b.records.map((r) => {
-      if (!secret.has(r.oid)) return r;
-      kept.add(r.oid);
-      return truth.get(r.oid);
-    }) }];
+    const records3 = b.records.flatMap((r) => {
+      if (truth.has(r.oid)) {
+        if (secret.has(r.oid)) kept.add(r.oid);
+        return [truth.get(r.oid)];
+      }
+      const d = deleted.get(r.oid);
+      return d ? [d] : [];
+    });
+    return records3.length || b.info ? [{ ...b, records: records3 }] : [];
   }) }));
   return [...secret].every((o) => kept.has(o)) ? { yards } : null;
 }
@@ -2938,7 +2942,8 @@ function judge(game, edit, who) {
   for (const { rid: rid2, rec } of edit.puts) {
     if (!all2.includes(rid2)) continue;
     if (rid2 === "yards") {
-      const merged = mergeYards(game.get("yards"), rec, viewer, chars);
+      const deleted = new Map(dels.map((d) => [oidOf(d), game.get(d)]));
+      const merged = mergeYards(game.get("yards"), rec, viewer, chars, deleted);
       if (merged) puts.push({ rid: rid2, rec: merged });
       else refused.push(rid2);
     } else if (rid2 === "rows") puts.push({ rid: rid2, rec: mergeRows(game.get("rows"), rec, who, chars) });

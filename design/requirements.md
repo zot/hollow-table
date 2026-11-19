@@ -427,6 +427,7 @@
 - **R194:** Image bytes stay in each page's store named by hash; a page missing one asks the table, keeps the first answer that hashes right, and can then answer others.
 - **R195:** A missing image shows striped and marked missing with why, and is asked for again every 10 s.
 - **R361:** A piece someone may not see at all is left out of a batch's public part and sealed to those who may; when it stops being public, its removal goes out without a tomb, and a tab that alone stops seeing it gets the removal sealed; no page sends its carry to the room.
+- **R442:** In a player's Boot Hill change, a burial the GM's Boot Hill doesn't hold keeps only the records of pieces the same change deletes and the GM's page takes the deletion of, as the GM's page holds them; a burial left with none is dropped. Every record of a burial the GM's Boot Hill holds is the GM's copy, whatever the player sends.
 
 ## Feature: connections
 **Source:** specs/connections.md

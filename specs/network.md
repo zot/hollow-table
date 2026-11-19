@@ -100,6 +100,11 @@ them. Nothing to install, no local-network grant, no daemon.
   taken back, she gets the redacted ones.
 - Players' changes are sealed to the GM's page. **A redacted copy can't overwrite the real one**: the
   GM's page refuses a change carrying a piece its sender can only see redacted.
+- **Boot Hill holds only what was buried** (Bill, 11-19: "Only what it deletes"). A player's page
+  adds to Boot Hill only the pieces its own change deletes, and only those whose deletion the GM's
+  page takes, as the GM's page holds them, never as the player's copy has them; a burial left with
+  nothing is dropped, and a piece whose deletion is refused stays in play. What lies buried is the GM's
+  copy: a player can name graveyards and dig burials up, but never rewrite what is buried.
 
 ## While the GM's page is away
 

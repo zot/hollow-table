@@ -107,15 +107,14 @@ is tombed
 
 ## Test: a player's Boot Hill keeps the GM's cards whole
 **Purpose:** R406: a buried Info card reaches a player as "GM card", nothing else; their Boot Hill change has it put back whole by its `gm` name; leaving it out is refused; a GM card they made up is dropped
-**Input:** Devreux's Info card buried; Dana's view of Boot Hill; her change adding her sticky's burial; her change with nothing; her change adding a GM card of her own
+**Input:** Devreux's Info card buried; Dana's view of Boot Hill; her change burying her sticky from the table, deleting it in the same change (R442); her change with nothing; her change adding a GM card of her own
 **Expected:** `{name: "GM card", records: [], gm}`; taken, the card whole and her sticky after it; refused; only the real card
 **Refs:** crc-Authority.md, crc-Visibility.md
 **Code:** `src/net/authority.test.ts`
 **Alarm:** 9
 **Fire alarm:** take a player's GM card as they sent it (drop the `gm` branch of mergeYards); red: the card comes back masked
 **Inject:** src/net/authority.ts:mergeYards
-**Pulled:** 2026-11-18 — rang: "the card comes back whole" failed, the card came back masked; restored clean
-
+**Pulled:** 2026-11-19 — re-pulled after mergeYards began taking a new burial's records only from the change's deletions; rang: the GM card came back as Dana sent it; restored clean *Earlier —* 2026-11-18 — rang: "the card comes back whole" failed, the card came back masked; restored clean
 ## Test: a player never writes a record, however much is revealed
 **Purpose:** R410, R435: a player's change to an Opinion Record is refused even when every line of it is revealed, so their view is the record itself; and to the Connection Table
 **Input:** Devreux's record of Sam, `Grudge -Min`, its one line shown; Dana's change rewriting it to `Grudge +Exq`; Dana's change to the Connection Table
@@ -137,3 +136,14 @@ is tombed
 **Fire alarm:** refuse a player's change to a character while anything in its pool is hidden from them (the mockup's nesting, prototype Item 22); red: Dana's changes to Sam are refused
 **Inject:** src/net/authority.ts:judge
 **Pulled:** 2026-11-19 — rang: Dana's changes to Sam were refused; restored clean
+
+## Test: a player buries only what they delete
+**Purpose:** R442: Boot Hill from a player keeps only the records of pieces the same change deletes and the GM's page takes, as the GM holds them; and never rewrites what is already buried
+**Input:** Dana's Boot Hill change adding a burial of Ann's Beauford, from her redacted copy, with Beauford's deletion; then Dana burying her own Sam, deleting him and his cards, with Devreux's Glare in his Stagger and Sam's front rewritten in her burial; then Dana's change rewriting a buried sticky's text
+**Expected:** Beauford's deletion refused and no burial of him taken; Sam's burial taken, holding the GM's Sam and his own cards but not Glare, whose deletion is refused; the buried sticky's text the GM's
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 12
+**Fire alarm:** take a new burial's records as sent (keep every record that isn't already buried); red: the burial of Beauford is taken
+**Inject:** src/net/authority.ts:mergeYards
+**Pulled:** 2026-11-19 — rang: the burial of Beauford, from Dana's blank copy, was taken; restored clean

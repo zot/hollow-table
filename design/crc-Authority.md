@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -51,7 +51,10 @@ judges every player's change.
     changed with it); a Boot Hill change it may make has what the sender sees redacted put back as
     the GM has it, and is refused if it leaves out something they couldn't read. A GM card (R406)
     comes back whole by its `gm` name, so a player can neither change nor remove one; one they made
-    up is dropped.
+    up is dropped. (R442) Every record already buried is the GM's copy, whatever the player sends; a
+    record in a new burial is kept only when the same change deletes its piece and that deletion is
+    taken, as the GM's page holds the piece; a burial left with no records is dropped. So a player
+    buries only what they may delete, and a refused deletion leaves its piece in play.
   Returns what to take and what to answer.
 - recheck(): every record again, after a hand-over.
 - mayMove(tab, rid) (R300): whether this page shows that tab's move of the piece: judge would take
