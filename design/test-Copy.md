@@ -52,7 +52,7 @@ GM's page coming back
 **Alarm:** 3
 **Fire alarm:** Send a deletion under the stamp the piece last went out with (the 11-11 bug): Dana's page keeps the sticky
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-19 — re-pulled after R444 (Authority changed): rang, Dana's page kept the deleted sticky; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept the deleted sticky *Earlier —* 2026-11-12 — rang: Dana's page kept the deleted sticky
+**Pulled:** 2026-11-19 — re-pulled after R446 (Authority changed): rang, Dana's page kept the deleted sticky; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (Authority changed): rang, Dana's page kept the deleted sticky; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept the deleted sticky *Earlier —* 2026-11-12 — rang: Dana's page kept the deleted sticky
 ## Test: a stale copy's change to a piece the GM changed since
 **Purpose:** prototype Item 19, R444: pending changes sent again when the GM's page comes back lose to the GM's change to the same piece, and still win where nobody changed it
 **Input:** the GM's page away; Dana moves the sticky and Sam; the GM rewrites the sticky; the GM's page back (a new key)

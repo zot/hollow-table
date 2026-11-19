@@ -1,4 +1,4 @@
-// CRC: crc-Claims.md | Test: test-Network.md | R166, R167, R168, R189, R443, R296, R297
+// CRC: crc-Claims.md | Test: test-Network.md | R166, R167, R168, R189, R443, R296, R297, R445, R446
 // Names are held by browsers: a second browser coming as Dana is nobody until the GM hands the name
 // over. And a page that was away can't bring back what the table has since buried.
 import { expect, test, type Page } from '@playwright/test';
@@ -30,11 +30,23 @@ test('names held by browsers', async ({ browser }) => {
   await expect.poll(async () => (await recOf(imp, SAM)).pool.x, { timeout: 15_000 }).toBe(sam.pool.x);
   expect((await recOf(gm, SAM)).pool).toEqual(sam.pool);
 
+  // R445, R446: every page bars the impostor's tag; the GM's is red too, and only the GM's.
+  const barred = (p: Page) => p.locator('#bar .folks .tag.impostor');
+  await expect(barred(dana)).toHaveText('Dana', { timeout: 15_000 });
+  await expect(barred(dana)).not.toHaveClass(/\bwarn\b/);
+  expect(await barred(dana).evaluate(e => getComputedStyle(e).backgroundImage)).toContain('linear-gradient');
+  await expect(gm.locator('#bar .folks .tag.impostor.warn')).toHaveText('Dana');
+  // R446: claims count only from the GM's browser; the impostor's forged ones change nothing.
+  await hook(imp, h => h.wire.send('claims', { claims: {} }));
+  await dana.waitForTimeout(2000);
+  await expect(barred(dana)).toHaveText('Dana');
+
   // The GM hands Dana over (its dialog answered yes): the new page gets the sheet and its change is
   // taken; the old page is now the one told (R296).
   await gm.locator('#bar .folks .tag.warn').click();
   await expect(imp.locator('#bar .folks .tag.you')).toHaveText('Dana', { timeout: 15_000 });
   await expect(dana.locator('#bar .folks .tag.you')).toHaveText('not yours', { timeout: 15_000 });
+  await expect(barred(imp)).toHaveText('Dana', { timeout: 15_000 });
   await expect.poll(async () => (await recOf(imp, SAM)).front, { timeout: 15_000 }).toContain('Glimmersense');
   await moveBy(imp, SAM, 150);
   await expect.poll(async () => (await recOf(gm, SAM)).pool.x, { timeout: 15_000 }).toBe(sam.pool.x + 150);

@@ -1,7 +1,8 @@
 // CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169
 // On the GM's page: which browser holds which name. The first browser to claim a name holds it; a
 // page claiming a name another browser holds is nobody until the GM hands the name over. The claims
-// live in the book, saved with the game and never sent.
+// live in the book, saved with the game; the book is never sent, but who holds each name goes to every
+// page as `claims` (Authority, R446).
 
 import { GM, type Book } from '../model/records.ts';
 import type { Game } from '../model/game.ts';

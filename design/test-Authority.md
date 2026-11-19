@@ -26,7 +26,7 @@ never holds a secret word
 **Alarm:** 2
 **Fire alarm:** Seal each tab's view of every changed piece, whether it differs or not: Ann's box holds Sam
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-19 — re-pulled after R444 (Authority changed): rang, the GM's Sam went into a box (nobody's box should hold it); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, every tab's box held every changed piece, Ann's held Sam *Earlier —* 2026-11-12 — rang: the GM's Sam was sealed to Dana (`authority.test.ts:73`), to Ann as well
+**Pulled:** 2026-11-19 — re-pulled after R446 (Authority changed): rang, the GM's Sam went into a box; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (Authority changed): rang, the GM's Sam went into a box (nobody's box should hold it); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, every tab's box held every changed piece, Ann's held Sam *Earlier —* 2026-11-12 — rang: the GM's Sam was sealed to Dana (`authority.test.ts:73`), to Ann as well
 ## Test: claims
 **Purpose:** the first browser to claim a name holds it, until the GM hands it over
 **Input:** "Dana" from browser A twice, then from browser B; "GM" from A; Dana handed to B
@@ -155,3 +155,14 @@ is tombed
 **Fire alarm:** count the sender's own last change against them (drop the tab check from `stale`); red: her own move of Sam is refused
 **Inject:** src/net/authority.ts:judge
 **Pulled:** 2026-11-19 — rang: her own move of Sam was refused (her own tab changed it last); restored clean
+
+## Test: who holds each name goes to everyone when it changes, and to a tab catching up
+**Purpose:** R446: the GM's page sends the claims to everyone when they change, not on every batch, and to a tab as it catches up
+**Input:** Dana and Ann join; a batch that changes the sticky; the GM hands Dana to `b-imp`; Ann asks for the table
+**Expected:** a `claims` to everyone matching the book's claims, Dana's among them; none after the sticky's batch; Dana's claim `b-imp` after the hand-over; the last `claims` to Ann after her sync
+**Refs:** crc-Authority.md, crc-Claims.md, seq-join.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 14
+**Fire alarm:** send the claims on every change to the book, not only when they change; red: a claims message after the sticky's batch
+**Inject:** src/net/authority.ts:Authority
+**Pulled:** 2026-11-19 — rang: a claims message went after the sticky's batch (3, not 2); restored clean

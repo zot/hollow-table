@@ -343,3 +343,24 @@ test("a change from a stale copy loses to another tab's", () => {
   assert.deepEqual(judge(game, edit({ puts: [{ rid: ridOf(SAM), rec: samMoved }] }), 'Dana', 'dana').refused, [], 'her own tab changed it last');
   assert.deepEqual(judge(game, edit({ puts: [{ rid: ridOf(SAM), rec: samMoved }] }), 'Dana', 'dana-2').refused, [ridOf(SAM)], 'from her other tab, it is stale');
 });
+
+test('who holds each name goes to everyone when it changes, and to a tab catching up', async () => {
+  // R446.
+  const { room, game, got } = await table();
+  await room.settle();
+  const sent = () => room.log.filter(m => m.kind === 'claims');
+  const last = () => sent().at(-1)!;
+  assert.equal(last().to, undefined, 'to everyone');
+  assert.deepEqual((last().body as { claims: Record<string, string> }).claims, (game.get('book') as Book).claims);
+  assert.ok(Object.keys((game.get('book') as Book).claims).includes('Dana'), "Dana's claim among them");
+  const before = sent().length;
+  game.change(w => w.put(STICKY, { ...(game.get(STICKY) as Sticky), text: 'A batch moves the book, not the claims' }));
+  await room.settle();
+  assert.equal(sent().length, before, 'nothing new when the claims are the same');
+  handOver(game, 'Dana', 'b-imp');
+  await room.settle();
+  assert.equal((last().body as { claims: Record<string, string> }).claims.Dana, 'b-imp', 'a hand-over goes out');
+  got.get('ann')!.link.send('sync', {});
+  await room.settle();
+  assert.equal(last().to, 'ann', 'and a catch-up gets them');
+});

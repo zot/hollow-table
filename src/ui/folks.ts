@@ -1,4 +1,4 @@
-// CRC: crc-Folks.md | R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296
+// CRC: crc-Folks.md | R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445
 // The people at the table, in the bar: a name tag each, the GM's invite, and the real GM's "You are".
 // Who is shown and in what order is pure (tags); the view draws it once a second and on changes.
 
@@ -9,6 +9,8 @@ export type Tag = {
   name: string; gm: boolean; you: boolean; live: boolean; stale: boolean;
   /** R293: red, no dot: someone came as a name another browser holds; or this page is offline. */
   warn?: 'impostor' | 'offline' | 'notyours';
+  /** R445: someone using a name another browser holds, barred on every page (red only on the GM's). */
+  impostor?: true;
   tab?: string; browser?: string;
 };
 
@@ -17,16 +19,16 @@ export type Me = { name: string; gm: boolean; live: boolean; why?: string; notYo
 
 export type Here = { tab: string; name: string; role: Role; browser: string; stale: boolean };
 
-// R293: the GM first, then you, then everyone else alphabetically; on the GM's page someone holding
-// a name another browser holds is red; an offline page says so.
+// R293, R445: the GM first, then you, then everyone else alphabetically; someone holding a name
+// another browser holds is an impostor on every page, and red on the GM's; an offline page says so.
 export function tags(me: Me, people: Here[], held: (name: string) => string | undefined = () => undefined): Tag[] {
   // R167, R296: a page that is nobody says "not yours"; being offline says more.
   const warn = me.why !== undefined ? 'offline' as const : me.notYours !== undefined ? 'notyours' as const : undefined;
   const mine: Tag = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...(warn && { warn }) };
   const others: Tag[] = people.map(p => {
-    const holder = held(p.name), impostor = me.gm && p.role === 'player' && holder !== undefined && holder !== p.browser;
+    const holder = held(p.name), impostor = p.role === 'player' && holder !== undefined && holder !== p.browser;
     return { name: p.name, gm: p.role === 'gm', you: false, live: !p.stale, stale: p.stale, tab: p.tab, browser: p.browser,
-      ...(impostor && { warn: 'impostor' as const }) };
+      ...(impostor && { impostor: true as const, ...(me.gm && { warn: 'impostor' as const }) }) };
   });
   const gm = others.filter(t => t.gm), rest = others.filter(t => !t.gm).sort((a, b) => a.name.localeCompare(b.name));
   return me.gm ? [mine, ...rest] : [...gm, mine, ...rest];
@@ -89,7 +91,7 @@ export class FolksView {
     const doc = this.#folks.ownerDocument;
     this.#folks.replaceChildren(...list.map(t => {
       const e = doc.createElement('span');
-      e.className = `tag${t.live ? ' live' : ''}${t.stale ? ' stale' : ''}${t.gm ? ' gm' : ''}${t.you ? ' you' : ''}${t.warn ? ' warn' : ''}`;
+      e.className = `tag${t.live ? ' live' : ''}${t.stale ? ' stale' : ''}${t.gm ? ' gm' : ''}${t.you ? ' you' : ''}${t.warn ? ' warn' : ''}${t.impostor ? ' impostor' : ''}`;
       e.textContent = t.warn === 'offline' ? 'offline' : t.warn === 'notyours' ? 'not yours' : t.name;
       if (t.warn === 'offline') e.title = me.why ?? 'Offline';
       else if (t.warn === 'notyours') e.title = me.notYours!;
@@ -98,7 +100,8 @@ export class FolksView {
         e.addEventListener('click', () => {
           if (confirm(`${t.name} is held by another computer. Hand ${t.name} to this one?\n\nThe other one will see ${t.name}'s things as a stranger does.`)) this.#w.handOver?.(t.name, t.browser!);
         });
-      } else if (t.you) {
+      } else if (t.impostor) e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees.`;
+      else if (t.you) {
         e.title = me.gm ? 'You, the GM. Click to change the name players see.' : 'You';
         if (me.gm) e.addEventListener('click', () => this.#w.rename?.());
       } else e.title = (t.gm ? 'The GM' : 'A player') + (t.stale ? ', not heard from lately' : '');

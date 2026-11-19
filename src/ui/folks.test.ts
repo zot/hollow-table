@@ -53,3 +53,14 @@ test('a page that is nobody says "not yours"; offline says more', () => {
   assert.equal(tags({ name: 'Ann', gm: false, live: false, why: 'No relay', notYours: 'Ann is played…' }, [])[0]!.warn, 'offline');
   assert.equal(tags({ name: 'Ann', gm: false, live: true }, [])[0]!.warn, undefined);
 });
+
+test('every page bars someone holding another browser\'s name', () => {
+  // R445: Sam held by b-real; another browser came as Sam.
+  const held = (n: string) => (n === 'Sam' ? 'b-real' : undefined);
+  const barred = (me: { name: string; gm: boolean }, people: Here[]) => tags({ ...me, live: true }, people, held).map(t => t.impostor === true);
+  assert.deepEqual(barred({ name: 'Ann', gm: false }, [at('Sam', 'player', 'b-other')]), [false, true], "Ann's page bars the other Sam");
+  assert.deepEqual(barred({ name: 'GM', gm: true }, [at('Sam', 'player', 'b-other')]), [false, true], "and the GM's");
+  assert.deepEqual(barred({ name: 'Sam', gm: false }, [at('Sam', 'player', 'b-other')]), [false, true], "and the real Sam's");
+  assert.deepEqual(barred({ name: 'Ann', gm: false }, [at('Sam', 'player', 'b-real')]), [false, false], 'never the holder, in any tab');
+  assert.equal(tags({ name: 'Ann', gm: false, live: true }, [at('Sam', 'player', 'b-other')], () => undefined)[1]!.impostor, undefined, 'not before the claims arrive');
+});

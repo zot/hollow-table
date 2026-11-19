@@ -23,7 +23,8 @@ them. Nothing to install, no local-network grant, no daemon.
   then everyone else alphabetically. A tag dims after 25 s unheard and goes after 60 s. The GM
   renames by a prompt (up to 32 characters; blank is "GM"). Red tags, with no dot: on the GM's
   page, someone who came as a name another browser holds (clicking hands them the name, after
-  asking); on a player's page, "not yours" and "offline" with why.
+  asking); on a player's page, "not yours" and "offline" with why. That someone's tag is barred on
+  every page (below).
 - A page that connects is greeted and answers. A connection that closes is a goodbye.
 - You're **live** while a relay or a peer is reachable. After 15 s with neither you're **offline**,
   with why, and the page keeps trying.
@@ -39,6 +40,13 @@ them. Nothing to install, no local-network grant, no daemon.
   is nobody: it gets only what anyone sees, its changes, moves and roll requests are refused, and it
   sees a red "not yours" chip that says why. The GM's strip marks it in red, and clicking it hands
   the name over. "GM" can't be claimed.
+- **Everyone can tell who's in the seat** (Bill, 11-13: "a stretched out bar sinister over the
+  impostor name"; 11-19: on every page, and the GM's "red and barred"). On every page, the tag of a
+  page using a name another browser holds is barred: a band across it from its upper right corner to
+  its lower left. So the GM's page tells every page who holds each name, the names and their
+  browsers, whenever that changes and to a page as it catches up; who holds a name is no secret, as
+  everyone at a table sees who sits in Dana's chair. A page takes it only from the GM's browser.
+  Only the GM's page can hand the name over.
 - **Handing a name over** (Bill, 11-13): the page now holding it loses its "not yours" tag and gets
   its secrets; a page of that name on the browser that held it gets the tag.
 - A browser profile is a person. Clearing site data makes you someone new; the GM hands your name

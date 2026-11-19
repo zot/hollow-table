@@ -430,6 +430,8 @@
 - **R442:** In a player's Boot Hill change, a burial the GM's Boot Hill doesn't hold keeps only the records of pieces the same change deletes and the GM's page takes the deletion of, as the GM's page holds them; a burial left with none is dropped. Every record of a burial the GM's Boot Hill holds is the GM's copy, whatever the player sends.
 - **R443:** When the GM's page comes back (a new key, or a message after 25 s of silence), the player's page asks for the whole table and then sends its pending changes again.
 - **R444:** The GM's page refuses a player's change, put or deletion, to a piece another tab changed after the copy the change was made on (the GM's page keeps each piece's last change, its version and tab, at most 3,000), and answers with the piece as it now is; a piece the sender's own tab changed last takes the change as before.
+- **R445:** On every page, the tag of a page using a name another browser holds is barred, a band across it from its upper right corner to its lower left; on the GM's page it is also red, and clicking it hands the name over (R168); on a player's page clicking it does nothing.
+- **R446:** The GM's page sends every page who holds each name (name → browser) whenever that changes, and to a tab as it catches up; a player's page takes it only from the GM's browser, and uses it to bar impostors' tags.
 
 ## Feature: connections
 **Source:** specs/connections.md

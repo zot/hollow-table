@@ -2789,7 +2789,7 @@ function why(name2) {
 
 // src/net/envelope.ts
 var VERSION = 1;
-var KINDS = ["hello", "here", "bye", "recs", "sync", "edit", "move", "intent", "roll", "crit", "take", "name", "refuse", "claim"];
+var KINDS = ["hello", "here", "bye", "recs", "sync", "edit", "move", "intent", "roll", "crit", "take", "name", "refuse", "claim", "claims"];
 var LIMITS = { dice: 40, moveItems: 8, batch: 1e4, why: 500, box: 4e6 };
 var tab = str(CAPS.id);
 var name = str(CAPS.name);
@@ -2846,7 +2846,9 @@ var BODIES = {
   take: fields({ id: str(CAPS.id), page: fields({ use: fields(Object.fromEntries(ROWS.map((r) => [r, int(0, 20)]))), overflow: int(0, 1e4) }) }),
   name: fields({ id: str(CAPS.id), damage: oneOf(...DAMAGE), row: oneOf(...ROWS, "lasting"), name }),
   refuse: fields({ why: why2 }, { n: seq }),
-  claim: fields({ name, why: whyOrNull })
+  claim: fields({ name, why: whyOrNull }),
+  // R446: who holds each name, from the GM's page: name → browser id.
+  claims: fields({ claims: dict(str(CAPS.id)) })
 };
 var sealedRoll = (v) => fields({ re: seq, receipt })(v) && fewDice(v.receipt);
 var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) }, { dels: list(del, LIMITS.batch) });
@@ -2976,12 +2978,15 @@ var Authority = class {
   #pending = /* @__PURE__ */ new Set();
   /** R444: the pieces changed since the last batch, and the tab whose change it was. */
   #touched = /* @__PURE__ */ new Map();
+  /** R446: the claims last sent to everyone. */
+  #claims = "";
   #flushing = false;
   #work = Promise.resolve();
   constructor(w) {
     this.#w = w;
     w.game.listen((rids) => {
       for (const rid2 of rids) if (isPiece(rid2)) this.#touched.set(rid2, w.link.tab);
+      if (rids.has("book")) this.#sendClaims();
       this.#queue(rids);
     });
     w.link.on("sync", (_, from) => {
@@ -3108,6 +3113,14 @@ var Authority = class {
     game.change((w) => w.put("book", { ...book2, gv: g, tomb: capped(tomb, (v) => v), last: capped(last, (v) => v.g), ...hill }));
     this.#send({ g, full: false, puts, dels }, sealFor);
   }
+  // Seq: seq-join.md#1.10.2, seq-join.md#1.12.1 | R446: who holds each name is no secret: to everyone
+  // when it changes, and to a tab catching up.
+  #sendClaims(to) {
+    const claims = this.#w.game.get("book").claims, json = JSON.stringify(claims);
+    if (!to && json === this.#claims) return;
+    if (!to) this.#claims = json;
+    this.#w.link.send("claims", { claims }, to);
+  }
   #send(batch, sealFor, to) {
     const { link, sealer } = this.#w;
     this.#work = this.#work.then(async () => {
@@ -3136,6 +3149,7 @@ var Authority = class {
     }
     const g = game.get("book").gv;
     this.#send({ g, full: true, puts, dels: [] }, mine.length ? /* @__PURE__ */ new Map([[tab2, { puts: mine, dels: [] }]]) : /* @__PURE__ */ new Map(), tab2);
+    this.#sendClaims(tab2);
     if (!viewer) this.#w.link.send("claim", { name: t.name, why: why(t.name) }, tab2);
   }
   // Seq: seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R172, R173
@@ -10856,7 +10870,7 @@ function tags(me, people, held = () => void 0) {
   const warn = me.why !== void 0 ? "offline" : me.notYours !== void 0 ? "notyours" : void 0;
   const mine = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...warn && { warn } };
   const others = people.map((p) => {
-    const holder = held(p.name), impostor = me.gm && p.role === "player" && holder !== void 0 && holder !== p.browser;
+    const holder = held(p.name), impostor = p.role === "player" && holder !== void 0 && holder !== p.browser;
     return {
       name: p.name,
       gm: p.role === "gm",
@@ -10865,7 +10879,7 @@ function tags(me, people, held = () => void 0) {
       stale: p.stale,
       tab: p.tab,
       browser: p.browser,
-      ...impostor && { warn: "impostor" }
+      ...impostor && { impostor: true, ...me.gm && { warn: "impostor" } }
     };
   });
   const gm = others.filter((t) => t.gm), rest = others.filter((t) => !t.gm).sort((a, b) => a.name.localeCompare(b.name));
@@ -10903,7 +10917,7 @@ var FolksView = class {
     const doc = this.#folks.ownerDocument;
     this.#folks.replaceChildren(...list2.map((t) => {
       const e = doc.createElement("span");
-      e.className = `tag${t.live ? " live" : ""}${t.stale ? " stale" : ""}${t.gm ? " gm" : ""}${t.you ? " you" : ""}${t.warn ? " warn" : ""}`;
+      e.className = `tag${t.live ? " live" : ""}${t.stale ? " stale" : ""}${t.gm ? " gm" : ""}${t.you ? " you" : ""}${t.warn ? " warn" : ""}${t.impostor ? " impostor" : ""}`;
       e.textContent = t.warn === "offline" ? "offline" : t.warn === "notyours" ? "not yours" : t.name;
       if (t.warn === "offline") e.title = me.why ?? "Offline";
       else if (t.warn === "notyours") e.title = me.notYours;
@@ -10914,7 +10928,8 @@ var FolksView = class {
 
 The other one will see ${t.name}'s things as a stranger does.`)) this.#w.handOver?.(t.name, t.browser);
         });
-      } else if (t.you) {
+      } else if (t.impostor) e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees.`;
+      else if (t.you) {
         e.title = me.gm ? "You, the GM. Click to change the name players see." : "You";
         if (me.gm) e.addEventListener("click", () => this.#w.rename?.());
       } else e.title = (t.gm ? "The GM" : "A player") + (t.stale ? ", not heard from lately" : "");
@@ -13180,6 +13195,10 @@ async function main() {
     wire.on("claim", (b) => {
       notYours = b.why;
     });
+    let claims = {};
+    wire.on("claims", (b, from) => {
+      if (from.browser === invited.gm) claims = b.claims;
+    });
     const rolls2 = new Rolls({ game: game2, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game2);
@@ -13190,7 +13209,7 @@ async function main() {
     const v = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, tab2, (hash) => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls2);
     const { table: table2, drag: drag2, bar: bar2 } = v;
     hands2 = v.hands;
-    new FolksView(bar2.folks, bar2.youAre, { me: () => ({ ...meOf(presence, name2, false), ...notYours !== null && { notYours } }), people: () => here(presence), held: () => void 0 });
+    new FolksView(bar2.folks, bar2.youAre, { me: () => ({ ...meOf(presence, name2, false), ...notYours !== null && { notYours } }), people: () => here(presence), held: (n) => claims[n] });
     return { version: "dev", date: "", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
   await store.start();

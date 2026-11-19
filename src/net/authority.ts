@@ -158,6 +158,8 @@ export class Authority {
   #pending = new Set<Rid>();
   /** R444: the pieces changed since the last batch, and the tab whose change it was. */
   #touched = new Map<Rid, string>();
+  /** R446: the claims last sent to everyone. */
+  #claims = '';
   #flushing = false;
   #work: Promise<void> = Promise.resolve();
 
@@ -165,6 +167,7 @@ export class Authority {
     this.#w = w;
     w.game.listen(rids => {
       for (const rid of rids) if (isPiece(rid)) this.#touched.set(rid, w.link.tab);
+      if (rids.has('book')) this.#sendClaims();
       this.#queue(rids);
     });
     w.link.on('sync', (_: never, from: Peer) => { this.#catchUp(from.tab); });
@@ -285,6 +288,15 @@ export class Authority {
     this.#send({ g, full: false, puts, dels }, sealFor);
   }
 
+  // Seq: seq-join.md#1.10.2, seq-join.md#1.12.1 | R446: who holds each name is no secret: to everyone
+  // when it changes, and to a tab catching up.
+  #sendClaims(to?: string): void {
+    const claims = (this.#w.game.get('book') as Book).claims, json = JSON.stringify(claims);
+    if (!to && json === this.#claims) return;
+    if (!to) this.#claims = json;
+    this.#w.link.send('claims', { claims }, to);
+  }
+
   #send(batch: Omit<Batch, 'sealed'>, sealFor: Map<string, Own>, to?: string): void {
     const { link, sealer } = this.#w;
     this.#work = this.#work.then(async () => {
@@ -317,6 +329,7 @@ export class Authority {
     }
     const g = (game.get('book') as Book).gv;
     this.#send({ g, full: true, puts, dels: [] }, mine.length ? new Map([[tab, { puts: mine, dels: [] }]]) : new Map(), tab);
+    this.#sendClaims(tab);
     if (!viewer) this.#w.link.send('claim', { name: t.name, why: why(t.name) }, tab);
   }
 

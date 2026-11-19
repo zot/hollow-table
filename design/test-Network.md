@@ -30,14 +30,19 @@ holds, has no secret word, and she hears boxes sealed to others
 **Alarm:** 1
 **Fire alarm:** Send the GM's own view as the public part of a batch: Eve hears the secrets
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-19 — re-pulled after R444 (Authority changed): rang, the secrets reached Eve (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, 17 secrets leaked to Dana's page (Chromium) *Earlier —* 2026-11-13 — rang: Eve heard 17 secret words in the clear (Chromium)
+**Pulled:** 2026-11-19 — re-pulled after R446 (Authority changed): rang, the secrets reached Eve (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (Authority changed): rang, the secrets reached Eve (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, 17 secrets leaked to Dana's page (Chromium) *Earlier —* 2026-11-13 — rang: Eve heard 17 secret words in the clear (Chromium)
 ## Test: names held by browsers
-**Purpose:** an impostor is nobody until the GM hands the name over
+**Purpose:** an impostor is nobody until the GM hands the name over; every page bars its tag (R445, R446)
 **Expected:** a second browser coming as Dana reads "not yours", sees Sam's sheet blank, and its move
-is refused; the GM clicks its red tag: it reads "Dana", gets the sheet, and its move is taken, while
-the first browser now reads "not yours"
+is refused; the first Dana's page bars its tag, not red, with the band drawn, and the GM's tag of it
+is red and barred; claims the impostor's page sends (empty) leave Dana's bar as it was; the GM clicks its red tag: it reads "Dana", gets the sheet, and its move is taken,
+while the first browser now reads "not yours", and the new holder's page bars that one's tag
 **Refs:** crc-Claims.md, crc-Authority.md, crc-Folks.md
 **Code:** `tests/away.spec.ts`
+**Alarm:** 17
+**Fire alarm:** take `claims` from any page, not only the GM's browser; red: the impostor's empty claims take the bar off its tag on Dana's page
+**Inject:** src/main.ts:main
+**Pulled:** 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
 
 ## Test: a page that was away can't bring back what was buried
 **Purpose:** stale copies can't resurrect

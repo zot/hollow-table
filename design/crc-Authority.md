@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -60,6 +60,8 @@ judges every player's change.
     taken, as the GM's page holds the piece; a burial left with no records is dropped. So a player
     buries only what they may delete, and a refused deletion leaves its piece in play.
   Returns what to take and what to answer.
+- claims (R446): when the book's claims change, sends `claims` (name → browser) to everyone; a
+  catch-up sends them to its tab too.
 - recheck(): every record again, after a hand-over.
 - mayMove(tab, rid) (R300): whether this page shows that tab's move of the piece: judge would take
   the piece, unchanged, from it. A move is never saved; the drop's change is judged like any other.

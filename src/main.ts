@@ -459,6 +459,9 @@ async function main() {
     // R167, R296: the GM's page says when this page is nobody, and when it is handed the name.
     let notYours: string | null = null;
     wire.on('claim', (b: { why: string | null }) => { notYours = b.why; });
+    // R446: who holds each name, from the GM's browser only, to bar impostors' tags (R445).
+    let claims: Record<string, string> = {};
+    wire.on('claims', (b: { claims: Record<string, string> }, from) => { if (from.browser === invited.gm) claims = b.claims; });
     const rolls = new Rolls({ game, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game);
@@ -469,7 +472,7 @@ async function main() {
     const v = views(game, store.current!.id, { name, gm: false }, blobs, moves, tab, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls);
     const { table, drag, bar } = v;
     hands = v.hands;
-    new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }) }), people: () => here(presence), held: () => undefined });
+    new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }) }), people: () => here(presence), held: n => claims[n] });
     return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
 

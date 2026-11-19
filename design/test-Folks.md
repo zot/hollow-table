@@ -10,8 +10,7 @@
 **Alarm:** 1
 **Fire alarm:** Put you before the GM on a player's page: Mo's tags read Mo, Boss
 **Inject:** src/ui/folks.ts:tags
-**Pulled:** 2026-11-13 — rang: Mo's tags read Mo before Boss
-
+**Pulled:** 2026-11-19 — re-pulled after R445 (tags changed): rang, Mo's tags read Mo, Boss; restored clean *Earlier —* 2026-11-13 — rang: Mo's tags read Mo before Boss
 ## Test: quiet and offline
 **Purpose:** R293: a page unheard lately is dimmed and unlit; R163: this page offline is a red
 "offline" tag with why; the GM's page with no table is plain
@@ -21,17 +20,16 @@
 **Code:** `src/ui/folks.test.ts`
 
 ## Test: someone holding another browser's name
-**Purpose:** R168, R293: on the GM's page a player whose name another browser holds is red
+**Purpose:** R168, R293, R445: only on the GM's page is a player whose name another browser holds red (and clickable)
 **Input:** Sam held by `b-real`; Sam from `b-other` and Ann (unheld) on the GM's page; Sam from
 `b-real`; Sam from `b-other` on Ann's page
-**Expected:** only the first Sam warns impostor; the holder doesn't; a player's page marks no one
+**Expected:** only the first Sam warns impostor; the holder doesn't; a player's page makes no one red
 **Refs:** crc-Folks.md, crc-Claims.md
 **Code:** `src/ui/folks.test.ts`
 **Alarm:** 2
-**Fire alarm:** Mark impostors on every page, not just the GM's: Ann's page marks Sam
+**Fire alarm:** Make impostors red on every page, not just the GM's: Ann's page makes Sam red
 **Inject:** src/ui/folks.ts:tags
-**Pulled:** 2026-11-13 — rang: Ann's page marked Sam an impostor
-
+**Pulled:** 2026-11-19 — re-aimed after R445 (the bar is on every page now, the red still the GM's): rang, Ann's page made the other Sam red; restored clean *Earlier —* 2026-11-13 — rang: Ann's page marked Sam an impostor
 ## Test: names
 **Purpose:** R293: the GM's blank name is "GM", cancel keeps it, 32 characters at most; R294: an
 arrival is asked again for "GM" or blank, cancel is "Player"
@@ -61,4 +59,14 @@ arrival is asked again for "GM" or blank, cancel is "Player"
 **Alarm:** 4
 **Fire alarm:** Ignore the GM's why: Ann's page told why warns nothing
 **Inject:** src/ui/folks.ts:tags
-**Pulled:** 2026-11-13 — rang: Ann's page told why warned nothing
+**Pulled:** 2026-11-19 — re-pulled after R445 (tags changed): rang, Ann's page told why warned nothing; restored clean *Earlier —* 2026-11-13 — rang: Ann's page told why warned nothing
+## Test: every page bars someone holding another browser's name
+**Purpose:** R445: the tag of someone using a name another browser holds is barred on every page, the holder's never
+**Input:** Sam held by `b-real`; Sam from `b-other` on Ann's page, the GM's, and the real Sam's; Sam from `b-real` on Ann's page; Sam from `b-other` on Ann's page before any claims arrived
+**Expected:** the other Sam barred on all three pages; the holder not barred; nothing barred without claims
+**Refs:** crc-Folks.md, crc-Claims.md
+**Code:** `src/ui/folks.test.ts`
+**Alarm:** 5
+**Fire alarm:** bar impostors on the GM's page only (as before R445); red: Ann's page doesn't bar the other Sam
+**Inject:** src/ui/folks.ts:tags
+**Pulled:** 2026-11-19 — rang: Ann's page didn't bar the other Sam; restored clean
