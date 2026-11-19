@@ -133,6 +133,10 @@ them. Nothing to install, no local-network grant, no daemon.
   version, which carries on across reloads and restores. A change that puts back a piece deleted
   after the copy it was made on is answered with the deletion again. A Boot Hill change from a copy
   that missed a later one is refused whole.
+- **What the book forgets, it refuses** (Bill, 11-19: "A floor"). The book remembers the last 3,000
+  deletions, and the last change of up to 3,000 pieces; when it forgets the oldest, it keeps the
+  newest version it forgot. A change from a copy older than that is refused whole, and the page gets
+  the GM's pieces: a copy that old can't be judged, so it can't put back what was deleted long ago.
 
 ## Images
 

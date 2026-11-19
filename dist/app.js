@@ -178,6 +178,7 @@ var SINGLETONS = {
     {
       hillGv: int(0, Number.MAX_SAFE_INTEGER),
       last: dict(fields({ g: int(0, Number.MAX_SAFE_INTEGER), by: str(CAPS.id) }), TOMBS),
+      floor: int(0, Number.MAX_SAFE_INTEGER),
       kept: list(fields(
         { character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },
         { tab: str(CAPS.id), sealKey: str(CAPS.text), priv: oneOf(true) }
@@ -2924,13 +2925,18 @@ function mergeRows(real2, mine, who, chars) {
 }
 function capped(m, at3) {
   const keys2 = Object.keys(m);
-  if (keys2.length > TOMBS) for (const k of keys2.sort((a, b) => at3(m[a]) - at3(m[b])).slice(0, keys2.length - TOMBS)) delete m[k];
-  return m;
+  let dropped = 0;
+  if (keys2.length > TOMBS) for (const k of keys2.sort((a, b) => at3(m[a]) - at3(m[b])).slice(0, keys2.length - TOMBS)) {
+    dropped = Math.max(dropped, at3(m[k]));
+    delete m[k];
+  }
+  return dropped;
 }
 function judge(game, edit, who, tab2) {
   const all2 = [...edit.puts.map((p) => p.rid), ...edit.dels].filter((rid2) => rid2 !== "meta" && !LOCAL.has(rid2));
   const book2 = game.get("book"), chars = characters2(game);
   if (!who) return { puts: [], dels: [], refused: all2 };
+  if (edit.base < (book2.floor ?? 0)) return { puts: [], dels: [], refused: all2 };
   if (edit.puts.some((p) => p.rid === "yards") && edit.base < (book2.hillGv ?? 0)) return { puts: [], dels: [], refused: all2 };
   const viewer = { name: who, gm: false };
   const mine = (old, rec) => {
@@ -3110,7 +3116,8 @@ var Authority = class {
     else delete last[rid2];
     this.#touched.clear();
     const hill = puts.some((p) => p.rid === "yards") ? { hillGv: g } : {};
-    game.change((w) => w.put("book", { ...book2, gv: g, tomb: capped(tomb, (v) => v), last: capped(last, (v) => v.g), ...hill }));
+    const floor2 = Math.max(book2.floor ?? 0, capped(tomb, (v) => v), capped(last, (v) => v.g));
+    game.change((w) => w.put("book", { ...book2, gv: g, tomb, last, ...floor2 && { floor: floor2 }, ...hill }));
     this.#send({ g, full: false, puts, dels }, sealFor);
   }
   // Seq: seq-join.md#1.10.2, seq-join.md#1.12.1 | R446: who holds each name is no secret: to everyone

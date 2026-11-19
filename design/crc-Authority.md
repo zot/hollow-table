@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -10,6 +10,7 @@ judges every player's change.
 - book.tomb: rid → the version at which it was deleted (capped at 3,000).
 - book.last (R444): rid → `{g, by}`, the version of the batch that last changed a piece and the tab
   whose change it was, the GM's page's own when not a player's (capped at 3,000, oldest dropped).
+- book.floor (R448): the newest version the caps on `tomb` and `last` have dropped.
 - public: rid → what went out to everyone (the redacted-for-nobody view).
 - tabs: tab → `{name, browser, sealKey, holds: rid → the view it holds}`.
 - origin: rid → the stamp it last went out under; a change taken from a player keeps the player's
@@ -30,7 +31,7 @@ judges every player's change.
   removal if it had gone out, under a fresh stamp and not tombed; for each player tab
   whose view differs from what it holds, its view sealed to it, in the same batch, and a sealed
   removal for a tab that alone stops seeing it (R361). Deletions go out
-  under a **fresh** stamp (Stamps). Each batch records `last` for the pieces it changed (R444). Also re-checks every record when a character changes hands, so
+  under a **fresh** stamp (Stamps). Each batch records `last` for the pieces it changed (R444), and raises `floor` to the newest entry its caps drop (R448). Also re-checks every record when a character changes hands, so
   sheets and cards follow ownership though their records didn't change.
 - catchUp(tab): the whole table, to that tab only (a piece nobody may see only sealed to those who
   may, R361), at the current version without moving it. What it
@@ -51,6 +52,7 @@ judges every player's change.
     White, whether it was picked by hand and the private switch stay as the GM's page has them;
     a row of their own character missing from theirs is put away (R383), unless it is private,
     which their copy never holds;
+  - (R448) it comes from a copy older than `floor`: everything in it is refused;
   - it is a Boot Hill change from a copy that missed a later one (refused whole, with what was
     changed with it); a Boot Hill change it may make has what the sender sees redacted put back as
     the GM has it, and is refused if it leaves out something they couldn't read. A GM card (R406)

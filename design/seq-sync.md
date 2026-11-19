@@ -10,6 +10,7 @@ GM page: Game        Authority                 Visibility        Seal           
 1.4 |                    |--differs from what it holds? seal it---->|                    |                     |
 1.5 |                    |--deleted rids: fresh stamp (Stamps.next), tomb[rid] = gv      |                     |
 1.5.1                    |--changed pieces: last[rid] = {gv, by: the tab whose change it was}
+1.5.2                    |--caps: tomb and last at most 3,000, oldest dropped; floor = the newest dropped
 1.6 |                    |--recs {g, puts, dels, sealed: {tab: box}}------------------>|                     |
 1.7 |                    |                          |               |<--open my box------|                     |
 1.8 |                    |                          |               |                    |--replace redacted   |

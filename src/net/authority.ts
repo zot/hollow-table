@@ -86,26 +86,31 @@ function mergeRows(real: Rows | undefined, mine: Rows, who: string, chars: Chara
   return { rows };
 }
 
-/** At most TOMBS entries, the oldest by `at` dropped. */
-function capped<T>(m: Record<Rid, T>, at: (v: T) => number): Record<Rid, T> {
+/** Leaves at most TOMBS entries in `m`, the oldest by `at` dropped; the newest version dropped (R448), 0 for none. */
+function capped<T>(m: Record<Rid, T>, at: (v: T) => number): number {
   const keys = Object.keys(m);
-  if (keys.length > TOMBS) for (const k of keys.sort((a, b) => at(m[a]!) - at(m[b]!)).slice(0, keys.length - TOMBS)) delete m[k];
-  return m;
+  let dropped = 0;
+  if (keys.length > TOMBS) for (const k of keys.sort((a, b) => at(m[a]!) - at(m[b]!)).slice(0, keys.length - TOMBS)) {
+    dropped = Math.max(dropped, at(m[k]!));
+    delete m[k];
+  }
+  return dropped;
 }
 
-// Seq: seq-edit.md#1.4, seq-edit.md#1.4.1, seq-edit.md#1.4.2, seq-edit.md#1.4.3, seq-edit.md#1.4.4
+// Seq: seq-edit.md#1.4, seq-edit.md#1.4.1, seq-edit.md#1.4.2, seq-edit.md#1.4.3, seq-edit.md#1.4.4, seq-edit.md#1.4.5
 /**
  * Pure: what of a player's change to take, and what to refuse. `who` is the name the sender's
  * browser holds (null: nobody). Refused: everything from nobody; everything, when it touches Boot
  * Hill from a copy that missed a later change to it; a piece Ownership says they may not change; a
  * piece they can only see redacted, before or after; a piece put back that was deleted after their
  * copy was made; (R444) a piece put or deleted that another tab than `tab` changed after their copy
- * was made.
+ * was made; (R448) everything, from a copy older than the book's floor.
  */
 export function judge(game: Game, edit: Edit, who: string | null, tab?: string): { puts: { rid: Rid; rec: Rec }[]; dels: Rid[]; refused: Rid[] } {
   const all = [...edit.puts.map(p => p.rid), ...edit.dels].filter(rid => rid !== 'meta' && !LOCAL.has(rid));
   const book = game.get('book') as Book, chars = characters(game);
   if (!who) return { puts: [], dels: [], refused: all };                                   // R167
+  if (edit.base < (book.floor ?? 0)) return { puts: [], dels: [], refused: all };           // R448
   if (edit.puts.some(p => p.rid === 'yards') && edit.base < (book.hillGv ?? 0)) return { puts: [], dels: [], refused: all };
   const viewer: Viewer = { name: who, gm: false };
   const mine = (old: Rec | undefined, rec: Rec | undefined) => {
@@ -284,7 +289,9 @@ export class Authority {
     for (const [rid, by] of this.#touched) if (game.get(rid)) last[rid] = { g, by }; else delete last[rid];
     this.#touched.clear();
     const hill = puts.some(p => p.rid === 'yards') ? { hillGv: g } : {};
-    game.change(w => w.put('book', { ...book, gv: g, tomb: capped(tomb, v => v), last: capped(last, v => v.g), ...hill }));
+    // Seq: seq-sync.md#1.5.2 | R448: what the caps drop raises the floor.
+    const floor = Math.max(book.floor ?? 0, capped(tomb, v => v), capped(last, v => v.g));
+    game.change(w => w.put('book', { ...book, gv: g, tomb, last, ...(floor && { floor }), ...hill }));
     this.#send({ g, full: false, puts, dels }, sealFor);
   }
 

@@ -12,6 +12,7 @@ Player: Game          Copy                      Seal          GM: Authority     
 1.4.2                   |                          |                  |   tomb newer than base?     |
 1.4.3                   |                          |                  |   stale Boot Hill? (whole)  |
 1.4.4                   |                          |                  |   another tab's change after base?
+1.4.5                   |                          |                  |   base below the floor? (whole)
 1.5 |                   |                          |                  |--take allowed-------------->|
 1.6 |                   |                          |                  |<-changed: out to everyone (seq-sync.md)
 1.7 |                   |<--refused: GM's version under the player's number, as the answer-------|
@@ -24,3 +25,4 @@ Player: Game          Copy                      Seal          GM: Authority     
 - At step 1.7, the answer arrives whether the change was taken, refused or changed nothing.
 - In the second diagram's step 2.1, a stale change keeps its old base, so it can't take a fresh one down with it.
 - At step 1.4.4, a piece whose last change (`book.last`) is newer than the edit's base and came from another tab is refused (R444); the sender's own changes in a row never are.
+- At step 1.4.5, a change from a copy older than the newest entry the book's caps dropped is refused whole (R448).

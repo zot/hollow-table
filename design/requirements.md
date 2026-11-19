@@ -433,6 +433,7 @@
 - **R445:** On every page, the tag of a page using a name another browser holds is barred, a band across it from its upper right corner to its lower left; on the GM's page it is also red, and clicking it hands the name over (R168); on a player's page clicking it does nothing.
 - **R446:** The GM's page sends every page who holds each name (name → browser) whenever that changes, and to a tab as it catches up; a player's page takes it only from the GM's browser, and uses it to bar impostors' tags.
 - **R447:** A player's page takes a `claim` ("not yours", or the name handed back) only from the GM's browser; one from any other page changes nothing.
+- **R448:** When the book's caps drop entries from `tomb` or `last`, the book keeps the newest version dropped (its floor), and the GM's page refuses whole a change from a copy older than the floor, answering with its own pieces.
 
 ## Feature: connections
 **Source:** specs/connections.md

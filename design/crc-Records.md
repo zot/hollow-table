@@ -68,7 +68,7 @@ record crosses the wire, the database and an export file unchanged.
   blank tray, and no record is the same. `WORLD` (`'world'`) is also the opponent a roll aims at the
   world with, never an oid (an oid is eight hex digits). Written only by the GM's page.
 - Book (the GM's page only, never sent; its claims go out as `claims`, R446): `{claims: {name: browser id}, gv, tomb: {rid: gv}, hillGv?}`:
-  the table's version, the version each piece was deleted at (at most 3,000), and the version Boot
+  the table's version, the version each piece was deleted at (at most 3,000), `floor` (the newest version the caps have dropped, R448), and the version Boot
   Hill last changed at.
 - Tape (each page's own, never sent): `{receipts: Receipt[]}`.
 - Marked: card text with marks (see crc-MarkedText.md), stored as its source string.

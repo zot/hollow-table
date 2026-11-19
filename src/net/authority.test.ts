@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Book, type Character, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
+import { TOMBS, ridOf, type Book, type Character, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
 import { burialOf, bury } from '../rules/yards.ts';
@@ -363,4 +363,24 @@ test('who holds each name goes to everyone when it changes, and to a tab catchin
   got.get('ann')!.link.send('sync', {});
   await room.settle();
   assert.equal(last().to, 'ann', 'and a catch-up gets them');
+});
+
+test('a copy older than what the book has forgotten is refused whole', async () => {
+  // R448: the sticky was deleted at version 1, with 2,999 deletions after it; one more drops its tombstone.
+  const { room, game, got } = await table();
+  got.get('dana')!.link.send('sync', {});   // so what is deleted has gone out, and is tombed
+  await room.settle();
+  const sticky = game.get(STICKY) as Sticky, tomb: Record<string, number> = { [STICKY]: 1 };
+  for (let i = 2; i <= TOMBS; i++) tomb[ridOf('a' + i.toString(16).padStart(7, '0'))] = i;
+  game.change(w => w.del(STICKY));
+  await room.settle();
+  game.change(w => w.put('book', { ...(game.get('book') as Book), gv: TOMBS, tomb }));
+  game.change(w => w.del(ridOf('00000009')));   // the reference card, which everyone sees
+  await room.settle();
+  const book = game.get('book') as Book;
+  assert.equal(book.tomb[STICKY], undefined, "the cap dropped the sticky's tombstone");
+  assert.equal(book.floor, 1, 'and the book keeps the newest version it dropped');
+  const edit: Edit = { s: 1, base: 0, puts: [{ rid: STICKY, rec: sticky }], dels: [] };
+  assert.deepEqual(judge(game, edit, 'Dana', 'dana').refused, [STICKY], 'a copy from before it: refused');
+  assert.deepEqual(judge(game, { ...edit, base: book.gv }, 'Dana', 'dana').refused, [], 'a copy that saw it all: taken');
 });
