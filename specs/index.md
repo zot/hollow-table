@@ -3,6 +3,11 @@
 A play manager for Hollow stories (Glimmer, Bunkum): a shared table in the browser, peer to peer.
 The GM's browser holds the game; players join with an invite link.
 
+**What it's for** (Bill, 11-19). A session around one real table, everyone with a device, and one played
+remotely, alike: "Both; voice stays off the table", so the talk is never carried by the table. Bunkum's
+mission play (its four-area map, Events and Recoveries) is "Out of scope", and nothing is shaped yet for
+Ricochet's physical conflict: "No seam; build it when it comes".
+
 ## Systems
 
 ### The table
