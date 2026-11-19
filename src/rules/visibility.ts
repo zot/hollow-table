@@ -90,9 +90,10 @@ function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRe
   if (r.kind === 'influence') {
     const home = chars(r.home);
     if (home && canSee(viewer, home)) return r;
-    // R357, R358: face-down, but a contribution's value in a pool is public.
-    const { tap: _secret, ...rest } = r;
-    return { ...rest, name: '', points: inSlot(r) ? r.points : 0 };
+    // R357, R358: face-down, but a contribution's value in a pool is public. R464: a flag is seen by all,
+    // but not where its Levels came from.
+    const { tap: _secret, flag, ...rest } = r;
+    return { ...rest, name: '', points: inSlot(r) ? r.points : 0, ...(flag && { flag: { why: flag.why } }) };
   }
   return r;
 }

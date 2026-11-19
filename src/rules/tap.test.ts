@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, Damage, Influence, Opinion, RowName } from '../model/records.ts';
 import { marks, parse } from '../text/marks.ts';
-import { feed, kill, leftOf, mayTap, mildGone, recharge, rechargeMotives, tap, unfeed, type Holder, type Tapped } from './tap.ts';
+import { MIXED, PLAIN, USED, allowFlag, feed, kill, leftOf, mayTap, mildGone, recharge, rechargeMotives, tap, undoFlag, unfeed, type Holder, type Tapped } from './tap.ts';
 import { levelName } from './influence.ts';
 import { connection } from './connections.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
@@ -25,6 +25,8 @@ function table() {
 const show = (c: Influence) =>
   `${c.name} ${c.sign < 0 ? '−' : '+'}${levelName(c.points)} ${JSON.stringify(c.tap?.ledger ?? {})}`;
 const where = { table: { x: 0, y: 0, z: 0, tilt: 0 } };
+/** A plain card, written in Devreux's drawer: no tap behind it. */
+const written = (oid: string): Influence => ({ kind: 'influence', oid, home: DEVREUX, where: 'drawer', n: 9, name: 'Grit', sign: 1, points: 2, used: false, crit: false });
 
 test('the ledger', () => {
   const t = table(), r1 = `${SAM}:Money`, r2 = `${SAM}:Ammo`;
@@ -50,19 +52,20 @@ test('the ledger', () => {
   assert.equal(t.resources(SAM), 'Money +Sig, Ammo +Sig');
 });
 
-test('refusals and refunds', () => {
+test('flagged taps and refunds', () => {
+  // R461: a Resource fed into a plain card feeds it, flagged for the GM, and the card remembers it was plain.
   const t = table();
-  const plain = scene().find((r): r is Influence => r.kind === 'influence' && r.name === 'Keep the Peace')!;
-  const inPool = { ...plain, where: { slot: DEVREUX, name: 'main' as const } };
-  assert.equal(feed(t.look, inPool, `${DEVREUX}:Money`, 'x'), null);
-  const beside = t.take(tap(t.look, `${DEVREUX}:Money`, inPool.where, 'c2'))!;
-  assert.equal(show(beside), `Money +Min ${JSON.stringify({ [`${DEVREUX}:Money`]: 1 })}`);
+  const plain = written('p1'), inPool = { ...plain, where: { slot: DEVREUX, name: 'main' as const } };
+  const fedPlain = t.take(feed(t.look, inPool, `${DEVREUX}:Money`, 'x'))!;
+  assert.deepEqual([fedPlain.oid, fedPlain.points, fedPlain.flag], [plain.oid, plain.points + 2, { why: PLAIN, fed: { [`${DEVREUX}:Money`]: 1 }, plain: true }]);
+  // (Devreux's Money is spent out by now: the next tap is Sam's.)
+  const beside = t.take(tap(t.look, `${SAM}:Money`, inPool.where, 'c2'))!;
+  assert.equal(show(beside), `Money +Min ${JSON.stringify({ [`${SAM}:Money`]: 1 })}`);
 
+  // R462: a used card is fed itself, flagged, not a new card beside it.
   const used = { ...beside, used: true };
-  const fresh = t.take(feed(t.look, used, undefined, 'c3'))!;
-  assert.equal(fresh.oid, 'c3');
-  assert.deepEqual(fresh.where, used.where);
-  assert.equal(fresh.points, 2);
+  const fedUsed = t.take(feed(t.look, used, undefined, 'c3'))!;
+  assert.deepEqual([fedUsed.oid, fedUsed.points, fedUsed.flag?.why], [used.oid, 4, USED]);
 
   const lc = `${BEAUFORD}:Liquid Courage`;
   const card = t.take(tap(t.look, lc, where, 'c4'))!;
@@ -155,7 +158,7 @@ test('what a source has left', () => {
 });
 
 test('tapping a Motivation', () => {
-  // R260, R261, R262: a Main Pool Influence of its sign; the Motivation spends into its parentheses
+  // R463, R261, R262: a Main Pool Influence of its sign; the Motivation spends into its parentheses
   // and recharges at a scene's end; only Motivations feed the card.
   const t = table(), dev = () => t.chars.get(DEVREUX)!, mots = () => marks(parse(dev().front), 'mot').map(m => m.text).join(', ');
   assert.equal(mots(), 'Keep the Peace +Sig (0), Self-Preservation +Sig (0), Old Sympathy for Sparkers +Min (0)');
@@ -165,14 +168,36 @@ test('tapping a Motivation', () => {
   const card = t.take(tap(t.look, `${DEVREUX}:Keep the Peace`, where, 'c1'))!;
   assert.deepEqual([card.mot, card.sign, card.points, card.damage], [true, 1, 2, undefined]);
   assert.match(mots(), /^Keep the Peace \+Sig \(\+Min\),/);
-  assert.equal(feed(t.look, card, `${DEVREUX}:Money`, 'x'), null, 'a Resource does not feed a Motivation card');
+  // R463: a Resource and a Motivation on one card is the GM's call: fed, and flagged.
+  const mixed = feed(t.look, card, `${DEVREUX}:Money`, 'x')!;
+  assert.deepEqual([mixed.card.points, mixed.card.flag?.why], [4, MIXED], 'a Resource feeds a Motivation card, flagged');
   const fed = t.take(feed(t.look, card, `${DEVREUX}:Self-Preservation`, 'x'))!;
+  assert.equal(fed.flag, undefined, 'Motivations together: no flag');
   assert.equal(fed.points, 4);
   assert.match(mots(), /Self-Preservation \+Sig \(\+Min\)/);
   for (const c of kill(t.look, fed)) t.chars.set(c.oid, c as Character);
   assert.equal(mots(), 'Keep the Peace +Sig, Self-Preservation +Sig, Old Sympathy for Sparkers +Min', 'a refund back to full');
   const money = t.take(tap(t.look, `${SAM}:Money`, where, 'c2'))!;
-  assert.equal(feed(t.look, money, `${DEVREUX}:Keep the Peace`, 'x'), null, 'a Motivation does not feed a Resource card');
+  assert.equal(feed(t.look, money, `${DEVREUX}:Keep the Peace`, 'x')!.card.flag?.why, MIXED, 'a Motivation feeds a Resource card, flagged');
+});
+
+test('the GM rules on a flag: allow keeps the tap, undo gives the flagged Levels back', () => {
+  // R464.
+  const t = table();
+  const plain = written('p2');
+  const before = t.resources(DEVREUX);
+  const fedPlain = t.take(feed(t.look, plain, `${DEVREUX}:Money`, 'x'))!;
+  assert.notEqual(t.resources(DEVREUX), before);
+  assert.equal(allowFlag(fedPlain).flag, undefined, 'allowed: the flag goes, the tap stays');
+  assert.equal(allowFlag(fedPlain).points, fedPlain.points);
+  const back = t.take(undoFlag(t.look, fedPlain))!;
+  assert.deepEqual(back, plain, 'undone: the plain card as it was');
+  assert.equal(t.resources(DEVREUX), before, 'and the Resource as it was');
+  // A tap fed before the flag keeps its own Levels.
+  const money = t.take(tap(t.look, `${SAM}:Money`, where, 'c9'))!;
+  const used = t.take(feed(t.look, { ...money, used: true }, undefined, 'x'))!;
+  const undone = t.take(undoFlag(t.look, used))!;
+  assert.deepEqual([undone.points, undone.flag, undone.tap?.ledger], [2, undefined, { [`${SAM}:Money`]: 1 }]);
 });
 
 test('who may tap', () => {

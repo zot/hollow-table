@@ -567,3 +567,28 @@ test("End ends when its checkpoint isn't kept", async ({ page }) => {
   await page.locator('.register .key.end').click();
   await expect.poll(async () => (await rec(page, 'meta')).round).toBe(0);
 });
+
+test("the GM rules on a flagged tap: allow keeps it, undo gives it back", async ({ page }) => {
+  // R464: a flag is a mark on the card, titled with why; on the GM's page a click offers Allow and Undo.
+  const put = (oid: string, points: number) => page.evaluate(async ([oid, points]) => {
+    const g = (await (window as any).hollow.ready).store.game;
+    g.change((w: any) => w.put(`o:${oid}`, { kind: 'influence', oid, home: '00000003', where: { slot: '00000003', name: 'main' }, n: 0, name: 'Grit',
+      sign: 1, points, used: false, crit: false, tap: { ledger: { '00000003:Money': 1 }, current: '00000003:Money' },
+      flag: { why: 'Tapped into a plain card', fed: { '00000003:Money': 1 }, plain: true } }));
+  }, [oid, points] as const);
+  await put('0000f1a1', 4);
+  const card = page.locator('[data-rid="o:0000f1a1"]').first(), flag = card.locator('.flag');
+  await expect(flag).toHaveAttribute('title', /^Tapped into a plain card: the GM.s call/);
+  await flag.click();
+  await card.locator('.flagact.allow').click();
+  await expect(card.locator('.flag')).toHaveCount(0);
+  expect((await rec(page, 'o:0000f1a1')).points).toBe(4);
+  // Undo: the Level fed under the flag goes back, and the card is plain again.
+  await put('0000f1a2', 4);
+  const other = page.locator('[data-rid="o:0000f1a2"]').first();
+  await other.locator('.flag').click();
+  await other.locator('.flagact.undo').click();
+  await expect.poll(async () => (await rec(page, 'o:0000f1a2')).points).toBe(2);
+  const undone = await rec(page, 'o:0000f1a2');
+  expect([undone.flag, undone.tap]).toEqual([undefined, undefined]);
+});

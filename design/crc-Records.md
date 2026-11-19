@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429, R436, R439
+**Requirements:** R23, R26, R28, R36, R38, R47, R462, R98, R126, R130, R191, R209, R211, R248, R463, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429, R436, R439, R464
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -35,7 +35,8 @@ record crosses the wire, the database and an export file unchanged.
 - Influence: `{kind: 'influence', oid, home: oid, where: Where, n, name, sign, points, used, crit,
   tap?: {ledger: {[source]: number}, current: source}, damage?: Damage, mot?: true, once?: true}`. `damage` marks a card
   tapped from a Damage Resource: an Influence of that kind (R211); `mot` one tapped from a
-  Motivation, a Main Pool Influence (R260); `once` one an action put in its actor's Main pool for its
+  Motivation, a Main Pool Influence (R463); `flag` (R464) `{why, fed: {source: Levels}, plain?}` a tap
+  the GM rules on; `once` one an action put in its actor's Main pool for its
   own roll (R362, R353). `home` is the character whose drawer it
   belongs to and who may read it. A source is `<character oid>:<Resource name>`.
 - Chip: `{kind: 'chip', oid, where: Where, n, sign, points, rider, by?}`. A loose odd point is

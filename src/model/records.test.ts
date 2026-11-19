@@ -21,7 +21,7 @@ test('check takes the scene and refuses the malformed', () => {
   assert.ok(check(ridOf(roll.oid), roll));
   const inf = records.find((r): r is Influence => r.kind === 'influence')!;
   assert.ok(check(ridOf(inf.oid), { ...inf, damage: 'injury' }));
-  assert.ok(inf.mot && check(ridOf(inf.oid), inf), 'R260: a Motivation card');
+  assert.ok(inf.mot && check(ridOf(inf.oid), inf), 'R463: a Motivation card');
   // R341, R340: a Conviction and a Burden, one waiting for its name; a receipt waiting on one.
   const lasting = { bias: { name: 'Cheats win', points: 7, spent: 1 }, affliction: { name: '', points: 2, spent: 0, naming: { by: 'Beauford', id: 'r1' } } };
   assert.ok(check(rid, { ...sam, back: { ...sam.back, lasting } }));

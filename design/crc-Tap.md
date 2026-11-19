@@ -1,5 +1,5 @@
 # Tap
-**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262, R343, R344, R432, R433
+**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262, R343, R344, R432, R433, R461, R462, R463, R464
 
 Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source so
 every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
@@ -30,11 +30,15 @@ Resources*). Pure: returns the records to write.
   characters and records it changed.
 - tap(chars, source, where, oid): a new resource-made card born at Min, named after the source, current source set,
   ledger `{source: 1}`, and the source spent by one Level. A Damage source makes a card of its kind
-  (`damage` set); a Motivation or an Opinion a `mot` card of its sign (R260, R433).
+  (`damage` set); a Motivation or an Opinion a `mot` card of its sign (R463, R433).
 - feed(chars, card, source?, oid): a Level from the current source (or from a dropped source, which becomes
-  current) into the card. Refused for a plain card, and for a source of another kind than the card
-  (a `<res>` and a card of a Damage kind, two Damage kinds, or a Motivation or Opinion and any other kind). For a used card, a new card beside it
-  instead.
+  current) into the card. Refused for a source of a Damage kind other than the card's (a `<res>` and a
+  card of a Damage kind, or two Damage kinds, R211). The GM's call is fed and flagged (R461–R463): a
+  plain card (PLAIN, the card remembering it was plain), a used card (USED, fed itself), or a
+  Motivation or Opinion with a Resource's card or the reverse (MIXED); the flag counts the Levels fed
+  under it by source.
+- allowFlag(card) (R464): the card without its flag. undoFlag(chars, card): the Levels fed under the
+  flag go back to their sources, a card that was plain is plain again, and the flag goes.
 - unfeed(chars, card): a Level back to the current source, never below what it put in, and the card
   never below Min.
 - kill(chars, card): an unused tap's Levels go back to their sources.

@@ -19,19 +19,19 @@ Resources after each:
 **Alarm:** 1
 **Fire alarm:** In feed, keep the card's current source when another is dropped on it: step 4 feeds Money and shows `Money +Sig {r1:2}`
 **Inject:** src/rules/tap.ts:feed
-**Pulled:** 2026-11-12 — rang: step 4 fed Money: `Money +Sig {r1:2}` instead of `{r1:1, r2:1}`
-## Test: refusals and refunds
-**Purpose:** a plain card can't be fed; a used card starts a new one; a killed tap refunds
-**Input:** tap onto a plain `Keep the Peace` chip in a pool; tap onto a used card; Beauford's
-`Liquid Courage +Sig` tapped and the card killed
-**Expected:** no merge (the plain chip and a new card side by side); a new card beside the used
-one; Beauford's Resources back to `Liquid Courage +Maj`
+**Pulled:** 2026-11-19 — re-pulled after R461 to R463 (feed changed): rang; restored clean *Earlier —* 2026-11-12 — rang: step 4 fed Money: `Money +Sig {r1:2}` instead of `{r1:1, r2:1}`
+## Test: flagged taps and refunds
+**Purpose:** R461, R462: a plain card and a used card are fed themselves, flagged for the GM; a killed tap refunds
+**Input:** Devreux's Money fed into a plain card written in her drawer, in her Main slot; Sam's Money tapped, then fed
+into that card made used; Beauford's `Liquid Courage +Sig` tapped and the card killed
+**Expected:** the plain card itself fed, flagged PLAIN with `fed` Money 1 and `plain`; the used card itself fed to 4,
+flagged USED; Beauford's Resources back to `Liquid Courage +Maj`
 **Refs:** crc-Tap.md
 **Code:** `src/rules/tap.test.ts`
 **Alarm:** 2
 **Fire alarm:** Let kill refund a used card too (drop `card.used`): the last check returns Beauford
 **Inject:** src/rules/tap.ts:kill
-**Pulled:** 2026-11-18 — re-pulled after kill began keying refunds by the holder they change; rang: the used card refunded Beauford; restored clean *Earlier —* 2026-11-12 — rang: killing the used card returned Beauford instead of nothing
+**Pulled:** 2026-11-19 — re-pulled after R461 and R462 (the test rewritten): rang, the used card refunded Beauford; restored clean *Earlier —* 2026-11-18 — re-pulled after kill began keying refunds by the holder they change; rang: the used card refunded Beauford; restored clean *Earlier —* 2026-11-12 — rang: killing the used card returned Beauford instead of nothing
 ## Test: Damage slots
 **Purpose:** a slot needs a name; Damage Levels; a box is a Resource of its own with its slot's name
 (R61, R62, R210)
@@ -85,8 +85,7 @@ the Money card from the Bias; feed the Bias card from its own source
 **Alarm:** 6
 **Fire alarm:** Let feed take any source (drop the kind check): the Injury feeds the Bias card
 **Inject:** src/rules/tap.ts:feed
-**Pulled:** 2026-11-12 — rang: the Injury fed the Bias card instead of being refused
-
+**Pulled:** 2026-11-19 — re-pulled after R461 to R463 (feed changed): rang; restored clean *Earlier —* 2026-11-12 — rang: the Injury fed the Bias card instead of being refused
 ## Test: what a source has left
 **Purpose:** R250: Tap.leftOf gives the Levels a source can still be tapped for, which fades a dry glyph
 **Input:** Sam's Ammo before and after a tap and a feed take both its Levels; Money; an unknown name;
@@ -100,20 +99,19 @@ unchecked second box
 **Inject:** src/rules/tap.ts:source
 **Pulled:** 2026-11-18 — re-pulled after left became leftOf, by the whole source; rang: the named Bias slot read 0 left, and three other tests failed with it; restored clean *Earlier —* 2026-11-12 — rang: the named Sig Bias slot read 0 left instead of 2
 ## Test: tapping a Motivation
-**Purpose:** R260–R262: a Motivation makes a Main Pool card of its sign, spends into its
-parentheses, recharges at a scene's end, refunds back to full, and feeds only Motivation cards
+**Purpose:** R463, R261, R262: a Motivation makes a Main Pool card of its sign, spends into its
+parentheses, recharges at a scene's end, refunds back to full; a Resource and a Motivation on one card feed, flagged MIXED
 **Input:** Devreux's playtest Motivations, spent out; a tap before and after rechargeMotives; a feed
 from Money and one from Self-Preservation; the card killed; Sam's Money card fed from Keep the Peace
 **Expected:** all three read `(0)` and refuse a tap; after the recharge no parentheses and a card with
-`mot`, sign +1, 2 points, no Damage kind; Keep the Peace `(+Min)`; Money refused; Self-Preservation
-feeds it to 4 and reads `(+Min)`; the kill restores both to full; Money's card refuses the Motivation
+`mot`, sign +1, 2 points, no Damage kind; Keep the Peace `(+Min)`; Money feeds it, flagged MIXED; Self-Preservation
+feeds it to 4, no flag, and reads `(+Min)`; the kill restores both to full; Money's card fed by the Motivation, flagged MIXED
 **Refs:** crc-Tap.md
 **Code:** `src/rules/tap.test.ts`
 **Alarm:** 8
-**Fire alarm:** In feed, drop the Motivation check: Money feeds the Motivation card
+**Fire alarm:** In feed, never call a mix the GM's call (drop the Motivation comparison): Money feeds the Motivation card unflagged
 **Inject:** src/rules/tap.ts:feed
-**Pulled:** 2026-11-12 — rang: Money fed the Motivation card instead of being refused
-
+**Pulled:** 2026-11-19 — re-aimed after R463 (the mix is fed and flagged now, not refused): rang, Money fed the Motivation card unflagged; restored clean *Earlier —* 2026-11-12 — rang: Money fed the Motivation card instead of being refused
 ## Test: who may tap
 **Purpose:** R259: a `<res>` only by its character's owner or the GM; anyone's Motivations and Damage
 **Input:** Sam's Money for his owner, another player, the GM and nobody; Devreux's Keep the Peace for
@@ -157,3 +155,15 @@ three; Devreux's Money for two players; Sam's named Sig Bias for another player;
 **Fire alarm:** spend an Opinion's fixed Level, as a `<res>` spends (`spend` in place of `adjust`); red: the record reads `Reputation +Min`
 **Inject:** src/rules/tap.ts:inOpinion
 **Pulled:** 2026-11-18 — rang: the record read "Reputation +Min", its fixed Level spent; restored clean
+
+## Test: the GM rules on a flag: allow keeps the tap, undo gives the flagged Levels back
+**Purpose:** R464: Allow clears a flag and keeps the tap; Undo gives back only the Levels fed under the flag, a plain card plain again
+**Input:** Devreux's Money fed into a plain card; allowed; undone. Sam's Money tapped, then fed into the card made used; undone
+**Expected:** allowed: no flag, the same points; undone: the plain card exactly as written, Devreux's Resources as before;
+the used card back to 2 points, no flag, its own tap's ledger Money 1 kept
+**Refs:** crc-Tap.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 13
+**Fire alarm:** undo every Level of a flagged source (the ledger, not `fed`); red: the used card's own tap is lost too
+**Inject:** src/rules/tap.ts:undoFlag
+**Pulled:** 2026-11-19 — rang: undoing every Level of the flagged source took the used card's own tap too; restored clean

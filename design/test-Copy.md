@@ -62,4 +62,4 @@ GM's page coming back
 **Alarm:** 4
 **Fire alarm:** take a piece another tab changed since the copy (drop the `stale` check from judge's puts): the sticky's old text replaces the GM's rewrite
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge changed): rang, the GM's text was lost to her stale move; restored clean *Earlier —* 2026-11-19 — rang: the sticky's old text replaced the GM's rewrite; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge changed): rang, the GM's text was lost to her stale move; restored clean *Earlier —* 2026-11-19 — rang: the sticky's old text replaced the GM's rewrite; restored clean

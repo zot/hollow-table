@@ -9,7 +9,7 @@ import { candidates, newConnections, rowOf, tableOf } from '../rules/connections
 import { levelName } from '../rules/influence.ts';
 import { rollUp, worth, type Item, type Unit } from '../rules/pool.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
-import { addLoose, cardClick, chipClick, restoreUsed, riderClick, writeCard, type Change } from './actions.ts';
+import { addLoose, cardClick, chipClick, restoreUsed, riderClick, ruleFlag, writeCard, type Change } from './actions.ts';
 import { ownerWord } from './rollrow.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 
@@ -266,7 +266,8 @@ function units(slotEl: HTMLElement, items: Item[], w: PoolWith, shown: Shown, dr
     box.replaceChildren(...mine.map((u, k) => {
       const piled = isPile(u);
       const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
-      e.style.zIndex = String(50 - k);
+      // R464: a flagged card is drawn above the rest of its stack, so its flag can be reached.
+      e.style.zIndex = String((!piled && u.kind === 'influence' && u.flag ? 100 : 50) - k);
       const key = piled ? `pile:${(u.members[0] as Item | undefined)?.oid ?? ''}` : u.oid;
       shown.set(key, { points: u.points, place });
       drawn.set(key, e);
@@ -294,6 +295,7 @@ function chip(doc: Document, i: Item, w: PoolWith): HTMLElement {
   const rid = ridOf(i.oid);
   b.dataset.rid = rid;
   if (card) { b.title = i.name; b.dataset.name = i.name; }
+  if (card && i.flag) b.append(flagMark(doc, i, rid, w));   // R464
   if (i.kind === 'chip' && i.rider) {
     const r = el(doc, 'span', 'rider', '+1');
     gesture(r, { click: () => undefined, shift: () => run(w.game, riderClick(w.game, rid, true)) });
@@ -378,7 +380,8 @@ function card(doc: Document, k: Influence, visible: boolean, w: PoolWith): HTMLE
   const e = el(doc, 'span', `icard ${k.sign > 0 ? 'pos' : 'neg'}${k.used ? ' isused' : ''}${k.tap ? ' tapped' : ''}${k.crit ? ' crit' : ''}`);
   e.dataset.rid = rid;
   const drag = { drag: (d: PointerLike, m: PointerLike) => w.dragItem(rid, d, m) };
-  if (!visible) { e.classList.add('facedown'); gesture(e, drag); return e; }
+  const mark = k.flag ? flagMark(doc, k, rid, w) : null;
+  if (!visible) { e.classList.add('facedown'); if (mark) e.append(mark); gesture(e, drag); return e; }
   const name = el(doc, 'span', 'iname', k.name);
   // A freshly written card is named in place.
   name.contentEditable = 'true';
@@ -392,9 +395,32 @@ function card(doc: Document, k: Influence, visible: boolean, w: PoolWith): HTMLE
     click: () => run(w.game, cardClick(w.game, rid, false, w.mint())),
     shift: () => run(w.game, cardClick(w.game, rid, true, w.mint())),
   });
-  e.append(name, level);
+  e.append(name, level, ...(mark ? [mark] : []));
   gesture(e, drag);
   return e;
+}
+
+// R464: a flag is seen by all, titled with its why; on the GM's page a click offers Allow and Undo.
+function flagMark(doc: Document, k: Influence, rid: string, w: PoolWith): HTMLElement {
+  const gm = !!w.viewer?.gm, f = el(doc, 'span', 'flag', '⚑');
+  f.title = `${k.flag!.why}: the GM's call${gm ? '. Click to allow it or undo it.' : ''}`;
+  if (!gm) return f;
+  // A span, not a button: a card in a slot is a button itself. Its press is the flag's, not the card's.
+  f.setAttribute('role', 'button');
+  f.tabIndex = 0;
+  f.addEventListener('pointerdown', ev => ev.stopPropagation());
+  gesture(f, { click: () => {
+    if (f.querySelector('.flagmenu')) return;
+    const menu = el(doc, 'span', 'flagmenu');
+    const choice = (text: string, allow: boolean) => {
+      const b = el(doc, 'button', `flagact ${allow ? 'allow' : 'undo'}`, text);
+      gesture(b, { click: () => run(w.game, ruleFlag(w.game, rid, allow)) });
+      return b;
+    };
+    menu.append(choice('Allow', true), choice('Undo', false));
+    f.append(menu);
+  } });
+  return f;
 }
 
 // ---- R240: the gap a carried card would go into ----

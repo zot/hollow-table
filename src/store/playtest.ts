@@ -113,7 +113,7 @@ A1: *super* important to Trudy.
 
 Next session: first day in town, late at night at the hotel`;
 
-// R260, R261: Devreux's Influences, each tapped in full from her Motivation of that name.
+// R463, R261: Devreux's Influences, each tapped in full from her Motivation of that name.
 const infl = (oid: Oid, name: string, points: number, n: number): Influence => {
   const src = `${DEVREUX}:${name}`;
   return { kind: 'influence', oid, home: DEVREUX, where: 'drawer', n, name, sign: 1, points, used: false, crit: false,

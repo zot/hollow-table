@@ -1,5 +1,5 @@
 # Visibility
-**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R378, R381, R377, R378, R394, R399, R406, R410, R427, R435
+**Requirements:** R143-145, R150, R356-359, R185, R313, R341, R348, R378, R381, R377, R378, R394, R399, R406, R410, R427, R435, R464
 
 Who may read what, and each record as a given viewer may see it. Pure. The invariant it serves: no
 page ever holds, in the clear, a secret its person may not read.
@@ -8,6 +8,8 @@ page ever holds, in the clear, a secret its person may not read.
 - Viewer: `{name, gm}`; `null` for someone who owns nothing.
 
 ## Does
+- (R464) a flag on a card the viewer can't read keeps only its `why`: everyone sees it, not where its
+  Levels came from.
 - canSee(viewer, character): the GM always; an open character, everyone; otherwise its owner.
 - contribution(item, characters) (R358): whether a chip or card in a pool is a contribution: a chip
   whose `by` is set and isn't the pool character's owner; a card whose home character has another

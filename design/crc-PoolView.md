@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R260, R268, R269, R142, R144, R146, R285, R360, R366, R379, R369, R377, R401, R422
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R463, R268, R269, R142, R144, R146, R285, R360, R366, R379, R369, R377, R401, R422, R464
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -8,6 +8,8 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
   its used pile.
 
 ## Does
+- (R464) a flagged card shows a flag mark, face-down too, titled with its why; on the GM's page a click on
+  it opens Allow and Undo (Tap.allowFlag, Tap.undoFlag).
 - R422: the NPC's menu lists, under "Opinion of", the candidates (crc-Connections.md); a pick makes the
   record (main's addOpinion: the table made, put away, when there is none; the holder's row kept), slid
   out.
@@ -21,7 +23,7 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
 - toSlot and addLoose (actions, R360): a chip dropped on a slot or added in one takes `by`, the
   acting person's name (the viewer's); raising and lowering keep it.
 - toSlot (actions): a `mot` card dropped into a Main slot joins that character's drawer, its
-  `home` set to the slot's character (R260), so a card tapped from an NPC's Motivation is the
+  `home` set to the slot's character (R463), so a card tapped from an NPC's Motivation is the
   tapper's.
 - carry (R251): a drag from the name, the frame of slots or the drawer starts Drag.startPool; chips and
   cards there take the press first (their own drag), and the header's empty space is left to the table.

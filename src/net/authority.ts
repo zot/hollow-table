@@ -41,6 +41,15 @@ const seen = (rec: Rec, viewer: Viewer, chars: Characters) => same(redact(rec, v
 const forged = (old: Rec | undefined, rec: Rec, who: string) => 'kind' in rec && rec.kind === 'chip'
   && rec.by !== undefined && rec.by !== who && rec.by !== (old && 'kind' in old && old.kind === 'chip' ? old.by : undefined);
 
+// R464: only the GM's page rules on a flag: a player's change may add to one (another flagged tap), but
+// never drop it, drop its why, or take Levels from under it.
+const ruled = (old: Rec | undefined, rec: Rec) => {
+  const f = old && 'kind' in old && old.kind === 'influence' ? old.flag : undefined;
+  if (!f) return false;
+  const g = 'kind' in rec && rec.kind === 'influence' ? rec.flag : undefined;
+  return !g || !g.why.includes(f.why) || Object.entries(f.fed ?? {}).some(([k, n]) => (g.fed?.[k] ?? 0) < n);
+};
+
 // R191: Boot Hill from a player: what they can only see redacted is put back as the GM has it; if they
 // left out something they couldn't read, the change is refused (a burial would lose it). R406: a GM card
 // comes back whole by its `gm` name, and one the player made up is dropped.
@@ -141,6 +150,7 @@ export function judge(game: Game, edit: Edit, who: string | null, tab?: string):
     else if (!isPiece(rid) || (book.tomb[rid] ?? 0) > edit.base) refused.push(rid);       // R192
     else if (stale(rid)) refused.push(rid);                                                  // R444
     else if (forged(game.get(rid), rec, who)) refused.push(rid);                             // R360
+    else if (ruled(game.get(rid), rec)) refused.push(rid);                                   // R464
     else if (mine(game.get(rid), rec)) puts.push({ rid, rec });
     else refused.push(rid);
   }

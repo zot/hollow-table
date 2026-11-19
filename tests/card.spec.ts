@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R260, R268, R269, R270, R271, R272, R334, R335, R341, R342
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -74,7 +74,7 @@ test("a card's Level answers clicks; shift-click at Min deletes it", async ({ pa
 });
 
 test('a Motivation card goes only to Main', async ({ page }) => {
-  // R260: Devreux's Keep the Peace dropped on Edge goes home; on Main it stays.
+  // R463: Devreux's Keep the Peace dropped on Edge goes home; on Main it stays.
   const card = () => at(page, `${DPOOL} .drawer [data-rid="${PEACE}"]`, 8, 8);
   let c = await card(), edge = await at(page, `${DPOOL} .slot-edge`, 20, 40);
   await dragFromTo(page, c.x, c.y, edge.x, edge.y, 12);

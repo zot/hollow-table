@@ -384,3 +384,17 @@ test('a copy older than what the book has forgotten is refused whole', async () 
   assert.deepEqual(judge(game, edit, 'Dana', 'dana').refused, [STICKY], 'a copy from before it: refused');
   assert.deepEqual(judge(game, { ...edit, base: book.gv }, 'Dana', 'dana').refused, [], 'a copy that saw it all: taken');
 });
+
+test('a player never rules on a flag', () => {
+  // R464: Dana's change that drops or shrinks the flag on her own card is refused; one that keeps it is taken.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const card = (flag?: Influence['flag'], points = 4): Influence => ({ kind: 'influence', oid: '0000f1a9', home: SAM, where: 'drawer', n: 0,
+    name: 'Grit', sign: 1, points, used: true, crit: false, tap: { ledger: { [`${SAM}:Money`]: 2 }, current: `${SAM}:Money` }, ...(flag && { flag }) });
+  const flagged = { why: 'Tapped into a used card', fed: { [`${SAM}:Money`]: 1 } };
+  game.change(w => w.put(ridOf('0000f1a9'), card(flagged)));
+  const book = game.get('book') as Book, edit = (c: Influence): Edit => ({ s: 1, base: book.gv, puts: [{ rid: ridOf(c.oid), rec: c }], dels: [] });
+  assert.deepEqual(judge(game, edit(card()), 'Dana', 'dana').refused, [ridOf('0000f1a9')], 'the flag dropped');
+  assert.deepEqual(judge(game, edit(card({ why: flagged.why, fed: {} })), 'Dana', 'dana').refused, [ridOf('0000f1a9')], 'the flag shrunk');
+  assert.deepEqual(judge(game, edit(card(flagged, 6)), 'Dana', 'dana').refused, [], 'kept, and the card changed');
+});

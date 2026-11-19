@@ -77,15 +77,19 @@ export type Character = {
 /** A tapped card's ledger: Levels put in by each source (`<character oid>:<name>`). */
 export type TapLedger = { ledger: Record<string, number>; current: string };
 
-// R47, R63, R98: an Influence card, readable only by whoever may read its home character.
+// R47, R462, R98: an Influence card, readable only by whoever may read its home character.
 export type Influence = {
   kind: 'influence'; oid: Oid; home: Oid; where: Where; n: number; name: string; sign: Sign;
   points: number; used: boolean; crit: boolean; tap?: TapLedger; damage?: Damage;
-  /** R260: tapped from a Motivation, a Main Pool Influence. */
+  /** R463: tapped from a Motivation, a Main Pool Influence. */
   mot?: true;
   /** R362, R353: put in its actor's Main pool by the action it suffers, for that action's roll only. */
   once?: true;
+  /** R464: a tap the GM rules on: why, the Levels fed under it by source, and whether it was plain. */
+  flag?: Flag;
 };
+/** R464: why a card is flagged; `fed` and `plain` only where the card may be read. */
+export type Flag = { why: string; fed?: Record<string, number>; plain?: true };
 
 // R36, R38: a chip; a loose odd point is `points: 1`, and `rider` is a +1 riding the chip.
 // R360: `by` is who put it in a pool; none on a Roll Up's chip or one from before.
@@ -281,7 +285,8 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
     card: place, flipped: bool, gathered: bool, front: marked, back }, { shown: list(marked), info: list(marked, 20) }),
   influence: fields({ kind: oneOf('influence'), oid: isOid, home: isOid, where, n: int(0, CAPS.list), name: str(CAPS.name),
     sign, points, used: bool, crit: bool },
-    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true) }),
+    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true),
+      flag: fields({ why: str(CAPS.name) }, { fed: dict(int(0, 100)), plain: oneOf(true) }) }),
   chip: fields({ kind: oneOf('chip'), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }, { by: str(CAPS.name) }),
   sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin, big: bool }),
   text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin }),

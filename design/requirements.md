@@ -147,7 +147,7 @@
 - **R225:** A tap's card is made the moment the drag starts, its Level already spent, and carried with its glyph under the pointer.
 - **R56:** On a resource-made card, click moves a Level from the current source; shift-click moves one back, never below what that source put in (a per-source ledger).
 - **R57:** Dropping another Resource's glyph on a resource-made card anywhere (table, pool, drawer) moves a Level from it and makes it the current source; this works across characters.
-- **R58:** A Resource can't feed a plain Influence card.
+- **~~R58:~~** (Retired T48 — see R461) A Resource can't feed a plain Influence card.
 - **R59:** Killing an unused tap refunds it.
 - **R60:** A tap may wait loose on the table without going home.
 - **R61:** Bias, Affliction and Injury slots are worth Mild and Min 1 Level, Sig 2, Maj 3; a slot shows the Levels spent.
@@ -156,11 +156,11 @@
 - **R211:** A card tapped from a Damage Resource is an Influence of its kind: it goes only into its kind's pool slot (dropped in another slot, it goes home to its drawer) and only Resources of its kind feed it; a `<res>` Resource can't feed a Damage card, nor a Damage Resource a card made from a `<res>`.
 - **R212:** Anyone may tap any character's Damage Resources; Biases, Afflictions and Injuries may all apply to one action.
 - **R259:** Only a character's owner or the GM may tap its `<res>` Resources; the table refuses anyone else's drag from the glyph. Anyone may tap any character's Motivations.
-- **R260:** A card tapped from a Motivation is a Main Pool Influence of the Motivation's sign: it goes only into a Main slot (dropped in another slot, it goes home), only Motivations feed it, and dropped into a Main slot it joins that character's drawer.
+- **~~R260:~~** (Retired T50 — see R463) A card tapped from a Motivation is a Main Pool Influence of the Motivation's sign: it goes only into a Main slot (dropped in another slot, it goes home), only Motivations feed it, and dropped into a Main slot it joins that character's drawer.
 - **R261:** Spending a Motivation is temporary: its written Level stays and the Levels left follow it in parentheses (`Keep the Peace +Sig (+Min)`, `(0)` when spent out); a refund back to full removes them.
 - **R262:** Motivations recharge at the end of every scene, their parentheses removed.
 - **R263:** While a card is written on, a Damage entry shows its color only once it has a name; an empty slot stays a blank line.
-- **R63:** A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); Resources can't feed used cards, and click and shift-click still change them.
+- **~~R63:~~** (Retired T49 — see R462) A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); Resources can't feed used cards, and click and shift-click still change them.
 - **R64:** At a character's next roll, still-used cards are swept into the drawer's used pile first; clicking one there puts it back.
 - **R233:** The used pile opens as a paper list under its tile; a used card in a pool is greyed, with a small "used" tag under it.
 - **R238:** A drawer its viewer may not read shows its cards face-down as striped red backs that keep their number and size.
@@ -173,6 +173,10 @@
 - **~~R368:~~** (Retired T38 — see R379) A pool its viewer can't see shows the contributions in it as they were put, never piled.
 - **R369:** A member of an open pile is a chip or card like any other: clicking a member chip raises it (shift-click lowers it), the chip itself changing, a contribution on every page.
 - **R379:** A pool its viewer can't see shows the contributions in it as they were put, never piled, except its Stagger slot, which shows piled to everyone.
+- **R461:** A Resource fed into a plain Influence card feeds it a Level, the card keeping a ledger of what was fed, and flags it PLAIN for the GM, remembering the card was plain.
+- **R462:** A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); a Resource fed into a used card feeds that card, flagged USED for the GM, and click and shift-click still change them.
+- **R463:** A card tapped from a Motivation is a Main Pool Influence of the Motivation's sign: it goes only into a Main slot (dropped in another slot, it goes home), Motivations and Opinions feed it, and dropped into a Main slot it joins that character's drawer; a Resource fed into it, or a Motivation into a Resource's card, feeds it flagged MIXED for the GM.
+- **R464:** A flag (why, and the Levels fed under it by source) is a mark on its card that every page shows, a viewer who can't read the card getting the why alone; on the GM's page a click offers Allow (the flag goes) and Undo (the Levels fed under it go back to their sources, and a card that was plain is plain again); the GM's page refuses a player's change that drops or shrinks a flag.
 
 ## Feature: rolls
 **Source:** specs/rolls.md

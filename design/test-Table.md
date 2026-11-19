@@ -100,7 +100,7 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/theme.css
 **Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the second loose chip was drawn below the first (Chromium) *Earlier —* 2026-11-13 — rang: the second loose chip was drawn below the first (Chromium)
 ## Test: the card and the view
-**Purpose:** R252–R256, R260, R268–R272
+**Purpose:** R252–R256, R463, R268–R272
 **Expected:**
 - no 3D in a card; the flip turns it to its back
 - the damage columns rotate when a name is clicked; the blanks are one length in every column
@@ -417,3 +417,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** end only once the checkpoint is kept (`.then(end)`, as before R454); red: the Round stays 1
 **Inject:** src/ui/register.ts:RegisterView
 **Pulled:** 2026-11-19 — rang: the Round stayed 1 (Chromium); restored clean
+
+## Test: the GM rules on a flagged tap: allow keeps it, undo gives it back
+**Purpose:** R464: a flagged card in a slot shows its flag, titled with why; on the GM's page a click offers Allow and Undo
+**Input:** two flagged cards in Devreux's Main slot (plain, Money 1 fed); the first allowed, the second undone
+**Expected:** the flag's title "Tapped into a plain card: the GM's call…"; allowed: no flag, 4 points; undone: 2 points, no flag, no tap
+**Refs:** crc-PoolView.md, crc-Tap.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 33
+**Fire alarm:** make Allow undo too (ruleFlag ignores `allow`); red: the allowed card drops to 2
+**Inject:** src/ui/actions.ts:ruleFlag
+**Pulled:** 2026-11-19 — rang: Allow undid the card too (Chromium); restored clean

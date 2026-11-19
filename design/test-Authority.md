@@ -14,7 +14,7 @@ refused
 **Alarm:** 1
 **Fire alarm:** Skip the checks that the sender can see the piece as it is, before and after (drop both redaction tests): Dana's rename of Devreux's card is taken
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote judge's check of what a player may write; rang: Dana's rename of Devreux's card was taken; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's rename of Devreux's card was taken (refused []) *Earlier —* 2026-11-12 — rang: Dana's rename of Devreux's card was taken
+**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote judge's check of what a player may write; rang: Dana's rename of Devreux's card was taken; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's rename of Devreux's card was taken (refused []) *Earlier —* 2026-11-12 — rang: Dana's rename of Devreux's card was taken
 ## Test: out seals what differs and nothing else
 **Purpose:** each tab gets sealed only the pieces it sees differently; giving Sam to Dana sends his
 sheet; taking him back sends the redacted one
@@ -123,7 +123,7 @@ is tombed
 **Alarm:** 10
 **Fire alarm:** judge records as any other piece (drop the GM-only rule); red: Dana's rewrite is taken
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's rewrite of the record was taken; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's rewrite of the record was taken; restored clean *Earlier —* 2026-11-19 — rang: Dana's rewrite of the record was taken; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's rewrite of the record was taken; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's rewrite of the record was taken; restored clean *Earlier —* 2026-11-19 — rang: Dana's rewrite of the record was taken; restored clean
 ## Test: a player's own piece is theirs while a hidden piece lies in it
 **Purpose:** R174, R188: records don't nest, so a hidden GM card in Sam's Stagger leaves Sam whole to Dana: her changes to his front, card and pool are taken; her move of the GM's card, which she sees redacted, is refused (Bill, 2026-11-19: "Right as it is")
 **Input:** Sam given to Dana; Devreux's Influence Glare in Sam's Stagger; Dana's change to Sam's front, to his card's place and to his pool's; Dana's move of Glare to Sam's Main
@@ -133,7 +133,7 @@ is tombed
 **Alarm:** 11
 **Fire alarm:** refuse a player's change to a character while anything in its pool is hidden from them (the mockup's nesting, prototype Item 22); red: Dana's changes to Sam are refused
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's change to Sam was refused; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's change to Sam was refused; restored clean *Earlier —* 2026-11-19 — rang: Dana's changes to Sam were refused; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's change to Sam was refused; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's change to Sam was refused; restored clean *Earlier —* 2026-11-19 — rang: Dana's changes to Sam were refused; restored clean
 ## Test: a player buries only what they delete
 **Purpose:** R442: Boot Hill from a player keeps only the records of pieces the same change deletes and the GM's page takes, as the GM holds them; and never rewrites what is already buried
 **Input:** Dana's Boot Hill change adding a burial of Ann's Beauford, from her redacted copy, with Beauford's deletion; then Dana burying her own Sam, deleting him and his cards, with Devreux's Glare in his Stagger and Sam's front rewritten in her burial; then Dana's change rewriting a buried sticky's text
@@ -154,7 +154,7 @@ is tombed
 **Alarm:** 13
 **Fire alarm:** count the sender's own last change against them (drop the tab check from `stale`); red: her own move of Sam is refused
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, her own move of Sam was refused; restored clean *Earlier —* 2026-11-19 — rang: her own move of Sam was refused (her own tab changed it last); restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, her own move of Sam was refused; restored clean *Earlier —* 2026-11-19 — rang: her own move of Sam was refused (her own tab changed it last); restored clean
 ## Test: who holds each name goes to everyone when it changes, and to a tab catching up
 **Purpose:** R446: the GM's page sends the claims to everyone when they change, not on every batch, and to a tab as it catches up
 **Input:** Dana and Ann join; a batch that changes the sticky; the GM hands Dana to `b-imp`; Ann asks for the table
@@ -174,4 +174,14 @@ is tombed
 **Alarm:** 15
 **Fire alarm:** drop judge's floor check; red: the sticky is put back from the copy at 0
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — rang: the sticky was put back from the copy at 0 (a copy from before it: refused); restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — rang: the sticky was put back from the copy at 0 (a copy from before it: refused); restored clean
+## Test: a player never rules on a flag
+**Purpose:** R464: a player's change that drops or shrinks a flag is refused; one that keeps it is taken
+**Input:** Sam's used card flagged USED with `fed` Money 1; Dana puts it without the flag, with `fed` emptied, and with the flag kept and the card raised
+**Expected:** the first two refused; the third taken
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 16
+**Fire alarm:** let a player change a flag (drop the `ruled` check); red: the dropped flag is taken
+**Inject:** src/net/authority.ts:judge
+**Pulled:** 2026-11-19 — rang: Dana's change dropping the flag was taken; restored clean

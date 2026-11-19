@@ -30,7 +30,7 @@
 **Pulled:** 2026-11-12 — rang: the +4, +2, −2 slot read 4 instead of 2
 ## Test: a Damage card goes only into its own slot
 **Purpose:** a card tapped from a Damage Resource fits only its kind's slot (R211), one from a
-Motivation only Main (R260); anything else fits all
+Motivation only Main (R463); anything else fits all
 **Input:** a Bias card, an Injury card, a plain card, a chip, a Motivation card; each offered to every slot
 **Expected:** `bias`; `injury`; every slot; every slot; `main`
 **Refs:** crc-Pool.md

@@ -1,4 +1,4 @@
-// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R366, R367, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R260, R268, R269, R360, R366, R369
+// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R366, R367, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R463, R268, R269, R360, R366, R369
 // What a click or a drop on a pool, a drawer or a glyph does to the game, as one change. Pure: each
 // takes the game and gives a writer for Game.change (or null when nothing happens), so the views stay
 // thin and these are tested without a browser.
@@ -10,7 +10,7 @@ import {
 } from '../model/records.ts';
 import { lowerCard, lowerChip, raiseCard, raiseChip, MIN } from '../rules/influence.ts';
 import { accepts, type Item } from '../rules/pool.ts';
-import { feed, kill, tap, unfeed, type Holder, type Lookup, type Tapped } from '../rules/tap.ts';
+import { allowFlag, feed, kill, tap, undoFlag, unfeed, type Holder, type Lookup, type Tapped } from '../rules/tap.ts';
 
 export type Change = (w: Writer) => void;
 
@@ -49,7 +49,7 @@ export function slotItems(game: Game, owner: Oid, slot: SlotName): Item[] {
 export function toSlot(game: Game, rid: Rid, owner: Oid, slot: SlotName, _mint: () => Oid, by?: Who): Change | null {
   const i = item(game, rid);
   if (!i || !accepts(slot, i)) return null;
-  // R260: a Motivation's card dropped in a Main slot joins that character's drawer.
+  // R463: a Motivation's card dropped in a Main slot joins that character's drawer.
   const home = i.kind === 'influence' && i.mot ? { home: owner } : {};
   const inPool = typeof i.where === 'object' && 'slot' in i.where && i.where.slot === owner;
   const moved = { ...i, ...home, where: { slot: owner, name: slot }, n: slotItems(game, owner, slot).length } as Item;
@@ -134,6 +134,15 @@ export function cardClick(game: Game, rid: Rid, shift: boolean, mint: () => Oid)
   }
   const next = shift ? lowerCard(c) : raiseCard(c);
   return next.points === c.points ? null : w => w.put(rid, next);
+}
+
+// R464: the GM rules on a flagged tap: Allow keeps it, unflagged; Undo gives back what was fed under it.
+export function ruleFlag(game: Game, rid: Rid, allow: boolean): Change | null {
+  const c = item(game, rid);
+  if (c?.kind !== 'influence' || !c.flag) return null;
+  if (allow) { const next = allowFlag(c); return w => w.put(rid, next); }
+  const t = undoFlag(lookup(game), c);
+  return t ? apply(t, c) : null;
 }
 
 // R50: a drawer's writers make a new card at Min.

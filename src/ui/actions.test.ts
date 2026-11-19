@@ -159,7 +159,7 @@ test('new oids', () => {
 });
 
 test("a Motivation's card joins the drawer of the Main slot it lands in", () => {
-  // R260: a card from Devreux's Motivation dropped in Sam's Main slot becomes Sam's; nowhere but Main.
+  // R463: a card from Devreux's Motivation dropped in Sam's Main slot becomes Sam's; nowhere but Main.
   const t = table(), card = t.get('00000004') as Influence;
   assert.equal(toSlot(t.game, ridOf(card.oid), SAM, 'bias', t.mint), null);
   t.run(toSlot(t.game, ridOf(card.oid), SAM, 'main', t.mint));

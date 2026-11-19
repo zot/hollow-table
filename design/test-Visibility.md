@@ -15,7 +15,7 @@ the GM's view is unchanged
 **Alarm:** 1
 **Fire alarm:** Keep the tap ledger on a redacted card (drop the `tap` removal): nobody sees `Saloon` (Saloon Gossip)
 **Inject:** src/rules/visibility.ts:redactPiece
-**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the tap ledger reached Dana; restored clean *Earlier —* 2026-11-12 — rang: nobody saw `Saloon` on the redacted card's tap ledger
+**Pulled:** 2026-11-19 — re-pulled after R464 (redactPiece changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the tap ledger reached Dana; restored clean *Earlier —* 2026-11-12 — rang: nobody saw `Saloon` on the redacted card's tap ledger
 ## Test: what stays public
 **Purpose:** names, places, drawer counts and chip values in pools survive
 **Input:** Devreux's Influence in Sam's Stagger, viewed by Dana
@@ -25,7 +25,7 @@ the GM's view is unchanged
 **Alarm:** 2
 **Fire alarm:** Blank points in pool slots too (drop the `inSlot` exception): Devreux's card in Sam's Stagger shows 0 instead of 4
 **Inject:** src/rules/visibility.ts:redactPiece
-**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: a card in a pool slot showed 0; restored clean *Earlier —* 2026-11-12 — rang: Devreux's card in Sam's Stagger showed 0 instead of 4
+**Pulled:** 2026-11-19 — re-pulled after R464 (redactPiece changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: a card in a pool slot showed 0; restored clean *Earlier —* 2026-11-12 — rang: Devreux's card in Sam's Stagger showed 0 instead of 4
 ## Test: a hidden back hides its Conviction
 **Purpose:** R341: a back its viewer can't read says nothing of its Conviction or Burden, not even that it has one
 **Input:** Devreux's Conviction `Sheriffs lie`, as nobody and Dana see it
@@ -58,7 +58,7 @@ the GM's view is unchanged
 **Alarm:** 5
 **Fire alarm:** keep the private mat face-down instead of absent (drop the early `return undefined` for it); red: the GM's own chip reaches Dana
 **Inject:** src/rules/visibility.ts:redactPiece
-**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the GM's own chip reached Dana; restored clean *Earlier —* 2026-11-16 — rang: "two mats: the private one reaches only its owner and the GM" failed, the GM's own chip reached Dana; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (redactPiece changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the GM's own chip reached Dana; restored clean *Earlier —* 2026-11-16 — rang: "two mats: the private one reaches only its owner and the GM" failed, the GM's own chip reached Dana; restored clean
 ## Test: a roll row is the table's, but not one behind the GM's screen
 **Purpose:** R381: everyone sees the roll rows; a row with the GM's private switch on only the GM
 **Input:** rows for Devreux (private) and Sam; redacted for Dana and for the GM
@@ -79,7 +79,7 @@ the GM's view is unchanged
 **Alarm:** 7
 **Fire alarm:** treat Stagger like any private slot (drop the `stagger` exception); red: the Stagger chip is absent
 **Inject:** src/rules/visibility.ts:redactPiece
-**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the Stagger chip was absent; restored clean *Earlier —* 2026-11-16 — rang: "Stagger is always seen" failed, the Stagger chip absent; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (redactPiece changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the Stagger chip was absent; restored clean *Earlier —* 2026-11-16 — rang: "Stagger is always seen" failed, the Stagger chip absent; restored clean
 ## Test: an NPC card reveals only its shown entries
 **Purpose:** R394: a hidden character's front reaches another viewer with only its revealed entries in words, each line as its label and those entries in its mark, an ITEMS heading over a revealed Item, the first line blanked (it holds more than the public name); `shown` goes with it; redacting again changes nothing; the GM sees all
 **Input:** Devreux with `shown` holding Skills 3: Savvy and Streetwise, Keep the Peace, and Dead Man's Die; redacted for Dana, again for Dana, and for the GM
@@ -100,7 +100,7 @@ the GM's view is unchanged
 **Alarm:** 9
 **Fire alarm:** send Info cards as they are (skip blankInfo); red: the ANY clue reaches Dana
 **Inject:** src/rules/visibility.ts:redactPiece
-**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the ANY clue reached Dana; restored clean *Earlier —* 2026-11-18 — re-pulled after the simplifier hoisted the shown set: "an NPC's Info cards reveal only their shown clues" failed; restored clean *Earlier —* 2026-11-18 — rang: "an NPC's Info cards reveal only their shown clues" failed, the ANY clue reaching Dana; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (redactPiece changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote redactPiece; rang: the ANY clue reached Dana; restored clean *Earlier —* 2026-11-18 — re-pulled after the simplifier hoisted the shown set: "an NPC's Info cards reveal only their shown clues" failed; restored clean *Earlier —* 2026-11-18 — rang: "an NPC's Info cards reveal only their shown clues" failed, the ANY clue reaching Dana; restored clean
 ## Test: a record reaches a player once revealed, and only what is revealed
 **Purpose:** R435: an Opinion Record with nothing shown never reaches a player; with a line shown it does, every other line blank; the GM gets it whole
 **Input:** Devreux's record of Sam, `Reputation +Sig` and `Grudge -Min`; redacted for Dana with nothing shown, then with `Grudge -Min` shown (on Devreux, named Sam); for the GM
@@ -110,4 +110,14 @@ the GM's view is unchanged
 **Alarm:** 10
 **Fire alarm:** send a revealed record whole (skip the blanking); red: Dana's text holds `Reputation +Sig`
 **Inject:** src/rules/visibility.ts:redactPiece
-**Pulled:** 2026-11-19 — rang: Dana's text held `Reputation +Sig`; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R464 (redactPiece changed): rang; restored clean *Earlier —* 2026-11-19 — rang: Dana's text held `Reputation +Sig`; restored clean
+## Test: a flag is seen by all, but not where its Levels came from
+**Purpose:** R464: a flag on a card the viewer can't read reaches them as its why alone
+**Input:** Devreux's card flagged MIXED with `fed` from her Self-Preservation; redacted for Dana and for the GM
+**Expected:** Dana gets `{why}` only; the GM the whole flag
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 11
+**Fire alarm:** keep the whole flag in redaction; red: Dana gets `fed`, Self-Preservation's name with it
+**Inject:** src/rules/visibility.ts:redactPiece
+**Pulled:** 2026-11-19 — rang: Dana got the whole flag, fed and its source with it; restored clean

@@ -1,4 +1,4 @@
-// CRC: crc-Tap.md | R54, R55, R56, R57, R58, R59, R60, R66, R210, R211, R212, R250, R259, R260, R261, R262, R343, R344, R432, R433
+// CRC: crc-Tap.md | R54, R55, R56, R57, R461, R59, R60, R66, R210, R211, R212, R250, R259, R463, R261, R262, R343, R344, R432, R433
 // Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source
 // so every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
 // Resources*), and NPCs' Motivations (Bunkum, *Mental Resources*). Pure: returns the records to
@@ -10,7 +10,7 @@
 // of its kind named after the slot. `<damage>/lasting` is the column's Conviction or Burden (R343).
 // `o<record oid>/<name>` is an Opinion on that NPC's Opinion Record (R433).
 
-import { DAMAGE, LASTING, ROWS, damageSlots, type Character, type Damage, type Influence, type LastingColumn, type Oid, type Opinion, type RowName, type Sign, type Where } from '../model/records.ts';
+import { DAMAGE, LASTING, ROWS, damageSlots, type Character, type Damage, type Flag, type Influence, type LastingColumn, type Oid, type Opinion, type RowName, type Sign, type Where } from '../model/records.ts';
 import { lastingLevels } from './absorb.ts';
 import { marks, parse, serialize, setMark } from '../text/marks.ts';
 import { adjust, influence, levelsOf, motiveLeft, spend, unadjusted } from './readmarks.ts';
@@ -128,19 +128,63 @@ export function tap(chars: Lookup, src: string, where: Where, oid: Oid): Tapped 
   return { card, changed: [s.spend(1)] };
 }
 
-// R56, R57, R58, R66, R211: a Level from the current source (or a dropped one, which becomes current).
-/**
- * Feeds a Level into a resource-made card. Refused (null) for a plain card, a dry source, or a
- * source of another kind than the card. For a used card, a new card beside it instead, named `oid`.
- */
-export function feed(chars: Lookup, card: Influence, src: string | undefined, oid: Oid): Tapped | null {
-  if (!card.tap) return null;
-  const id = src ?? card.tap.current;
-  if (card.used) return tap(chars, id, card.where, oid);
+/** R461–R463: why a tap is the GM's call. */
+export const PLAIN = 'Tapped into a plain card', USED = 'Tapped into a used card', MIXED = 'A Resource and a Motivation on one card';
+
+// R56, R57, R461, R66, R211: a Level from the current source (or a dropped one, which becomes current).
+// R461–R463: a plain card, a used card, or a Resource and a Motivation together are the GM's call:
+// fed, and flagged; a Damage source of another kind than the card is still refused (R211).
+/** Feeds a Level into a card; null for a dry or unknown source, or one of another Damage kind. */
+export function feed(chars: Lookup, card: Influence, src: string | undefined, _oid: Oid): Tapped | null {
+  const id = src ?? card.tap?.current;
+  if (!id) return null;
   const s = source(chars, id);
-  if (!s || s.left < 1 || s.damage !== card.damage || !!s.mot !== !!card.mot) return null;
-  const ledger = { ...card.tap.ledger, [id]: (card.tap.ledger[id] ?? 0) + 1 };
-  return { card: { ...card, points: card.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
+  if (!s || s.left < 1 || s.damage !== card.damage) return null;
+  const why = !card.tap ? PLAIN : card.used ? USED : !!s.mot !== !!card.mot ? MIXED : null;
+  const ledger = { ...card.tap?.ledger, [id]: (card.tap?.ledger[id] ?? 0) + 1 };
+  const flag = why ? flagged(card.flag, why, id, !card.tap) : card.flag;
+  return { card: { ...card, points: card.points + STEP, tap: { ledger, current: id }, ...(flag && { flag }) }, changed: [s.spend(1)] };
+}
+
+/** A flag with one more Level fed under it from `id`, its why joined if new. */
+function flagged(was: Flag | undefined, why: string, id: string, plain: boolean): Flag {
+  const whys = new Set(was?.why.split('; '));
+  whys.add(why);
+  return {
+    why: [...whys].join('; '),
+    fed: { ...was?.fed, [id]: (was?.fed?.[id] ?? 0) + 1 },
+    ...((was?.plain || plain) && { plain: true as const }),
+  };
+}
+
+// R464: the GM allows a flagged tap: it stays, unflagged.
+export function allowFlag(card: Influence): Influence {
+  const { flag: _gone, ...rest } = card;
+  return rest;
+}
+
+// R464: the GM undoes a flagged tap: the Levels fed under the flag go back to their sources, and a card
+// that was plain is plain again.
+/** The card as it was before the flagged taps, and the sources given their Levels back; null if unflagged. */
+export function undoFlag(chars: Lookup, card: Influence): Tapped | null {
+  const f = card.flag;
+  if (!f?.fed || !card.tap) return null;
+  const out = new Map<Oid, Holder>();
+  const now: Lookup = oid => out.get(oid) ?? chars(oid);
+  const ledger = { ...card.tap.ledger };
+  let points = card.points;
+  for (const [id, n] of Object.entries(f.fed)) {
+    const back = source(now, id)?.spend(-n);
+    if (back) out.set(back.oid, back);
+    ledger[id] = (ledger[id] ?? 0) - n;
+    if (ledger[id]! <= 0) delete ledger[id];
+    points -= n * STEP;
+  }
+  const { flag: _f, tap: _t, ...rest } = card;
+  const keys = Object.keys(ledger);
+  const tapped = f.plain && !keys.length ? rest
+    : { ...rest, tap: { ledger, current: ledger[card.tap.current] ? card.tap.current : keys.at(-1) ?? card.tap.current } };
+  return { card: { ...tapped, points }, changed: [...out.values()] };
 }
 
 // R56: a Level back to the current source, never below what it put in, and the card never below Min.

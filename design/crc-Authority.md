@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change. (R460) It enforces who may see and touch what; a judgment call the book leaves to
@@ -48,6 +48,7 @@ the GM isn't refused here (it is to be flagged, prototype Item 14).
   - (R444) it puts or deletes a piece another tab changed after the copy it was made on (`last` newer
     than the edit's version, by a tab not the sender's);
   - it is a chip whose `by` changes to anyone but the sender (R360);
+  - (R464) it drops or shrinks a card's flag: only the GM's page rules on a flag;
   - (R375) `rows` is merged, as Boot Hill's is: of a player's rows, only those of characters they own
     are taken, and of those only the action, its alternative, the type and the hand; the aim, the
     White, whether it was picked by hand and the private switch stay as the GM's page has them;

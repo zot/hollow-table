@@ -114,7 +114,13 @@ var PIECES = {
       used: bool,
       crit: bool
     },
-    { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true) }
+    {
+      tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }),
+      damage: oneOf(...DAMAGE),
+      mot: oneOf(true),
+      once: oneOf(true),
+      flag: fields({ why: str(CAPS.name) }, { fed: dict(int(0, 100)), plain: oneOf(true) })
+    }
   ),
   chip: fields({ kind: oneOf("chip"), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }, { by: str(CAPS.name) }),
   sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin, big: bool }),
@@ -1371,8 +1377,8 @@ function redactPiece(r, viewer, chars) {
   if (r.kind === "influence") {
     const home = chars(r.home);
     if (home && canSee(viewer, home)) return r;
-    const { tap: _secret, ...rest } = r;
-    return { ...rest, name: "", points: inSlot(r) ? r.points : 0 };
+    const { tap: _secret, flag, ...rest } = r;
+    return { ...rest, name: "", points: inSlot(r) ? r.points : 0, ...flag && { flag: { why: flag.why } } };
   }
   return r;
 }
@@ -1584,14 +1590,50 @@ function tap(chars, src, where2, oid) {
   };
   return { card: card2, changed: [s.spend(1)] };
 }
-function feed(chars, card2, src, oid) {
-  if (!card2.tap) return null;
-  const id = src ?? card2.tap.current;
-  if (card2.used) return tap(chars, id, card2.where, oid);
+var PLAIN = "Tapped into a plain card";
+var USED = "Tapped into a used card";
+var MIXED = "A Resource and a Motivation on one card";
+function feed(chars, card2, src, _oid) {
+  const id = src ?? card2.tap?.current;
+  if (!id) return null;
   const s = source(chars, id);
-  if (!s || s.left < 1 || s.damage !== card2.damage || !!s.mot !== !!card2.mot) return null;
-  const ledger = { ...card2.tap.ledger, [id]: (card2.tap.ledger[id] ?? 0) + 1 };
-  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id } }, changed: [s.spend(1)] };
+  if (!s || s.left < 1 || s.damage !== card2.damage) return null;
+  const why3 = !card2.tap ? PLAIN : card2.used ? USED : !!s.mot !== !!card2.mot ? MIXED : null;
+  const ledger = { ...card2.tap?.ledger, [id]: (card2.tap?.ledger[id] ?? 0) + 1 };
+  const flag = why3 ? flagged(card2.flag, why3, id, !card2.tap) : card2.flag;
+  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id }, ...flag && { flag } }, changed: [s.spend(1)] };
+}
+function flagged(was, why3, id, plain2) {
+  const whys = new Set(was?.why.split("; "));
+  whys.add(why3);
+  return {
+    why: [...whys].join("; "),
+    fed: { ...was?.fed, [id]: (was?.fed?.[id] ?? 0) + 1 },
+    ...(was?.plain || plain2) && { plain: true }
+  };
+}
+function allowFlag(card2) {
+  const { flag: _gone, ...rest } = card2;
+  return rest;
+}
+function undoFlag(chars, card2) {
+  const f = card2.flag;
+  if (!f?.fed || !card2.tap) return null;
+  const out = /* @__PURE__ */ new Map();
+  const now2 = (oid) => out.get(oid) ?? chars(oid);
+  const ledger = { ...card2.tap.ledger };
+  let points3 = card2.points;
+  for (const [id, n] of Object.entries(f.fed)) {
+    const back3 = source(now2, id)?.spend(-n);
+    if (back3) out.set(back3.oid, back3);
+    ledger[id] = (ledger[id] ?? 0) - n;
+    if (ledger[id] <= 0) delete ledger[id];
+    points3 -= n * STEP;
+  }
+  const { flag: _f, tap: _t, ...rest } = card2;
+  const keys2 = Object.keys(ledger);
+  const tapped = f.plain && !keys2.length ? rest : { ...rest, tap: { ledger, current: ledger[card2.tap.current] ? card2.tap.current : keys2.at(-1) ?? card2.tap.current } };
+  return { card: { ...tapped, points: points3 }, changed: [...out.values()] };
 }
 function unfeed(chars, card2) {
   const id = card2.tap?.current;
@@ -2908,6 +2950,12 @@ var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters2 = (game) => (oid) => game.get(`o:${oid}`);
 var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
 var forged = (old, rec, who) => "kind" in rec && rec.kind === "chip" && rec.by !== void 0 && rec.by !== who && rec.by !== (old && "kind" in old && old.kind === "chip" ? old.by : void 0);
+var ruled2 = (old, rec) => {
+  const f = old && "kind" in old && old.kind === "influence" ? old.flag : void 0;
+  if (!f) return false;
+  const g = "kind" in rec && rec.kind === "influence" ? rec.flag : void 0;
+  return !g || !g.why.includes(f.why) || Object.entries(f.fed ?? {}).some(([k, n]) => (g.fed?.[k] ?? 0) < n);
+};
 function mergeYards(real2, mine, viewer, chars, deleted) {
   const truth = /* @__PURE__ */ new Map(), secret = /* @__PURE__ */ new Set(), cards = /* @__PURE__ */ new Map();
   for (const g of real2?.yards ?? []) for (const b of g.items) {
@@ -2996,6 +3044,7 @@ function judge(game, edit, who, tab2) {
     else if (!isPiece(rid2) || (book2.tomb[rid2] ?? 0) > edit.base) refused.push(rid2);
     else if (stale(rid2)) refused.push(rid2);
     else if (forged(game.get(rid2), rec, who)) refused.push(rid2);
+    else if (ruled2(game.get(rid2), rec)) refused.push(rid2);
     else if (mine(game.get(rid2), rec)) puts.push({ rid: rid2, rec });
     else refused.push(rid2);
   }
@@ -9346,6 +9395,16 @@ function cardClick(game, rid2, shift, mint2) {
   const next2 = shift ? lowerCard(c) : raiseCard(c);
   return next2.points === c.points ? null : (w) => w.put(rid2, next2);
 }
+function ruleFlag(game, rid2, allow) {
+  const c = item(game, rid2);
+  if (c?.kind !== "influence" || !c.flag) return null;
+  if (allow) {
+    const next2 = allowFlag(c);
+    return (w) => w.put(rid2, next2);
+  }
+  const t = undoFlag(lookup(game), c);
+  return t ? apply2(t, c) : null;
+}
 function writeCard(game, owner, sign2, name2, mint2) {
   const n = drawerCards(game, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
   const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
@@ -10462,7 +10521,7 @@ function units(slotEl, items, w, shown3, drawn, pileUp) {
     box2.replaceChildren(...mine.map((u, k) => {
       const piled = isPile2(u);
       const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
-      e.style.zIndex = String(50 - k);
+      e.style.zIndex = String((!piled && u.kind === "influence" && u.flag ? 100 : 50) - k);
       const key = piled ? `pile:${u.members[0]?.oid ?? ""}` : u.oid;
       shown3.set(key, { points: u.points, place: place3 });
       drawn.set(key, e);
@@ -10489,6 +10548,7 @@ function chip(doc, i, w) {
     b.title = i.name;
     b.dataset.name = i.name;
   }
+  if (card2 && i.flag) b.append(flagMark(doc, i, rid2, w));
   if (i.kind === "chip" && i.rider) {
     const r = el3(doc, "span", "rider", "+1");
     gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid2, true)) });
@@ -10564,8 +10624,10 @@ function card(doc, k, visible, w) {
   const e = el3(doc, "span", `icard ${k.sign > 0 ? "pos" : "neg"}${k.used ? " isused" : ""}${k.tap ? " tapped" : ""}${k.crit ? " crit" : ""}`);
   e.dataset.rid = rid2;
   const drag = { drag: (d, m) => w.dragItem(rid2, d, m) };
+  const mark2 = k.flag ? flagMark(doc, k, rid2, w) : null;
   if (!visible) {
     e.classList.add("facedown");
+    if (mark2) e.append(mark2);
     gesture(e, drag);
     return e;
   }
@@ -10581,9 +10643,29 @@ function card(doc, k, visible, w) {
     click: () => run(w.game, cardClick(w.game, rid2, false, w.mint())),
     shift: () => run(w.game, cardClick(w.game, rid2, true, w.mint()))
   });
-  e.append(name2, level2);
+  e.append(name2, level2, ...mark2 ? [mark2] : []);
   gesture(e, drag);
   return e;
+}
+function flagMark(doc, k, rid2, w) {
+  const gm = !!w.viewer?.gm, f = el3(doc, "span", "flag", "\u2691");
+  f.title = `${k.flag.why}: the GM's call${gm ? ". Click to allow it or undo it." : ""}`;
+  if (!gm) return f;
+  f.setAttribute("role", "button");
+  f.tabIndex = 0;
+  f.addEventListener("pointerdown", (ev) => ev.stopPropagation());
+  gesture(f, { click: () => {
+    if (f.querySelector(".flagmenu")) return;
+    const menu = el3(doc, "span", "flagmenu");
+    const choice = (text, allow) => {
+      const b = el3(doc, "button", `flagact ${allow ? "allow" : "undo"}`, text);
+      gesture(b, { click: () => run(w.game, ruleFlag(w.game, rid2, allow)) });
+      return b;
+    };
+    menu.append(choice("Allow", true), choice("Undo", false));
+    f.append(menu);
+  } });
+  return f;
 }
 var drawerCardEls = (cards) => [...cards.querySelectorAll(":scope > .icard")];
 function gapAt(drawer2, x, y) {
@@ -12183,7 +12265,7 @@ var Drag = class {
     }
     return void 0;
   }
-  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R268, R60, R211, R260: the
+  // Seq: seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R21, R48, R268, R60, R211, R463: the
   // drop, from the last aim.
   #itemDrop(rid2, aim2, away, place3, mint2) {
     const { game } = this.#w, i = game.get(rid2);

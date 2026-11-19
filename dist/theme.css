@@ -103,6 +103,12 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 #bar .tag.gm.you, #bar .tag.warn { cursor: pointer; }
 #bar .tag.warn { background: var(--chip-neg); color: #fff; padding-left: 8px; }
 #bar .tag.warn::before { display: none; }
+/* R464: a flag for the GM on a card, and the GM's Allow and Undo. */
+.icard:has(> .flag) { position: relative; }
+.icard .flag, .chip .flag { position: absolute; top: -7px; right: -5px; font: 12px/1 var(--mono); color: #c0392b; background: none; border: 0; padding: 0; cursor: default; }
+.icard .flag[role=button], .chip .flag[role=button] { cursor: pointer; }
+.icard .flagmenu, .chip .flagmenu { position: absolute; top: 14px; right: 0; display: flex; gap: 4px; background: #fbfaf6; border: 1px solid #c9bfa6; padding: 3px; z-index: 5; }
+.icard .flagact, .chip .flagact { font: 11px var(--mono); }
 /* R453: the image supply, when the browser wouldn't keep an image. */
 #bar .supply.image.refused { background: var(--chip-neg); color: #fff; }
 /* R445: an impostor's tag is barred on every page: a bar sinister, its upper right corner to its lower left. */

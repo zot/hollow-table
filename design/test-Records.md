@@ -8,7 +8,7 @@ field, a wrong type, an oid not matching its key, an oversized string, a die sho
 kind, an unknown singleton, an array or a class instance where a record belongs, a negative spent
 Level in a Damage slot, a back with a column that isn't Damage, a negative absorb, an Influence of an unknown Damage
 kind, a sticky whose `big` isn't a boolean, an Influence whose `mot` isn't true; and an Influence of the Injury kind, a sticky with `big`
-false (R248), and Devreux's Motivation card with `mot` (R260); a back with a Conviction and a Burden
+false (R248), and Devreux's Motivation card with `mot` (R463); a back with a Conviction and a Burden
 waiting for its name, and a receipt waiting on a `lasting` row (R340, R341); faulty: a Condition in
 `lasting` (`injury`), and a Conviction with negative points
 **Expected:** the scene (its big sticky included), the Injury Influence and the sticky pass; every
@@ -52,8 +52,8 @@ faulty record is refused
 **Alarm:** 4
 **Fire alarm:** leave `once` out of the Influence's fields; red: the `once` card is refused
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: 566297ac41cb22ae
-**Pulled:** 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
+@alarm-hash: 7824d3ba44a05618
+**Pulled:** 2026-11-19 — re-pulled after R464 (the Influence shape gained flag): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
 ## Test: a card's revealed entries and Info cards
 **Purpose:** R391: a character's `shown` is a list of revealed entries' keys, absent when none; R400: its `info` a list of texts
 **Input:** Devreux with `shown` as a list of keys; as a list of a number; as a bare string; with `info` as texts; as a list of lists
@@ -63,5 +63,5 @@ faulty record is refused
 **Alarm:** 5
 **Fire alarm:** take any list as `shown`; red: a list of line numbers is taken
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: 566297ac41cb22ae
-**Pulled:** 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: a list of line numbers was taken as `shown`; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean
+@alarm-hash: 7824d3ba44a05618
+**Pulled:** 2026-11-19 — re-pulled after R464 (the Influence shape gained flag): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: a list of line numbers was taken as `shown`; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean

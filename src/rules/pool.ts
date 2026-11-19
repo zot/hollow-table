@@ -1,4 +1,4 @@
-// CRC: crc-Pool.md | R39, R366, R367, R46, R65, R79, R84, R211, R260
+// CRC: crc-Pool.md | R39, R366, R367, R46, R65, R79, R84, R211, R463
 // What a slot's contents amount to. Pure: given the chips and Influence cards in one slot, it
 // orders them, finds Roll Ups, and says what the slot is worth.
 
@@ -72,7 +72,7 @@ export function pools(character: Oid, items: Item[]): Pools {
 }
 
 // R211: a card tapped from a Damage Resource goes only into its kind's slot (Hollow Folks, *Damage
-// Resources*); R260: one tapped from a Motivation only into Main (Bunkum); everything else anywhere.
+// Resources*); R463: one tapped from a Motivation only into Main (Bunkum); everything else anywhere.
 /** Whether an item may go into a slot. */
 export function accepts(slot: SlotName, item: Item): boolean {
   if (item.kind !== 'influence') return true;

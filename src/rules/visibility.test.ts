@@ -173,3 +173,12 @@ test('a record reaches a player once revealed, and only what is revealed', () =>
   assert.deepEqual(redact(out, dana, look), { ...out, text: '\nGrudge -Min' });
   assert.deepEqual(redact(out, gm, look), out);
 });
+
+test("a flag is seen by all, but not where its Levels came from", () => {
+  // R464: a flag on a card a viewer can't read reaches them as its why alone.
+  const card: Influence = { kind: 'influence', oid: '0000f1a9', home: DEVREUX, where: 'drawer', n: 0, name: 'Keep the Peace', sign: 1, points: 4,
+    used: false, crit: false, tap: { ledger: { [`${DEVREUX}:Self-Preservation`]: 1 }, current: `${DEVREUX}:Self-Preservation` },
+    flag: { why: 'A Resource and a Motivation on one card', fed: { [`${DEVREUX}:Self-Preservation`]: 1 } } };
+  assert.deepEqual((redact(card, { name: 'Dana', gm: false }, look) as Influence).flag, { why: 'A Resource and a Motivation on one card' });
+  assert.deepEqual((redact(card, { name: 'GM', gm: true }, look) as Influence).flag, card.flag);
+});

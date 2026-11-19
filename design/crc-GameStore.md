@@ -11,7 +11,7 @@ them current. Talks to the database only through Db.
 - SAVE_PAUSE: 400 ms.
 - The playtest scene (`src/store/playtest.ts`): the 11-08 playtest of *A Ghoulish Problem* as
   records, Sam, Beauford and Devreux with Devreux's Influences (each tapped in full from her
-  Motivation of that name, which reads `(0)`, R260, R261), a chip, the sticky and the reference
+  Motivation of that name, which reads `(0)`, R463, R261), a chip, the sticky and the reference
   card, the Connection Table put away with *Connections in Unton* (Connections seed, R418), plus the
   singletons. The first visit makes "The 11-08 playtest" from it (R131).
 - The clock, timers and localStorage are passed in, so a test runs on a fake clock and memory.

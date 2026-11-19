@@ -84,7 +84,7 @@ without a place goes last; the drawer is renumbered in order
 **Pulled:** 2026-11-12 — rang: the player's oid was under PLAYER_OIDS
 
 ## Test: a Motivation's card joins the drawer of the Main slot it lands in
-**Purpose:** R260: a card tapped from an NPC's Motivation becomes the tapper's when dropped in their
+**Purpose:** R463: a card tapped from an NPC's Motivation becomes the tapper's when dropped in their
 Main slot, and goes into no other slot
 **Input:** Devreux's Keep the Peace card offered to Sam's Bias slot, then his Main slot
 **Expected:** Bias refused; in Main, its home is Sam

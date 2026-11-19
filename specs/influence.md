@@ -84,7 +84,8 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   Resource); at Min, shift-click makes it disappear and every source gets its Levels back.
 - Dropping another Resource's glyph onto a resource-made card (on the table, in a pool, or in a
   drawer) moves a Level from it and makes it the current source. Merging across characters is
-  allowed. **A Resource can't feed a plain Influence card.**
+  allowed. **A Resource fed into a plain Influence card feeds it, flagged for the GM** (Bill, 11-19:
+  "Allow and flag"; Hollow Folks makes a tap "subject to GM approval").
 - **A Damage Resource makes an Influence of its kind** (Hollow Folks *Damage Resources*): a card
   tapped from a Bias is a Bias Influence. It goes only into a Bias slot (dropped in any other slot,
   it goes home to its drawer), and only Biases feed it. Likewise Afflictions and Injuries. A `<res>`
@@ -101,8 +102,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 - **A Motivation is a special Resource held only by NPCs** (Bunkum, *Mental Resources*), written as
   a `<mot>` mark: `Name +Level` or `Name −Level`. **Anyone may tap anyone's Motivations** (Bill,
   11-12), as the story allows. Tapping one makes a **Main Pool Influence** of its sign: the card
-  goes only into a Main slot (dropped in any other slot, it goes home), and only Motivations and
-  Opinions feed it. Dropped into a Main slot, it joins that character's drawer, so a card made from an NPC's
+  goes only into a Main slot (dropped in any other slot, it goes home), and Motivations and Opinions
+  feed it; a Resource fed into it, or a Motivation into a Resource's card, is the GM's call: it feeds,
+  flagged. Dropped into a Main slot, it joins that character's drawer, so a card made from an NPC's
   Motivation becomes the tapper's.
 - **An NPC's Opinions tap as its Motivations do** (Bunkum: "Opinions and Motivations create Main Pool
   Influences"), from its Opinion Records, the GM's alone (see *Opinion Records* in `connections.md`).
@@ -127,8 +129,13 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
 
 - A roll marks the Influence cards in the rolling character's pool **used** (dimmed, tagged), except a card
   an action put there for its own roll, which the roll deletes (`rolls.md`, *Actions*).
-  Resources can't feed used cards; click and shift-click still strengthen or weaken them.
+  A Resource fed into a used card feeds it, flagged for the GM; click and shift-click still strengthen
+  or weaken them.
 - At the character's **next** roll, still-used cards are swept into the drawer's **used pile** first.
   Clicking one there puts it back for the next roll. Plain chips are untouched.
-- A Resource dropped on a used card starts a **new** card beside it; the pool's strongest-applies
-  display enforces non-stacking.
+- **A flag is the GM's call, made visible** (Bill, 11-19: "A mark on the card, seen by all"; "Click:
+  allow or undo"; "Only those three taps"). Only those three taps raise one: into a plain card, into a
+  used card, or a Resource and a Motivation on one card. It is a mark on the card, its tooltip saying
+  why, that everyone sees, face-down cards too (but not where its Levels came from). On the GM's page,
+  clicking it offers Allow, which clears it, and Undo, which gives back the Levels fed under it and puts
+  the card back as it was. Only the GM's page rules on a flag.

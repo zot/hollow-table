@@ -54,7 +54,7 @@ back on both, and nothing is left pending
 **Alarm:** 2
 **Fire alarm:** Take a piece put back however long ago it was deleted (drop the tomb check from judge, R192): the buried sticky comes back
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge changed): rang, the spec failed with the tomb check dropped (Chromium); restored clean *Earlier —* 2026-11-19 — re-aimed: the old injection (a catch-up left out of what has gone out) was silent, on HEAD before R444 too (cause not traced); the tomb check is the guard: rang, the buried sticky came back (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the away page brought the buried sticky back (Chromium) *Earlier —* 2026-11-13 — rang: the buried sticky came back on the GM's table (Chromium)
+**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge changed): rang, the spec failed with the tomb check dropped (Chromium); restored clean *Earlier —* 2026-11-19 — re-aimed: the old injection (a catch-up left out of what has gone out) was silent, on HEAD before R444 too (cause not traced); the tomb check is the guard: rang, the buried sticky came back (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the away page brought the buried sticky back (Chromium) *Earlier —* 2026-11-13 — rang: the buried sticky came back on the GM's table (Chromium)
 ## Test: a deletion reaches a player who is at the table
 **Purpose:** the 11-11 bug, end to end
 **Input:** the GM rolls three times, tears the tape off onto the bar, and deletes the graveyard
@@ -149,8 +149,7 @@ by the drop
 **Alarm:** 8
 **Fire alarm:** pile every pool (`pileUp` always true); red: Dana's page shows a pile
 **Inject:** src/ui/pool.ts:units
-**Pulled:** 2026-11-16 — re-pulled after the simplifier renamed its line (`pileUp`): rang (Chromium), Dana's page showed a pile; restored clean *Earlier —* 2026-11-16 — rang (Chromium): Dana's page showed a pile; restored clean
-
+**Pulled:** 2026-11-19 — re-pulled after R464 (units changed): rang (Chromium); restored clean *Earlier —* 2026-11-16 — re-pulled after the simplifier renamed its line (`pileUp`): rang (Chromium), Dana's page showed a pile; restored clean *Earlier —* 2026-11-16 — rang (Chromium): Dana's page showed a pile; restored clean
 ## Test: a player's row reaches the GM's page
 **Purpose:** R381: a player's roll row change goes to the GM's page (the same test as the world at the table, its first step)
 **Input:** Dana clicks Sam's Infer
