@@ -174,6 +174,7 @@ test("a sticky carries from its text, again and again", async ({ page }) => {
     await page.mouse.down();
     await page.mouse.move(x - 60, y + 30, { steps: 6 });
     await page.mouse.up();
-    await expect.poll(async () => Math.round((await box(page, `[data-rid="${STICKY}"]`)).x - b.x)).toBe(-60);
+    // Within a pixel, as R216 measures glue: the tilted sticky's box moves by fractions of one.
+    await expect.poll(async () => Math.abs((await box(page, `[data-rid="${STICKY}"]`)).x - b.x + 60)).toBeLessThanOrEqual(1);
   }
 });

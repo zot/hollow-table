@@ -8,7 +8,8 @@
     "check": "tsc --noEmit",
     "test": "node --test",
     "spec": "playwright test",
-    "spec:public": "HOLLOW_PUBLIC=1 playwright test tests/relays.spec.ts --project=chromium"
+    "spec:public": "HOLLOW_PUBLIC=1 playwright test tests/relays.spec.ts --project=chromium",
+    "relays": "node tools/relays.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",

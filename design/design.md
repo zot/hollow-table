@@ -94,7 +94,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
 - [x] crc-Tray.md → `src/ui/tray.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
-- [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`
+- [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`, `tools/relays.ts`
 - [ ] crc-Theme.md → `src/ui/theme.css`
 
 ### Sequences
@@ -149,6 +149,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-PoolActions.md → `src/ui/actions.test.ts`
 - [x] test-GameStore.md → `src/store/gamestore.test.ts`
 - [x] test-BlobStore.md → `src/store/blobs.test.ts`
+- [x] test-Build.md → `tools/relays.test.ts`
 - [x] test-Exchange.md → `src/store/exchange.test.ts`
 - [x] test-Ledger.md → `src/ui/ledger.test.ts`
 - [x] test-Seat.md → `tests/seat.spec.ts`, `src/store/seat.test.ts`

@@ -437,6 +437,7 @@
 - **R447:** A player's page takes a `claim` ("not yours", or the name handed back) only from the GM's browser; one from any other page changes nothing.
 - **R448:** When the book's caps drop entries from `tomb` or `last`, the book keeps the newest version dropped (its floor), and the GM's page refuses whole a change from a copy older than the floor, answering with its own pieces.
 - **R449:** An image is stored as its MIME type and its bytes (an ArrayBuffer), never a Blob, so a browser whose database refuses Blobs (WebKit in a private session) keeps it; an image stored as a Blob before still loads.
+- **R452:** `npm run relays` reports, for each relay in the pinned list and in Trystero's defaults, whether it answers a request for one event within 8 s, and how long it took or why not, the pinned ones first.
 
 ## Feature: connections
 **Source:** specs/connections.md

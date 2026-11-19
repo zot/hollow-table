@@ -13,7 +13,10 @@ them. Nothing to install, no local-network grant, no daemon.
   gives "Player"). The GM's own URL is never rewritten (reloading an invite would demote the GM); the
   GM's room is remembered per game.
 - The page pins a list of relays that answered, the same on every page, so any two pages share them.
-  Relays come and go; the list needs tending.
+- **Relays come and go, so the list is tended by hand** (Bill, 11-19: "Swap it, add a probe"):
+  `npm run relays` says which pinned relays, and which of Trystero's own defaults, answer, and a dead
+  pinned relay is swapped for a live default. The list never changes by itself: every page must
+  choose alike.
 
 ## Presence
 

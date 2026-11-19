@@ -13,7 +13,8 @@ import { b64 } from './b64.ts';
 export const APP = 'hollow-table';
 // R160: Trystero picks a few of its default relays by app id, and on 11-11 three of the mockup's
 // were dead. These six answered that day; every page uses the same list, so any two share them all.
-export const RELAYS = ['nos.lol', 'nostr.chaima.info', 'nostr.rblb.it', 'nostr.red5d.dev', 'relay.grigic.org', 'relay.bitmacro.cloud']
+// R452: tended by hand from `npm run relays`; on 11-19 nostr.chaima.info was dead, so nostr.stakey.net.
+export const RELAYS = ['nos.lol', 'nostr.stakey.net', 'nostr.rblb.it', 'nostr.red5d.dev', 'relay.grigic.org', 'relay.bitmacro.cloud']
   .map(h => `wss://${h}`);
 const STUN = ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'];
 /** The largest message (Trystero chunks it on the way) and the largest image. */

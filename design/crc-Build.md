@@ -1,5 +1,5 @@
 # Build
-**Requirements:** R196, R197, R198, R199, R200, R201, R297, R303, R305
+**Requirements:** R196, R197, R198, R199, R200, R201, R297, R303, R305, R452
 
 How the sources become the page, and how the page is published and tested.
 
@@ -17,6 +17,9 @@ How the sources become the page, and how the page is published and tested.
 - `tests/relay.ts` (R297): the local Nostr relay the spec run starts on port 8782: EVENT
   acknowledged and passed to matching subscriptions (kind, `#x`, since), REQ answered with EOSE
   (nothing stored), CLOSE. `npm run spec:public` runs the one spec through the public relays.
+- `tools/relays.ts` (R452), `npm run relays`: opens each relay in Wire's `RELAYS` and in Trystero's
+  `defaultRelayUrls`, asks for one event, and reports each as answering (with its time) or not (and
+  why) within 8 s, the pinned ones first. A dead pinned relay is swapped by hand.
 - `tsconfig.json`: strict, `erasableSyntaxOnly`, `noEmit`, DOM and ES2022 libs.
 - `build.mjs`: esbuild bundles `src/main.ts` into `dist/app.js`, copies `src/index.html` and
   `src/ui/theme.css`. The page's version is "dev" and it has no date (R305) unless publishing,

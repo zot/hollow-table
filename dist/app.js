@@ -8999,7 +8999,7 @@ var defaultRelayUrls = [
 
 // src/net/wire.ts
 var APP = "hollow-table";
-var RELAYS = ["nos.lol", "nostr.chaima.info", "nostr.rblb.it", "nostr.red5d.dev", "relay.grigic.org", "relay.bitmacro.cloud"].map((h) => `wss://${h}`);
+var RELAYS = ["nos.lol", "nostr.stakey.net", "nostr.rblb.it", "nostr.red5d.dev", "relay.grigic.org", "relay.bitmacro.cloud"].map((h) => `wss://${h}`);
 var STUN = ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"];
 var MAX_BYTES = 64 * 1024 * 1024;
 var BLOB_MAX = 25 * 1024 * 1024;
