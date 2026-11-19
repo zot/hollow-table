@@ -8,7 +8,7 @@ import { Game } from './model/game.ts';
 import { GM, ridOf, type Book, type Character, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
 import { buryInfo, buryRecord, empty as emptyYards } from './rules/yards.ts';
-import { first, groupOf, keep as keepRow, nameOf, newConnections, pcsOf, rowOf, synced, tableOf } from './rules/connections.ts';
+import { first, groupOf, keep as keepRow, nameOf, newConnections, pcsOf, published, rowOf, synced, tableOf } from './rules/connections.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
 import { Copy } from './net/copy.ts';
@@ -359,6 +359,15 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
         if (t && was !== undefined && was !== now) t = keepRow(t, c, mint()());
       }
       if (found && t !== found[1]) game.change(w => w.put(found[0], t!));
+      // R437: a revealed record's cards and name follow its row's members and its character's name.
+      if (!t) return;
+      const all = game.all().map(([, r]) => r as PieceRecord), chars = all.filter((r): r is Character => r.kind === 'character');
+      const moved = all.flatMap(r => {
+        if (r.kind !== 'opinion' || !r.shown?.length) return [];
+        const now = published(t!, chars, r);
+        return JSON.stringify(now) === JSON.stringify(r) ? [] : [now];
+      });
+      if (moved.length) game.change(w => { for (const r of moved) w.put(ridOf(r.oid), r); });
     }));
   }
   hang();

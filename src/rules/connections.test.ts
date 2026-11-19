@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { GM, type Character, type Connections, type Opinion } from '../model/records.ts';
-import { awaits, cell, connection, first, groupOf, keep, level, order, reacted, reactionOf, recordOf, rename, respected, seed, set, synced } from './connections.ts';
+import { awaits, cell, connection, opinionItems, published, recordsOn, first, groupOf, keep, level, order, reacted, reactionOf, recordOf, rename, respected, seed, set, synced } from './connections.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -111,4 +111,22 @@ test('a Reaction', () => {
   const g = { ...t, rows: [...t.rows, { id: 'c0000099', name: 'Unton folk', group: true as const }] };
   const ours: Opinion = { ...mine, oid: 'e0000002', holder: 'c0000099' };
   assert.equal(recordOf([mine, ours], g, npc('00000020', 'Hank', '<head>Hank (Unton folk)</head>'), SAM), ours);
+});
+
+test("a record's items and where it shows", () => {
+  // R436-R438: lines are items keyed by the record; published once one is revealed; found by `on` with no table.
+  const t = seed('0000000a', at, DEVREUX), dev = card(DEVREUX);
+  const rec: Opinion = { kind: 'opinion', oid: 'e0000001', holder: id(t, 'Devreux'), of: SAM, text: 'Reputation +Sig\n\nGrudge -Min' };
+  assert.deepEqual(opinionItems(rec).map(e => [e.key, e.cat]), [['oe0000001:Reputation +Sig', 'opinions'], ['oe0000001:Grudge -Min', 'opinions']]);
+  const chars = [dev, card(SAM)];
+  assert.deepEqual(published(t, chars, rec), rec, 'nothing shown: nothing published');
+  const shown = published(t, chars, { ...rec, shown: ['Grudge -Min'] });
+  assert.deepEqual([shown.on, shown.name], [[DEVREUX], 'Sam']);
+  const g = { ...t, rows: [...t.rows, { id: 'c0000099', name: 'Unton folk', group: true as const }] };
+  const front = (c: Character) => ({ ...c, front: c.front.replace(/^<head>([^<]*)<\/head>/, '<head>$1 (Unton folk)</head>') });
+  const hank = npc('00000020', 'Hank', '<head>Hank (Unton folk)</head>'), members = [front(dev), hank, card(SAM)];
+  const ours = published(g, members, { ...rec, holder: 'c0000099', shown: ['Grudge -Min'] });
+  assert.deepEqual(ours.on, [DEVREUX, '00000020']);
+  assert.deepEqual(recordsOn([ours], hank), [ours], 'a player finds it by `on`');
+  assert.deepEqual(recordsOn([ours], card(SAM)), []);
 });

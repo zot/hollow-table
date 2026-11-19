@@ -169,4 +169,4 @@ name with no Level
 **Alarm:** 13
 **Fire alarm:** read only the singular (drop the optional plural `s`); red: `skills: Tracking` is ANY
 **Inject:** src/rules/readmarks.ts:clues
-**Pulled:** 2026-11-18 — rang: "an Info card's clues" failed, skills: Tracking read as ANY; restored clean
+**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote the clue categories; rang: `skills: Tracking` read as ANY; restored clean *Earlier —* 2026-11-18 — rang: "an Info card's clues" failed, skills: Tracking read as ANY; restored clean

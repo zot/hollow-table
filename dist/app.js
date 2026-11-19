@@ -132,7 +132,10 @@ var PIECES = {
     rows: list(fields({ id: isOid, name: str(CAPS.name) }, { oid: isOid, group: oneOf(true) }), 200),
     cells: dict(int(-5, 5), 4e4)
   }, { away: oneOf(true) }),
-  opinion: fields({ kind: oneOf("opinion"), oid: isOid, holder: isOid, of: isOid, text: marked })
+  opinion: fields(
+    { kind: oneOf("opinion"), oid: isOid, holder: isOid, of: isOid, text: marked },
+    { shown: list(str(CAPS.text)), on: list(isOid), name: str(CAPS.name) }
+  )
 };
 var piece = (v) => obj(v) && typeof v.kind === "string" && Object.hasOwn(PIECES, v.kind) && PIECES[v.kind](v);
 var SINGLETONS = {
@@ -586,7 +589,7 @@ function label(text) {
   }
   return "";
 }
-var CLUE = { skill: "skills", resource: "resources", motivation: "motivations", item: "items" };
+var CLUE = { skill: "skills", resource: "resources", motivation: "motivations", item: "items", opinion: "opinions" };
 function clues(info) {
   return info.split("\n").flatMap((line, k) => {
     const text = line.trim();
@@ -1092,6 +1095,24 @@ function recordOf(records3, t, npc, of) {
   const row2 = rowOf(t, npc);
   return row2 && records3.find((r) => r.holder === row2.id && r.of === of);
 }
+function opinionItems(rec) {
+  return rec.text.split("\n").flatMap((line, k) => {
+    const text = line.trim();
+    return text ? [{ line: k, label: "", text, key: `o${rec.oid}:${text}`, cat: "opinions" }] : [];
+  });
+}
+var revealed = (rec) => (rec.shown ?? []).map((t) => `o${rec.oid}:${t}`);
+function published(t, chars, rec) {
+  const { on: _o, name: _n, shown: shown3, ...rest } = rec;
+  if (!shown3?.length) return rest;
+  const on = chars.filter((c) => c.owner === GM && rowOf(t, c)?.id === rec.holder).map((c) => c.oid).sort();
+  return { ...rest, shown: shown3, on, name: nameOf(t, chars, rec.of) };
+}
+function recordsOn(records3, c, t) {
+  if (!t) return records3.filter((r) => r.on?.includes(c.oid));
+  const row2 = rowOf(t, c);
+  return row2 ? records3.filter((r) => r.holder === row2.id) : [];
+}
 function nameOf(t, chars, of) {
   return t.rows.find((r) => r.id === of)?.name ?? chars.find((c) => c.oid === of)?.name ?? "?";
 }
@@ -1323,7 +1344,12 @@ function contribution(i, chars) {
   return !!home && home.owner !== pool.owner;
 }
 function redactPiece(r, viewer, chars) {
-  if (r.kind === "connections" || r.kind === "opinion") return viewer?.gm ? r : void 0;
+  if (r.kind === "connections") return viewer?.gm ? r : void 0;
+  if (r.kind === "opinion") {
+    if (viewer?.gm) return r;
+    const shown3 = new Set(r.shown ?? []);
+    return shown3.size ? { ...r, text: r.text.split("\n").map((l) => shown3.has(l.trim()) ? l : "").join("\n") } : void 0;
+  }
   if (r.kind === "character") {
     if (canSee(viewer, r)) return r;
     const shown3 = new Set(r.shown ?? []);
@@ -1370,7 +1396,8 @@ var CATEGORIES = [
   { key: "skills", word: "Skills" },
   { key: "resources", word: "Resources" },
   { key: "motivations", word: "Motivations" },
-  { key: "items", word: "Items" }
+  { key: "items", word: "Items" },
+  { key: "opinions", word: "Opinions" }
 ];
 var revealable = (c) => [entries(c.front), ...(c.info ?? []).map(clues)].flat().map((e) => e.key);
 function withShown(c, keys2) {
@@ -1402,13 +1429,13 @@ var Eyes = class {
   open(oid, cat = null) {
     const was = this.#open.get(oid), c = this.#card(oid);
     if (!c) return;
-    this.#open.set(oid, { draft: was?.draft ?? new Set(c.shown ?? []), cat });
+    this.#open.set(oid, { draft: was?.draft ?? /* @__PURE__ */ new Set([...c.shown ?? [], ...this.#records(c).flatMap(revealed)]), cat });
     this.#changed(oid);
   }
   /** In the Infer state, a click on an entry (by key) reveals it or hides it again. */
   toggle(oid, key) {
     const o = this.#open.get(oid), c = this.#card(oid);
-    if (!o || !c || !revealable(c).includes(key)) return;
+    if (!o || !c || ![...revealable(c), ...this.#records(c).flatMap((r) => opinionItems(r).map((e) => e.key))].includes(key)) return;
     if (!o.draft.delete(key)) o.draft.add(key);
     this.#changed(oid);
   }
@@ -1417,8 +1444,12 @@ var Eyes = class {
     const o = this.#open.get(oid), c = this.#card(oid);
     this.#open.delete(oid);
     if (o && c) {
-      const next2 = withShown(c, o.draft);
-      if (JSON.stringify(next2.shown ?? []) !== JSON.stringify(c.shown ?? [])) this.#game.change((w) => w.put(ridOf(oid), next2));
+      const next2 = withShown(c, o.draft), recs = this.#shownRecords(c, o.draft);
+      const card2 = JSON.stringify(next2.shown ?? []) !== JSON.stringify(c.shown ?? []);
+      if (card2 || recs.length) this.#game.change((w) => {
+        if (card2) w.put(ridOf(oid), next2);
+        for (const r of recs) w.put(ridOf(r.oid), r);
+      });
     }
     this.#changed(oid);
   }
@@ -1426,6 +1457,23 @@ var Eyes = class {
   flip(oid) {
     if (this.#open.has(oid)) this.shut(oid);
     else this.open(oid);
+  }
+  /** R436: the records under a card, on the GM's page, by the Connection Table. */
+  #records(c) {
+    const all2 = this.#game.all().map(([, r]) => r), t = tableOf(all2);
+    return t ? recordsOn(all2.filter((r) => r.kind === "opinion"), c, t) : [];
+  }
+  // R436: each record whose revealed lines the draft changes, with its cards and name as they go out.
+  /** The records to write when the eye shuts. */
+  #shownRecords(c, draft) {
+    const all2 = this.#game.all().map(([, r]) => r), t = tableOf(all2);
+    if (!t) return [];
+    const chars = all2.filter((r) => r.kind === "character");
+    return this.#records(c).flatMap((rec) => {
+      const shown3 = opinionItems(rec).filter((e) => draft.has(e.key)).map((e) => e.text);
+      const now2 = published(t, chars, shown3.length ? { ...rec, shown: shown3 } : (({ shown: _, ...rest }) => rest)(rec));
+      return JSON.stringify(now2) === JSON.stringify(rec) ? [] : [now2];
+    });
   }
   #card(oid) {
     const c = this.#game.get(ridOf(oid));
@@ -2375,7 +2423,7 @@ function infos(e, c, w, secret, draft) {
   const doc = e.ownerDocument, box2 = e.querySelector(":scope > .infos"), rid2 = ridOf(c.oid);
   const shown3 = new Set(c.shown ?? []), cards = (c.info ?? []).map((i) => secret ? blankInfo(i, shown3) : i);
   const showing = cards.flatMap((t, k) => secret && !t.trim() ? [] : [k]);
-  const recs = w.viewer?.gm && c.owner === GM ? records(w.game, c) : [];
+  const recs = c.owner === GM ? records(w.game, c).filter((r) => !secret || r.rec.text.trim()) : [];
   const mine = `${c.oid}:`, at3 = [...w.slid()].find((s) => s.startsWith(mine)), key = at3?.slice(mine.length) ?? "";
   const rec = key.startsWith("o") ? recs.find((r) => r.rec.oid === key.slice(1)) : void 0;
   const out = key && !key.startsWith("o") && showing.includes(Number(key)) ? Number(key) : -1;
@@ -2417,8 +2465,16 @@ function infos(e, c, w, secret, draft) {
       paper.dataset.k = want;
       box2.prepend(paper);
     }
-    paper.querySelector(".connhead").textContent = `\u2794 ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
-    recordDrawn(paper.querySelector(".text"), rec.rec.oid, c.oid, w);
+    paper.querySelector(".connhead").textContent = secret ? `\u2794 ${rec.name}` : `\u2794 ${rec.name} (Connection ${level(connection(rec.rec.text))})`;
+    const text = paper.querySelector(".text"), face = secret || !!draft;
+    text.contentEditable = face ? "false" : "true";
+    if (face) {
+      rewrite(text, rec.rec.text);
+      torn(text, c, secret, draft, draft ? w.eyes.cat(c.oid) : null, (src) => opinionItems({ ...rec.rec, text: src }), false);
+    } else {
+      if (text.querySelector("[data-entries]")) delete text.dataset.source;
+      recordDrawn(text, rec.rec.oid, c.oid, w);
+    }
   }
   const tabs = el2(doc, "div", "infotabs");
   for (const k of showing) {
@@ -2436,10 +2492,9 @@ function infos(e, c, w, secret, draft) {
 }
 function records(game, c) {
   const all2 = game.all().map(([, r]) => r), t = tableOf(all2);
-  const row2 = t && rowOf(t, c);
-  if (!t || !row2) return [];
   const chars = all2.filter((r) => r.kind === "character");
-  return order(all2.filter((r) => r.kind === "opinion" && r.holder === row2.id).map((rec) => ({ rec, name: nameOf(t, chars, rec.of) })));
+  const recs = recordsOn(all2.filter((r) => r.kind === "opinion"), c, t);
+  return order(recs.map((rec) => ({ rec, name: t ? nameOf(t, chars, rec.of) : rec.name ?? "" })));
 }
 function writeRecord(w, oid, text) {
   const rec = w.game.get(ridOf(oid));
@@ -2859,6 +2914,8 @@ function judge(game, edit, who) {
   const mine = (old, rec) => {
     if (old && !seen(old, viewer, chars)) return false;
     if (rec && !seen(rec, viewer, chars)) return false;
+    const gms = (r) => !!r && "kind" in r && (r.kind === "connections" || r.kind === "opinion");
+    if (gms(old) || gms(rec)) return false;
     const c = (r) => r && "kind" in r && r.kind === "character" ? r : void 0;
     return !c(old) && !c(rec) ? true : mayChange(viewer, c(old), c(rec));
   };
@@ -12186,7 +12243,7 @@ var TableView = class {
   #render(changed) {
     const characters3 = /* @__PURE__ */ new Set(), game = this.#w.game;
     const rids = [...changed], kind = (rid2) => game.get(rid2)?.kind;
-    if (this.#w.viewer?.gm && rids.some((rid2) => isPiece(rid2) && (!game.get(rid2) || kind(rid2) === "opinion" || kind(rid2) === "connections"))) {
+    if (rids.some((rid2) => isPiece(rid2) && (!game.get(rid2) || kind(rid2) === "opinion" || kind(rid2) === "connections"))) {
       for (const [rid2, r] of game.all()) if (r.kind === "character" && !rids.includes(rid2)) rids.push(rid2);
     }
     let items = false;
@@ -12871,6 +12928,16 @@ ${groupOf(c.front) ?? ""}`, seen3 = /* @__PURE__ */ new Map();
         if (t && was !== void 0 && was !== now2) t = keep(t, c, mint2()());
       }
       if (found && t !== found[1]) game.change((w) => w.put(found[0], t));
+      if (!t) return;
+      const all2 = game.all().map(([, r]) => r), chars = all2.filter((r) => r.kind === "character");
+      const moved = all2.flatMap((r) => {
+        if (r.kind !== "opinion" || !r.shown?.length) return [];
+        const now2 = published(t, chars, r);
+        return JSON.stringify(now2) === JSON.stringify(r) ? [] : [now2];
+      });
+      if (moved.length) game.change((w) => {
+        for (const r of moved) w.put(ridOf(r.oid), r);
+      });
     }));
   }
   hang();

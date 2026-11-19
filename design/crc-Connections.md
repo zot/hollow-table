@@ -1,5 +1,5 @@
 # Connections
-**Requirements:** R407-430, R434
+**Requirements:** R407-430, R434, R436-438
 
 The Connection Table: its rules, pure (`src/rules/connections.ts`), and its sheet and the group
 chooser on the GM's page (`src/ui/connections.ts`).
@@ -11,7 +11,7 @@ chooser on the GM's page (`src/ui/connections.ts`).
   `away` is put away (R409): kept, not drawn.
 - Opinion (crc-Records.md): an Opinion Record, a piece with no place, `{kind: 'opinion', oid, holder,
   of, text}`: `holder` the row of the NPC or group it belongs to, `of` the row or PC it is of, `text`
-  the GM's Opinions, a line each (R419, R426).
+  the GM's Opinions, a line each (R419, R426); `shown`, `on` and `name` once revealed (R436).
 
 ## Does
 - level(n) (R411): "+Min", "-Sig", "+Maj", "-Ext", "+Exq" for 1 to 5 either way, "0" for none.
@@ -45,6 +45,13 @@ chooser on the GM's page (`src/ui/connections.ts`).
   number; awaits(text): whether a record has a "Reaction ?" line; reacted(text, n): the first such line
   written "Reaction <Level>".
 - recordOf(records, t, npc, pc) (R429, R430): the record the NPC's row (its group's) holds of the PC.
+- opinionItems(rec) (R436): what the eye can reveal of a record: each line with words, whole, keyed
+  `o<record oid>:<line>`, in the Opinions category; revealed(rec) its `shown` lines as those keys.
+- published(t, chars, rec) (R436, R437): the record as its revealed lines go out: no `on` or `name`
+  when nothing is shown; else `on` the GM cards in its row (its own card, or every member's card for a
+  group's), by oid, and `name` the name of what it is of (nameOf).
+- recordsOn(records, c, t?) (R419, R426, R438): the records a card shows: with the table, its row's;
+  without it, on a player's page, those whose `on` holds the card.
 - the menu's candidates (R422): the PCs with no record from the holder, by name, then the other rows
   with none, by name.
 - seed (R418): *Connections in Unton* from *A Ghoulish Problem*: eight rows, Devreux linked to the
@@ -57,6 +64,8 @@ chooser on the GM's page (`src/ui/connections.ts`).
 - the group chooser (R414): on the GM's page, `(` typed in a GM card's first line opens a list of
   the game's groups under the caret; typing narrows it, and Enter or a click writes the group, or the
   typed name when none matches, and closes the `)`. Escape leaves the `(` as typed.
+- the publisher (R437): on the GM's page, whenever the game changes, each revealed record whose `on`
+  or `name` published() would change is written again, in one change.
 - the keeper (R412, R415): on the GM's page, whenever a GM card's name or group changes from what was
   last seen, keep its row. A card first seen (a load, a dig-up) is only remembered, so a row the GM
   cleared stays cleared until its card is renamed. Taking the table from the supply keeps a row for

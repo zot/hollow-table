@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -38,6 +38,8 @@ judges every player's change.
   - the sender is nobody (Claims);
   - Ownership.mayChange says no;
   - the sender can only see the piece redacted (Visibility);
+  - it is the Connection Table or an Opinion Record, which only the GM's page writes, revealed or not
+    (R410, R435);
   - it puts back a piece deleted after the copy it was made on (tomb newer than the edit's version);
   - it is a chip whose `by` changes to anyone but the sender (R360);
   - (R375) `rows` is merged, as Boot Hill's is: of a player's rows, only those of characters they own

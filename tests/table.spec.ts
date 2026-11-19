@@ -480,3 +480,28 @@ test('the GM taps an Opinion', async ({ page }) => {
   // R434: the cell counts the fixed Level only.
   await expect(row.locator('td.pc')).toHaveText(['', '+Sig']);
 });
+
+test('the GM reveals an Opinion', async ({ page }) => {
+  // R436: with the eye open and Devreux's record of Sam slid out, its lines are targets; Opinions lights them.
+  const pool = page.locator('.obj.pool[data-rid="o:00000003"]'), card = page.locator('.obj.card[data-rid="o:00000003"]');
+  await pool.locator('.makemenu').click();
+  await pool.locator('.poolmenu .opinionof', { hasText: 'Sam' }).click();
+  const paper = card.locator('.infopaper.opinion');
+  await paper.locator('.text').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Reputation +Sig\nGrudge -Min');
+  await page.locator('#table').click({ position: { x: 5, y: 300 } });
+  await card.locator('.eyecat').click();
+  await card.locator('.eyemenu button', { hasText: 'Opinions' }).click();
+  await expect(paper.locator('.entry.lit')).toHaveText(['Reputation +Sig', 'Grudge -Min']);
+  await paper.locator('.entry', { hasText: 'Grudge -Min' }).click();
+  await expect(paper.locator('.entry.torn')).toHaveText(['Grudge -Min']);
+  await card.locator('.eye').click();
+  // Shut, the record holds its revealed line, its card and its name.
+  const r = await page.evaluate(async () => {
+    const g = (await (window as any).hollow.ready).store.game;
+    const o = g.all().map(([, x]: any) => x).find((x: any) => x.kind === 'opinion');
+    return { shown: o.shown, on: o.on, name: o.name };
+  });
+  expect(r).toEqual({ shown: ['Grudge -Min'], on: ['00000003'], name: 'Sam' });
+});

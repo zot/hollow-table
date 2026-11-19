@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -289,9 +289,9 @@ export class TableView {
   #render(changed: Iterable<Rid>): void {
     const characters = new Set<Rid>(), game = this.#w.game;
     // R419, R421: a record or the Connection Table changing (or a piece going) redraws the cards, whose
-    // folders show the records.
+    // folders show the records; R438: a player's too, which shows the records revealed to them.
     const rids = [...changed], kind = (rid: Rid) => (game.get(rid) as PieceRecord | undefined)?.kind;
-    if (this.#w.viewer?.gm && rids.some(rid => isPiece(rid) && (!game.get(rid) || kind(rid) === 'opinion' || kind(rid) === 'connections')))
+    if (rids.some(rid => isPiece(rid) && (!game.get(rid) || kind(rid) === 'opinion' || kind(rid) === 'connections')))
       for (const [rid, r] of game.all()) if ((r as PieceRecord).kind === 'character' && !rids.includes(rid)) rids.push(rid);
     let items = false;
     for (const rid of rids) {

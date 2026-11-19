@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
@@ -100,6 +100,10 @@ export function judge(game: Game, edit: Edit, who: string | null): { puts: { rid
   const mine = (old: Rec | undefined, rec: Rec | undefined) => {
     if (old && !seen(old, viewer, chars)) return false;                                     // R186
     if (rec && !seen(rec, viewer, chars)) return false;
+    // R410, R435: the Connection Table and the Opinion Records are written by the GM's page alone, however
+    // much of a record a player can see.
+    const gms = (r: Rec | undefined) => !!r && 'kind' in r && (r.kind === 'connections' || r.kind === 'opinion');
+    if (gms(old) || gms(rec)) return false;
     const c = (r: Rec | undefined) => r && 'kind' in r && r.kind === 'character' ? r : undefined;
     return !c(old) && !c(rec) ? true : mayChange(viewer, c(old), c(rec));                   // R148
   };

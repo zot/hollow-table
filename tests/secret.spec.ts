@@ -260,3 +260,39 @@ test('a player rolls a Reaction', async ({ browser }) => {
   await expect(paper.locator('.text')).toContainText(`Reaction ${said}`);
   expect(await held(dana)).not.toContain('"opinion"');
 });
+
+test('a player sees a revealed Opinion', async ({ browser }) => {
+  // R435-R438: Unton folk's record of Sam, one line revealed, shows under Devreux and Hank on Dana's page,
+  // face-down with that line alone.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  await hook(gm, new Function('h', `
+    const g = h.store.game, d = g.get('${DEVREUX}');
+    const front = d.front.replace('<head>Mistress Devreux</head>', '<head>Mistress Devreux (Unton folk)</head>');
+    const { info: _i, shown: _s, ...base } = d;
+    g.change(w => {
+      w.put('${DEVREUX}', { ...d, front });
+      w.put('o:00000020', { ...base, oid: '00000020', name: 'Hank', front: '<head>Hank (Unton folk)</head>',
+        card: { ...d.card, x: 500, y: 650 }, pool: { ...d.pool, x: 500, y: 650 } });
+    });`) as (h: any) => void);
+  const pool = gm.locator(`.obj.pool[data-rid="${DEVREUX}"]`), card = gm.locator(`.obj.card[data-rid="${DEVREUX}"]`);
+  await pool.locator('.makemenu').click();
+  await pool.locator('.poolmenu .opinionof', { hasText: 'Sam' }).click();
+  const paper = card.locator('.infopaper.opinion');
+  await paper.locator('.text').click();
+  await gm.keyboard.press('ControlOrMeta+a');
+  await gm.keyboard.type('Reputation +Sig\nGrudge -Min');
+  await gm.locator('#table').click({ position: { x: 5, y: 300 } });
+  await card.locator('.eye').click();
+  await paper.locator('.entry', { hasText: 'Grudge -Min' }).click();
+  await card.locator('.eye').click();
+  // Dana: a tab "Sam" under both members; slid out under Hank, "➔ Sam" and the one torn line.
+  const hank = dana.locator('.obj.card[data-rid="o:00000020"]');
+  await expect(hank.locator('.infotab.opinion')).toHaveText(['Sam'], { timeout: 15_000 });
+  await expect(dana.locator(`.obj.card[data-rid="${DEVREUX}"] .infotab.opinion`)).toHaveText(['Sam']);
+  await hank.locator('.infotab.opinion').click();
+  const theirs = hank.locator('.infopaper.opinion');
+  await expect(theirs.locator('.connhead')).toHaveText('➔ Sam');
+  await expect(theirs.locator('.text > .torn')).toHaveText(['Grudge -Min']);
+  expect(await held(dana)).not.toContain('Reputation');
+});

@@ -19,7 +19,7 @@ Infer; when you Infer Opinions", and "I forgot I renamed Connection Card to Opin
 - [x] ~~**Item 3 — Opinion Records.**~~ **LANDED (2026-11-18 — `#31`.)** Takes in the prototype carve's Item 15. After Item 6.
 - [x] ~~**Item 7 — the Reaction roll.**~~ **LANDED (2026-11-18 — `#33`.)** Split from Item 3; after it.
 - [x] ~~**Item 8 — tapping Opinions.**~~ **LANDED (2026-11-18 — `#34`.)** After Item 3.
-- [ ] **Item 9 — revealing Opinion Records.** **OPEN (not queued.)** After Item 3.
+- [x] ~~**Item 9 — revealing Opinion Records.**~~ **LANDED (2026-11-19 — `#35`.)** After Item 3.
 
 ## The rules
 
@@ -218,6 +218,12 @@ record taps, with no pen; a tapped Opinion's parentheses stay "Like Motivations,
 or Event end recharges both and Bunkum's Event Updates move a fixed value, which is a later item; and
 the card is named for "The NPC and Opinion", "Devreux: Reputation +Min". Records being the GM's until
 Item 9, only the GM taps them; players ask aloud.
+
+DECIDED (Bill, 2026-11-19), Item 9's questions, on Daneel's proposals: a record reveals "Line by line",
+each Opinion one item as the 11-15 ruling has it, not the whole record as Bunkum's category does; every
+record starts hidden, "Start hidden; GM tears", though Bunkum's first meeting "tells them to the
+Players", since the voice carries that; and a player sees the record's "Name only", "➔ Sam", never
+its Connection.
 
 ## Item 1
 

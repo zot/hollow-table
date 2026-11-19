@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -14,7 +14,7 @@ stickies, loose text, images, torn rolls and reference cards.
   it holds the caret. The card's front reads in two columns, as printed. A card its viewer may not
   read lies face-down ("Hollow").
 - the eye (R388, R392, R393): on the GM's own page, a card the GM owns has an eye at its front's upper right
-  and a dropdown arrow beside it (Skills, Resources, Motivations). The open eyes are the page's own,
+  and a dropdown arrow beside it (Skills, Resources, Motivations, Items, Opinions). The open eyes are the page's own,
   never saved or sent (Eyes): each open card keeps a draft of its revealed entries, begun from `shown`.
   Open, the card is drawn torn from the back as below, but the back is translucent and its hidden
   text is written in a muted ink, each line with entries (MarkReader.entries) drawn as its label and
@@ -22,6 +22,10 @@ stickies, loose text, images, torn rolls and reference cards.
   mends it in the draft, its line's label torn with it. Shutting the
   eye writes the draft as `shown` in one change (absent when empty). The dropdown's category opens
   the eye and highlights that category's unrevealed entries yellow. A shut card shows nothing of `shown`.
+  (R436) The draft takes in the card's records' items too (Connections.opinionItems), begun from their
+  `shown`; with the eye open, a slid-out record is drawn torn as an Info card is, each line a target,
+  with no glyph or die. Shutting writes each record whose revealed lines changed, its `shown` and, by
+  Connections.published, its `on` and `name`, in the same change as the card.
 - Info cards (R400, R397–R399, R402): manila-folder tabs on a card's bottom edge, "Info 1", "Info 2"
   ("Info" for one); a tab slides its white card out from under the NPC's card, another tab or the same
   one tucking it back. Which is out is the Seat's (`open.info`, `<oid>:<k>`). The GM writes on one as
@@ -79,7 +83,9 @@ stickies, loose text, images, torn rolls and reference cards.
   While the paper isn't being written in, a record of a PC has a White die (`.reactdie`, holding no
   text) before its "Reaction ?" line, which calls react(pc, npc) (R429), and every Opinion, a line with
   a fixed Level other than 0, a tap glyph, its source `<npc>:o<record>/<name>`, faded when Tap.leftOf
-  says it is dry (R432). Leaving the paper draws it afresh from the record, its lines and marks, which
+  says it is dry (R432). (R438) On a player's page a card shows the records whose `on` holds it, each
+  tab named by the record's `name`; slid out, face-down, "➔ <name>" over its revealed lines torn
+  through its back, taking no caret, with no Connection, glyph or die. Leaving the paper draws it afresh from the record, its lines and marks, which
   were left alone while it was written in.
 - connections: the Connection Table's sheet (crc-Connections.md); placeOf gives none while it is
   `away`, so a put-away table is not drawn (R409). On the GM's page a GM card's first line opens the

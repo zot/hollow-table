@@ -1,10 +1,10 @@
-// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418, R420-426, R429, R430
+// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418, R420-426, R429, R430, R436-438
 // The Connection Table's rules, pure: Levels as words, a card's group, a row for every named NPC,
 // renaming rows, setting cells, the adventure's table as the seed, and the Opinion Records: their
 // Connection, their first Opinions, and their cells.
 
 import { GM, OPEN, type Character, type ConnRow, type Connections, type Oid, type Opinion, type PieceRecord, type Place } from '../model/records.ts';
-import { field, skillsLine } from './readmarks.ts';
+import { field, skillsLine, type Entry } from './readmarks.ts';
 
 const WORDS = ['Min', 'Sig', 'Maj', 'Ext', 'Exq'];
 
@@ -227,6 +227,37 @@ export function reacted(text: string, n: number): string {
 export function recordOf(records: Opinion[], t: Connections, npc: Character, of: Oid): Opinion | undefined {
   const row = rowOf(t, npc);
   return row && records.find(r => r.holder === row.id && r.of === of);
+}
+
+// R436: each line of a record with words is an item, whole, keyed by its record, an Opinion.
+/** What the eye can reveal of a record. */
+export function opinionItems(rec: Opinion): Entry[] {
+  return rec.text.split('\n').flatMap((line, k) => {
+    const text = line.trim();
+    return text ? [{ line: k, label: '', text, key: `o${rec.oid}:${text}`, cat: 'opinions' as const }] : [];
+  });
+}
+
+/** A record's revealed lines, as the eye's keys. */
+export const revealed = (rec: Opinion): string[] => (rec.shown ?? []).map(t => `o${rec.oid}:${t}`);
+
+// R436, R437: once a line is revealed, the cards the record shows under (every member's, for a group's)
+// and what it is of go out with it; nothing does before.
+/** The record as its revealed lines go out. */
+export function published(t: Connections, chars: Character[], rec: Opinion): Opinion {
+  const { on: _o, name: _n, shown, ...rest } = rec;
+  if (!shown?.length) return rest;
+  const on = chars.filter(c => c.owner === GM && rowOf(t, c)?.id === rec.holder).map(c => c.oid).sort();
+  return { ...rest, shown, on, name: nameOf(t, chars, rec.of) };
+}
+
+// R419, R426, R438: the records a card shows: its row's, with the table; on a player's page, which has
+// none, those published on it.
+/** The records under a card. */
+export function recordsOn(records: Opinion[], c: Character, t?: Connections): Opinion[] {
+  if (!t) return records.filter(r => r.on?.includes(c.oid));
+  const row = rowOf(t, c);
+  return row ? records.filter(r => r.holder === row.id) : [];
 }
 
 /** The name of what a record is of: a row's name, or a PC's. */

@@ -14,7 +14,7 @@ refused
 **Alarm:** 1
 **Fire alarm:** Skip the checks that the sender can see the piece as it is, before and after (drop both redaction tests): Dana's rename of Devreux's card is taken
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's rename of Devreux's card was taken (refused []) *Earlier —* 2026-11-12 — rang: Dana's rename of Devreux's card was taken
+**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote judge's check of what a player may write; rang: Dana's rename of Devreux's card was taken; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's rename of Devreux's card was taken (refused []) *Earlier —* 2026-11-12 — rang: Dana's rename of Devreux's card was taken
 ## Test: out seals what differs and nothing else
 **Purpose:** each tab gets sealed only the pieces it sees differently; giving Sam to Dana sends his
 sheet; taking him back sends the redacted one
@@ -115,3 +115,14 @@ is tombed
 **Fire alarm:** take a player's GM card as they sent it (drop the `gm` branch of mergeYards); red: the card comes back masked
 **Inject:** src/net/authority.ts:mergeYards
 **Pulled:** 2026-11-18 — rang: "the card comes back whole" failed, the card came back masked; restored clean
+
+## Test: a player never writes a record, however much is revealed
+**Purpose:** R410, R435: a player's change to an Opinion Record is refused even when every line of it is revealed, so their view is the record itself; and to the Connection Table
+**Input:** Devreux's record of Sam, `Grudge -Min`, its one line shown; Dana's change rewriting it to `Grudge +Exq`; Dana's change to the Connection Table
+**Expected:** both refused; the record unchanged
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 10
+**Fire alarm:** judge records as any other piece (drop the GM-only rule); red: Dana's rewrite is taken
+**Inject:** src/net/authority.ts:judge
+**Pulled:** 2026-11-19 — rang: Dana's rewrite of the record was taken; restored clean

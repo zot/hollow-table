@@ -92,3 +92,14 @@
 **Fire alarm:** read the table off by one (the d6's face as the index); red: step 1 gives -1 for a 1
 **Inject:** src/rules/connections.ts:reactionOf
 **Pulled:** 2026-11-18 — rang: reactionOf read 1 as -1, the table shifted by one; restored clean
+
+## Test: a record's items and where it shows
+**Purpose:** R436-R438: a record's lines are items keyed by the record; once one is revealed it is published on its row's cards with its name; a player's page finds records by `on`
+**Input:** Devreux's record of Sam, `Reputation +Sig` and a blank line and `Grudge -Min`; published with nothing shown, then with `Grudge -Min` shown; the same record held by a group row "Unton folk" of Devreux and Hank; recordsOn for Hank with no table
+**Expected:** two items, keys `o<oid>:Reputation +Sig` and `o<oid>:Grudge -Min`, both Opinions; no `on` or `name` with nothing shown; then `on` [Devreux], `name` "Sam"; for the group `on` [Devreux, Hank]; recordsOn gives the record for Hank
+**Refs:** crc-Connections.md
+**Code:** `src/rules/connections.test.ts`
+**Alarm:** 6
+**Fire alarm:** publish a group's record on the first member only (`on` the first card); red: the group's `on` is [Devreux]
+**Inject:** src/rules/connections.ts:published
+**Pulled:** 2026-11-19 — rang: the group's `on` held Devreux alone; restored clean

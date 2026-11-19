@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -146,7 +146,11 @@ export type Connections = { kind: 'connections'; oid: Oid; place: Place; away?: 
  * R419, R426: an Opinion Record, held by the Connection Table row of its NPC or group (`holder`), of a
  * row or a PC (`of`): the GM's Opinions, a line each. It has no place: it is drawn under its NPC's card.
  */
-export type Opinion = { kind: 'opinion'; oid: Oid; holder: Oid; of: Oid; text: Marked };
+export type Opinion = {
+  kind: 'opinion'; oid: Oid; holder: Oid; of: Oid; text: Marked;
+  /** R436: its revealed lines, by their words; once one is, the cards it shows under and what it is of. */
+  shown?: string[]; on?: Oid[]; name?: string;
+};
 
 export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | TornRoll | Reference | Connections | Opinion;
 
@@ -280,7 +284,8 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
   connections: fields({ kind: oneOf('connections'), oid: isOid, place,
     rows: list(fields({ id: isOid, name: str(CAPS.name) }, { oid: isOid, group: oneOf(true) }), 200),
     cells: dict(int(-5, 5), 40_000) }, { away: oneOf(true) }),
-  opinion: fields({ kind: oneOf('opinion'), oid: isOid, holder: isOid, of: isOid, text: marked }),
+  opinion: fields({ kind: oneOf('opinion'), oid: isOid, holder: isOid, of: isOid, text: marked },
+    { shown: list(str(CAPS.text)), on: list(isOid), name: str(CAPS.name) }),
 };
 const piece: Shape = v => obj(v) && typeof v.kind === 'string' && Object.hasOwn(PIECES, v.kind)
   && PIECES[v.kind as PieceRecord['kind']](v);

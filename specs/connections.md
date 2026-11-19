@@ -93,12 +93,24 @@ alone.
   Opinion"), "Devreux: Reputation +Min", at home in the drawer of the NPC whose card it was dragged from;
   what it spends shows in parentheses after the fixed Level, "Reputation +Sig (+Min)", and leaves the
   Connection as it was, which counts fixed Levels only. A record of a group is tapped from any
-  member's card, named for that member. Only the GM taps a record, while records are the GM's. The
+  member's card, named for that member. Only the GM taps a record, on the GM's page. The
   parentheses stay until the GM writes them away (Bill, 11-18: "Like Motivations, later"): a scene's or
   Event's end that recharges them, and Bunkum's Event Updates that move a fixed value after a large
   tap, come later.
-- **The GM's alone, for now**: no player's page receives an Opinion Record. Revealing one after an
-  Infer comes later (Bill, 11-18: "it's fine to reveal the group").
+- **Revealed line by line** (Bill, 11-19: "Line by line"; an Infer reveals one item per Success
+  Level, ruled 11-15): a record is the GM's until the GM reveals one of its Opinions. With the eye open
+  on an NPC's card (see *Infer reveals* in `ownership.md`), a click on a line of the record slid out
+  tears it out or mends it, and the eye's dropdown lights its unrevealed Opinions under **Opinions**.
+  A revealed line is known by its words, as an entry is: rewritten, it is hidden again.
+- **Every record starts hidden** (Bill, 11-19: "Start hidden; GM tears"): the GM tells the players an
+  NPC's first Opinions aloud, as Bunkum's first meeting has it ("tells them to the Players"), and
+  tears out what they should keep in front of them.
+- **A group's record is revealed for the group** (Bill, 11-18: "it's fine to reveal the group"):
+  revealed under one member's card, it shows under every member's.
+- **What a player sees**: once one of its Opinions is revealed, a pink tab under the NPC's card,
+  named for the character the record is of; slid out, the record face-down, "➔ Sam" over its revealed
+  Opinions torn through its back, and nothing else: the Connection is the GM's (Bill, 11-19: "Name
+  only"). Only those words reach a player's page, and no player's page can change a record.
 - **Emptied, a record is buried** on Boot Hill as "Devreux: Opinion of Sam", as an Info card is (see
   `ownership.md`): players see "GM card"; undo or dragging it out of the list digs it up. While it is
   buried its cell keeps its value; dug up, its Connection is written to the cell again.

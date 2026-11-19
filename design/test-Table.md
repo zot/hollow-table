@@ -351,3 +351,14 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/piece.ts:recordGlyphs
 **Pulled:** 2026-11-18 — rang (Chromium): the record's line had no glyph; restored clean
 
+## Test: the GM reveals an Opinion
+**Purpose:** R436: with the eye open and a record slid out, its lines are targets, the Opinions category lights them, and shutting the eye writes the record's revealed line, its cards and its name
+**Input:** the GM's table; Devreux's record of Sam written `Reputation +Sig` and `Grudge -Min`; Devreux's eye arrow, "Opinions"; a click on `Grudge -Min`; the eye shut
+**Expected:** both lines lit before the click; `Grudge -Min` torn after it; once shut the record's `shown` [`Grudge -Min`], `on` [Devreux], `name` "Sam"
+**Refs:** crc-PieceView.md, crc-Connections.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 27
+**Fire alarm:** shut the eye without writing the records (drop the records from the shut); red: the record has no `shown`
+**Inject:** src/ui/eyes.ts:Eyes.shut
+**Pulled:** 2026-11-19 — rang (Chromium): the shut record had no `shown`, `on` or `name`; restored clean
+

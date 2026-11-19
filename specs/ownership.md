@@ -42,7 +42,7 @@ The die by the character's name shows GM, open, or the player.
   its hidden text readable through it, its revealed entries torn out. Clicking an entry tears it
   out or mends it, and nothing reaches the players until the eye shuts. Changes made with the eye open
   are lost if the page reloads. A dropdown arrow beside the eye picks a category (Skills, Resources,
-  Motivations, Items), opening the eye and highlighting that category's unrevealed entries in
+  Motivations, Items, Opinions), opening the eye and highlighting that category's unrevealed entries in
   yellow. A shut card shows nothing of what is revealed (Bill, 11-18).
 - **An open eye can't be forgotten:** while any eye is open, every Roll key on the table is disabled.
 - **Torn from the back.** A face-down card shows its name, and each line holding revealed entries
@@ -53,7 +53,7 @@ The die by the character's name shows GM, open, or the player.
   slide out from under its card on tabs, "Info 1", "Info 2" when there is more than one. Each is a
   list of the GM's clues, a line apiece, reading `CATEGORY: DESCRIPTION` ("MOTIVATION: it doesn't like
   its orders"). A clue is revealed whole, like an entry. Its category is the word before its colon:
-  Skill, Resource, Motivation or Item; any other ("WHAT IT KNOWS ABOUT TRUDY") is up to the GM, so it
+  Skill, Resource, Motivation, Item or Opinion; any other ("WHAT IT KNOWS ABOUT TRUDY") is up to the GM, so it
   counts as ANY, which the dropdown lights with every category. The GM writes on an Info card as on the
   front. Which card is slid out is each person's own.
 - **The NPC's menu** (Bill, 11-18: "let's put a dropdown after the GM die and use it for creating stuff
@@ -67,7 +67,8 @@ The die by the character's name shows GM, open, or the player.
   with the words it had (Bill, 11-18: "Let's use Boot Hill"; see `boothill.md`). **Undo** (Ctrl+Z, ⌘Z)
   on the GM's page, outside any text being written, digs up the newest Info card or Opinion Record buried
   in the current graveyard, back where it was and slid out. It undoes nothing else ("Cards only").
-- **The eye covers the Info cards too**: with it open, a click on a clue tears it out or mends it.
+- **The eye covers the Info cards too**, and the Opinion Records (see `connections.md`): with it open,
+  a click on a clue tears it out or mends it.
   A player sees an Info card's tab only once one of its clues is revealed, and the card face-down,
   each revealed clue torn through its back.
 - **A pool has two mats** (Bill, 11-16: "At the game table, there would be an Influence Pool mat for

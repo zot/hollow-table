@@ -1,7 +1,7 @@
 // CRC: crc-Visibility.md | Test: test-Visibility.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Character, Chip, Influence, PieceRecord, Rec, Yards } from '../model/records.ts';
+import type { Character, Chip, Influence, Opinion, PieceRecord, Rec, Yards } from '../model/records.ts';
 import { canSee, contribution, redact, differs, type Viewer } from './visibility.ts';
 import { bury, burialOf, empty } from './yards.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
@@ -162,4 +162,14 @@ test("an NPC's Info cards reveal only their shown clues", () => {
   for (const w of ['watches', 'Trudy', 'Tracking']) assert.ok(!JSON.stringify(dana).includes(w), w);
   assert.deepEqual(redact(dana, { name: 'Dana', gm: false }, look), dana, 'redacting again changes nothing');
   assert.equal('info' in (redact(dev, { name: 'Dana', gm: false }, look) as Character), false, 'no Info cards, no field');
+});
+
+test('a record reaches a player once revealed, and only what is revealed', () => {
+  // R435: nothing shown, nothing sent; a line shown, only it, every other line blank; the GM's whole.
+  const rec: Opinion = { kind: 'opinion', oid: '0000000f', holder: 'c0000005', of: SAM, text: 'Reputation +Sig\nGrudge -Min' };
+  const dana: Viewer = { name: 'Dana', gm: false }, gm: Viewer = { name: 'GM', gm: true };
+  assert.equal(redact(rec, dana, look), undefined);
+  const out = { ...rec, shown: ['Grudge -Min'], on: [DEVREUX], name: 'Sam' };
+  assert.deepEqual(redact(out, dana, look), { ...out, text: '\nGrudge -Min' });
+  assert.deepEqual(redact(out, gm, look), out);
 });

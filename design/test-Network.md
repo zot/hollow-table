@@ -178,8 +178,7 @@ by the drop
 **Alarm:** 11
 **Fire alarm:** write each tear to the game as it is made (no draft until the eye shuts); red: Dana's front holds Savvy while the eye is open
 **Inject:** src/ui/eyes.ts:toggle
-**Pulled:** 2026-11-18 — re-pulled after entries (#28), rang (Chromium): Dana's front held Savvy while the eye was open; restored clean
-
+**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote the eye's toggle; rang (Chromium): Dana's front changed while the eye was open; restored clean *Earlier —* 2026-11-18 — re-pulled after entries (#28), rang (Chromium): Dana's front held Savvy while the eye was open; restored clean
 ## Test: an NPC's Info cards reach players only as torn clues
 **Purpose:** R396–R400, R403, R406 over the wire: the GM's Info card on Devreux reaches Dana blank, with no tab; on Motivations its ANY, MOTIVATION and unknown clues are lit; the MOTIVATION clue torn out and the eye shut, Dana's card holds only that line, her tab shows, and slid out the clue is torn through the back
 **Input:** the GM's table and Dana; three clues written on Devreux; the GM's Info tab, the eye's arrow, Motivations, the MOTIVATION clue, the eye; Dana's tab
@@ -189,8 +188,7 @@ by the drop
 **Alarm:** 12
 **Fire alarm:** show players a tab for every Info card (drop the face-down filter); red: Dana has a tab before anything is revealed
 **Inject:** src/ui/piece.ts:infos
-**Pulled:** 2026-11-18 — re-pulled after infos changed for burial; rang (Chromium): Dana had a tab before anything was revealed; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana had a tab before anything was revealed; restored clean
-
+**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote infos; rang (Chromium): Dana had an Info tab before anything was revealed; restored clean *Earlier —* 2026-11-18 — re-pulled after infos changed for burial; rang (Chromium): Dana had a tab before anything was revealed; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana had a tab before anything was revealed; restored clean
 ## Test: the Connection Table never reaches a player
 **Purpose:** R410: with the table on the GM's table, Dana's page holds no Connection Table and her bar has no supply; a forged change from her is refused
 **Input:** the GM's table and Dana; the GM takes the Connection Table out; Dana's page sends a put of the table
@@ -200,9 +198,9 @@ by the drop
 **Alarm:** 13
 **Fire alarm:** send the table to everyone (redact returns it whole); red: Dana's page holds a `connections` record
 **Inject:** src/rules/visibility.ts:redact
-**Pulled:** 2026-11-18 — re-pulled after the redaction took Opinion Records too; rang (Chromium): Dana's page held the `connections` record; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana's page held the whole `connections` record, Jephthah and all; restored clean
+**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote the table's redaction line; rang (Chromium): Dana's page held the `connections` record; restored clean *Earlier —* 2026-11-18 — re-pulled after the redaction took Opinion Records too; rang (Chromium): Dana's page held the `connections` record; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana's page held the whole `connections` record, Jephthah and all; restored clean
 ## Test: Opinion Records never reach a player
-**Purpose:** R427: the GM's record of Sam on Devreux never reaches Dana, and her forged one is refused
+**Purpose:** R435: the GM's record of Sam on Devreux, nothing revealed, never reaches Dana, and her forged one is refused
 **Input:** the GM's table and Dana; the GM puts a record of Sam under Devreux; Dana's page puts a record
 **Expected:** Dana's page holds no record of kind `opinion` and none of its words; the GM's page holds only its own record
 **Refs:** crc-Visibility.md
@@ -210,9 +208,7 @@ by the drop
 **Alarm:** 14
 **Fire alarm:** send records to everyone (redact returns an Opinion Record whole); red: Dana's page holds it
 **Inject:** src/rules/visibility.ts:redact
-**Pulled:** 2026-11-18 — rang (Chromium): Dana's page held the `opinion` record; restored clean
-
-
+**Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote the record's redaction; rang (Chromium): Dana's page held the `opinion` record; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana's page held the `opinion` record; restored clean
 ## Test: a player rolls a Reaction
 **Purpose:** R429-R431: the GM calls Sam's Reaction from Devreux's record; Dana rolls it from her page, and both tapes hear it, while the record stays the GM's
 **Input:** the GM's table and Dana, Sam given to Dana; the GM makes Devreux's record of Sam and clicks its die; Dana presses Roll on Sam's row
@@ -223,3 +219,14 @@ by the drop
 **Fire alarm:** believe the intent over the GM's row (take no `reaction` from the held row); red: Dana's roll prints a plain roll, not a Reaction
 **Inject:** src/net/rolls.ts:#intent
 **Pulled:** 2026-11-18 — rang (Chromium): Dana's roll printed as a plain roll, Success at cost +Maj, not a Reaction; restored clean
+
+## Test: a player sees a revealed Opinion
+**Purpose:** R435-R438: the GM reveals one line of Unton folk's record of Sam on Devreux; Dana sees it under Devreux and Hank, face-down, and nothing else of it
+**Input:** the GM's table and Dana; Devreux and Hank in Unton folk; the group's record of Sam, `Reputation +Sig` and `Grudge -Min`, `Grudge -Min` revealed by the GM's eye; Dana slides it out under Hank
+**Expected:** a tab "Sam" under Devreux and under Hank on Dana's page; slid out, "➔ Sam" and one torn line `Grudge -Min`; Dana's page holds the record's text with no `Reputation`
+**Refs:** crc-Visibility.md, crc-PieceView.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 16
+**Fire alarm:** never publish the record's cards (no `on`); red: Dana's page shows no tab "Sam"
+**Inject:** src/rules/connections.ts:published
+**Pulled:** 2026-11-19 — rang (Chromium): Dana's Hank had no tab "Sam"; restored clean

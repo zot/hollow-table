@@ -1,5 +1,5 @@
 # MarkReader
-**Requirements:** R54, R74, R83, R207, R258, R261, R267, R322-324, R326, R336, R337, R362, R354, R355, R363, R364, R391, R396
+**Requirements:** R54, R74, R83, R207, R258, R261, R267, R322-324, R326, R336, R337, R362, R354, R355, R363, R364, R391, R396, R436
 
 Reads the game inside marks, and only there. Each grammar is also used to *offer* a pen for a plain
 line that fits it.
@@ -43,8 +43,8 @@ line that fits it.
   Motivations, Items), the Items heading's line for an Item, and its key: label and text, "Skills 3:
   Savvy".
 - clues(info) (R396): an Info card's clues, each non-empty line whole, keyed by its text, its
-  category the word before its colon (Skill, Resource, Motivation, Item, any case, singular or
-  plural), or ANY for any other word or none.
+  category the word before its colon (Skill, Resource, Motivation, Item, Opinion, any case, singular
+  or plural), or ANY for any other word or none (R436).
 - offer(line, heading, underField) (R207, R323, R324): also `fld` for a plain `Name N (nXP)` line,
   and `skl` for a `Skills N:` line or a plain line under a Field.
 - points(front, att) (R326, R336): everything on a card's front a drop can point at, each with its line,

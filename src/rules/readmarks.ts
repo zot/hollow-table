@@ -1,4 +1,4 @@
-// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R362, R354, R355, R363, R364, R391, R396
+// CRC: crc-MarkReader.md | R205, R258, R261, R267, R323, R324, R326, R336, R337, R362, R354, R355, R363, R364, R391, R396, R436
 // Reads the game inside marks, and only there. Each grammar also offers a pen for a plain line
 // that fits it.
 
@@ -251,7 +251,7 @@ function parts(text: string, from: number): Part[] {
 }
 
 /** What an Infer reveals (R391): Skills (Fields with them), Resources, Motivations, Items. */
-export type InferCategory = 'skills' | 'resources' | 'motivations' | 'items';
+export type InferCategory = 'skills' | 'resources' | 'motivations' | 'items' | 'opinions';
 /** One thing an Infer can reveal: its line, its line's label, its text, its category (an Info clue's may
  * be ANY, R396), and its key. */
 export type Entry = { line: number; label: string; text: string; key: string; cat: InferCategory | 'any'; head?: number };
@@ -269,7 +269,7 @@ function label(text: string): string {
   return '';
 }
 
-const CLUE: Record<string, InferCategory> = { skill: 'skills', resource: 'resources', motivation: 'motivations', item: 'items' };
+const CLUE: Record<string, InferCategory> = { skill: 'skills', resource: 'resources', motivation: 'motivations', item: 'items', opinion: 'opinions' };
 
 // R396: an Info card's clue is a whole line, keyed by its text; its category is the word before its
 // colon, any case, singular or plural, and any other is ANY.

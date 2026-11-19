@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { ridOf, type Book, type Character, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
+import { ridOf, type Book, type Character, type Opinion, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
 import { handOver, whoIs } from './claims.ts';
@@ -252,4 +252,18 @@ test("a player's Boot Hill keeps the GM's cards whole", () => {
   assert.deepEqual(put([]).refused, ['yards'], 'taking the card away is refused');
   const forged = put([...seen.yards[0]!.items, { name: 'GM card', records: [], gm: '0000cccc' }]);
   assert.deepEqual((forged.puts[0]!.rec as Yards).yards[0]!.items, [card], 'a made-up GM card is dropped');
+});
+
+test('a player never writes a record, however much is revealed', () => {
+  // R410, R435: every line revealed, Dana sees the record whole, and still can't change it; nor the table.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const rec: Opinion = { kind: 'opinion', oid: '0000000f', holder: 'c0000005', of: SAM, text: 'Grudge -Min', shown: ['Grudge -Min'], on: [DEVREUX], name: 'Sam' };
+  game.change(w => w.put(ridOf(rec.oid), rec));
+  const edit = (puts: Edit['puts']): Edit => ({ s: 1, base: 0, puts, dels: [] });
+  assert.deepEqual(redact(rec, { name: 'Dana', gm: false }, () => undefined), rec, 'she sees it whole');
+  assert.deepEqual(judge(game, edit([{ rid: ridOf(rec.oid), rec: { ...rec, text: 'Grudge +Exq', shown: ['Grudge +Exq'] } }]), 'Dana').refused, [ridOf(rec.oid)]);
+  const t = game.get(ridOf('0000000a'));
+  assert.equal((t as { kind: string }).kind, 'connections');
+  assert.deepEqual(judge(game, edit([{ rid: ridOf('0000000a'), rec: { ...(t as object), away: true } as never }]), 'Dana').refused, [ridOf('0000000a')]);
 });

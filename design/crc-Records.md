@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429, R436
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -46,8 +46,9 @@ record crosses the wire, the database and an export file unchanged.
 - Image: `{kind: 'image', oid, place, blob: sha256, w, h, pin?}`.
 - TornRoll: `{kind: 'tornroll', oid, place, receipts: Receipt[]}`.
 - Reference: `{kind: 'reference', oid, place, which: 'howto' | 'actions'}`.
-- Opinion (R419, R426): `{kind: 'opinion', oid, holder, of, text}`, an Opinion Record (crc-Connections.md),
-  with no place.
+- Opinion (R419, R426, R436): `{kind: 'opinion', oid, holder, of, text, shown?, on?, name?}`, an Opinion
+  Record (crc-Connections.md), with no place; `shown` its revealed lines by their words, and, once one
+  is, `on` the cards it shows under and `name` what it is of, written by the GM's page.
 - Connections (R407-409): `{kind: 'connections', oid, place, away?, rows: {id, name, oid?, group?}[],
   cells}`, the Connection Table (crc-Connections.md); a cell is a Level, -5 to 5, keyed `<row id>><column id>`.
 - Receipt: `{id, at, title, by?, action?, dice: Die[], influence?, base?, vs?, row?, resolution, level, outcome,
