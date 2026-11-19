@@ -103,6 +103,7 @@
 - **R450:** Ctrl+A or ⌘A in a written place selects all of its contents, non-editable dice and glyphs included, whatever the browser's own select-all would do.
 - **R451:** A press and move on a piece's text carries the piece: the browser's own drag never starts from the table (`dragstart` is cancelled there), and while a carry lasts it leaves any writing the browser takes up again (WebKit's text selection refocuses the text); dropping files from outside the page still works.
 - **R453:** When the browser refuses to store a new image, the image supply turns red and reads "storage full" (a QuotaExceededError) or "not added", its tooltip saying why, until an image is added.
+- **R460:** (principle) The table enforces who may see and touch what, with the GM's page arbitrating; works out and shows the arithmetic; and allows a judgment call the book leaves to the GM, flagging it for the GM, rather than refusing it.
 
 ## Feature: Influence
 **Source:** specs/influence.md

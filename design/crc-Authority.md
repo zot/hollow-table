@@ -1,8 +1,9 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
-judges every player's change.
+judges every player's change. (R460) It enforces who may see and touch what; a judgment call the book leaves to
+the GM isn't refused here (it is to be flagged, prototype Item 14).
 
 ## Knows
 - book.gv: the table's version; every batch carries the next one. Continues across reloads and

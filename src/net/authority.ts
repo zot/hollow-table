@@ -97,6 +97,7 @@ function capped<T>(m: Record<Rid, T>, at: (v: T) => number): number {
   return dropped;
 }
 
+// R460: the table guards secrets and who may touch what here; judgment calls aren't refused (Item 14).
 // Seq: seq-edit.md#1.4, seq-edit.md#1.4.1, seq-edit.md#1.4.2, seq-edit.md#1.4.3, seq-edit.md#1.4.4, seq-edit.md#1.4.5
 /**
  * Pure: what of a player's change to take, and what to refuse. `who` is the name the sender's

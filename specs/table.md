@@ -4,6 +4,14 @@ A shared table for Hollow stories (Glimmer, Bunkum): move paper and roll dice wi
 noticing the software. v1 supports play at the table: draggable images, dice rolling, and fancy
 draggable sheets of paper and cards. No deep game integration yet (no XP calculation and the like).
 
+## What it enforces
+
+- **Guard secrets; flag judgment** (Bill, 11-19, answering his 11-12 "more and more game rules are
+  integrating in, solidifying the behavior"). The table enforces who may see and touch what, with the
+  GM's page arbitrating; it works out the arithmetic (Roll Ups, the White row, absorb, transfers) and
+  shows it; and it never refuses a judgment call: a move the book leaves to the GM is allowed and
+  flagged for the GM to rule on. Rules it refuses today are reviewed against this (prototype Item 14).
+
 ## Look
 
 - The one bold thing is **the paper**. Cards, stickies, pools and chips look like the printed
