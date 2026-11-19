@@ -420,7 +420,7 @@
 - **R187:** Players' changes are sealed to the GM's page.
 - **R188:** The GM's page refuses a change carrying a piece its sender can only see redacted.
 - **R189:** A player's change stays pending until the GM's page answers it, survives a reload, and goes again every 3 s; after 5 tries the GM's version wins.
-- **R190:** When the GM's page comes back (a new key, or a message after 25 s of silence), the player's page asks for the whole table and sends its pending changes again, which win where the GM's page allows them.
+- **~~R190:~~** (Retired T47 — see R443) When the GM's page comes back (a new key, or a message after 25 s of silence), the player's page asks for the whole table and sends its pending changes again, which win where the GM's page allows them.
 - **R191:** The GM's page numbers its batches with the table's version, which continues across reloads and restores.
 - **R192:** A change that puts back a piece deleted after the copy it was made on is answered with the deletion.
 - **R193:** A Boot Hill change from a copy that missed a later one is refused whole.
@@ -428,6 +428,8 @@
 - **R195:** A missing image shows striped and marked missing with why, and is asked for again every 10 s.
 - **R361:** A piece someone may not see at all is left out of a batch's public part and sealed to those who may; when it stops being public, its removal goes out without a tomb, and a tab that alone stops seeing it gets the removal sealed; no page sends its carry to the room.
 - **R442:** In a player's Boot Hill change, a burial the GM's Boot Hill doesn't hold keeps only the records of pieces the same change deletes and the GM's page takes the deletion of, as the GM's page holds them; a burial left with none is dropped. Every record of a burial the GM's Boot Hill holds is the GM's copy, whatever the player sends.
+- **R443:** When the GM's page comes back (a new key, or a message after 25 s of silence), the player's page asks for the whole table and then sends its pending changes again.
+- **R444:** The GM's page refuses a player's change, put or deletion, to a piece another tab changed after the copy the change was made on (the GM's page keeps each piece's last change, its version and tab, at most 3,000), and answers with the piece as it now is; a piece the sender's own tab changed last takes the change as before.
 
 ## Feature: connections
 **Source:** specs/connections.md

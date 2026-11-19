@@ -112,8 +112,13 @@ them. Nothing to install, no local-network grant, no daemon.
   refused it. Pending changes survive a reload and go again every 3 s; after 5 tries the GM's
   version wins.
 - When the GM's page comes back (a new key, or a message after 25 s of silence), the player's page
-  asks for the whole table. Its pending changes are kept and sent again, and **the player's change
-  wins**, as long as the GM's page allows it.
+  asks for the whole table. Its pending changes are kept and sent again.
+- **A change wins only over what its copy saw** (Bill, 11-19: "Refuse it"). A player's change to a
+  piece someone else changed after the copy it was made on, a put or a deletion, is refused, and the
+  player's page gets the piece as it now is: the GM rewrites a sticky while Dana's page is out of
+  date, and her move of it snaps back, the GM's text kept. A piece nobody else changed since takes the
+  player's change, as long as the GM's page allows it, and a page's own changes in a row never count
+  against each other.
 - **The GM's database has the final say.** The GM's page numbers its batches with the table's
   version, which carries on across reloads and restores. A change that puts back a piece deleted
   after the copy it was made on is answered with the deletion again. A Boot Hill change from a copy

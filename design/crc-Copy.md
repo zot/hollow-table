@@ -1,5 +1,5 @@
 # Copy
-**Requirements:** R140, R171, R172, R173, R189, R190, R361
+**Requirements:** R140, R171, R172, R173, R189, R443, R361
 
 A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 page answers them.

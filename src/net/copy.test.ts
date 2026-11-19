@@ -233,3 +233,23 @@ test('deletions, the book, and silence', async () => {
   await t.seconds(2);
   assert.ok(t.room.log.slice(before).some(m => m.kind === 'sync' && m.from.tab === 'dana'), 'asked for the table');
 });
+
+test("a stale copy's change to a piece the GM changed since", async () => {
+  // Prototype Item 19: while the GM's page is away, Dana moves the sticky and Sam, and the GM rewrites
+  // the sticky. Back, her pending changes go again from her old copy.
+  const t = await table();
+  await t.playerLoad('dana');
+  await t.room.settle();
+  const dana = () => t.players.get('dana')!;
+  t.room.online('gm', false);
+  nudge(dana().game, STICKY, 40);
+  nudge(dana().game, ridOf(SAM), 50);
+  write(t.gm.game, "The GM's rewrite");
+  await t.seconds(4);
+  await t.gmLoad();
+  await t.seconds(2);
+  assert.equal(text(t.gm.game), "The GM's rewrite", "the GM's text survives her stale move");
+  assert.equal(text(dana().game), "The GM's rewrite", 'and reaches her page');
+  assert.equal((t.gm.game.get(ridOf(SAM)) as Character).card.x, (dana().game.get(ridOf(SAM)) as Character).card.x, 'Sam, unchanged by the GM, takes her move');
+  assert.deepEqual(dana().copy.pending(), []);  assert.equal((t.gm.game.get('book') as Book).last?.[ridOf(SAM)]?.by, 'dana', "the book says whose change Sam's was");
+});

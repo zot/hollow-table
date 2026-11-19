@@ -191,9 +191,13 @@ export const WORLD = 'world';
 export type Opponent = Oid | typeof WORLD;
 /**
  * The GM's page only, never sent: who holds which name, the table's version, the version each piece
- * was deleted at (at most TOMBS), and the version Boot Hill last changed at.
+ * was deleted at (at most TOMBS), the version Boot Hill last changed at, and (R444) the version and tab
+ * of each piece's last change (at most TOMBS).
  */
-export type Book = { claims: Record<string, string>; gv: number; tomb: Record<Rid, number>; hillGv?: number; kept?: KeptRoll[] };
+export type Book = {
+  claims: Record<string, string>; gv: number; tomb: Record<Rid, number>; hillGv?: number; kept?: KeptRoll[];
+  last?: Record<Rid, { g: number; by: string }>;
+};
 
 /**
  * R308, R313: a roll the GM's page keeps so its CRIT, its Attack's take and its names can be acted on
@@ -307,6 +311,7 @@ const SINGLETONS: Record<string, Shape> = {
     reaction: isOid }), 1000) }),
   book: fields({ claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     { hillGv: int(0, Number.MAX_SAFE_INTEGER),
+      last: dict(fields({ g: int(0, Number.MAX_SAFE_INTEGER), by: str(CAPS.id) }), TOMBS),
       kept: list(fields({ character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },
         { tab: str(CAPS.id), sealKey: str(CAPS.text), priv: oneOf(true) }), KEPT) }),
   tape: fields({ receipts: list(receipt, 10_000) }),

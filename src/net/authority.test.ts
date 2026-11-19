@@ -327,3 +327,19 @@ test('a player buries only what they delete', () => {
   const note = buried(t.puts.find(p => p.rid === 'yards')!.rec as Yards).find(i => i.name === 'Note')!;
   assert.equal((note.records[0] as Sticky).text, sticky.text);
 });
+
+test("a change from a stale copy loses to another tab's", () => {
+  // R444: the GM rewrote the sticky at version 6; Dana's own tab moved Sam at 6.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const sam = game.get(ridOf(SAM)) as Character, sticky = game.get(STICKY) as Sticky;
+  game.change(w => w.put('book', { ...(game.get('book') as Book), gv: 6, last: { [STICKY]: { g: 6, by: 'gm' }, [ridOf(SAM)]: { g: 6, by: 'dana' } } }));
+  const edit = (e: Partial<Edit>, base = 4): Edit => ({ s: 1, base, puts: [], dels: [], ...e });
+  const moved = { ...sticky, place: { ...sticky.place, x: sticky.place.x + 40 } };
+  assert.deepEqual(judge(game, edit({ puts: [{ rid: STICKY, rec: moved }] }), 'Dana', 'dana').refused, [STICKY], 'a move of what the GM changed since');
+  assert.deepEqual(judge(game, edit({ dels: [STICKY] }), 'Dana', 'dana').refused, [STICKY], 'and a deletion');
+  assert.deepEqual(judge(game, edit({ puts: [{ rid: STICKY, rec: moved }] }, 6), 'Dana', 'dana').refused, [], 'from a copy that saw it');
+  const samMoved = { ...sam, card: { ...sam.card, x: sam.card.x + 5 } };
+  assert.deepEqual(judge(game, edit({ puts: [{ rid: ridOf(SAM), rec: samMoved }] }), 'Dana', 'dana').refused, [], 'her own tab changed it last');
+  assert.deepEqual(judge(game, edit({ puts: [{ rid: ridOf(SAM), rec: samMoved }] }), 'Dana', 'dana-2').refused, [ridOf(SAM)], 'from her other tab, it is stale');
+});

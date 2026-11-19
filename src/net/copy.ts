@@ -1,4 +1,4 @@
-// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R140, R171, R172, R173, R189, R190, R361, R381
+// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R140, R171, R172, R173, R189, R443, R361, R381
 // A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 // page answers them, whether it took them or not. Pending changes survive the GM's absence and a
 // reload, and go again until answered.
@@ -87,7 +87,7 @@ export class Copy {
     this.#w.link.send('sync', {});
   }
 
-  // R190: a new key, or a message after AWAY_MS of silence, means the GM's page came back.
+  // R443: a new key, or a message after AWAY_MS of silence, means the GM's page came back.
   /** The GM's page was heard. */
   heardGm(from: Peer): void {
     const now = this.#w.clock.now(), was = this.#gmPeer;
@@ -143,7 +143,7 @@ export class Copy {
       }
       this.#apply(puts, dels, from.tab, batch.full);
       if (this.synced && (batch.full || (last !== undefined && batch.g === last + 1))) this.#setSeen(batch.g);
-      // R190: once the table is here, what's pending goes again.
+      // R443: once the table is here, what's pending goes again.
       if (batch.full && this.#pending.size) this.#resend([...this.#pending.keys()]);
     });
     return this.#work;

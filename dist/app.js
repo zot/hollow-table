@@ -177,6 +177,7 @@ var SINGLETONS = {
     { claims: dict(str(CAPS.id)), gv: int(0, Number.MAX_SAFE_INTEGER), tomb: dict(int(0, Number.MAX_SAFE_INTEGER), TOMBS) },
     {
       hillGv: int(0, Number.MAX_SAFE_INTEGER),
+      last: dict(fields({ g: int(0, Number.MAX_SAFE_INTEGER), by: str(CAPS.id) }), TOMBS),
       kept: list(fields(
         { character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },
         { tab: str(CAPS.id), sealKey: str(CAPS.text), priv: oneOf(true) }
@@ -2919,7 +2920,12 @@ function mergeRows(real2, mine, who, chars) {
   }
   return { rows };
 }
-function judge(game, edit, who) {
+function capped(m, at3) {
+  const keys2 = Object.keys(m);
+  if (keys2.length > TOMBS) for (const k of keys2.sort((a, b) => at3(m[a]) - at3(m[b])).slice(0, keys2.length - TOMBS)) delete m[k];
+  return m;
+}
+function judge(game, edit, who, tab2) {
   const all2 = [...edit.puts.map((p) => p.rid), ...edit.dels].filter((rid2) => rid2 !== "meta" && !LOCAL.has(rid2));
   const book2 = game.get("book"), chars = characters2(game);
   if (!who) return { puts: [], dels: [], refused: all2 };
@@ -2933,10 +2939,14 @@ function judge(game, edit, who) {
     const c = (r) => r && "kind" in r && r.kind === "character" ? r : void 0;
     return !c(old) && !c(rec) ? true : mayChange(viewer, c(old), c(rec));
   };
+  const stale = (rid2) => {
+    const l = book2.last?.[rid2];
+    return !!l && l.g > edit.base && l.by !== tab2;
+  };
   const puts = [], dels = [], refused = [];
   for (const rid2 of edit.dels) {
     if (!all2.includes(rid2)) continue;
-    if (isPiece(rid2) && mine(game.get(rid2), void 0)) dels.push(rid2);
+    if (isPiece(rid2) && !stale(rid2) && mine(game.get(rid2), void 0)) dels.push(rid2);
     else refused.push(rid2);
   }
   for (const { rid: rid2, rec } of edit.puts) {
@@ -2948,6 +2958,7 @@ function judge(game, edit, who) {
       else refused.push(rid2);
     } else if (rid2 === "rows") puts.push({ rid: rid2, rec: mergeRows(game.get("rows"), rec, who, chars) });
     else if (!isPiece(rid2) || (book2.tomb[rid2] ?? 0) > edit.base) refused.push(rid2);
+    else if (stale(rid2)) refused.push(rid2);
     else if (forged(game.get(rid2), rec, who)) refused.push(rid2);
     else if (mine(game.get(rid2), rec)) puts.push({ rid: rid2, rec });
     else refused.push(rid2);
@@ -2963,11 +2974,16 @@ var Authority = class {
   #origin = /* @__PURE__ */ new Map();
   #answerDel = /* @__PURE__ */ new Set();
   #pending = /* @__PURE__ */ new Set();
+  /** R444: the pieces changed since the last batch, and the tab whose change it was. */
+  #touched = /* @__PURE__ */ new Map();
   #flushing = false;
   #work = Promise.resolve();
   constructor(w) {
     this.#w = w;
-    w.game.listen((rids) => this.#queue(rids));
+    w.game.listen((rids) => {
+      for (const rid2 of rids) if (isPiece(rid2)) this.#touched.set(rid2, w.link.tab);
+      this.#queue(rids);
+    });
     w.link.on("sync", (_, from) => {
       this.#catchUp(from.tab);
     });
@@ -3082,13 +3098,14 @@ var Authority = class {
     this.#answerDel.clear();
     if (!puts.length && !dels.length && !sealFor.size) return;
     const book2 = game.get("book"), g = book2.gv + 1;
-    const tomb = { ...book2.tomb };
+    const tomb = { ...book2.tomb }, last = { ...book2.last };
     for (const rid2 of gone) if (isPiece(rid2)) tomb[rid2] = g;
     for (const p of puts) delete tomb[p.rid];
-    const keys2 = Object.keys(tomb);
-    if (keys2.length > TOMBS) for (const k of keys2.sort((a, b) => tomb[a] - tomb[b]).slice(0, keys2.length - TOMBS)) delete tomb[k];
+    for (const [rid2, by] of this.#touched) if (game.get(rid2)) last[rid2] = { g, by };
+    else delete last[rid2];
+    this.#touched.clear();
     const hill = puts.some((p) => p.rid === "yards") ? { hillGv: g } : {};
-    game.change((w) => w.put("book", { ...book2, gv: g, tomb, ...hill }));
+    game.change((w) => w.put("book", { ...book2, gv: g, tomb: capped(tomb, (v) => v), last: capped(last, (v) => v.g), ...hill }));
     this.#send({ g, full: false, puts, dels }, sealFor);
   }
   #send(batch, sealFor, to) {
@@ -3138,7 +3155,7 @@ var Authority = class {
     const t = this.#tabs.get(tab2), r = this.#w.game.get(rid2);
     if (!t || !r) return false;
     const gv = this.#w.game.get("book").gv;
-    return judge(this.#w.game, { s: 0, base: gv, puts: [{ rid: rid2, rec: r }], dels: [] }, this.#viewer(t)?.name ?? null).refused.length === 0;
+    return judge(this.#w.game, { s: 0, base: gv, puts: [{ rid: rid2, rec: r }], dels: [] }, this.#viewer(t)?.name ?? null, tab2).refused.length === 0;
   }
   // Seq: seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7: judge, take what's allowed, answer the rest.
   #take(edit, tab2) {
@@ -3146,7 +3163,7 @@ var Authority = class {
     if (!t) return;
     const fresh3 = (rid2) => stamps.fresh(rid2, tab2, edit.s);
     const current = { ...edit, puts: edit.puts.filter((p) => fresh3(p.rid)), dels: edit.dels.filter(fresh3) };
-    const verdict = judge(game, current, this.#viewer(t)?.name ?? null);
+    const verdict = judge(game, current, this.#viewer(t)?.name ?? null, tab2);
     for (const rid2 of [...current.puts.map((p) => p.rid), ...current.dels]) stamps.mark(rid2, tab2, edit.s);
     const theirs = (rid2) => {
       this.#origin.set(rid2, { s: edit.s, by: tab2, fresh: true });
@@ -3163,6 +3180,7 @@ var Authority = class {
       for (const p of verdict.puts) w.put(p.rid, p.rec);
       for (const rid2 of verdict.dels) w.del(rid2);
     });
+    for (const rid2 of changed) if (isPiece(rid2)) this.#touched.set(rid2, tab2);
     const unchanged = taken.filter((rid2) => !changed.has(rid2));
     for (const rid2 of unchanged) answer(rid2);
     for (const rid2 of verdict.refused) answer(rid2);
@@ -3259,7 +3277,7 @@ var Copy = class {
     this.#asked = this.#w.clock.now();
     this.#w.link.send("sync", {});
   }
-  // R190: a new key, or a message after AWAY_MS of silence, means the GM's page came back.
+  // R443: a new key, or a message after AWAY_MS of silence, means the GM's page came back.
   /** The GM's page was heard. */
   heardGm(from) {
     const now2 = this.#w.clock.now(), was = this.#gmPeer;

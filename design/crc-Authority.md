@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change.
@@ -8,6 +8,8 @@ judges every player's change.
 - book.gv: the table's version; every batch carries the next one. Continues across reloads and
   restores.
 - book.tomb: rid → the version at which it was deleted (capped at 3,000).
+- book.last (R444): rid → `{g, by}`, the version of the batch that last changed a piece and the tab
+  whose change it was, the GM's page's own when not a player's (capped at 3,000, oldest dropped).
 - public: rid → what went out to everyone (the redacted-for-nobody view).
 - tabs: tab → `{name, browser, sealKey, holds: rid → the view it holds}`.
 - origin: rid → the stamp it last went out under; a change taken from a player keeps the player's
@@ -28,19 +30,21 @@ judges every player's change.
   removal if it had gone out, under a fresh stamp and not tombed; for each player tab
   whose view differs from what it holds, its view sealed to it, in the same batch, and a sealed
   removal for a tab that alone stops seeing it (R361). Deletions go out
-  under a **fresh** stamp (Stamps). Also re-checks every record when a character changes hands, so
+  under a **fresh** stamp (Stamps). Each batch records `last` for the pieces it changed (R444). Also re-checks every record when a character changes hands, so
   sheets and cards follow ownership though their records didn't change.
 - catchUp(tab): the whole table, to that tab only (a piece nobody may see only sealed to those who
   may, R361), at the current version without moving it. What it
   sends counts as gone out to everyone (where nothing had yet), so deleting it later is sent and tombed
   (R188, R192).
-- judge(game, edit, who): pure. For each record in a player's change, refuses it when:
+- judge(game, edit, who, tab): pure. For each record in a player's change, refuses it when:
   - the sender is nobody (Claims);
   - Ownership.mayChange says no;
   - the sender can only see the piece redacted (Visibility);
   - it is the Connection Table or an Opinion Record, which only the GM's page writes, revealed or not
     (R410, R435);
   - it puts back a piece deleted after the copy it was made on (tomb newer than the edit's version);
+  - (R444) it puts or deletes a piece another tab changed after the copy it was made on (`last` newer
+    than the edit's version, by a tab not the sender's);
   - it is a chip whose `by` changes to anyone but the sender (R360);
   - (R375) `rows` is merged, as Boot Hill's is: of a player's rows, only those of characters they own
     are taken, and of those only the action, its alternative, the type and the hand; the aim, the

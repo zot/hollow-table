@@ -86,15 +86,23 @@ function mergeRows(real: Rows | undefined, mine: Rows, who: string, chars: Chara
   return { rows };
 }
 
-// Seq: seq-edit.md#1.4, seq-edit.md#1.4.1, seq-edit.md#1.4.2, seq-edit.md#1.4.3
+/** At most TOMBS entries, the oldest by `at` dropped. */
+function capped<T>(m: Record<Rid, T>, at: (v: T) => number): Record<Rid, T> {
+  const keys = Object.keys(m);
+  if (keys.length > TOMBS) for (const k of keys.sort((a, b) => at(m[a]!) - at(m[b]!)).slice(0, keys.length - TOMBS)) delete m[k];
+  return m;
+}
+
+// Seq: seq-edit.md#1.4, seq-edit.md#1.4.1, seq-edit.md#1.4.2, seq-edit.md#1.4.3, seq-edit.md#1.4.4
 /**
  * Pure: what of a player's change to take, and what to refuse. `who` is the name the sender's
  * browser holds (null: nobody). Refused: everything from nobody; everything, when it touches Boot
  * Hill from a copy that missed a later change to it; a piece Ownership says they may not change; a
  * piece they can only see redacted, before or after; a piece put back that was deleted after their
- * copy was made.
+ * copy was made; (R444) a piece put or deleted that another tab than `tab` changed after their copy
+ * was made.
  */
-export function judge(game: Game, edit: Edit, who: string | null): { puts: { rid: Rid; rec: Rec }[]; dels: Rid[]; refused: Rid[] } {
+export function judge(game: Game, edit: Edit, who: string | null, tab?: string): { puts: { rid: Rid; rec: Rec }[]; dels: Rid[]; refused: Rid[] } {
   const all = [...edit.puts.map(p => p.rid), ...edit.dels].filter(rid => rid !== 'meta' && !LOCAL.has(rid));
   const book = game.get('book') as Book, chars = characters(game);
   if (!who) return { puts: [], dels: [], refused: all };                                   // R167
@@ -110,10 +118,12 @@ export function judge(game: Game, edit: Edit, who: string | null): { puts: { rid
     const c = (r: Rec | undefined) => r && 'kind' in r && r.kind === 'character' ? r : undefined;
     return !c(old) && !c(rec) ? true : mayChange(viewer, c(old), c(rec));                   // R148
   };
+  // R444: another tab changed the piece after the copy this change was made on.
+  const stale = (rid: Rid) => { const l = book.last?.[rid]; return !!l && l.g > edit.base && l.by !== tab; };
   const puts: { rid: Rid; rec: Rec }[] = [], dels: Rid[] = [], refused: Rid[] = [];
   for (const rid of edit.dels) {
     if (!all.includes(rid)) continue;
-    if (isPiece(rid) && mine(game.get(rid), undefined)) dels.push(rid); else refused.push(rid);
+    if (isPiece(rid) && !stale(rid) && mine(game.get(rid), undefined)) dels.push(rid); else refused.push(rid);
   }
   for (const { rid, rec } of edit.puts) {
     if (!all.includes(rid)) continue;
@@ -123,6 +133,7 @@ export function judge(game: Game, edit: Edit, who: string | null): { puts: { rid
       if (merged) puts.push({ rid, rec: merged }); else refused.push(rid);
     } else if (rid === 'rows') puts.push({ rid, rec: mergeRows(game.get('rows') as Rows | undefined, rec as Rows, who, chars) });
     else if (!isPiece(rid) || (book.tomb[rid] ?? 0) > edit.base) refused.push(rid);       // R192
+    else if (stale(rid)) refused.push(rid);                                                  // R444
     else if (forged(game.get(rid), rec, who)) refused.push(rid);                             // R360
     else if (mine(game.get(rid), rec)) puts.push({ rid, rec });
     else refused.push(rid);
@@ -145,12 +156,17 @@ export class Authority {
   #origin = new Map<Rid, Stamp & { fresh: boolean }>();
   #answerDel = new Set<Rid>();
   #pending = new Set<Rid>();
+  /** R444: the pieces changed since the last batch, and the tab whose change it was. */
+  #touched = new Map<Rid, string>();
   #flushing = false;
   #work: Promise<void> = Promise.resolve();
 
   constructor(w: AuthorityWith) {
     this.#w = w;
-    w.game.listen(rids => this.#queue(rids));
+    w.game.listen(rids => {
+      for (const rid of rids) if (isPiece(rid)) this.#touched.set(rid, w.link.tab);
+      this.#queue(rids);
+    });
     w.link.on('sync', (_: never, from: Peer) => { this.#catchUp(from.tab); });
     w.link.on('edit', (body: { box: Box }, from: Peer) => this.#edit(body.box, from));
     w.link.on('bye', (_: never, from: Peer) => { this.#tabs.delete(from.tab); });
@@ -258,13 +274,14 @@ export class Authority {
     if (!puts.length && !dels.length && !sealFor.size) return;
     // R188, R192: the table's version moves with every batch; deletions are remembered by it.
     const book = game.get('book') as Book, g = book.gv + 1;
-    const tomb = { ...book.tomb };
+    const tomb = { ...book.tomb }, last = { ...book.last };
     for (const rid of gone) if (isPiece(rid)) tomb[rid] = g;
     for (const p of puts) delete tomb[p.rid];
-    const keys = Object.keys(tomb);
-    if (keys.length > TOMBS) for (const k of keys.sort((a, b) => tomb[a]! - tomb[b]!).slice(0, keys.length - TOMBS)) delete tomb[k];
+    // Seq: seq-sync.md#1.5.1 | R444
+    for (const [rid, by] of this.#touched) if (game.get(rid)) last[rid] = { g, by }; else delete last[rid];
+    this.#touched.clear();
     const hill = puts.some(p => p.rid === 'yards') ? { hillGv: g } : {};
-    game.change(w => w.put('book', { ...book, gv: g, tomb, ...hill }));
+    game.change(w => w.put('book', { ...book, gv: g, tomb: capped(tomb, v => v), last: capped(last, v => v.g), ...hill }));
     this.#send({ g, full: false, puts, dels }, sealFor);
   }
 
@@ -321,7 +338,7 @@ export class Authority {
     const t = this.#tabs.get(tab), r = this.#w.game.get(rid) as PieceRecord | undefined;
     if (!t || !r) return false;
     const gv = (this.#w.game.get('book') as Book).gv;
-    return judge(this.#w.game, { s: 0, base: gv, puts: [{ rid, rec: r }], dels: [] }, this.#viewer(t)?.name ?? null).refused.length === 0;
+    return judge(this.#w.game, { s: 0, base: gv, puts: [{ rid, rec: r }], dels: [] }, this.#viewer(t)?.name ?? null, tab).refused.length === 0;
   }
 
   // Seq: seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7: judge, take what's allowed, answer the rest.
@@ -330,7 +347,7 @@ export class Authority {
     if (!t) return;
     const fresh = (rid: Rid) => stamps.fresh(rid, tab, edit.s);
     const current = { ...edit, puts: edit.puts.filter(p => fresh(p.rid)), dels: edit.dels.filter(fresh) };
-    const verdict = judge(game, current, this.#viewer(t)?.name ?? null);
+    const verdict = judge(game, current, this.#viewer(t)?.name ?? null, tab);
     for (const rid of [...current.puts.map(p => p.rid), ...current.dels]) stamps.mark(rid, tab, edit.s);
     const theirs = (rid: Rid) => { this.#origin.set(rid, { s: edit.s, by: tab, fresh: true }); };
     const answer = (rid: Rid) => {
@@ -345,6 +362,7 @@ export class Authority {
       for (const p of verdict.puts) w.put(p.rid, p.rec);
       for (const rid of verdict.dels) w.del(rid);
     });
+    for (const rid of changed) if (isPiece(rid)) this.#touched.set(rid, tab);               // R444
     // Seq: seq-edit.md#1.7: every piece is answered, taken, refused, or changing nothing.
     const unchanged = taken.filter(rid => !changed.has(rid));
     for (const rid of unchanged) answer(rid);

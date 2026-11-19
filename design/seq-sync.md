@@ -9,6 +9,7 @@ GM page: Game        Authority                 Visibility        Seal           
 1.3 |                    |--for each tab: its view->|               |                    |                     |
 1.4 |                    |--differs from what it holds? seal it---->|                    |                     |
 1.5 |                    |--deleted rids: fresh stamp (Stamps.next), tomb[rid] = gv      |                     |
+1.5.1                    |--changed pieces: last[rid] = {gv, by: the tab whose change it was}
 1.6 |                    |--recs {g, puts, dels, sealed: {tab: box}}------------------>|                     |
 1.7 |                    |                          |               |<--open my box------|                     |
 1.8 |                    |                          |               |                    |--replace redacted   |
@@ -21,3 +22,4 @@ GM page: Game        Authority                 Visibility        Seal           
 
 - At step 1.5, a deletion takes a fresh number, so it is never older than moves sent while the piece was being dragged.
 - At step 1.9, a piece whose stamp is lower than the highest applied from that page is skipped.
+- At step 1.5.1, `by` is the player's tab for a change taken from them, else the GM's page's tab; a deleted piece leaves `last` for `tomb` (R444).
