@@ -315,6 +315,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     crit: (id, choice, lock) => rolling().crit(id, choice, lock), mint: () => mint()(),
     owner: oid => (game.get(ridOf(oid)) as Character | undefined)?.owner,
     take: startTake,
+    givable: id => rolling().givable(id), transfer: (id, resource) => void rolling().transfer(id, resource),
     name: (id, damage, row, text) => void rolling().name(id, damage, row, text),
     toWorld: (x, y) => table.toWorld(x, y), carry: (rid, down, move) => drag?.start(rid, down, move),
   });

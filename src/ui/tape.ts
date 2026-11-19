@@ -1,4 +1,4 @@
-// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R111, R112, R113, R317, R282, R283, R308, R313, R340
+// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R111, R112, R113, R317, R282, R283, R308, R313, R340, R441
 // The paper tape from the register: this page's receipts, never sent (R111). It lies under the
 // pieces and rises for a new roll or a press; rolled up it leaves a sliver; dragged, it tears off
 // the whole roll as a torn-roll piece. The decisions are pure (retitled, torn, mayChoose).
@@ -54,6 +54,9 @@ export type TapeWith = {
   /** R308: a character's owner; taking an Attack (its pages open on the target's card). */
   owner: (oid: Oid) => string | undefined;
   take: (r: Receipt) => void;
+  /** R441: the GM's page: the Resources a receipt's transfer can take, and making it (Rolls.givable, Rolls.transfer). */
+  givable: (id: string) => string[];
+  transfer: (id: string, resource: string) => void;
   /** R313: a waiting Slot named (Rolls.name). */
   name: (id: string, damage: Damage, row: NameRow, text: string) => void;
   /** A new oid, screen to table coordinates, and carrying a torn roll off (Drag). */
@@ -147,6 +150,27 @@ export class TapeView {
       take.addEventListener('click', () => this.#w.take(r));
       e.append(take);
     }
+    // R441: Transfer, on the GM's tape, opens the NPC's Resources it can take; a pick makes it.
+    if (this.#w.viewer?.gm && r.transfer && !r.transfer.done) {
+      const t = doc.createElement('button');
+      t.className = 'transfer';
+      t.textContent = 'Transfer';
+      t.title = `Move a Resource from ${r.transfer.name}, up to ${['', 'Min', 'Sig', 'Maj', 'Ext', 'Exq'][r.transfer.sl]}`;
+      t.addEventListener('click', () => {
+        e.querySelector('.givable')?.remove();
+        const list = doc.createElement('div'), names = this.#w.givable(r.id);
+        list.className = 'givable';
+        if (!names.length) list.textContent = `${r.transfer!.name} has nothing to give at this Level`;
+        for (const n of names) {
+          const b = doc.createElement('button');
+          b.textContent = n;
+          b.addEventListener('click', () => { list.remove(); this.#w.transfer(r.id, n); });
+          list.append(b);
+        }
+        e.append(list);
+      });
+      e.append(t);
+    }
     // R313: a line to write each waiting name on, for the attacker's owner and the GM; Enter sends it.
     if (mayName(this.#w.viewer, r)) {
       for (const { damage, row } of r.attack!.waiting!) {
@@ -172,7 +196,7 @@ export class TapeView {
     e.stopPropagation();   // the table doesn't pan under the tape
     this.#el.classList.add('raised');
     // R313: a press on a name's blank writes in it, never tears.
-    if (t.closest('.title[contenteditable]') || t.closest('button, .other, .naming')) return;
+    if (t.closest('.title[contenteditable]') || t.closest('button, .other, .naming, .givable')) return;
     const tape = (this.#w.game.get('tape') as Tape | undefined) ?? EMPTY;
     if (!tape.receipts.length) return;
     e.preventDefault();

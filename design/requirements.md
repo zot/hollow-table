@@ -285,6 +285,9 @@
 - **R381:** A character's roll row is one row, a piece of the table: it shows on that character's pool on every page, and only its owner and the GM change it; the die button (its owner's or the GM's) toggles it, a click bringing it up there fresh and the next putting it away; while the GM's private switch is on, the row is the GM's alone.
 - **R382:** Clicking the Base starts the row fresh: no action, no opponent, White, one Yellow, +0.
 - **R383:** A player puts away their own character's row by its die, and the GM's page takes that, though a private row hidden from them, missing from their copy, is not taken as put away.
+- **R439:** A Request roll that succeeds (at cost or not) against a GM character with a Success Level of Min or more carries a transfer on every receipt: the NPC, its name, and the Success Level (Min 1 to Exq 5).
+- **R440:** Transferring a Resource: the PC's Resource of that name (0 when they have none) rises to the Success Level by as many Levels as the NPC's Resource of that name can give, never below 0; a Resource the PC has none of is added under their card's Resources. The Levels the NPC couldn't give are extra. A transfer is offered only for a Resource the NPC has more of than the PC, while the PC has less than the Success Level.
+- **R441:** On the GM's tape a receipt with an untransferred transfer carries Transfer, which opens the NPC's Resources that can be transferred; picking one moves the Levels on both cards in one change on the GM's page, once, and every tape's receipt then reads "Transfer: <Resource>, <N> Levels from <NPC>", and "<N> extra Levels improve <NPC>'s Opinions" when there are extra Levels.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

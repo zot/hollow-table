@@ -52,8 +52,8 @@ faulty record is refused
 **Alarm:** 4
 **Fire alarm:** leave `once` out of the Influence's fields; red: the `once` card is refused
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: 2a56c86c0a6fb185
-**Pulled:** 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
+@alarm-hash: 566297ac41cb22ae
+**Pulled:** 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
 ## Test: a card's revealed entries and Info cards
 **Purpose:** R391: a character's `shown` is a list of revealed entries' keys, absent when none; R400: its `info` a list of texts
 **Input:** Devreux with `shown` as a list of keys; as a list of a number; as a bare string; with `info` as texts; as a list of lists
@@ -63,5 +63,5 @@ faulty record is refused
 **Alarm:** 5
 **Fire alarm:** take any list as `shown`; red: a list of line numbers is taken
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: 2a56c86c0a6fb185
-**Pulled:** 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean
+@alarm-hash: 566297ac41cb22ae
+**Pulled:** 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: a list of line numbers was taken as `shown`; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean

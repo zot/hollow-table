@@ -1,4 +1,4 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R382, R281, R346, R307, R308, R316, R345, R351, R353, R375, R430, R431
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R382, R281, R346, R307, R308, R316, R345, R351, R353, R375, R430, R431, R439, R441
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
@@ -8,6 +8,7 @@ import type { Game, Writer } from '../model/game.ts';
 import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opinion, type Opponent, type PieceRecord, type Receipt, type RollType, type Rows, type Tape, type World } from '../model/records.ts';
 import { d6, roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { awaits, level, reacted, reactionOf, recordOf, synced, tableOf } from '../rules/connections.ts';
+import { givable, transfer as give } from '../rules/request.ts';
 import { ADV, bonus, opposition, row as rowFor, total, type Row } from '../rules/odds.ts';
 import { pools, type Item } from '../rules/pool.ts';
 import { COLUMN_OF, fill, pages, same, waitsIn, type Page } from '../rules/absorb.ts';
@@ -75,6 +76,8 @@ export function levelWords(dice: readonly Die[], bonus: number, failure: boolean
 }
 
 const SHORT: Record<string, string> = { Minor: 'Min', Significant: 'Sig', Major: 'Maj', Extreme: 'Ext', Exquisite: 'Exq' };
+/** R439: a result's Success Level, Min 1 to Exq 5; 0 for no noticeable effect. */
+const slOf = (result: number): number => Object.keys(SHORT).indexOf(levelName(result)) + 1;
 
 // R317: the outcome with its Level, signed: + for a Success, − for the Stagger a Failure causes; only a
 // successful Attack gives its amount, since only an Attack's Result is absorbed as Damage.
@@ -165,11 +168,15 @@ export function resolve(game: Game, intent: Intent, rng: Rng, at: number): Resol
   // world has nothing to take it.
   const attack = isAttack(type) && opp && outcome !== 'failure'
     ? { attack: { target: opp.oid, name: opp.name, from: character.name, kind: type, result: r.result } } : {};
+  // R439: a Request that succeeds against an NPC offers a transfer at its Success Level.
+  const sl = slOf(r.result);
+  const transfer = type === 'request' && opp?.owner === GM && outcome !== 'failure' && sl
+    ? { transfer: { target: opp.oid, name: opp.name, sl } } : {};
   const id = `roll-${character.oid}-${n}`;
   const base: Receipt = {
     id, at, title: `${character.name}, roll ${n}`, by, ...(act && { action: alternative(act.label, intent.alt) }), dice: r.dice,
     resolution: resolutionWords(row, r.dice), level: levelWords(r.dice, dice.bonus, r.outcome === 'failure'),
-    outcome: outcomeWords(outcome, r.result, isAttack(type)), ...(r.crit && { crit: r.crit }), ...attack,
+    outcome: outcomeWords(outcome, r.result, isAttack(type)), ...(r.crit && { crit: r.crit }), ...attack, ...transfer,
   };
   // R307: an Attack's kind in the `vs` line.
   // R326, R336: what was pointed at names itself: (Shoot 4), (Investigation 2 + Cha 2), and its total when pools move it.
@@ -241,7 +248,8 @@ export function choose(r: Receipt, choice: 'max' | 'dbl', lock: boolean): Receip
   if (!r.crit) return r;
   const value = choice === 'max' ? r.crit.max : r.crit.dbl;
   return { ...r, outcome: outcomeWords('success', value, !!r.attack), crit: { ...r.crit, chosen: choice, locked: lock },
-    ...(r.attack && !r.attack.taken && { attack: { ...r.attack, result: value } }) };
+    ...(r.attack && !r.attack.taken && { attack: { ...r.attack, result: value } }),
+    ...(r.transfer && !r.transfer.done && { transfer: { ...r.transfer, sl: slOf(value) } }) };
 }
 
 // R316: `Mental Atk / Req` is two actions with the same numbers; the one clicked names the roll.
@@ -442,6 +450,24 @@ export class Rolls {
     return this.#resend(k);
   }
 
+  // R441: the GM transfers a Resource for a successful Request: refused unless untransferred and the
+  // Resource can be given between the GM's own cards; then both cards in one change, and every tape told.
+  #transfer(id: string, resource: string): Promise<void> {
+    const { game } = this.#w, k = this.#kept(id), t = k?.full.transfer;
+    if (!k || !t || t.done) return this.#work;
+    const npc = game.get(ridOf(t.target)) as Character | undefined, pc = game.get(ridOf(k.character)) as Character | undefined;
+    if (npc?.kind !== 'character' || pc?.kind !== 'character') return this.#work;
+    const made = give(npc, pc, resource, t.sl);
+    if (!made) return this.#work;
+    game.change(w => { w.put(ridOf(npc.oid), made.npc); w.put(ridOf(pc.oid), made.pc); });
+    const name = givable(npc, pc, t.sl).find(n => n.toLowerCase() === resource.trim().toLowerCase()) ?? resource;
+    for (const key of ['full', 'roller', 'table'] as const) {
+      const r = k[key];
+      if (r.transfer) k[key] = { ...r, transfer: { ...r.transfer, done: { resource: name, moved: made.moved, extra: made.extra } } };
+    }
+    return this.#resend(k);
+  }
+
   // Seq: seq-take.md#2.1, seq-take.md#2.2, seq-take.md#2.3 | R313, R314, R340
   // The attacking character's owner or the GM names a Slot (or a Conviction or Burden) this Attack left waiting.
   #name(body: NameMsg, from: Peer | null): Promise<void> {
@@ -492,6 +518,18 @@ export class Rolls {
   crit(id: string, choice: 'max' | 'dbl', lock: boolean): void {
     if (this.#w.gm) { void this.#crit({ id, choice, lock }, null); return; }
     if (this.#gmPeer) this.#w.link?.send('crit', { id, choice, lock }, this.#gmPeer.tab);
+  }
+
+  /** R441: the Resources a kept Request's transfer can take, on the GM's page; none elsewhere or once done. */
+  givable(id: string): string[] {
+    const { game } = this.#w, k = this.#w.gm ? this.#kept(id) : undefined, t = k?.full.transfer;
+    const npc = t && game.get(ridOf(t.target)) as Character | undefined, pc = k && game.get(ridOf(k.character)) as Character | undefined;
+    return t && !t.done && npc?.kind === 'character' && pc?.kind === 'character' ? givable(npc, pc, t.sl) : [];
+  }
+
+  /** R441: transfer a Resource for a kept Request; the GM's page alone. */
+  transfer(id: string, resource: string): Promise<void> {
+    return this.#w.gm ? this.#transfer(id, resource) : this.#work;
   }
 
   /** Take an Attack by one of its pages (R308): the GM's page decides; on the GM's page, at once. */

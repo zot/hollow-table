@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429, R436
+**Requirements:** R23, R26, R28, R36, R38, R47, R63, R98, R126, R130, R191, R209, R211, R248, R260, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429, R436, R439
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -81,6 +81,8 @@ record crosses the wire, the database and an export file unchanged.
   Conviction or Burden (R340).
 
 ## Does
+- Receipt.transfer (R439, R441): `{target, name, sl, done?: {resource, moved, extra}}`, the transfer a
+  successful Request against an NPC offers, `sl` its Success Level; `done` once the GM has made it.
 - isPiece(rid), oidOf(rid), ridOf(oid): key helpers.
 - check(rid, record): validates a record for its key field by field (types, ranges, string caps, a
   piece's oid matching its key); anything off is rejected whole. Every record from another page or an import passes through it.

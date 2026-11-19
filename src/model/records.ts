@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -127,6 +127,8 @@ export type Receipt = {
   influence?: number; base?: number; vs?: string;
   row?: string; resolution: string; level: string; outcome: string; crit?: Crit; priv?: boolean;
   attack?: Attack;
+  /** R439, R441: the transfer a successful Request against an NPC offers, at its Success Level; `done` once made. */
+  transfer?: { target: Oid; name: string; sl: number; done?: { resource: string; moved: number; extra: number } };
   /** This page's own roll has reached the table (R107). */
   ok?: boolean;
 };
@@ -266,7 +268,9 @@ export const receipt = fields(
     crit: fields({ max: int(0, 10_000), dbl: int(0, 10_000), chosen: oneOf('max', 'dbl'), locked: bool }),
     priv: bool,
     attack: fields({ target: isOid, name: str(CAPS.name), from: str(CAPS.name), kind: oneOf(...ATTACKS), result: int(0, 10_000) },
-      { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS, 'lasting') }), 20) }) });
+      { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS, 'lasting') }), 20) }),
+    transfer: fields({ target: isOid, name: str(CAPS.name), sl: int(1, 5) },
+      { done: fields({ resource: str(CAPS.name), moved: int(0, 5), extra: int(0, 5) }) }) });
 
 const PIECES: Record<PieceRecord['kind'], Shape> = {
   character: fields({ kind: oneOf('character'), oid: isOid, owner: str(CAPS.name), name: str(CAPS.name), pool: place,

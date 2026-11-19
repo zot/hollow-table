@@ -505,3 +505,26 @@ test('the GM reveals an Opinion', async ({ page }) => {
   });
   expect(r).toEqual({ shown: ['Grudge -Min'], on: ['00000003'], name: 'Sam' });
 });
+
+test('the GM transfers a Resource', async ({ page }) => {
+  // R441: a kept Request of Sam's against Devreux, Major, on the GM's tape: Transfer, then Money.
+  await page.evaluate(async () => {
+    const g = (await (window as any).hollow.ready).store.game, sam = g.get('o:00000001'), dev = g.get('o:00000003');
+    const r = { id: 'roll-00000001-1', at: 1, title: 'Sam, roll 1', dice: [], resolution: '', level: '', outcome: 'Success +Maj',
+      action: 'Request', transfer: { target: '00000003', name: 'Devreux', sl: 3 } };
+    g.change((w: any) => {
+      w.put('o:00000001', { ...sam, front: sam.front.replace('Money +Maj', 'Money +Min') });
+      w.put('o:00000003', { ...dev, front: dev.front.replace('Money +Sig', 'Money +Ext') });
+      w.put('book', { ...g.get('book'), kept: [{ character: '00000001', n: 0, full: r, roller: r, table: r, priv: true }] });
+      w.put('tape', { receipts: [r] });
+    });
+  });
+  const receipt = page.locator('#tape .strip .receipt').first();
+  await receipt.locator('button.transfer').click();
+  await receipt.locator('.givable button', { hasText: 'Money' }).click();
+  const front = (oid: string) => page.evaluate(async o => (await (window as any).hollow.ready).store.game.get(o).front as string, oid);
+  await expect.poll(() => front('o:00000001')).toContain('<res>Money +Maj</res>');
+  expect(await front('o:00000003')).toContain('<res>Money +Sig</res>');
+  await expect(page.locator('#tape .strip .receipt').first()).toContainText('Transfer: Money, 2 Levels from Devreux');
+  await expect(page.locator('#tape .strip .receipt').first().locator('button.transfer')).toHaveCount(0);
+});

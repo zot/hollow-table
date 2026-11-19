@@ -362,3 +362,14 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/eyes.ts:Eyes.shut
 **Pulled:** 2026-11-19 — rang (Chromium): the shut record had no `shown`, `on` or `name`; restored clean
 
+## Test: the GM transfers a Resource
+**Purpose:** R441: a kept Request receipt on the GM's tape shows Transfer; it opens Devreux's givable Resources; picking Money moves it on both cards and the receipt says so
+**Input:** the GM's table with Sam at Money +Min; a kept Request of Sam's against Devreux (Money +Ext), Major, on the GM's tape; Transfer; Money
+**Expected:** a Transfer button; the list holding Money; after the pick, Sam's card `Money +Maj`, Devreux's `Money +Sig`, the receipt reading "Transfer: Money, 2 Levels from Devreux", and no Transfer button
+**Refs:** crc-Tape.md, crc-Rolls.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 28
+**Fire alarm:** never show Transfer (drop it from the receipt); red: no Transfer button
+**Inject:** src/ui/tape.ts:TapeView
+**Pulled:** 2026-11-19 — rang (Chromium): no Transfer button; restored clean
+

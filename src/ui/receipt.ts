@@ -1,4 +1,4 @@
-// CRC: crc-Tape.md | R105, R106, R107, R109, R317, R280, R281
+// CRC: crc-Tape.md | R105, R106, R107, R109, R317, R280, R281, R441
 // One receipt, built from text only: whatever a receipt says arrives as text, never as markup.
 
 import type { Die, Receipt } from '../model/records.ts';
@@ -68,6 +68,13 @@ export function receiptEl(doc: Document, r: Receipt): HTMLElement {
   }
   // R317: the outcome with its Level and how it adds up: "Success +Maj: 6 + 4".
   line(r.level ? `${r.outcome}: ${r.level}` : r.outcome, 'outcome');
+  // R441: what a Request's transfer moved, and the extra Levels the NPC's Opinions take.
+  const done = r.transfer?.done;
+  if (done) {
+    const s = (n: number) => (n === 1 ? '' : 's');
+    line(`Transfer: ${done.resource}, ${done.moved} Level${s(done.moved)} from ${r.transfer!.name}`, 'transfer');
+    if (done.extra) line(`${done.extra} extra Level${s(done.extra)} improve${done.extra === 1 ? 's' : ''} ${r.transfer!.name}'s Opinions`, 'transfer');
+  }
   if (r.priv) line('Private: not shown to the table', 'privnote');
   return el;
 }

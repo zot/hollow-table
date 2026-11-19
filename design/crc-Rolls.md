@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R382, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375, R430, R431
+**Requirements:** R382, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375, R430, R431, R439, R441
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -76,6 +76,13 @@ know.
   change counts the roll, writes the line (Connections.reacted) and the record's cell (synced), and
   takes the character's row away. On the GM's page, as for an aim (R375), the Reaction is taken from
   its own `rows`, never the intent.
+- A Request (R439): an action typed `request` that succeeds (at cost or not) against a GM character,
+  its result at least Min, gives all three receipts `transfer: {target, name, sl}`, sl the result's
+  Level (Min 1 to Exq 5); a CRIT's choice moves `sl` with its result while untransferred.
+- transfer(id, resource) (R441): the GM's page only; refused unless the kept receipt has an
+  untransferred transfer and Request.transfer allows the Resource between the GM's own cards; then
+  both cards in one change, the receipts' transfer marked `done: {resource, moved, extra}`, and every
+  tape updated as for a take.
 - resolve with `intent.against` (R326, R336, R330): the base looked up by name in the target's own front (MarkReader.points), a Field or Skill adding the target's attribute the action uses (R337); a name it can't find falls back to Defend.
 
 ## Collaborators

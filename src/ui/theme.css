@@ -683,6 +683,13 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 .receipt .take { display: block; margin: 6px 0 2px auto; font: 700 13px var(--mono); color: #7a1f1f; background: none;
   border: 2px solid #7a1f1f; border-radius: 3px; padding: 1px 8px; transform: rotate(-2deg); cursor: pointer; }
 .receipt .take:hover, .receipt .take:focus-visible { background: #7a1f1f; color: #fbf6ea; outline: none; }
+/* R441: a Request's Transfer, the GM's, and the Resources it can take, as small buttons in the receipt. */
+.receipt .transfer { display: block; margin: 6px 0 2px auto; font: 700 13px var(--mono); color: #1f4a7a; background: none;
+  border: 1.5px solid #1f4a7a; border-radius: 3px; padding: 1px 8px; cursor: pointer; }
+.receipt .transfer:hover, .receipt .transfer:focus-visible { background: #1f4a7a; color: #fbf6ea; outline: none; }
+.receipt .givable { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; margin: 4px 0; font: 12px var(--mono); }
+.receipt .givable button { font: 12px var(--mono); background: #fbf6ea; border: 1px solid #1f4a7a; border-radius: 3px; padding: 1px 6px; cursor: pointer; }
+.receipt .givable button:hover { background: #1f4a7a; color: #fbf6ea; }
 .receipt .naming { display: block; margin-top: 4px; font: 12px var(--mono); }
 .receipt .naming input { display: block; width: 100%; box-sizing: border-box; font: 18px/1.1 var(--hand); color: #222; background: none;
   border: 0; border-bottom: 1px solid #8a7458; outline: none; padding: 1px 2px; }

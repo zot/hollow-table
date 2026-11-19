@@ -54,6 +54,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Pool.md → `src/rules/pool.ts`
 - [x] crc-Tap.md → `src/rules/tap.ts`
 - [x] crc-Absorb.md → `src/rules/absorb.ts`
+- [x] crc-Request.md → `src/rules/request.ts`
 - [x] crc-Odds.md → `src/rules/odds.ts`
 - [x] crc-Dice.md → `src/rules/dice.ts`
 - [x] crc-Visibility.md → `src/rules/visibility.ts`
@@ -86,7 +87,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Drag.md → `src/ui/drag.ts`
 - [x] crc-Pens.md → `src/ui/pens.ts`
 - [x] crc-RollRow.md → `src/ui/rollrow.ts`
-- [ ] crc-Tape.md → `src/ui/tape.ts`, `src/ui/receipt.ts`
+- [x] crc-Tape.md → `src/ui/tape.ts`, `src/ui/receipt.ts`
 - [ ] crc-Register.md → `src/ui/register.ts`
 - [x] crc-BootHillView.md → `src/ui/boothill.ts`
 - [ ] crc-Ledger.md → `src/ui/ledger.ts`
@@ -134,6 +135,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Pool.md → `src/rules/pool.test.ts`
 - [x] test-Tap.md → `src/rules/tap.test.ts`
 - [x] test-Absorb.md → `src/rules/absorb.test.ts`
+- [x] test-Request.md → `src/rules/request.test.ts`
 - [x] test-Odds.md → `src/rules/odds.test.ts`
 - [x] test-Dice.md → `src/rules/dice.test.ts`
 - [x] test-Visibility.md → `src/rules/visibility.test.ts`

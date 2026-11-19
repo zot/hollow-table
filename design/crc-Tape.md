@@ -1,5 +1,5 @@
 # Tape
-**Requirements:** R97, R105, R110-114, R279-283, R308, R313, R317, R340
+**Requirements:** R97, R105, R110-114, R279-283, R308, R313, R317, R340, R441
 
 The paper tape from the register: this page's receipts, never sent.
 
@@ -26,6 +26,10 @@ The paper tape from the register: this page's receipts, never sent.
   after another, each titled. Cream paper about 300 px, PT Mono, a torn zigzag bottom.
 - take (R308): a receipt with an untaken Attack shows **Take N** on the page of the target's owner
   and the GM's, and hands the receipt to PieceView's pages; taken, it doesn't.
+- transfer (R441): on the GM's tape alone, a receipt with an untransferred transfer shows
+  **Transfer**, which opens the NPC's givable Resources (Request.givable) as buttons in the receipt;
+  a pick calls Rolls.transfer. Once done, every receipt reads "Transfer: Money, 2 Levels from Devreux",
+  and the extra Levels' note when there are any.
 - name (R313): a receipt whose Attack waits for names shows, on the attacking character's owner's
   page and the GM's, "Name Devreux's Minor Bias" (or "Name Devreux's Conviction", R340) for each, a
   line to type in; Enter sends it

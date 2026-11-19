@@ -305,6 +305,28 @@ attacker names them.
   the slot through the GM's page, even when the attacker can't see the card. The GM can rename it,
   as with any card text; that is the GM's approval.
 
+## Requests
+
+The rules are Bunkum, *REQUEST ACTIONS*. A Request that asks an NPC for a favor needs nothing from the
+table: if it succeeds, the NPC accepts.
+
+- **A successful Request against an NPC can transfer a Resource** (Bunkum: "if the Success Level is
+  larger than the PC's Level for that Resource, transfer up to the Success Level from the NPC's
+  Resource to the PC's (the NPC's Resource cannot go negative)"). The PC's Resource rises to the
+  Success Level (Bill, 11-19: "Sam rises to the SL"), and the NPC's drops by the Levels it gives,
+  never below 0: with a Major success, Sam at *Money +Min* and Devreux at *Money +Ext*, Sam's Money
+  becomes *+Maj* and Devreux's *+Sig*. A Resource the PC doesn't have yet is added under their card's
+  Resources.
+- **The GM picks the Resource on the receipt** (Bill, 11-19: "GM picks on the receipt"). The player
+  asks for it aloud. On the GM's tape a successful Request aimed at an NPC carries **Transfer**, which
+  opens the NPC's Resources it could give: those the NPC has more of than the PC, while the PC has
+  less than the Success Level. Picking one moves the Levels on both cards, once; every tape's receipt
+  then says what moved: *Transfer: Money, 2 Levels from Devreux*.
+- **Extra Levels are noted for the GM** (Bill, 11-19: "Noted for the GM"): Levels the NPC couldn't
+  give "improve Opinions chosen by the NPC, as if this were an Impress Action" (Bunkum). The receipt
+  says so, *1 extra Level improves Devreux's Opinions*, and the GM writes it into the NPC's Opinion
+  Record; the table does it once Impress is built.
+
 ## The register
 
 - A cash register in the bar keeps the **Round**: a pop-up tab with a bold number in a glass case,

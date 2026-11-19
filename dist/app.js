@@ -81,6 +81,10 @@ var receipt = fields(
     attack: fields(
       { target: isOid, name: str(CAPS.name), from: str(CAPS.name), kind: oneOf(...ATTACKS), result: int(0, 1e4) },
       { taken: bool, waiting: list(fields({ damage: oneOf(...DAMAGE), row: oneOf(...ROWS, "lasting") }), 20) }
+    ),
+    transfer: fields(
+      { target: isOid, name: str(CAPS.name), sl: int(1, 5) },
+      { done: fields({ resource: str(CAPS.name), moved: int(0, 5), extra: int(0, 5) }) }
     )
   }
 );
@@ -1970,6 +1974,12 @@ function receiptEl(doc, r) {
     }
   }
   line(r.level ? `${r.outcome}: ${r.level}` : r.outcome, "outcome");
+  const done2 = r.transfer?.done;
+  if (done2) {
+    const s = (n) => n === 1 ? "" : "s";
+    line(`Transfer: ${done2.resource}, ${done2.moved} Level${s(done2.moved)} from ${r.transfer.name}`, "transfer");
+    if (done2.extra) line(`${done2.extra} extra Level${s(done2.extra)} improve${done2.extra === 1 ? "s" : ""} ${r.transfer.name}'s Opinions`, "transfer");
+  }
   if (r.priv) line("Private: not shown to the table", "privnote");
   return el4;
 }
@@ -3671,8 +3681,8 @@ var Moves = class {
   // moves in between: a later pass's arrival replaces it, unless it is the same page's with a lower
   // number; within one pass (newest first) only the same page's higher number does.
   #hold(c) {
-    const w = this.#waiting.get(c.rid), same3 = !!w && w.c.tab === c.tab;
-    const newer = !w || (w.pass === this.#pass ? same3 && c.s > w.c.s : !(same3 && w.c.s > c.s));
+    const w = this.#waiting.get(c.rid), same4 = !!w && w.c.tab === c.tab;
+    const newer = !w || (w.pass === this.#pass ? same4 && c.s > w.c.s : !(same4 && w.c.s > c.s));
     if (newer) this.#waiting.set(c.rid, { c, pass: this.#pass });
   }
 };
@@ -3789,7 +3799,7 @@ var Presence = class {
 function d6(rng) {
   return 1 + Math.min(5, Math.floor(rng() * 6));
 }
-var die2 = (c, v, added = false) => ({ c, v, added, dropped: false });
+var die2 = (c, v, added2 = false) => ({ c, v, added: added2, dropped: false });
 function crit(white, blue) {
   return white === 6 && blue >= 5;
 }
@@ -3839,6 +3849,39 @@ function roll2(row2, yellows, bonus2, rng) {
   const chosen = max >= dbl ? "max" : "dbl";
   const value2 = Math.max(max, dbl);
   return { dice, resolved, outcome, result: value2, level: levelName2(value2), crit: { max, dbl, chosen, locked: false } };
+}
+
+// src/rules/request.ts
+var same3 = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
+function resource(lines, name2) {
+  return marks(lines, "res").find((m) => same3(influence(m.text)?.name ?? "", name2));
+}
+function levelOf(front, name2) {
+  const m = resource(parse(front), name2), r = m && influence(m.text);
+  return r?.level ? levelsOf(r) : 0;
+}
+function givable(npc, pc, sl) {
+  return marks(parse(npc.front), "res").flatMap((m) => {
+    const r = influence(m.text), have = r?.level ? levelsOf(r) : 0, mine = r ? levelOf(pc.front, r.name) : 0;
+    return r && have > mine && mine < sl ? [r.name] : [];
+  });
+}
+function added(front, text) {
+  const lines = front.split("\n"), head = lines.findIndex((l) => /^<head>\s*Resources\s*<\/head>\s*$/i.test(l.trim()));
+  const res = `<res>${text}</res>`;
+  if (head < 0) return [...lines, "<head>Resources</head>", res].join("\n");
+  let at3 = head + 1;
+  while (at3 < lines.length && lines[at3].trim() && !lines[at3].trim().startsWith("<head>")) at3++;
+  return [...lines.slice(0, at3), res, ...lines.slice(at3)].join("\n");
+}
+function transfer(npc, pc, name2, sl) {
+  if (!givable(npc, pc, sl).some((n) => same3(n, name2))) return null;
+  const nl = parse(npc.front), from = resource(nl, name2), have = levelsOf(influence(from.text));
+  const mine = levelOf(pc.front, name2), moved = Math.min(sl - mine, have), extra = sl - mine - moved;
+  const npcFront = serialize(setMark(nl, from, spend(from.text, moved)));
+  const pl = parse(pc.front), to = resource(pl, name2);
+  const pcFront = to ? serialize(setMark(pl, to, spend(to.text, -moved))) : added(pc.front, `${influence(from.text).name} +${levelWord(moved)}`);
+  return { npc: { ...npc, front: npcFront }, pc: { ...pc, front: pcFront }, moved, extra };
 }
 
 // src/rules/odds.ts
@@ -3947,6 +3990,7 @@ function levelWords(dice, bonus2, failure) {
   return parts2.join(" + ") + b;
 }
 var SHORT = { Minor: "Min", Significant: "Sig", Major: "Maj", Extreme: "Ext", Exquisite: "Exq" };
+var slOf = (result) => Object.keys(SHORT).indexOf(levelName2(result)) + 1;
 function outcomeWords(outcome, result, attack = false) {
   if (attack && outcome !== "failure") return `${OUTCOME[outcome]} ${result}`;
   return `${OUTCOME[outcome]} ${outcome === "failure" ? "\u2212" : "+"}${SHORT[levelName2(result)] ?? "0"}`;
@@ -4001,6 +4045,8 @@ function resolve2(game, intent, rng, at3) {
   const meta = game.get("meta"), n = (meta.counts?.[character2.oid] ?? 0) + 1;
   const by = character2.owner === GM ? "GM" : character2.owner, outcome = r.crit ? "success" : r.outcome;
   const attack = isAttack(type) && opp && outcome !== "failure" ? { attack: { target: opp.oid, name: opp.name, from: character2.name, kind: type, result: r.result } } : {};
+  const sl = slOf(r.result);
+  const transfer2 = type === "request" && opp?.owner === GM && outcome !== "failure" && sl ? { transfer: { target: opp.oid, name: opp.name, sl } } : {};
   const id = `roll-${character2.oid}-${n}`;
   const base = {
     id,
@@ -4013,7 +4059,8 @@ function resolve2(game, intent, rng, at3) {
     level: levelWords(r.dice, dice.bonus, r.outcome === "failure"),
     outcome: outcomeWords(outcome, r.result, isAttack(type)),
     ...r.crit && { crit: r.crit },
-    ...attack
+    ...attack,
+    ...transfer2
   };
   let opposed;
   if (world) opposed = String(against);
@@ -4095,7 +4142,8 @@ function choose(r, choice, lock) {
     ...r,
     outcome: outcomeWords("success", value2, !!r.attack),
     crit: { ...r.crit, chosen: choice, locked: lock },
-    ...r.attack && !r.attack.taken && { attack: { ...r.attack, result: value2 } }
+    ...r.attack && !r.attack.taken && { attack: { ...r.attack, result: value2 } },
+    ...r.transfer && !r.transfer.done && { transfer: { ...r.transfer, sl: slOf(value2) } }
   };
 }
 function alternative(label2, alt) {
@@ -4284,6 +4332,26 @@ var Rolls = class {
     this.#attack(k, (x) => ({ ...x, taken: true, ...waiting.length && { waiting } }));
     return this.#resend(k);
   }
+  // R441: the GM transfers a Resource for a successful Request: refused unless untransferred and the
+  // Resource can be given between the GM's own cards; then both cards in one change, and every tape told.
+  #transfer(id, resource2) {
+    const { game } = this.#w, k = this.#kept(id), t = k?.full.transfer;
+    if (!k || !t || t.done) return this.#work;
+    const npc = game.get(ridOf(t.target)), pc = game.get(ridOf(k.character));
+    if (npc?.kind !== "character" || pc?.kind !== "character") return this.#work;
+    const made = transfer(npc, pc, resource2, t.sl);
+    if (!made) return this.#work;
+    game.change((w) => {
+      w.put(ridOf(npc.oid), made.npc);
+      w.put(ridOf(pc.oid), made.pc);
+    });
+    const name2 = givable(npc, pc, t.sl).find((n) => n.toLowerCase() === resource2.trim().toLowerCase()) ?? resource2;
+    for (const key of ["full", "roller", "table"]) {
+      const r = k[key];
+      if (r.transfer) k[key] = { ...r, transfer: { ...r.transfer, done: { resource: name2, moved: made.moved, extra: made.extra } } };
+    }
+    return this.#resend(k);
+  }
   // Seq: seq-take.md#2.1, seq-take.md#2.2, seq-take.md#2.3 | R313, R314, R340
   // The attacking character's owner or the GM names a Slot (or a Conviction or Burden) this Attack left waiting.
   #name(body, from) {
@@ -4331,6 +4399,16 @@ var Rolls = class {
       return;
     }
     if (this.#gmPeer) this.#w.link?.send("crit", { id, choice, lock }, this.#gmPeer.tab);
+  }
+  /** R441: the Resources a kept Request's transfer can take, on the GM's page; none elsewhere or once done. */
+  givable(id) {
+    const { game } = this.#w, k = this.#w.gm ? this.#kept(id) : void 0, t = k?.full.transfer;
+    const npc = t && game.get(ridOf(t.target)), pc = k && game.get(ridOf(k.character));
+    return t && !t.done && npc?.kind === "character" && pc?.kind === "character" ? givable(npc, pc, t.sl) : [];
+  }
+  /** R441: transfer a Resource for a kept Request; the GM's page alone. */
+  transfer(id, resource2) {
+    return this.#w.gm ? this.#transfer(id, resource2) : this.#work;
   }
   /** Take an Attack by one of its pages (R308): the GM's page decides; on the GM's page, at once. */
   take(id, page) {
@@ -9922,6 +10000,29 @@ var TapeView = class {
       take2.addEventListener("click", () => this.#w.take(r));
       e.append(take2);
     }
+    if (this.#w.viewer?.gm && r.transfer && !r.transfer.done) {
+      const t = doc.createElement("button");
+      t.className = "transfer";
+      t.textContent = "Transfer";
+      t.title = `Move a Resource from ${r.transfer.name}, up to ${["", "Min", "Sig", "Maj", "Ext", "Exq"][r.transfer.sl]}`;
+      t.addEventListener("click", () => {
+        e.querySelector(".givable")?.remove();
+        const list2 = doc.createElement("div"), names = this.#w.givable(r.id);
+        list2.className = "givable";
+        if (!names.length) list2.textContent = `${r.transfer.name} has nothing to give at this Level`;
+        for (const n of names) {
+          const b = doc.createElement("button");
+          b.textContent = n;
+          b.addEventListener("click", () => {
+            list2.remove();
+            this.#w.transfer(r.id, n);
+          });
+          list2.append(b);
+        }
+        e.append(list2);
+      });
+      e.append(t);
+    }
     if (mayName(this.#w.viewer, r)) {
       for (const { damage: damage3, row: row2 } of r.attack.waiting) {
         const label2 = doc.createElement("label"), input = doc.createElement("input");
@@ -9944,7 +10045,7 @@ var TapeView = class {
     const t = e.target;
     e.stopPropagation();
     this.#el.classList.add("raised");
-    if (t.closest(".title[contenteditable]") || t.closest("button, .other, .naming")) return;
+    if (t.closest(".title[contenteditable]") || t.closest("button, .other, .naming, .givable")) return;
     const tape = this.#w.game.get("tape") ?? EMPTY;
     if (!tape.receipts.length) return;
     e.preventDefault();
@@ -12877,6 +12978,8 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     mint: () => mint2()(),
     owner: (oid) => game.get(ridOf(oid))?.owner,
     take: startTake,
+    givable: (id) => rolling().givable(id),
+    transfer: (id, resource2) => void rolling().transfer(id, resource2),
     name: (id, damage3, row2, text) => void rolling().name(id, damage3, row2, text),
     toWorld: (x, y) => table.toWorld(x, y),
     carry: (rid2, down, move) => drag?.start(rid2, down, move)

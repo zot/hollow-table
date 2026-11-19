@@ -463,3 +463,35 @@ test('a Reaction roll', async () => {
   assert.equal(t.tape('gm')[0]!.outcome, "Devreux's Reaction: +Min");
   assert.equal(t.tape('dana')[0]!.outcome, "Devreux's Reaction: +Min");
 });
+
+test('a Request transfers a Resource', async () => {
+  // R439, R441: a successful Request at Devreux offers a transfer at its Success Level; the GM makes it once.
+  const req = (vs: string): Omit<Intent, 'n'> =>
+    ({ pool: BEAUFORD, action: 'Mental Atk / Req', alt: 'Req', type: 'request', vs, defend: 'mental', hand: { yellows: 0, bonus: 0 } });
+  const t = await table(faces(4, 6, 5, 2, 4, 6, 5, 2));
+  await t.hello();
+  const gm = t.page('gm'), dev = gm.game.get(ridOf(DEVREUX)) as Character;
+  gm.game.change(w => w.put(ridOf(DEVREUX), { ...dev, front: dev.front.replace('Money +Sig', 'Money +Ext') }));
+  assert.equal(gm.rolls.roll(req(DEVREUX)), null);
+  await t.room.settle();
+  const r = t.tape('gm')[0]!, sl = r.transfer!.sl;
+  assert.ok(sl >= 2, `a success of at least Sig, for Beauford's Min to rise (sl ${sl})`);
+  assert.deepEqual([r.transfer!.target, r.transfer!.name], [DEVREUX, 'Devreux']);
+  assert.deepEqual(gm.rolls.givable(r.id), ['Saloon Gossip', 'Money']);
+  await gm.rolls.transfer(r.id, 'Money');
+  await t.room.settle();
+  const money = (oid: string) => /<res>Money ([^<]*)<\/res>/.exec((gm.game.get(ridOf(oid)) as Character).front)![1];
+  const LEVELS = ['0', '+Min', '+Sig', '+Maj', '+Ext', '+Exq'], moved = Math.min(sl - 1, 4);
+  assert.deepEqual([money(BEAUFORD), money(DEVREUX)], [LEVELS[1 + moved], LEVELS[4 - moved]]);
+  for (const tab of ['gm', 'ann']) assert.deepEqual(t.tape(tab)[0]!.transfer!.done, { resource: 'Money', moved, extra: sl - 1 - moved }, tab);
+  // Once only: not even another Resource the first left givable.
+  const before = (gm.game.get(ridOf(BEAUFORD)) as Character).front;
+  await gm.rolls.transfer(r.id, 'Saloon Gossip');
+  assert.equal((gm.game.get(ridOf(BEAUFORD)) as Character).front, before);
+  assert.deepEqual(gm.rolls.givable(r.id), []);
+  // No transfer for a Failure, nor at a PC.
+  const failed = resolve(gm.game, { ...req(DEVREUX), n: 9 }, faces(1, 1), 1000);
+  assert.ok(!('refused' in failed) && !failed.full.transfer);
+  const atSam = resolve(gm.game, { ...req(SAM), n: 9 }, faces(4, 6, 5, 2), 1000);
+  assert.ok(!('refused' in atSam) && !atSam.full.transfer);
+});

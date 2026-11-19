@@ -156,8 +156,7 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Alarm:** 12
 **Fire alarm:** drop the Attack from `choose` (the amount stays at the first choice); red: result 12, not 22
 **Inject:** src/net/rolls.ts:choose
-**Pulled:** 2026-11-13 — 2026-11-13 — rang: "a CRIT's choice moves an Attack's amount" failed (result stayed 12); restored clean
-
+**Pulled:** 2026-11-19 — re-pulled after choose began moving a transfer's Success Level; rang: the CRIT's choice left the Attack's amount; restored clean *Earlier —* 2026-11-13 — 2026-11-13 — rang: "a CRIT's choice moves an Attack's amount" failed (result stayed 12); restored clean
 ## Test: pointing at the opposition
 **Purpose:** R326, R336, R330: the GM's page looks up what was pointed at by name on its own copy (a Defend number, an action's Base, a Skill's Level plus Cha) and names it in `vs`; a name not on the card falls back to Defend (R328); a pointed Attack is still an Attack
 **Input:** Beauford's Infer at Sam pointed at `{def: psych}`, `{act: Shoot}`, `{skl: Investigation}`, `{skl: Flying}`; his Mental Attack pointed at `{def: psych}`
@@ -233,3 +232,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** leave the record alone (write no line in the Reaction's change); red: the record still reads "Reaction ?"
 **Inject:** src/net/rolls.ts:resolve
 **Pulled:** 2026-11-18 — rang: the record still read "Reaction ?" after the roll; restored clean
+
+## Test: a Request transfers a Resource
+**Purpose:** R439, R441: a successful Request against Devreux offers a transfer at its Success Level; the GM's transfer moves Money once and every receipt says so; a failed Request, or one at a PC, offers none
+**Input:** Beauford (Money +Min) Requests Devreux (Money +Ext, Saloon Gossip +Maj) on the GM's page, the dice giving a success of Sig or more; the GM transfers Money; then Saloon Gossip; the dice giving a Failure; the same Request at Sam
+**Expected:** every receipt's transfer names Devreux at the roll's Success Level; givable [Saloon Gossip, Money]; Beauford's Money rises by min(sl − 1, 4) and Devreux's drops as much; the GM's and Ann's receipts `done` with Money, those Levels and the rest extra; the second transfer, of Saloon Gossip, changes nothing, and nothing is givable; no transfer on the Failure or at Sam
+**Refs:** crc-Rolls.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 20
+**Fire alarm:** let a transfer be made twice (drop the `done` check); red: Saloon Gossip moves to Beauford too
+**Inject:** src/net/rolls.ts:Rolls.#transfer
+**Pulled:** 2026-11-19 — rang: Saloon Gossip moved to Beauford too (a first test, transferring Money again, stayed silent: the rule alone refuses it, so the test now tries another Resource); restored clean
