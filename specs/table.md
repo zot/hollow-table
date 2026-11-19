@@ -102,6 +102,9 @@ the register, the Ledger and Boot Hill.
 - **Taking a supply**: the piece is made and in your hand the moment you press, its middle under the
   pointer. Loose text starts as "Write here". The image supply opens a file picker; the image lands
   in the middle of the view, several a step apart.
+- **An image the browser won't keep is said on the image supply** (Bill, 11-19: "On the image
+  supply"): when the browser's storage is full, the supply turns red and reads "storage full" (or
+  "not added", for another reason), its tooltip saying why, until an image is added.
 - **Over the bar**, anything you carry turns the bar red; if letting go would bury it, "→" and the
   current graveyard's name show by the gravestone. Plain chips, +1s and the reference card vanish
   there; an Influence card goes home to its drawer.

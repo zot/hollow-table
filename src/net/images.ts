@@ -12,6 +12,8 @@ import type { Net } from './link.ts';
 export const RETRY_MS = 10_000;
 /** Why an image shows striped (R195). */
 export const NOBODY = 'Nobody at the table has sent this image yet (the page that has it may be closed); trying again';
+/** R456: why an image this browser's store refused is missing. */
+export const FULL = "This browser's storage is full, so the image can't be kept here; trying again";
 
 export class ImageExchange {
   /** Hashes shown on the table but not in the BlobStore, with why. */
@@ -49,7 +51,11 @@ export class ImageExchange {
       asking = (async () => {
         if (!await this.#blobs.get(hash)) {
           const blob = await this.#net.request(hash);
-          if (!blob || !await this.#blobs.accept(hash, blob)) { this.#mark(hash, NOBODY); return false; }
+          if (!blob) { this.#mark(hash, NOBODY); return false; }
+          // R456: the store may refuse it (storage full); that's said, not dropped.
+          const kept = await this.#blobs.accept(hash, blob).catch(() => null);
+          if (kept === null) { this.#mark(hash, FULL); return false; }
+          if (!kept) { this.#mark(hash, NOBODY); return false; }
         }
         this.#mark(hash, undefined);
         return true;

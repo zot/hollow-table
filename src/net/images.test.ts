@@ -1,10 +1,10 @@
 // CRC: crc-ImageExchange.md | Test: test-Images.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ImageExchange, NOBODY, RETRY_MS } from './images.ts';
+import { FULL, ImageExchange, NOBODY, RETRY_MS } from './images.ts';
 import { FakeRoom } from './fakeroom.ts';
 import { BlobStore } from '../store/blobs.ts';
-import { MemoryDb } from '../store/db.ts';
+import { MemoryDb, type Db } from '../store/db.ts';
 import { fakeClock } from '../store/fakes.ts';
 
 test('images by hash', async () => {
@@ -61,4 +61,17 @@ test('the page hears when an image arrives or is found missing', async () => {
   assert.deepEqual(heard, [nobody, blob]);
   await dana.images.want(nobody);
   assert.deepEqual(heard, [nobody, blob], 'still missing: nothing new to draw');
+});
+
+test('an image this browser has no room for', async () => {
+  // R456: the store refuses another page's image; it's marked missing with why, not left unsaid.
+  const room = new FakeRoom(), { clock } = fakeClock();
+  const gm = new BlobStore(new MemoryDb(), async () => ({ w: 1, h: 1 }));
+  new ImageExchange(room.link({ tab: 'gm', browser: 'b-gm', sealKey: '' }), gm, clock);
+  const full = new MemoryDb(), refusing: Db = { tx: (stores, mode, fn) => full.tx(stores, mode, t => fn({ ...t,
+    put: async () => { throw new DOMException('The quota has been exceeded.', 'QuotaExceededError'); } })) };
+  const dana = new ImageExchange(room.link({ tab: 'dana', browser: 'b-dana', sealKey: '' }), new BlobStore(refusing, async () => ({ w: 1, h: 1 })), clock);
+  const { blob } = await gm.add(new Blob([new Uint8Array([137, 80, 78, 71, 9])], { type: 'image/png' }));
+  assert.equal(await dana.want(blob), false);
+  assert.equal(dana.missing.get(blob), FULL);
 });

@@ -395,3 +395,25 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** stop leaving writing during a carry (`keepOut` does nothing); red, in WebKit only: a carry moves the sticky 2 px, not 60
 **Inject:** src/ui/drag.ts:#carry
 **Pulled:** 2026-11-19 — re-pulled after the spec allowed a pixel (it flaked in Firefox, 59 for 60 in 2 of 5): rang in WebKit on gpubox, the sticky ended 62 px off; restored clean *Earlier —* 2026-11-19 — rang in WebKit on gpubox (the standing suite's Chromium and Firefox never had the bug): a carry moved the sticky 2 px, not 60; restored clean
+
+## Test: an image the browser won't keep is said on the image supply
+**Purpose:** R453: when the store refuses a new image, the image supply turns red and says why, until an image is added
+**Input:** the page's `blobs.add` rejects with a QuotaExceededError; an image picked; then `blobs.add` as it was, and the image picked again
+**Expected:** the supply has class `refused`, reads "storage full", its title "dot.png not added: this browser's storage is full…"; then plain again, reading "image"
+**Refs:** crc-Bar.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 31
+**Fire alarm:** drop the refusal on the floor (addImage's rejection handler does nothing); red: the supply never turns refused
+**Inject:** src/main.ts:views
+**Pulled:** 2026-11-19 — rang: the image supply never turned refused (Chromium); restored clean
+
+## Test: End ends when its checkpoint isn't kept
+**Purpose:** R454: End ends the conflict whether or not its checkpoint is kept
+**Input:** the store's `checkpoint` rejects with a QuotaExceededError; the Round up to 1; End pressed twice
+**Expected:** the Round is 0
+**Refs:** crc-Register.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 32
+**Fire alarm:** end only once the checkpoint is kept (`.then(end)`, as before R454); red: the Round stays 1
+**Inject:** src/ui/register.ts:RegisterView
+**Pulled:** 2026-11-19 — rang: the Round stayed 1 (Chromium); restored clean

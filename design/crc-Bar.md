@@ -1,10 +1,12 @@
 # Bar
-**Requirements:** R9, R18, R20, R287, R288, R304, R305, R19, R34, R35, R347, R408
+**Requirements:** R9, R18, R20, R287, R288, R304, R305, R19, R34, R35, R347, R408, R453
 
 The bar along the top: the wordmark, supplies, the people at the table, and the furniture at the
 right end.
 
 ## Does
+- refused(why) (R453): the image supply red, reading "storage full" for a QuotaExceededError or "not
+  added", its tooltip why; refused(null) clears it, when an image is added.
 - BarView (`src/ui/bar.ts`) draws the wordmark with the version and date, the paper supplies, the image supply (a
   hidden file input), the chip grid, the slot for the Opposition button and its tray (`oppo`, filled
   by TrayView, crc-Tray.md), and the slots for the people and "You are"; the register,

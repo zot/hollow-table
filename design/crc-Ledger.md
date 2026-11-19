@@ -1,9 +1,10 @@
 # Ledger
-**Requirements:** R132, R133, R134, R139, R141, R291
+**Requirements:** R132, R133, R134, R139, R141, R291, R455
 
 The green cloth-bound book between the register and Boot Hill, opening to a ruled ledger page.
 
 ## Does
+- (R455) says whether storage is kept: "Storage kept", or "The browser may clear this storage".
 - book (R291, `src/ui/ledger.ts`): green cloth with "Ledger" up the spine, after the register and
   before Boot Hill; a click opens or closes the page, a press anywhere else closes it.
 - page (R132): ruled, with a red margin rule: the game's name (editable; a blank one is not taken),

@@ -22,6 +22,9 @@ Every piece of state says which tier it's in.
   only what differs from what's stored. A reload shows the same table.
 - Saved state lives in the browser's database, per origin. It holds images too, by content hash, so
   photos don't run out of room.
+- **The browser is asked to keep it** (Bill, 11-19: "At the first save"): once a game is first saved on
+  a page, the page asks the browser not to clear its storage (Firefox asks the player). The Ledger
+  says whether it's kept: "Storage kept", or "The browser may clear this storage".
 
 ## Games
 
@@ -50,6 +53,9 @@ Every piece of state says which tier it's in.
   your seat; whatever has vanished is skipped.
 - **End makes one automatically** ("End of conflict, round 2"). Automatic checkpoints keep the newest
   20; named ones are kept.
+- **A checkpoint the browser won't keep** (its storage full) is said in the Ledger's status:
+  "Checkpoint “Round 3” not kept:" and why, until one is kept. **End ends anyway** (Bill, 11-19: "End
+  anyway, and say it"): only its undo is lost.
 
 ## Export and import
 
@@ -65,4 +71,4 @@ Every piece of state says which tier it's in.
 
 ## Not yet
 
-- Deleting a game or a checkpoint; storage-quota handling.
+- Deleting a game, a checkpoint, or an image no game uses (prototype Item 26).

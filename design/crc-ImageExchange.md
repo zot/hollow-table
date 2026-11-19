@@ -1,5 +1,5 @@
 # ImageExchange
-**Requirements:** R26, R194, R195
+**Requirements:** R26, R194, R195, R456
 
 Images peer to peer: bytes stay in each page's BlobStore; a page missing one asks the table by hash.
 
@@ -8,6 +8,7 @@ Images peer to peer: bytes stay in each page's BlobStore; a page missing one ask
 - RETRY_MS: 10 s.
 
 ## Does
+- want (R456): an image the store refuses is marked missing with FULL, and asked for again.
 - want(hash): asks the table unless this page has it; the first answer whose bytes hash right is
   kept (BlobStore.accept), so this page can answer the next asker. True once it has it.
 - answer: this page answers requests with what its BlobStore has.

@@ -1,9 +1,10 @@
 # Register
-**Requirements:** R99, R112, R115-117, R284, R338, R344
+**Requirements:** R99, R112, R115-117, R284, R338, R344, R454
 
 The cash register: the Round, and End.
 
 ## Does
+- End (R454): ends the conflict whether or not its checkpoint is kept.
 - Pure (`src/ui/register.ts`): stepped(meta, ±1), the Round within 0 to 99 (R284); ended(game), End's
   one change (R117, R99), each character's Mild slots emptied by Absorb.mildEnds (R338),
   and every tapped card not already gone through Tap.mildGone (R344).

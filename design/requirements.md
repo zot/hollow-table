@@ -102,6 +102,7 @@
 - **R384:** Text holding the caret (any written place: card text, stickies, loose text, Damage slot names, Lasting lines, a receipt's title) shows the I-beam over its words and marks; glyphs, action dice, Slot boxes and pens keep the pointing hand, and the paper's margins and text without the caret keep the open hand. An Influence card's name, written in place, shows the I-beam with or without the caret.
 - **R450:** Ctrl+A or ⌘A in a written place selects all of its contents, non-editable dice and glyphs included, whatever the browser's own select-all would do.
 - **R451:** A press and move on a piece's text carries the piece: the browser's own drag never starts from the table (`dragstart` is cancelled there), and while a carry lasts it leaves any writing the browser takes up again (WebKit's text selection refocuses the text); dropping files from outside the page still works.
+- **R453:** When the browser refuses to store a new image, the image supply turns red and reads "storage full" (a QuotaExceededError) or "not added", its tooltip saying why, until an image is added.
 
 ## Feature: Influence
 **Source:** specs/influence.md
@@ -329,6 +330,8 @@
 - **R139:** Import always makes a new game, adding "(imported)" to a name already taken.
 - **R140:** A player's page keeps its copy of the table per room, so a reload shows it at once.
 - **R141:** A player's Ledger hides Checkpoint, Import, New game and the game list, and the copy never becomes the browser's own game.
+- **R454:** A checkpoint the store refuses is said in the Ledger's status ("Checkpoint “name” not kept:" and why) until one is kept; End ends the conflict even when its checkpoint isn't kept.
+- **R455:** Once a game is first saved on a page, the page asks the browser to keep its storage (navigator.storage.persist), once; the Ledger says "Storage kept" or "The browser may clear this storage".
 
 ## Feature: ownership
 **Source:** specs/ownership.md
@@ -438,6 +441,7 @@
 - **R448:** When the book's caps drop entries from `tomb` or `last`, the book keeps the newest version dropped (its floor), and the GM's page refuses whole a change from a copy older than the floor, answering with its own pieces.
 - **R449:** An image is stored as its MIME type and its bytes (an ArrayBuffer), never a Blob, so a browser whose database refuses Blobs (WebKit in a private session) keeps it; an image stored as a Blob before still loads.
 - **R452:** `npm run relays` reports, for each relay in the pinned list and in Trystero's defaults, whether it answers a request for one event within 8 s, and how long it took or why not, the pinned ones first.
+- **R456:** An image from another page that this browser's store refuses is marked missing with why (FULL: this browser's storage is full), and asked for again like any missing image.
 
 ## Feature: connections
 **Source:** specs/connections.md

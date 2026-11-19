@@ -35,6 +35,17 @@ export class BarView {
   readonly folks: HTMLElement;
   /** Where the GM's "You are" goes. */
   readonly youAre: HTMLElement;
+  /** The image supply, and what it says when it's plain. */
+  #image!: HTMLElement;
+  #imageSays = { text: '', title: '' };
+
+  // R453: an image the browser won't keep is said on the image supply until one is added.
+  /** Marks the image supply refused (`label`, and `why` on hover), or plain again with null. */
+  refused(r: { label: string; why: string } | null): void {
+    this.#image.classList.toggle('refused', !!r);
+    this.#image.textContent = r ? r.label : this.#imageSays.text;
+    this.#image.title = r ? r.why : this.#imageSays.title;
+  }
 
   constructor(bar: HTMLElement, w: BarWith) {
     const doc = bar.ownerDocument, el = (tag: string, cls: string, text = '', title = '') => {
@@ -61,6 +72,8 @@ export class BarView {
     if (w.gm) { const refs = el('div', 'refs'); refs.append(papers.pop()!, paper(CONNECTIONS)); papers.push(refs); }
     // R287: the image supply opens a file picker.
     const image = el('div', 'supply image', 'image', 'Add an image'), file = doc.createElement('input');
+    this.#image = image;
+    this.#imageSays = { text: image.textContent ?? '', title: image.title };
     file.type = 'file';
     file.accept = 'image/*';
     file.multiple = true;

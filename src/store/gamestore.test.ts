@@ -1,7 +1,7 @@
 // CRC: crc-GameStore.md | Test: test-GameStore.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MemoryDb } from './db.ts';
+import { MemoryDb, type Db } from './db.ts';
 import { GameStore, KEEP_AUTO, LAST, beforeRestoring } from './gamestore.ts';
 import { fakeClock, memoryStorage } from './fakes.ts';
 import { ridOf, type Character, type Chip, type Image, type Meta, type Receipt, type Tape, type Yards } from '../model/records.ts';
@@ -164,4 +164,38 @@ test('a save that fails says why, and is tried again', async () => {
   await store.save();
   assert.match(store.status(), /^Saved \d\d:\d\d:\d\d$/);
   assert.equal(((await store.read(store.current!.id)).records.find(([rid]) => rid === 'meta')![1] as Meta).round, 4);
+});
+
+/** A store over MemoryDb whose checkpoint writes fail while `full.on`, as a full browser store does. */
+function filling(keep?: () => Promise<boolean>) {
+  const mem = new MemoryDb(), { clock } = fakeClock(), full = { on: false };
+  const db: Db = { tx: (stores, mode, fn) => mem.tx(stores, mode, t => fn({ ...t,
+    put: async (s, k, v) => { if (full.on && s === 'checkpoints') throw new DOMException('The quota has been exceeded.', 'QuotaExceededError'); return t.put(s, k, v); } })) };
+  return { store: new GameStore(db, clock, memoryStorage(), keep), full };
+}
+
+test('a checkpoint the store refuses is said until one is kept', async () => {
+  // R454.
+  const { store, full } = filling();
+  await store.start();
+  full.on = true;
+  await assert.rejects(store.checkpoint('Round 3', false));
+  assert.match(store.status(), /^Checkpoint “Round 3” not kept: The quota has been exceeded/);
+  full.on = false;
+  await store.checkpoint('Round 4', false);
+  assert.match(store.status(), /^Saved/, 'a kept checkpoint clears it');
+});
+
+test('the browser is asked to keep the storage once, after the first save', async () => {
+  // R455.
+  let asked = 0;
+  const { store } = filling(async () => { asked++; return true; });
+  await store.start();
+  assert.equal(store.kept(), null, 'not asked before a save');
+  roll(store);
+  await store.save();
+  roll(store);
+  await store.save();
+  assert.equal(asked, 1, 'asked once');
+  assert.equal(store.kept(), true);
 });

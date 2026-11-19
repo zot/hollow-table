@@ -151,10 +151,16 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   /** The height that puts a piece on top of everything. */
   const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ('kind' in r ? placeOf(r as PieceRecord) : null)?.z ?? 0));
   // R272, R287: an image's bytes kept, and an Image put on top where it goes.
+  // R453: an image the browser won't keep is said on the image supply, until one is added.
   const addImage = (file: File, at: { x: number; y: number }) => void blobs.add(file).then(({ blob, w: iw, h }) => {
     const oid = mint()();
     const image: Image = { kind: 'image', oid, place: { ...at, z: topZ(), tilt: 0 }, blob, w: iw, h };
     game.change(wr => wr.put(ridOf(oid), image));
+    bar.refused(null);
+  }, (e: unknown) => {
+    const full = (e as { name?: string })?.name === 'QuotaExceededError', said = e instanceof Error ? e.message : String(e);
+    bar.refused(full ? { label: 'storage full', why: `${file.name} not added: this browser's storage is full (${said})` }
+      : { label: 'not added', why: `${file.name} not added: ${said}` });
   });
   // R18, R19, R287, R34: a supply is made at the press and carried; a new character's pool pops out
   // above its card.
@@ -413,11 +419,15 @@ function here(p: Presence): Here[] {
 
 // R132–R135, R138, R139, R141: what the Ledger does with this browser's games; another game, a new
 // one or an imported one is opened by reloading onto it.
+/** R455: what the Ledger adds to its status once the browser has been asked to keep the storage. */
+const keptNote = (k: boolean | null) => k === null ? '' : k ? ' · Storage kept' : ' · The browser may clear this storage';
+
 function ledgerOf(store: GameStore, blobs: BlobStore, player: boolean): LedgerWith {
   const onto = async (id: string) => { await store.open(id); location.reload(); };
   return {
     player, now: () => clock.now(), round: () => (store.game.get('meta') as Meta).round,
-    current: () => store.current!, status: () => store.status(), rename: name => store.rename(name),
+    // R455: and whether the browser keeps this storage, once it has been asked.
+    current: () => store.current!, status: () => store.status() + keptNote(store.kept()), rename: name => store.rename(name),
     checkpoints: () => store.checkpoints(), games: () => store.list(),
     checkpoint: name => store.checkpoint(name, false), restore: id => store.restore(id), open: onto,
     newGame: async name => onto((await store.add(name)).id),
@@ -433,7 +443,8 @@ function redrawImages(game: Game, table: TableView, hash: string): void {
 
 async function main() {
   const db = await IdbDb.open();
-  const store = new GameStore(db, clock, localStorage);
+  // R455: once a game is first saved, the browser is asked to keep this storage.
+  const store = new GameStore(db, clock, localStorage, async () => !!navigator.storage?.persist && (await navigator.storage.persisted() || await navigator.storage.persist()));
   const blobs = new BlobStore(db, measure);
   const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
   const tab = tabId(sessionStorage), invited = fromUrl(location.search);

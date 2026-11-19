@@ -119,7 +119,7 @@ export class LedgerView {
     if (!w.player) act('Checkpoint', 'Save a named copy of the table as it is now', async () => {
       const n = named(prompt('Name this checkpoint', offer(w.round(), w.now())));
       if (n === null) return;
-      await w.checkpoint(n);
+      await w.checkpoint(n).catch(() => undefined);   // R454: a refused one is said in the status
       await this.render();
     });
     act('Export', 'Download this game, with its checkpoints and images, as one file', async () => {

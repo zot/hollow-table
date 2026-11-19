@@ -14,8 +14,7 @@ exercised by the browser tests (test-Network, test-Seat)
 **Alarm:** 1
 **Fire alarm:** Keep the first change's timer instead of restarting the pause (drop the `clearTimeout`): the first write lands at 400 ms, before the pause after the last change is over
 **Inject:** src/store/gamestore.ts:constructor
-**Pulled:** 2026-11-12 — rang: a write landed before the pause after the last change was over (3 transactions logged, not 2)
-
+**Pulled:** 2026-11-19 — re-pulled after R455 (the constructor changed): rang, the first write landed before the pause was over; restored clean *Earlier —* 2026-11-12 — rang: a write landed before the pause after the last change was over (3 transactions logged, not 2)
 ## Test: checkpoints and restore
 **Purpose:** the checkpoint and restore round trip
 **Input and Expected**, in order:
@@ -70,4 +69,25 @@ then working again
 **Alarm:** 5
 **Fire alarm:** Drop the failed records instead of keeping them pending: Round 4 is never stored
 **Inject:** src/store/gamestore.ts:GameStore.save
-**Pulled:** 2026-11-13 — rang: with the database back, the status stayed `Not saved: the disk is full`, nothing retried
+**Pulled:** 2026-11-19 — re-pulled after R455 (save changed): rang, Round 4 was never stored; restored clean *Earlier —* 2026-11-13 — rang: with the database back, the status stayed `Not saved: the disk is full`, nothing retried
+## Test: a checkpoint the store refuses is said until one is kept
+**Purpose:** R454: a checkpoint a full store refuses is said in the status until one is kept
+**Input:** a MemoryDb whose checkpoint writes throw a QuotaExceededError while full; a checkpoint "Round 3" while full; "Round 4" after
+**Expected:** "Round 3" rejects and the status reads "Checkpoint “Round 3” not kept:" and why; after "Round 4" it reads "Saved…"
+**Refs:** crc-GameStore.md
+**Code:** `src/store/gamestore.test.ts`
+**Alarm:** 6
+**Fire alarm:** leave a refused checkpoint unsaid (status ignores it); red: the status reads "Saved"
+**Inject:** src/store/gamestore.ts:GameStore.status
+**Pulled:** 2026-11-19 — rang: the status read "Saved", not the refused checkpoint; restored clean
+
+## Test: the browser is asked to keep the storage once, after the first save
+**Purpose:** R455: the browser is asked to keep this storage once, after the first save that writes something
+**Input:** a store whose `keep` counts its calls and says yes; kept() before any save; two saves, each after a roll
+**Expected:** null before; asked once; kept() true
+**Refs:** crc-GameStore.md
+**Code:** `src/store/gamestore.test.ts`
+**Alarm:** 7
+**Fire alarm:** ask after every save (keep never forgotten); red: asked twice
+**Inject:** src/store/gamestore.ts:GameStore.save
+**Pulled:** 2026-11-19 — rang: asked twice; restored clean

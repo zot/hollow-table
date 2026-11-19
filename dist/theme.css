@@ -103,6 +103,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 #bar .tag.gm.you, #bar .tag.warn { cursor: pointer; }
 #bar .tag.warn { background: var(--chip-neg); color: #fff; padding-left: 8px; }
 #bar .tag.warn::before { display: none; }
+/* R453: the image supply, when the browser wouldn't keep an image. */
+#bar .supply.image.refused { background: var(--chip-neg); color: #fff; }
 /* R445: an impostor's tag is barred on every page: a bar sinister, its upper right corner to its lower left. */
 #bar .tag.impostor { background-image: linear-gradient(to bottom right, transparent calc(50% - 1.5px), #e8d9b8 calc(50% - 1.5px), #e8d9b8 calc(50% + 1.5px), transparent calc(50% + 1.5px)); }
 #bar .invite { font: 11px/1 var(--mono); padding: 4px 7px; border-radius: 10px; border: 1px solid #a8957b; background: none; color: #f3e1c2; cursor: pointer; }

@@ -97,7 +97,9 @@ export class RegisterView {
       this.#armed = null;
       this.#el.classList.remove('armed');
       const round = (w.game.get('meta') as Meta).round;
-      void w.checkpoint?.(`End of conflict, round ${round}`).then(() => w.game.change(ended(w.game)));
+      // R454: End ends whether or not its checkpoint is kept; a refused one is said in the Ledger.
+      const end = () => w.game.change(ended(w.game));
+      void w.checkpoint?.(`End of conflict, round ${round}`).then(end, end);
     } });
     gesture(roll, { click: () => w.paperRoll() });
     w.game.listen(rids => { if (rids.has('meta')) this.render(); });

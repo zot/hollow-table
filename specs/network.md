@@ -150,7 +150,8 @@ them. Nothing to install, no local-network grant, no daemon.
   Safari's engine won't keep a file in the browser's database in a private window, and bytes keep
   everywhere. An image a browser kept as a file before still loads.
 - Meanwhile the image shows striped and marked missing, with why ("Nobody at the table has sent this
-  image yet"), and the page asks again every 10 s.
+  image yet"), and the page asks again every 10 s. An image this browser has no room for is marked
+  missing the same way, with why ("This browser's storage is full, so the image can't be kept here").
 
 ## Not yet
 

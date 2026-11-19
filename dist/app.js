@@ -3570,6 +3570,7 @@ async function verify(sig, ourNonce, peers, idPub, sealPub) {
 // src/net/images.ts
 var RETRY_MS = 1e4;
 var NOBODY = "Nobody at the table has sent this image yet (the page that has it may be closed); trying again";
+var FULL = "This browser's storage is full, so the image can't be kept here; trying again";
 var ImageExchange = class {
   /** Hashes shown on the table but not in the BlobStore, with why. */
   missing = /* @__PURE__ */ new Map();
@@ -3604,7 +3605,16 @@ var ImageExchange = class {
       asking = (async () => {
         if (!await this.#blobs.get(hash)) {
           const blob = await this.#net.request(hash);
-          if (!blob || !await this.#blobs.accept(hash, blob)) {
+          if (!blob) {
+            this.#mark(hash, NOBODY);
+            return false;
+          }
+          const kept = await this.#blobs.accept(hash, blob).catch(() => null);
+          if (kept === null) {
+            this.#mark(hash, FULL);
+            return false;
+          }
+          if (!kept) {
             this.#mark(hash, NOBODY);
             return false;
           }
@@ -10218,7 +10228,8 @@ var RegisterView = class {
       this.#armed = null;
       this.#el.classList.remove("armed");
       const round = w.game.get("meta").round;
-      void w.checkpoint?.(`End of conflict, round ${round}`).then(() => w.game.change(ended(w.game)));
+      const end2 = () => w.game.change(ended(w.game));
+      void w.checkpoint?.(`End of conflict, round ${round}`).then(end2, end2);
     } });
     gesture(roll3, { click: () => w.paperRoll() });
     w.game.listen((rids) => {
@@ -10623,6 +10634,16 @@ var BarView = class {
   folks;
   /** Where the GM's "You are" goes. */
   youAre;
+  /** The image supply, and what it says when it's plain. */
+  #image;
+  #imageSays = { text: "", title: "" };
+  // R453: an image the browser won't keep is said on the image supply until one is added.
+  /** Marks the image supply refused (`label`, and `why` on hover), or plain again with null. */
+  refused(r) {
+    this.#image.classList.toggle("refused", !!r);
+    this.#image.textContent = r ? r.label : this.#imageSays.text;
+    this.#image.title = r ? r.why : this.#imageSays.title;
+  }
   constructor(bar, w) {
     const doc = bar.ownerDocument, el4 = (tag2, cls, text = "", title = "") => {
       const e = doc.createElement(tag2);
@@ -10651,6 +10672,8 @@ var BarView = class {
       papers.push(refs);
     }
     const image2 = el4("div", "supply image", "image", "Add an image"), file = doc.createElement("input");
+    this.#image = image2;
+    this.#imageSays = { text: image2.textContent ?? "", title: image2.title };
     file.type = "file";
     file.accept = "image/*";
     file.multiple = true;
@@ -11360,12 +11383,18 @@ var GameStore = class {
   #savedAt = null;
   /** Why the last save failed, until one succeeds (R291). */
   #failed = null;
+  /** R454: the last checkpoint the store refused, said until one is kept. */
+  #lost = null;
+  /** R455: asking the browser to keep this origin's storage, once, after the first save; its answer. */
+  #keep;
+  #kept = null;
   #quiet = false;
   #seq = 0;
-  constructor(db, clock2, storage) {
+  constructor(db, clock2, storage, keep2) {
     this.#db = db;
     this.#clock = clock2;
     this.#storage = storage;
+    this.#keep = keep2;
     this.game.listen((rids) => {
       if (this.#quiet) return;
       for (const rid2 of rids) this.#pending.add(rid2);
@@ -11462,6 +11491,13 @@ var GameStore = class {
     })).then(() => {
       this.#savedAt = this.#clock.now();
       this.#failed = null;
+      const keep2 = this.#keep;
+      this.#keep = void 0;
+      if (keep2) void keep2().then((k) => {
+        this.#kept = k;
+      }, () => {
+        this.#kept = false;
+      });
     }, (e) => {
       this.#failed = e instanceof Error ? e.message : String(e);
       for (const [rid2] of records3) this.#pending.add(rid2);
@@ -11476,12 +11512,18 @@ var GameStore = class {
     const cur = this.#open();
     await this.save();
     const cp = { id: this.#id("c"), name: name2, at: this.#clock.now(), auto, records: Object.fromEntries(this.game.all()) };
-    await this.#db.tx(["checkpoints"], "readwrite", async (t) => {
-      await t.put("checkpoints", [cur.id, cp.id], cp);
-      if (!auto) return;
-      const autos = (await this.#checkpoints(t, cur.id)).filter((c) => c.auto);
-      for (const old of autos.slice(KEEP_AUTO)) await t.del("checkpoints", [cur.id, old.id]);
-    });
+    try {
+      await this.#db.tx(["checkpoints"], "readwrite", async (t) => {
+        await t.put("checkpoints", [cur.id, cp.id], cp);
+        if (!auto) return;
+        const autos = (await this.#checkpoints(t, cur.id)).filter((c) => c.auto);
+        for (const old of autos.slice(KEEP_AUTO)) await t.del("checkpoints", [cur.id, old.id]);
+      });
+    } catch (e) {
+      this.#lost = `Checkpoint \u201C${name2}\u201D not kept: ${e instanceof Error ? e.message : String(e)}`;
+      throw e;
+    }
+    this.#lost = null;
     const { records: _, ...info } = cp;
     return info;
   }
@@ -11516,8 +11558,13 @@ var GameStore = class {
   status() {
     if (this.#busy) return "Saving\u2026";
     if (this.#failed !== null) return `Not saved: ${this.#failed}`;
+    if (this.#lost !== null) return this.#lost;
     if (this.#pending.size) return "Saving\u2026";
     return this.#savedAt === null ? "Saved" : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
+  }
+  /** R455: whether the browser keeps this storage: null until it has been asked. */
+  kept() {
+    return this.#kept;
   }
   #open() {
     if (!this.current) throw new Error("no game is open");
@@ -11774,7 +11821,7 @@ var LedgerView = class {
     if (!w.player) act("Checkpoint", "Save a named copy of the table as it is now", async () => {
       const n = named3(prompt("Name this checkpoint", offer3(w.round(), w.now())));
       if (n === null) return;
-      await w.checkpoint(n);
+      await w.checkpoint(n).catch(() => void 0);
       await this.render();
     });
     act("Export", "Download this game, with its checkpoints and images, as one file", async () => {
@@ -12867,6 +12914,10 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     const oid = mint2()();
     const image2 = { kind: "image", oid, place: { ...at3, z: topZ(), tilt: 0 }, blob, w: iw, h };
     game.change((wr) => wr.put(ridOf(oid), image2));
+    bar.refused(null);
+  }, (e) => {
+    const full = e?.name === "QuotaExceededError", said = e instanceof Error ? e.message : String(e);
+    bar.refused(full ? { label: "storage full", why: `${file.name} not added: this browser's storage is full (${said})` } : { label: "not added", why: `${file.name} not added: ${said}` });
   });
   const made = (what, oid, at3) => {
     switch (what) {
@@ -13176,6 +13227,7 @@ function meOf(p, name2, gm) {
 function here(p) {
   return [...p.people].map(([tab2, person]) => ({ tab: tab2, ...person, stale: p.stale(tab2) }));
 }
+var keptNote = (k) => k === null ? "" : k ? " \xB7 Storage kept" : " \xB7 The browser may clear this storage";
 function ledgerOf(store, blobs, player) {
   const onto = async (id) => {
     await store.open(id);
@@ -13185,8 +13237,9 @@ function ledgerOf(store, blobs, player) {
     player,
     now: () => clock.now(),
     round: () => store.game.get("meta").round,
+    // R455: and whether the browser keeps this storage, once it has been asked.
     current: () => store.current,
-    status: () => store.status(),
+    status: () => store.status() + keptNote(store.kept()),
     rename: (name2) => store.rename(name2),
     checkpoints: () => store.checkpoints(),
     games: () => store.list(),
@@ -13203,7 +13256,7 @@ function redrawImages(game, table, hash) {
 }
 async function main() {
   const db = await IdbDb.open();
-  const store = new GameStore(db, clock, localStorage);
+  const store = new GameStore(db, clock, localStorage, async () => !!navigator.storage?.persist && (await navigator.storage.persisted() || await navigator.storage.persist()));
   const blobs = new BlobStore(db, measure);
   const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
   const tab2 = tabId(sessionStorage), invited = fromUrl(location.search);

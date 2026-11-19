@@ -42,13 +42,19 @@ export class GameStore {
   #savedAt: number | null = null;
   /** Why the last save failed, until one succeeds (R291). */
   #failed: string | null = null;
+  /** R454: the last checkpoint the store refused, said until one is kept. */
+  #lost: string | null = null;
+  /** R455: asking the browser to keep this origin's storage, once, after the first save; its answer. */
+  #keep: (() => Promise<boolean>) | undefined;
+  #kept: boolean | null = null;
   #quiet = false;
   #seq = 0;
 
-  constructor(db: Db, clock: Clock, storage: KeyValue) {
+  constructor(db: Db, clock: Clock, storage: KeyValue, keep?: () => Promise<boolean>) {
     this.#db = db;
     this.#clock = clock;
     this.#storage = storage;
+    this.#keep = keep;
     // R129: write-through. Opening a game loads what is stored, which has nothing to write.
     this.game.listen(rids => {
       if (this.#quiet) return;
@@ -141,7 +147,13 @@ export class GameStore {
         if (rec === undefined) await t.del('records', [cur.id, rid]);
         else await t.put('records', [cur.id, rid], rec);
       }
-    })).then(() => { this.#savedAt = this.#clock.now(); this.#failed = null; }, (e: unknown) => {
+    })).then(() => {
+      this.#savedAt = this.#clock.now();
+      this.#failed = null;
+      const keep = this.#keep;
+      this.#keep = undefined;
+      if (keep) void keep().then(k => { this.#kept = k; }, () => { this.#kept = false; });
+    }, (e: unknown) => {
       // R291: a failed save says why, and its records are tried again with the next change.
       this.#failed = e instanceof Error ? e.message : String(e);
       for (const [rid] of records) this.#pending.add(rid);
@@ -155,12 +167,19 @@ export class GameStore {
     const cur = this.#open();
     await this.save();
     const cp: Checkpoint = { id: this.#id('c'), name, at: this.#clock.now(), auto, records: Object.fromEntries(this.game.all()) };
-    await this.#db.tx(['checkpoints'], 'readwrite', async t => {
-      await t.put('checkpoints', [cur.id, cp.id], cp);
-      if (!auto) return;
-      const autos = (await this.#checkpoints(t, cur.id)).filter(c => c.auto);
-      for (const old of autos.slice(KEEP_AUTO)) await t.del('checkpoints', [cur.id, old.id]);
-    });
+    // R454: a checkpoint the store refuses is said until one is kept.
+    try {
+      await this.#db.tx(['checkpoints'], 'readwrite', async t => {
+        await t.put('checkpoints', [cur.id, cp.id], cp);
+        if (!auto) return;
+        const autos = (await this.#checkpoints(t, cur.id)).filter(c => c.auto);
+        for (const old of autos.slice(KEEP_AUTO)) await t.del('checkpoints', [cur.id, old.id]);
+      });
+    } catch (e) {
+      this.#lost = `Checkpoint “${name}” not kept: ${e instanceof Error ? e.message : String(e)}`;
+      throw e;
+    }
+    this.#lost = null;
     const { records: _, ...info } = cp;
     return info;
   }
@@ -199,9 +218,13 @@ export class GameStore {
   status(): string {
     if (this.#busy) return 'Saving…';
     if (this.#failed !== null) return `Not saved: ${this.#failed}`;
+    if (this.#lost !== null) return this.#lost;
     if (this.#pending.size) return 'Saving…';
     return this.#savedAt === null ? 'Saved' : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
   }
+
+  /** R455: whether the browser keeps this storage: null until it has been asked. */
+  kept(): boolean | null { return this.#kept; }
 
   #open(): GameInfo {
     if (!this.current) throw new Error('no game is open');

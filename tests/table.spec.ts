@@ -2,7 +2,7 @@
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, dragFromTo, kinds, open, rec, records } from './page.ts';
+import { at, barMiddle, dragFromTo, hook, kinds, open, rec, records } from './page.ts';
 
 const SAM = 'o:00000001', BEAUFORD = 'o:00000002', STICKY = 'o:00000008', CHIP = 'o:00000007';
 
@@ -540,4 +540,30 @@ test("select-all takes the whole of an Opinion Record's text", async ({ page }) 
   await page.keyboard.press('ControlOrMeta+a');
   await page.keyboard.type('Grudge');
   await expect(text).toHaveText('Grudge');
+});
+
+test("an image the browser won't keep is said on the image supply", async ({ page }) => {
+  // R453: the browser refuses the image (as Firefox does at its limit): the image supply says so.
+  const png = { name: 'dot.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') };
+  await hook(page, h => { h.blobs.add = () => Promise.reject(new DOMException('The quota has been exceeded.', 'QuotaExceededError')); });
+  const supply = page.locator('#bar .supply.image'), file = page.locator('#bar input[type=file]').first();
+  await file.setInputFiles(png);
+  await expect(supply).toHaveClass(/\brefused\b/);
+  await expect(supply).toHaveText('storage full');
+  await expect(supply).toHaveAttribute('title', /dot\.png not added: this browser.s storage is full/);
+  // Room again: the next image is added, and the supply is plain.
+  await hook(page, h => { delete h.blobs.add; });
+  await file.setInputFiles(png);
+  await expect(supply).not.toHaveClass(/\brefused\b/);
+  await expect(supply).toHaveText('image');
+});
+
+test("End ends when its checkpoint isn't kept", async ({ page }) => {
+  // R454: End's checkpoint refused, the conflict ends anyway.
+  await hook(page, h => { h.store.checkpoint = () => Promise.reject(new DOMException('The quota has been exceeded.', 'QuotaExceededError')); });
+  await page.locator('.register .key.up').click();
+  await expect.poll(async () => (await rec(page, 'meta')).round).toBe(1);
+  await page.locator('.register .key.end').click();
+  await page.locator('.register .key.end').click();
+  await expect.poll(async () => (await rec(page, 'meta')).round).toBe(0);
 });
