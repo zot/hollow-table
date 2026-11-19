@@ -296,3 +296,32 @@ test('a player sees a revealed Opinion', async ({ browser }) => {
   await expect(theirs.locator('.text > .torn')).toHaveText(['Grudge -Min']);
   expect(await held(dana)).not.toContain('Reputation');
 });
+
+test("the GM's eye tears out a Resource for the table", async ({ browser }) => {
+  // Prototype Item 47 (Bill, 11-19: a revealed Resource on Devreux didn't reach another page).
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const card = gm.locator(`.obj.card[data-rid="${DEVREUX}"]`), danaCard = dana.locator(`.obj.card[data-rid="${DEVREUX}"]`);
+  const front = async () => (await recOf(dana, DEVREUX)).front as string;
+  await card.locator('.eyecat').click();
+  await card.locator('.eyemenu button', { hasText: 'Resources' }).click();
+  await expect(card).toHaveClass(/inferring/);
+  await card.locator('.front .entry', { hasText: 'Money' }).click();
+  await card.locator('.eye').click();
+  await expect.poll(front, { timeout: 15_000 }).toContain('Money');
+  expect(await front()).not.toContain('Saloon Gossip');
+  await expect(danaCard.locator('.front .text > div.torn')).toContainText(['Money +Sig']);
+});
+
+test('a Resource revealed before a player joins reaches them', async ({ browser }) => {
+  // Prototype Item 47: the reveal made, then Dana's page joins and catches up.
+  const { gm, invite } = await gmTable(browser);
+  const card = gm.locator(`.obj.card[data-rid="${DEVREUX}"]`);
+  await card.locator('.eyecat').click();
+  await card.locator('.eyemenu button', { hasText: 'Resources' }).click();
+  await card.locator('.front .entry', { hasText: 'Money' }).click();
+  await card.locator('.eye').click();
+  const dana = await join(browser, invite, 'Dana', gm);
+  await expect.poll(async () => (await recOf(dana, DEVREUX)).front as string, { timeout: 15_000 }).toContain('Money');
+  await expect(dana.locator(`.obj.card[data-rid="${DEVREUX}"] .front .text > div.torn`)).toContainText(['Money +Sig']);
+});

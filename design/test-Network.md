@@ -255,3 +255,25 @@ by the drop
 **Fire alarm:** leave the Tables joined list out of a player's Ledger (only the GM's draws it); red: no entries
 **Inject:** src/ui/ledger.ts:LedgerView.render
 **Pulled:** 2026-11-19 — rang: Dana's Ledger had no Tables joined entries (Chromium); restored clean
+
+## Test: the GM's eye tears out a Resource for the table
+**Purpose:** R392–R394 for a Resource (prototype Item 47): torn out with the eye and the eye shut, Devreux's Money reaches Dana's page, drawn torn, and her other Resource doesn't
+**Input:** the GM's table and Dana; the eye's arrow, Resources; Money; the eye
+**Expected:** the Infer state; Dana's front holds Money and not Saloon Gossip; her card shows a torn strip with Money +Sig
+**Refs:** crc-Visibility.md, crc-PieceView.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 20
+**Fire alarm:** blank a revealed `<res>` line as if it weren't shown (skip it in blankFront); red: Dana's front never holds Money
+**Inject:** src/rules/visibility.ts:blankFront
+**Pulled:** 2026-11-19 — rang (Chromium): with revealed <res> lines blanked, Dana's front never held Money; restored clean
+
+## Test: a Resource revealed before a player joins reaches them
+**Purpose:** R394 through a catch-up (prototype Item 47): a Resource revealed before Dana joins reaches her page with the whole table
+**Input:** the GM's table; the eye's arrow, Resources; Money; the eye; then Dana joins
+**Expected:** Dana's front holds Money, and her card shows a torn strip with Money +Sig
+**Refs:** crc-Visibility.md, crc-Authority.md
+**Code:** `tests/secret.spec.ts`
+**Alarm:** 21
+**Fire alarm:** send a catch-up's characters without their reveals (strip `shown` before redacting); red: Dana's front never holds Money
+**Inject:** src/net/authority.ts:Authority
+**Pulled:** 2026-11-19 — rang (Chromium): with a catch-up's reveals stripped, Dana's front never held Money; restored clean
