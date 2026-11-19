@@ -2860,7 +2860,7 @@ function why(name2) {
 
 // src/net/envelope.ts
 var VERSION = 1;
-var KINDS = ["hello", "here", "bye", "recs", "sync", "edit", "move", "intent", "roll", "crit", "take", "name", "refuse", "claim", "claims"];
+var KINDS = ["hello", "here", "bye", "recs", "sync", "edit", "move", "intent", "roll", "crit", "take", "name", "refuse", "claim", "claims", "tape"];
 var LIMITS = { dice: 40, moveItems: 8, batch: 1e4, why: 500, box: 4e6 };
 var tab = str(CAPS.id);
 var name = str(CAPS.name);
@@ -2919,7 +2919,9 @@ var BODIES = {
   refuse: fields({ why: why2 }, { n: seq }),
   claim: fields({ name, why: whyOrNull }),
   // R446: who holds each name, from the GM's page: name → browser id.
-  claims: fields({ claims: dict(str(CAPS.id)) })
+  claims: fields({ claims: dict(str(CAPS.id)) }),
+  // R466: a page come late asks (no receipts), and the GM's page answers with the table's view of its tape.
+  tape: fields({}, { receipts: list(receipt, KEPT) })
 };
 var sealedRoll = (v) => fields({ re: seq, receipt })(v) && fewDice(v.receipt);
 var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) }, { dels: list(del, LIMITS.batch) });
@@ -4296,6 +4298,9 @@ var Rolls = class {
       link.on("crit", (body, from) => this.#crit(body, from));
       link.on("take", (body, from) => this.#take(body, from));
       link.on("name", (body, from) => this.#name(body, from));
+      link.on("tape", (body, from) => {
+        if (!body.receipts) this.#history(from.tab);
+      });
     } else {
       link.on("roll", (body, from) => this.#heard(body, from));
       link.on("refuse", (body, from) => {
@@ -4303,9 +4308,37 @@ var Rolls = class {
         this.#answered(body.n, body.why);
       });
       for (const kind of ["hello", "here"]) link.on(kind, (_, from) => {
-        if (from.browser === w.gmBrowser) this.#gmPeer = from;
+        if (from.browser !== w.gmBrowser) return;
+        this.#gmPeer = from;
+        if (this.#askedTape || this.#tape().length) return;
+        this.#askedTape = true;
+        link.send("tape", {}, from.tab);
+      });
+      link.on("tape", (body, from) => {
+        if (from.browser === w.gmBrowser && body.receipts) this.#hung(body.receipts);
       });
     }
+  }
+  #askedTape = false;
+  /** This page's tape, newest first. */
+  #tape() {
+    return this.#w.game.get("tape")?.receipts ?? [];
+  }
+  // R466: the table's view of each roll on the GM's own tape, newest first, from its
+  // kept rolls: a private roll, or one no longer kept, is left out.
+  #history(tab2) {
+    const kept = this.#w.game.get("book")?.kept ?? [];
+    const receipts = this.#tape().flatMap((r) => {
+      const k = kept.find((x) => x.full.id === r.id);
+      return k && !k.priv ? [k.table] : [];
+    });
+    this.#w.link.send("tape", { receipts }, tab2);
+  }
+  // R466: what hung on the GM's tape goes below what this page has (it's older), each receipt once.
+  #hung(receipts) {
+    const mine = this.#tape(), have = new Set(mine.map((r) => r.id));
+    const older = receipts.filter((r) => !have.has(r.id));
+    if (older.length) this.#w.game.change((w) => w.put("tape", { receipts: [...mine, ...older] }));
   }
   idle() {
     return this.#work;
@@ -4345,7 +4378,7 @@ var Rolls = class {
     }
     return n + 1;
   }
-  /** Prints on this page's own tape (R111: it never goes over the wire), newest first; a receipt
+  /** Prints on this page's own tape (R465: it doesn't go over the wire, but to a page come late), newest first; a receipt
    * already there by id is replaced (a CRIT switched or locked). */
   #print(r) {
     const { game } = this.#w, tape = game.get("tape") ?? { receipts: [] };

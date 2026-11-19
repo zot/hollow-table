@@ -35,8 +35,7 @@ no numbers
 **Alarm:** 2
 **Fire alarm:** Let anyone roll any character (drop the owner check): Dana's roll of Beauford goes through
 **Inject:** src/net/rolls.ts:Rolls
-**Pulled:** 2026-11-12 — rang: Dana's roll of Beauford went through
-
+**Pulled:** 2026-11-19 — re-pulled after R466 (Rolls' constructor changed): rang, Dana's roll of Beauford went through; restored clean *Earlier —* 2026-11-12 — rang: Dana's roll of Beauford went through
 ## Test: CRIT
 **Purpose:** a CRIT takes the larger result, adds or strengthens CRIT!, and its owner can switch and lock it
 **Input:** Dana rolls Sam's Infer with White 6, Blue 5 (a CRIT); again with a CRIT; Dana switches the
@@ -61,8 +60,7 @@ arrive", then "Many rolls from the GM didn't arrive"
 **Alarm:** 4
 **Fire alarm:** Send private rolls too: a roll message is sent
 **Inject:** src/net/rolls.ts:Rolls
-**Pulled:** 2026-11-12 — rang: the private roll went out, printed without `priv` (`rolls.test.ts:133`)
-
+**Pulled:** 2026-11-19 — re-pulled after R466 (Rolls' constructor changed): rang, a private roll was sent; restored clean *Earlier —* 2026-11-12 — rang: the private roll went out, printed without `priv` (`rolls.test.ts:133`)
 ## Test: a receipt in the book's words
 **Purpose:** R279: every row in full (its range, nearer zero first below zero; the book's name; its
 dice); the Level as the dice add up, the bonus left out on a Failure; the outcome's words
@@ -243,3 +241,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** let a transfer be made twice (drop the `done` check); red: Saloon Gossip moves to Beauford too
 **Inject:** src/net/rolls.ts:Rolls.#transfer
 **Pulled:** 2026-11-19 — rang: Saloon Gossip moved to Beauford too (a first test, transferring Money again, stayed silent: the rule alone refuses it, so the test now tries another Resource); restored clean
+
+## Test: a page that comes late gets what hangs on the GM's tape, as the table saw it
+**Purpose:** R465, R466: a page whose tape is empty asks once and gets the table's view of each roll on the GM's tape; once the GM tears it, nothing
+**Input:** two rolls of Dana's at the table; then Eve's page joins and hears the GM; the GM tears its tape; then Fay's page joins
+**Expected:** Eve's tape equals Ann's, both receipts, newest first; Fay's tape is empty
+**Refs:** crc-Rolls.md, crc-Envelope.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 21
+**Fire alarm:** answer with the GM's own receipts (`k.full`), not the table's view; red: Eve's tape isn't Ann's
+**Inject:** src/net/rolls.ts:Rolls
+**Pulled:** 2026-11-19 — rang: Eve's tape held the GM's own receipts, not the table's view; restored clean

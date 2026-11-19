@@ -495,3 +495,25 @@ test('a Request transfers a Resource', async () => {
   const atSam = resolve(gm.game, { ...req(SAM), n: 9 }, faces(4, 6, 5, 2), 1000);
   assert.ok(!('refused' in atSam) && !atSam.full.transfer);
 });
+
+test('a page that comes late gets what hangs on the GM\'s tape, as the table saw it', async () => {
+  // R465, R466: two rolls; then Eve's page joins with an empty tape, asks once, and gets both as Ann saw them.
+  const t = await table(faces(4, 3, 5, 2));
+  await t.hello();
+  assert.equal(await ask(t, infer()), null);
+  assert.equal(await ask(t, infer()), null);
+  const late = async (tab: string) => {
+    const sealer = await Sealer.make(), link = t.room.link({ tab, browser: `b-${tab}`, sealKey: sealer.pub }), game = new Game();
+    const rolls = new Rolls({ game, sealer, clock: fakeClock().clock, rng: faces(), link, session: memoryStorage(), gm: false, gmBrowser: 'b-gm',
+      whoIs: () => null });
+    t.room.watch(() => rolls.idle());
+    await t.hello();
+    return ((game.get('tape') as Tape | undefined)?.receipts ?? []);
+  };
+  const eve = await late('eve');
+  assert.deepEqual(eve, t.tape('ann'), "Eve's tape is Ann's: the table's view, newest first");
+  assert.equal(eve.length, 2);
+  // The GM tears the tape: a later page gets nothing of it.
+  t.page('gm').game.change(w => w.put('tape', { receipts: [] }));
+  assert.deepEqual(await late('fay'), []);
+});

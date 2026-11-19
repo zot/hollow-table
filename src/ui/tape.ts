@@ -1,5 +1,5 @@
-// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R111, R112, R113, R317, R282, R283, R308, R313, R340, R441
-// The paper tape from the register: this page's receipts, never sent (R111). It lies under the
+// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R465, R112, R113, R317, R282, R283, R308, R313, R340, R441
+// The paper tape from the register: this page's receipts, never sent but to a page come late (R465). It lies under the
 // pieces and rises for a new roll or a press; rolled up it leaves a sliver; dragged, it tears off
 // the whole roll as a torn-roll piece. The decisions are pure (retitled, torn, mayChoose).
 

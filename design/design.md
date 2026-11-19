@@ -224,3 +224,4 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T48: R58 retired by R461 (a Resource feeds a plain card, flagged for the GM (Item 14))
 - T49: R63 retired by R462 (a Resource feeds a used card itself, flagged for the GM (Item 14))
 - T50: R260 retired by R463 (Resources and Motivations may mix on a card, flagged for the GM (Item 14))
+- T51: R111 retired by R465 (a latecomer's empty tape is filled once from the GM's (Item 24))

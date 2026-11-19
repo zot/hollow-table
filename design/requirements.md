@@ -234,7 +234,7 @@
 - **R109:** A receipt is built from text, never from a sender's markup; a die outside 1–6 drops the roll.
 - **R110:** Receipts print on a paper tape from the register, newest first, about three visible and the rest scrolling.
 - **R282:** The tape hangs under the register, 250 px wide and at most 380 tall; a new receipt slides in; rolled up, it leaves a sliver.
-- **R111:** The tape is each page's own and never goes over the wire.
+- **~~R111:~~** (Retired T51 — see R465) The tape is each page's own and never goes over the wire.
 - **R112:** The tape lies under the pieces; a new roll or a press raises it, pressing anything else lowers it; the register's paper roll rolls it up and down.
 - **R113:** Dragging the tape tears off the whole roll as one table piece that scrolls inside; the next roll starts a fresh tape.
 - **R283:** A tear starts once the drag has gone a few pixels, and the torn roll lands slightly tilted; a torn roll's wheel scrolls it and zooms the table only at its ends; pressing a receipt's title to edit it doesn't tear.
@@ -296,6 +296,8 @@
 - **R439:** A Request roll that succeeds (at cost or not) against a GM character with a Success Level of Min or more carries a transfer on every receipt: the NPC, its name, and the Success Level (Min 1 to Exq 5).
 - **R440:** Transferring a Resource: the PC's Resource of that name (0 when they have none) rises to the Success Level by as many Levels as the NPC's Resource of that name can give, never below 0; a Resource the PC has none of is added under their card's Resources. The Levels the NPC couldn't give are extra. A transfer is offered only for a Resource the NPC has more of than the PC, while the PC has less than the Success Level.
 - **R441:** On the GM's tape a receipt with an untransferred transfer carries Transfer, which opens the NPC's Resources that can be transferred; picking one moves the Levels on both cards in one change on the GM's page, once, and every tape's receipt then reads "Transfer: <Resource>, <N> Levels from <NPC>", and "<N> extra Levels improve <NPC>'s Opinions" when there are extra Levels.
+- **R465:** The tape is each page's own and doesn't go over the wire, except that a page coming late is sent the table's view of what hangs on the GM's tape (R466).
+- **R466:** A page whose tape is empty asks the GM's page once, when it first hears from it; the GM's page answers it alone with the table's view of each roll on its own tape, from its kept rolls (private ones and ones no longer kept left out); the page takes it only from the GM's browser and adds those receipts below what it has, newest first.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

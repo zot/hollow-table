@@ -214,7 +214,7 @@ export type KeptRoll = {
 /** The most rolls the book keeps, oldest dropped first. */
 export const KEPT = 200;
 export const TOMBS = 3000;
-/** Each page's own, never sent (R111). */
+/** Each page's own; only a page come late is sent the table's view of the GM's (R465, R466). */
 export type Tape = { receipts: Receipt[] };
 
 export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape;

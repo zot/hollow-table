@@ -294,14 +294,43 @@ export class Rolls {
       link.on('crit', (body: { id: string; choice: 'max' | 'dbl'; lock: boolean }, from: Peer) => this.#crit(body, from));
       link.on('take', (body: TakeMsg, from: Peer) => this.#take(body, from));
       link.on('name', (body: NameMsg, from: Peer) => this.#name(body, from));
+      link.on('tape', (body: { receipts?: Receipt[] }, from: Peer) => { if (!body.receipts) this.#history(from.tab); });
     } else {
       link.on('roll', (body: RollMsg, from: Peer) => this.#heard(body, from));
       link.on('refuse', (body: { why: string; n?: number }, from: Peer) => {
         if (from.browser !== w.gmBrowser || body.n === undefined) return;
         this.#answered(body.n, body.why);
       });
-      for (const kind of ['hello', 'here'] as const) link.on(kind, (_: never, from: Peer) => { if (from.browser === w.gmBrowser) this.#gmPeer = from; });
+      for (const kind of ['hello', 'here'] as const) link.on(kind, (_: never, from: Peer) => {
+        if (from.browser !== w.gmBrowser) return;
+        this.#gmPeer = from;
+        // R466: a page come late, its tape empty, asks once for what hangs on the GM's tape.
+        if (this.#askedTape || this.#tape().length) return;
+        this.#askedTape = true;
+        link.send('tape', {}, from.tab);
+      });
+      link.on('tape', (body: { receipts?: Receipt[] }, from: Peer) => { if (from.browser === w.gmBrowser && body.receipts) this.#hung(body.receipts); });
     }
+  }
+
+  #askedTape = false;
+
+  /** This page's tape, newest first. */
+  #tape(): Receipt[] { return (this.#w.game.get('tape') as Tape | undefined)?.receipts ?? []; }
+
+  // R466: the table's view of each roll on the GM's own tape, newest first, from its
+  // kept rolls: a private roll, or one no longer kept, is left out.
+  #history(tab: string): void {
+    const kept = (this.#w.game.get('book') as Book | undefined)?.kept ?? [];
+    const receipts = this.#tape().flatMap(r => { const k = kept.find(x => x.full.id === r.id); return k && !k.priv ? [k.table] : []; });
+    this.#w.link!.send('tape', { receipts }, tab);
+  }
+
+  // R466: what hung on the GM's tape goes below what this page has (it's older), each receipt once.
+  #hung(receipts: Receipt[]): void {
+    const mine = this.#tape(), have = new Set(mine.map(r => r.id));
+    const older = receipts.filter(r => !have.has(r.id));
+    if (older.length) this.#w.game.change(w => w.put('tape', { receipts: [...mine, ...older] }));
   }
 
   idle(): Promise<void> { return this.#work; }
@@ -337,7 +366,7 @@ export class Rolls {
     return n + 1;
   }
 
-  /** Prints on this page's own tape (R111: it never goes over the wire), newest first; a receipt
+  /** Prints on this page's own tape (R465: it doesn't go over the wire, but to a page come late), newest first; a receipt
    * already there by id is replaced (a CRIT switched or locked). */
   #print(r: Receipt): void {
     const { game } = this.#w, tape = (game.get('tape') as Tape | undefined) ?? { receipts: [] };
