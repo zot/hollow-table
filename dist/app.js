@@ -11065,17 +11065,24 @@ var BlobStore = class {
   /** Stores a file and gives what an Image record needs. */
   async add(file) {
     const blob = await sha256(file), size = await this.#measure(file);
-    await this.#db.tx(["blobs"], "readwrite", (t) => t.put("blobs", blob, file));
+    await this.#keep(blob, file);
     return { blob, ...size };
   }
-  get(hash) {
-    return this.#db.tx(["blobs"], "readonly", (t) => t.get("blobs", hash));
+  // R449: the bytes are read before the transaction, which would commit at an outside await.
+  async #keep(hash, file) {
+    const kept = { type: file.type, bytes: await file.arrayBuffer() };
+    await this.#db.tx(["blobs"], "readwrite", (t) => t.put("blobs", hash, kept));
+  }
+  // R449: an image kept as bytes, or one stored whole before.
+  async get(hash) {
+    const v = await this.#db.tx(["blobs"], "readonly", (t) => t.get("blobs", hash));
+    return v === void 0 || v instanceof Blob ? v : new Blob([v.bytes], { type: v.type });
   }
   // R194: bytes from another page are kept only if they hash to the name asked for.
   /** Keeps bytes another page (or an import) sent, if they are what `hash` names. */
   async accept(hash, bytes) {
     if (await sha256(bytes) !== hash) return false;
-    await this.#db.tx(["blobs"], "readwrite", (t) => t.put("blobs", hash, bytes));
+    await this.#keep(hash, bytes);
     return true;
   }
   /** An object URL for showing the image; each url() is paired with a release(). */

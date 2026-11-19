@@ -143,6 +143,9 @@ them. Nothing to install, no local-network grant, no daemon.
 - Image bytes stay in each page's own store, named by their hash. A page missing an image asks the
   table by hash; the first answer that hashes right is kept, so that page can answer the next one.
   The GM's page has every image it has seen.
+- **An image is kept as its bytes and its type** (Bill, 11-19: "Queue the image fix"), not as a file:
+  Safari's engine won't keep a file in the browser's database in a private window, and bytes keep
+  everywhere. An image a browser kept as a file before still loads.
 - Meanwhile the image shows striped and marked missing, with why ("Nobody at the table has sent this
   image yet"), and the page asks again every 10 s.
 
