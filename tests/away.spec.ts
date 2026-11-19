@@ -1,4 +1,4 @@
-// CRC: crc-Claims.md | Test: test-Network.md | R166, R167, R168, R189, R443, R296, R297, R445, R446
+// CRC: crc-Claims.md | Test: test-Network.md | R166, R167, R168, R189, R443, R296, R297, R445, R446, R447
 // Names are held by browsers: a second browser coming as Dana is nobody until the GM hands the name
 // over. And a page that was away can't bring back what the table has since buried.
 import { expect, test, type Page } from '@playwright/test';
@@ -52,6 +52,20 @@ test('names held by browsers', async ({ browser }) => {
   await expect.poll(async () => (await recOf(gm, SAM)).pool.x, { timeout: 15_000 }).toBe(sam.pool.x + 150);
   await imp.context().close();
   await gm.locator('#bar .folks .tag', { hasText: 'Dana' }).first().waitFor();
+});
+
+test('a forged claim changes nothing', async ({ browser }) => {
+  // R447: a `claim` counts only from the GM's browser; the impostor's forged one changes nothing.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const imp = await join(browser, invite, 'Dana', gm);
+  await expect(imp.locator('#bar .folks .tag.you')).toHaveText('not yours');
+  const danaTab = await hook(dana, h => h.tab);
+  await imp.evaluate(async t => {
+    (await (window as any).hollow.ready).wire.send('claim', { name: 'Dana', why: 'Forged: Dana is not yours' }, t);
+  }, danaTab);
+  await dana.waitForTimeout(2000);
+  await expect(dana.locator('#bar .folks .tag.you')).toHaveText('Dana');
 });
 
 test('a page that was away cannot bring back what was buried', async ({ browser }) => {

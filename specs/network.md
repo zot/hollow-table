@@ -48,7 +48,9 @@ them. Nothing to install, no local-network grant, no daemon.
   everyone at a table sees who sits in Dana's chair. A page takes it only from the GM's browser.
   Only the GM's page can hand the name over.
 - **Handing a name over** (Bill, 11-13): the page now holding it loses its "not yours" tag and gets
-  its secrets; a page of that name on the browser that held it gets the tag.
+  its secrets; a page of that name on the browser that held it gets the tag. Whether a page is
+  "not yours" is the GM's page's word alone: a page takes it only from the GM's browser, so no other
+  page can make it read "not yours", or clear it.
 - A browser profile is a person. Clearing site data makes you someone new; the GM hands your name
   over.
 

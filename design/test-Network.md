@@ -42,8 +42,7 @@ while the first browser now reads "not yours", and the new holder's page bars th
 **Alarm:** 17
 **Fire alarm:** take `claims` from any page, not only the GM's browser; red: the impostor's empty claims take the bar off its tag on Dana's page
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
-
+**Pulled:** 2026-11-19 — re-pulled after R447 (main changed): rang, the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
 ## Test: a page that was away can't bring back what was buried
 **Purpose:** stale copies can't resurrect
 **Input:** Dana's page leaves the room; the GM buries the big sticky (which no one had changed since
@@ -235,3 +234,14 @@ by the drop
 **Fire alarm:** never publish the record's cards (no `on`); red: Dana's page shows no tab "Sam"
 **Inject:** src/rules/connections.ts:published
 **Pulled:** 2026-11-19 — rang (Chromium): Dana's Hank had no tab "Sam"; restored clean
+
+## Test: a forged claim changes nothing
+**Purpose:** R447: a player's page takes a `claim` only from the GM's browser
+**Input:** Dana and a second browser as Dana at the table; the second sends Dana's tab a `claim` saying she isn't Dana
+**Expected:** Dana's own tag still reads "Dana", not "not yours"
+**Refs:** crc-Folks.md, crc-Claims.md, seq-join.md
+**Code:** `tests/away.spec.ts`
+**Alarm:** 18
+**Fire alarm:** take a `claim` from any page (drop the GM's-browser check); red: Dana's tag reads "not yours"
+**Inject:** src/main.ts:main
+**Pulled:** 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean

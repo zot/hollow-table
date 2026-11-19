@@ -1,5 +1,5 @@
 # Folks
-**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445, R446
+**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445, R446, R447
 
 The people in the bar: a name tag each, the GM's invite, and the real GM's "You are".
 
@@ -11,7 +11,7 @@ The people in the bar: a name tag each, the GM's invite, and the real GM's "You 
 ## Does
 - tags(me, people, held): the GM first, then you, then the rest alphabetically; a stale tag is
   dimmed and unlit; this page offline is a red "offline" tag whose title says why; a player's page that
-  is nobody (the GM's last `claim` gave a why) is a red "not yours" tag saying why, until a `claim`
+  is nobody (the GM's last `claim`, taken only from the GM's browser (R447), gave a why) is a red "not yours" tag saying why, until a `claim`
   with none comes (R167, R296). Offline wins over not yours. (R445) On every page, someone holding a
   name another browser holds is `impostor`, drawn barred: a band from the tag's upper right corner to
   its lower left; only the GM's page also makes it red and clickable.

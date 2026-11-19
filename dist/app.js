@@ -13192,8 +13192,8 @@ async function main() {
       hands2?.leave(tab3);
     } });
     let notYours = null;
-    wire.on("claim", (b) => {
-      notYours = b.why;
+    wire.on("claim", (b, from) => {
+      if (from.browser === invited.gm) notYours = b.why;
     });
     let claims = {};
     wire.on("claims", (b, from) => {

@@ -456,9 +456,10 @@ async function main() {
     const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, shared: shared(game), place: cs => shown(hands, cs), timers: clock, schedule: frame });
     wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: 'player', name, gone: tab => { rolls.left(tab); hands?.leave(tab); } });
-    // R167, R296: the GM's page says when this page is nobody, and when it is handed the name.
+    // R167, R296, R447: the GM's page, and only the GM's browser, says when this page is nobody, and when
+    // it is handed the name.
     let notYours: string | null = null;
-    wire.on('claim', (b: { why: string | null }) => { notYours = b.why; });
+    wire.on('claim', (b: { why: string | null }, from) => { if (from.browser === invited.gm) notYours = b.why; });
     // R446: who holds each name, from the GM's browser only, to bar impostors' tags (R445).
     let claims: Record<string, string> = {};
     wire.on('claims', (b: { claims: Record<string, string> }, from) => { if (from.browser === invited.gm) claims = b.claims; });

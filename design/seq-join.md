@@ -23,4 +23,5 @@ Player page                 Wire (player)          Relays          Wire (GM)    
 
 - At step 1.6, a page whose proof fails never joins; every later message's sender is the proven browser.
 - At step 1.11, the player's page sends none of its own changes until step 1.12 has arrived.
+- At step 1.10.1, the player's page takes a `claim` only from the GM's browser (R447).
 - At steps 1.10.2 and 1.12.1, the player's page takes `claims` only from the GM's browser, and bars the tags of pages using a name another browser holds (R445, R446).
