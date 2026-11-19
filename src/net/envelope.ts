@@ -1,4 +1,4 @@
-// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R376, R429, R446, R466
+// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R376, R429, R446, R466, R469
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
@@ -8,7 +8,7 @@ import {
 } from '../model/records.ts';
 
 export const VERSION = 1;
-export const KINDS = ['hello', 'here', 'bye', 'recs', 'sync', 'edit', 'move', 'intent', 'roll', 'crit', 'take', 'name', 'refuse', 'claim', 'claims', 'tape'] as const;
+export const KINDS = ['hello', 'here', 'bye', 'recs', 'sync', 'edit', 'move', 'intent', 'roll', 'crit', 'take', 'name', 'refuse', 'claim', 'claims', 'tape', 'rename'] as const;
 export type Kind = (typeof KINDS)[number];
 /** Limits beyond the records' own (R109, R177). */
 export const LIMITS = { dice: 40, moveItems: 8, batch: 10_000, why: 500, box: 4_000_000 };
@@ -63,6 +63,8 @@ const BODIES: Record<Kind, Shape> = {
   claims: fields({ claims: dict(str(CAPS.id)) }),
   // R466: a page come late asks (no receipts), and the GM's page answers with the table's view of its tape.
   tape: fields({}, { receipts: list(receipt, KEPT) }),
+  // R469: a player's new name, and the GM's page's answer (why null: taken).
+  rename: fields({ to: name }, { why: whyOrNull }),
 };
 
 // What a sealed box holds is checked the same way once it is opened.

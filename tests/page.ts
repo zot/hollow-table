@@ -41,7 +41,8 @@ export async function person(browser: Browser, name = 'Player', publicRelays = f
   await context.addInitScript(([relay, n]) => {
     if (relay) localStorage.setItem('hollow.relay', relay);
     localStorage.setItem('hollow.loopback', '1');
-    localStorage.setItem('hollow.name', n);
+    // Only the first time: a page that renamed itself keeps its name across a reload (R469).
+    if (!localStorage.getItem('hollow.name')) localStorage.setItem('hollow.name', n);
   }, [publicRelays ? '' : RELAY, name] as const);
   const page = await context.newPage();
   page.on('dialog', d => void d.accept());

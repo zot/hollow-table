@@ -102,3 +102,22 @@ test('a page that was away cannot bring back what was buried', async ({ browser 
   expect(await recOf(dana, BEAUFORD)).toBeTruthy();
   await expect.poll(() => hook(dana, h => h.copy.pending().length), { timeout: 20_000 }).toBe(0);
 });
+
+test('a player renames, and everything they hold follows', async ({ browser }) => {
+  // R467–R469: Dana's tag asks; "GM" is refused, said on the tag; "Dee" is taken, and her page reloads as Dee.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  await give(gm, SAM, 'Dana');
+  const answer = (to: string) => { dana.removeAllListeners('dialog'); dana.once('dialog', d => void d.accept(to)); };
+  const mine = dana.locator('#bar .folks .tag.you');
+  answer('GM');
+  await mine.click();
+  await expect(mine).toHaveClass(/\bwarn\b/, { timeout: 15_000 });
+  await expect(mine).toHaveAttribute('title', /keeps for itself/);
+  await expect(mine).toHaveText('Dana');
+  answer('Dee');
+  await mine.click();
+  await expect(dana.locator('#bar .folks .tag.you')).toHaveText('Dee', { timeout: 20_000 });
+  await expect.poll(async () => (await recOf(gm, SAM)).owner, { timeout: 15_000 }).toBe('Dee');
+  expect(await hook(gm, h => h.store.game.get('book').claims.Dee)).toBe(await hook(dana, h => h.identity.id));
+});

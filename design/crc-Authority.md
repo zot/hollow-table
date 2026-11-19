@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464
+**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464, R469
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change. (R460) It enforces who may see and touch what; a judgment call the book leaves to
@@ -22,6 +22,8 @@ the GM isn't refused here (it is to be flagged, prototype Item 14).
   puts, dels?}}}`; `by` names whose number `s` is, the GM's tab when absent.
 
 ## Does
+- rename (R469): a tab's `rename` `{to}`: the name it holds (none: refused), Claims.renameWhy, then
+  Claims.renamed; the tab is answered `{to, why}`, its name moved; the claims go out as they change.
 - join(tab, name, browser, sealKey): a tab said who it is (Presence's `here`); Claims decides its
   name, and a tab that is nobody is told why.
 - handedOver(name) (R296): after the GM hands a name over (Claims.handOver), re-checks every record

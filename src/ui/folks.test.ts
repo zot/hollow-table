@@ -64,3 +64,10 @@ test('every page bars someone holding another browser\'s name', () => {
   assert.deepEqual(barred({ name: 'Ann', gm: false }, [at('Sam', 'player', 'b-real')]), [false, false], 'never the holder, in any tab');
   assert.equal(tags({ name: 'Ann', gm: false, live: true }, [at('Sam', 'player', 'b-other')], () => undefined)[1]!.impostor, undefined, 'not before the claims arrive');
 });
+
+test('a refused rename is said on your own tag', () => {
+  // R469: offline says more, then "not yours", then a refusal.
+  const [me] = tags({ name: 'Dana', gm: false, live: true, said: 'Ann is already at this table.' }, []);
+  assert.deepEqual([me!.name, me!.warn], ['Dana', 'said']);
+  assert.equal(tags({ name: 'Dana', gm: false, live: true, notYours: 'x', said: 'y' }, [])[0]!.warn, 'notyours');
+});

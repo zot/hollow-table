@@ -30,7 +30,7 @@ holds, has no secret word, and she hears boxes sealed to others
 **Alarm:** 1
 **Fire alarm:** Send the GM's own view as the public part of a batch: Eve hears the secrets
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-19 — re-pulled after R448 (the batch changed): rang, the spec failed with the GM's view as the public part (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R446 (Authority changed): rang, the secrets reached Eve (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (Authority changed): rang, the secrets reached Eve (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, 17 secrets leaked to Dana's page (Chromium) *Earlier —* 2026-11-13 — rang: Eve heard 17 secret words in the clear (Chromium)
+**Pulled:** 2026-11-19 — re-pulled after R469 (Authority gained rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (the batch changed): rang, the spec failed with the GM's view as the public part (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R446 (Authority changed): rang, the secrets reached Eve (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (Authority changed): rang, the secrets reached Eve (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, 17 secrets leaked to Dana's page (Chromium) *Earlier —* 2026-11-13 — rang: Eve heard 17 secret words in the clear (Chromium)
 ## Test: names held by browsers
 **Purpose:** an impostor is nobody until the GM hands the name over; every page bars its tag (R445, R446)
 **Expected:** a second browser coming as Dana reads "not yours", sees Sam's sheet blank, and its move
@@ -42,7 +42,7 @@ while the first browser now reads "not yours", and the new holder's page bars th
 **Alarm:** 17
 **Fire alarm:** take `claims` from any page, not only the GM's browser; red: the impostor's empty claims take the bar off its tag on Dana's page
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-19 — re-pulled after R447 (main changed): rang, the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
+**Pulled:** 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R447 (main changed): rang, the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
 ## Test: a page that was away can't bring back what was buried
 **Purpose:** stale copies can't resurrect
 **Input:** Dana's page leaves the room; the GM buries the big sticky (which no one had changed since
@@ -243,8 +243,7 @@ by the drop
 **Alarm:** 18
 **Fire alarm:** take a `claim` from any page (drop the GM's-browser check); red: Dana's tag reads "not yours"
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean
-
+**Pulled:** 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean
 ## Test: a player's Ledger lists the tables joined, and deletes the others
 **Purpose:** R457, R458: a player's Ledger lists this browser's copies of joined tables; the one being played can't be armed, another goes with two shift-clicks
 **Input:** Dana joins; her browser also keeps a copy `room-old`; her Ledger opened; `room-old` shift-clicked twice
@@ -277,3 +276,14 @@ by the drop
 **Fire alarm:** send a catch-up's characters without their reveals (strip `shown` before redacting); red: Dana's front never holds Money
 **Inject:** src/net/authority.ts:Authority
 **Pulled:** 2026-11-19 — rang (Chromium): with a catch-up's reveals stripped, Dana's front never held Money; restored clean
+
+## Test: a player renames, and everything they hold follows
+**Purpose:** R467–R469 over the wire: Dana's own tag renames her; "GM" is refused, said on the tag; "Dee" is taken, her page reloads as Dee, and the GM's page has Sam owned by Dee and Dee claimed by her browser
+**Input:** the GM's table; Dana, given Sam; her tag clicked, answered GM; clicked again, answered Dee
+**Expected:** the tag red, titled why, still Dana; then her tag Dee; Sam's owner Dee on the GM's page; the claim Dee is her browser's
+**Refs:** crc-Folks.md, crc-Authority.md, crc-Claims.md
+**Code:** `tests/away.spec.ts`
+**Alarm:** 22
+**Fire alarm:** reload without saving the new name (drop `local('hollow.name', to)`); red: the page comes back as Dana
+**Inject:** src/main.ts:main
+**Pulled:** 2026-11-19 — rang (Chromium): the page came back as Dana; restored clean

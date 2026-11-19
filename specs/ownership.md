@@ -100,6 +100,16 @@ The die by the character's name shows GM, open, or the player.
   a player. A player's page has none and is fixed to that player.
 - The plain page is the GM's. An invite link makes a player, named once per browser.
 
-## Not yet
+## Renaming
 
-- Player renames: owners are names, so a rename orphans ownership.
+- **A player renames by clicking their own name in the bar** (Bill, 11-19: "maybe click on the name in
+  the top bar to edit and disallow duplicate names"). It asks for the new name, as arriving does.
+- **Everything they hold follows it** ("Everything they hold"): the characters they own, the chips they
+  put in pools, their claim to the name, and their seat. Receipts already printed keep the old name.
+- **A name in use is refused** ("Any name in use, any case"): one another browser holds, any character's
+  owner, "GM" or "open", compared without case, and a blank one or one over 32 characters. The tag
+  says why and the name stays.
+- **The GM's page decides it**, holding the claims: with it away, the tag says so ("No, it says why").
+- **Taken, the page reloads as the new name** ("It reloads as the new name").
+- Owners are names, so a rename rewrites them; every tab of a browser is the same player (per-tab
+  players are prototype Item 49).

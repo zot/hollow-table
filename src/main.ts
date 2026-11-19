@@ -479,6 +479,25 @@ async function main() {
     // R446: who holds each name, from the GM's browser only, to bar impostors' tags (R445).
     let claims: Record<string, string> = {};
     wire.on('claims', (b: { claims: Record<string, string> }, from) => { if (from.browser === invited.gm) claims = b.claims; });
+    // R469: a rename goes to the GM's page; taken, the seat follows and the page reloads as the new name;
+    // refused, or the GM's page away, the tag says why for a few seconds.
+    let said: string | null = null, saidUntil = 0;
+    const say = (why: string) => { said = why; saidUntil = clock.now() + 4000; };
+    wire.on('rename', (b: { to: string; why?: string | null }, from) => {
+      if (from.browser !== invited.gm || b.why === undefined) return;
+      if (b.why) { say(b.why); return; }
+      const to = b.to.trim(), id = store.current!.id;
+      saveSeat(localStorage, id, to, loadSeat(localStorage, id, name));
+      local('hollow.name', to);
+      location.reload();
+    });
+    const rename = () => {
+      const answer = prompt('Your name at the table', name);
+      if (answer === null || answer.trim() === name) return;
+      const gmTab = here(presence).find(p => p.role === 'gm' && !p.stale)?.tab;
+      if (!gmTab) { say("The GM's page must be at the table to rename"); return; }
+      void wire.send('rename', { to: answer.trim() }, gmTab);
+    };
     const rolls = new Rolls({ game, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game);
@@ -489,7 +508,8 @@ async function main() {
     const v = views(game, store.current!.id, { name, gm: false }, blobs, moves, tab, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls);
     const { table, drag, bar } = v;
     hands = v.hands;
-    new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }) }), people: () => here(presence), held: n => claims[n] });
+    new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }),
+      ...(said !== null && clock.now() < saidUntil && { said }) }), people: () => here(presence), held: n => claims[n], rename });
     return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
 

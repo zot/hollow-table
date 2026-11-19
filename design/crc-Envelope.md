@@ -1,5 +1,5 @@
 # Envelope
-**Requirements:** R109, R177, R296, R299, R314, R326, R345, R376, R361, R429, R446, R466
+**Requirements:** R109, R177, R296, R299, R314, R326, R345, R376, R361, R429, R446, R466, R469
 
 Every message's shape, checked field by field before anyone reads it. A message that fails any check
 is dropped whole.
@@ -7,12 +7,12 @@ is dropped whole.
 ## Knows
 - Kinds: `hello`, `here`, `bye`, `recs` (a batch from the GM's page), `sync` (ask for the whole
   table), `edit` (a player's change), `move`, `intent` (a roll request), `roll` (a roll's result),
-  `crit` (a CRIT choice), `refuse`, `claim`, `claims` (who holds each name, from the GM's page, R446), `tape` (a page come late asking, and the GM's page answering with receipts, R466).
+  `crit` (a CRIT choice), `refuse`, `claim`, `claims` (who holds each name, from the GM's page, R446), `tape` (a page come late asking, and the GM's page answering with receipts, R466), `rename` (a player's new name, and the GM's page's answer, R469).
 - Each kind's body shape, built from the same combinators as `Records.check`. They are provisional
   where the module that owns the kind hasn't landed: `recs` `{g, full, puts: [{rid, s, rec, by?}],
   dels: [{rid, s, by?}], sealed: {tab: box of {g, puts, dels?}}}`, `edit` `{box}`, `move` `{s, items: [{rid, x, y, z,
   part?, aim?}], drop?}` (aim: `slot {owner, name}`, `drawer {owner, at}`, `kill`, `merge`, `card`,
-  `reach {owner, at, from}`, `chip`, each optional, R299), `intent`, `roll` `{n, receipt, sealed: {tab: box of {re, receipt}}}`, `crit`, `refuse`, `claim` `{name, why}` (why null when the page now holds the name, R296), `claims` `{claims: {name: browser}}`, `tape` `{receipts?: [receipt]}` (at most 200), `here` `{name, role}`.
+  `reach {owner, at, from}`, `chip`, each optional, R299), `intent`, `roll` `{n, receipt, sealed: {tab: box of {re, receipt}}}`, `crit`, `refuse`, `claim` `{name, why}` (why null when the page now holds the name, R296), `claims` `{claims: {name: browser}}`, `tape` `{receipts?: [receipt]}` (at most 200), `rename` `{to, why?}`, `here` `{name, role}`.
 - Limits: string caps, at most 40 dice per roll, 8 items per move.
 - A big batch goes whole: Trystero splits an action's payload into chunks and reassembles it, up to
   Wire's `maxReceiveBytes` (checked 2026-11-12 in Trystero 0.26.0's action wire), so there are no

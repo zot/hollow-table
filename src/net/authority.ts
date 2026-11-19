@@ -8,7 +8,7 @@ import { same, type Game } from '../model/game.ts';
 import { TOMBS, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
 import { mayChange } from '../rules/ownership.ts';
 import { redact, type Characters, type Viewer } from '../rules/visibility.ts';
-import { why, whoIs } from './claims.ts';
+import { renameWhy, renamed, why, whoIs } from './claims.ts';
 import { editBody } from './envelope.ts';
 import type { Link, Peer } from './link.ts';
 import type { Box, Sealer } from './seal.ts';
@@ -189,6 +189,7 @@ export class Authority {
     w.link.on('sync', (_: never, from: Peer) => { this.#catchUp(from.tab); });
     w.link.on('edit', (body: { box: Box }, from: Peer) => this.#edit(body.box, from));
     w.link.on('bye', (_: never, from: Peer) => { this.#tabs.delete(from.tab); });
+    w.link.on('rename', (body: { to: string; why?: string | null }, from: Peer) => { if (body.why === undefined) this.#rename(from.tab, body.to); });
   }
 
   /** Everything sent or being sent has gone (for tests and orderly shutdown). */
@@ -212,6 +213,19 @@ export class Authority {
   // R193: secrets follow ownership; a character changing hands re-checks everything.
   /** Re-sends to each tab whatever it now sees differently (after a hand-over, say). */
   recheck(): void { this.#queue(new Set(this.#w.game.all().map(([rid]) => rid))); }
+
+  // R469: a player's rename: the name their tab holds (a nobody has none), checked, and if free, everything
+  // they hold follows it in one change; the tab is answered either way, and the claims go out as they change.
+  #rename(tab: string, to: string): void {
+    const t = this.#tabs.get(tab), { game, link } = this.#w;
+    if (!t) return;
+    const who = this.#viewer(t)?.name, refused = who ? renameWhy(game, who, to) : 'Only a name your browser holds can be renamed.';
+    if (!refused) {
+      game.change(renamed(game, who!, to));
+      t.name = to.trim();
+    }
+    link.send('rename', { to, why: refused }, tab);
+  }
 
   // R168, R296: after the GM hands a name over, the new holder gets its secrets, and every page of
   // that name hears whether it holds it: `why` for the one that doesn't, null for the holder.

@@ -388,6 +388,9 @@
 - **R402:** The cards under an NPC's card are drawn as tabbed manila folders, each tab a folder's tab; Info cards are white.
 - **R403:** An Info card with all its text deleted is put away once the GM leaves it, buried on Boot Hill in the current graveyard as "<name>: Info card", holding its NPC, its place among the NPC's cards and its words before it was emptied; a card that never had words is simply gone.
 - **R404:** Undo (Ctrl+Z or ⌘Z) on the GM's page, with no text being written, digs up the newest Info card buried in the current graveyard whose NPC is on the table, back at its place among the NPC's cards and slid out; it undoes nothing else.
+- **R467:** A rename is refused, saying why, for a blank name, one over 32 characters, "GM" or "open", or a name another browser holds or any other character's owner, all compared without case; the renamer's own name in another case is theirs.
+- **R468:** A rename taken moves the claim to the new name and rewrites, in one change, the owner of each character the renamer owned and the `by` of each chip they put; printed receipts keep the old name.
+- **R469:** Clicking their own name in the bar, a player asks for a new name, which goes to the GM's page as `rename`; the GM's page answers that page (taken, or refused and why); taken, the page saves the name, moves its seat and reloads as it; refused, or with the GM's page away, the page's own tag says why.
 
 ## Feature: the network
 **Source:** specs/network.md

@@ -1,5 +1,5 @@
 # Claims
-**Requirements:** R166, R167, R168, R169
+**Requirements:** R166, R167, R168, R169, R467, R468
 
 On the GM's page: which browser holds which name. A page claiming a name another browser holds is
 nobody until the GM hands the name over.
@@ -9,6 +9,9 @@ nobody until the GM hands the name over.
   the claims to every page as `claims`, R446, since who sits in a seat is no secret).
 
 ## Does
+- renameWhy(game, from, to) (R467): why `to` can't be `from`'s new name, or null: blank, over 32
+  characters, GM, open, another browser's claim or another character's owner, compared without case.
+  renamed(game, from, to) (R468): the change that moves the claim and rewrites owners and chips' `by`.
 - whoIs(game, name, browser): the name if this browser holds it or the name is free (claiming it in
   the book); nobody (null) otherwise. "GM" can't be claimed.
 - handOver(game, name, browser): the GM gives the name to another browser; secrets follow the new

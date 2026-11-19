@@ -1,5 +1,5 @@
 # Folks
-**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445, R446, R447
+**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445, R446, R447, R469
 
 The people in the bar: a name tag each, the GM's invite, and the real GM's "You are".
 
@@ -9,6 +9,8 @@ The people in the bar: a name tag each, the GM's invite, and the real GM's "You 
   Claims, on a player's page from the GM's last `claims` (R446).
 
 ## Does
+- (R469) on a player's page their own tag renames: a click asks for the name; a refusal or the GM's
+  page away is said on the tag (`said`, red, its title why) for a few seconds.
 - tags(me, people, held): the GM first, then you, then the rest alphabetically; a stale tag is
   dimmed and unlit; this page offline is a red "offline" tag whose title says why; a player's page that
   is nobody (the GM's last `claim`, taken only from the GM's browser (R447), gave a why) is a red "not yours" tag saying why, until a `claim`

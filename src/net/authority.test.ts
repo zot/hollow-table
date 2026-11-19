@@ -6,7 +6,7 @@ import { TOMBS, ridOf, type Book, type Character, type Opinion, type PieceRecord
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
 import { burialOf, bury } from '../rules/yards.ts';
-import { handOver, whoIs } from './claims.ts';
+import { handOver, renameWhy, renamed, whoIs } from './claims.ts';
 import { FakeRoom } from './fakeroom.ts';
 import { Sealer } from './seal.ts';
 import { Stamps } from './stamps.ts';
@@ -397,4 +397,40 @@ test('a player never rules on a flag', () => {
   assert.deepEqual(judge(game, edit(card()), 'Dana', 'dana').refused, [ridOf('0000f1a9')], 'the flag dropped');
   assert.deepEqual(judge(game, edit(card({ why: flagged.why, fed: {} })), 'Dana', 'dana').refused, [ridOf('0000f1a9')], 'the flag shrunk');
   assert.deepEqual(judge(game, edit(card(flagged, 6)), 'Dana', 'dana').refused, [], 'kept, and the card changed');
+});
+
+test('a player renames: the name is free, and everything they hold follows', () => {
+  // R467: refused for a name in use, any case; R468: taken, the claim, owners and chips' `by` follow.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  whoIs(game, 'Dana', 'b-dana');
+  whoIs(game, 'Ann', 'b-ann');
+  game.change(w => w.put(ridOf('000000c1'), { kind: 'chip', oid: '000000c1', where: { slot: DEVREUX, name: 'stagger' }, n: 0, sign: -1, points: 2, rider: false, by: 'Dana' } as Chip));
+  for (const to of ['ann', 'GM', 'gm', 'OPEN', '  ', 'x'.repeat(33)]) assert.ok(renameWhy(game, 'Dana', to), `"${to}" refused`);
+  assert.equal(renameWhy(game, 'Dana', 'dana'), null, 'her own name in another case is hers');
+  assert.equal(renameWhy(game, 'Dana', 'Dee'), null);
+  game.change(renamed(game, 'Dana', 'Dee'));
+  const book = game.get('book') as Book;
+  assert.deepEqual([book.claims.Dee, book.claims.Dana], ['b-dana', undefined], 'the claim moved');
+  assert.equal((game.get(ridOf(SAM)) as Character).owner, 'Dee', 'her character');
+  assert.equal((game.get(ridOf('000000c1')) as Chip).by, 'Dee', 'her chip');
+  assert.equal((game.get(ridOf(BEAUFORD)) as Character).owner, 'Ann', "Ann's untouched");
+});
+
+test("a rename goes through the GM's page, and its answer comes back", async () => {
+  // R469: Dana's page asks; refused, she's told why; taken, she's told so, and the claims go out.
+  const { room, game, got } = await table();
+  await room.settle();
+  const answers: { to: string; why: string | null }[] = [];
+  got.get('dana')!.link.on('rename', (b: { to: string; why: string | null }) => { answers.push(b); });
+  got.get('dana')!.link.send('rename', { to: 'Ann' }, 'gm');
+  await room.settle();
+  got.get('dana')!.link.send('rename', { to: 'Dee' }, 'gm');
+  await room.settle();
+  assert.equal(answers.length, 2);
+  assert.match(answers[0]!.why!, /Ann/);
+  assert.deepEqual(answers[1], { to: 'Dee', why: null });
+  assert.equal((game.get('book') as Book).claims.Dee, 'b-dana');
+  const claims = room.log.filter(m => m.kind === 'claims').at(-1)!.body as { claims: Record<string, string> };
+  assert.equal(claims.claims.Dee, 'b-dana', 'the new claims went out');
 });

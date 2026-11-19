@@ -26,7 +26,7 @@ never holds a secret word
 **Alarm:** 2
 **Fire alarm:** Seal each tab's view of every changed piece, whether it differs or not: Ann's box holds Sam
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, the GM's Sam went into a box; restored clean *Earlier —* 2026-11-19 — re-pulled after R446 (Authority changed): rang, the GM's Sam went into a box; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (Authority changed): rang, the GM's Sam went into a box (nobody's box should hold it); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, every tab's box held every changed piece, Ann's held Sam *Earlier —* 2026-11-12 — rang: the GM's Sam was sealed to Dana (`authority.test.ts:73`), to Ann as well
+**Pulled:** 2026-11-19 — re-pulled after R469 (Authority gained rename): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, the GM's Sam went into a box; restored clean *Earlier —* 2026-11-19 — re-pulled after R446 (Authority changed): rang, the GM's Sam went into a box; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (Authority changed): rang, the GM's Sam went into a box (nobody's box should hold it); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, every tab's box held every changed piece, Ann's held Sam *Earlier —* 2026-11-12 — rang: the GM's Sam was sealed to Dana (`authority.test.ts:73`), to Ann as well
 ## Test: claims
 **Purpose:** the first browser to claim a name holds it, until the GM hands it over
 **Input:** "Dana" from browser A twice, then from browser B; "GM" from A; Dana handed to B
@@ -164,7 +164,7 @@ is tombed
 **Alarm:** 14
 **Fire alarm:** send the claims on every change to the book, not only when they change; red: a claims message after the sticky's batch
 **Inject:** src/net/authority.ts:Authority
-**Pulled:** 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, a claims message went after the sticky's batch; restored clean *Earlier —* 2026-11-19 — rang: a claims message went after the sticky's batch (3, not 2); restored clean
+**Pulled:** 2026-11-19 — re-pulled after R469 (Authority gained rename): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, a claims message went after the sticky's batch; restored clean *Earlier —* 2026-11-19 — rang: a claims message went after the sticky's batch (3, not 2); restored clean
 ## Test: a copy older than what the book has forgotten is refused whole
 **Purpose:** R448: when the caps drop entries, the book keeps the newest version dropped, and a change from a copy older than it is refused whole
 **Input:** the sticky deleted and tombed at version 1, with 2,999 later tombstones and the table at 3,000; the GM deletes the reference card; Dana puts the sticky back from a copy at 0, then from one at the current version
@@ -185,3 +185,25 @@ is tombed
 **Fire alarm:** let a player change a flag (drop the `ruled` check); red: the dropped flag is taken
 **Inject:** src/net/authority.ts:judge
 **Pulled:** 2026-11-19 — rang: Dana's change dropping the flag was taken; restored clean
+
+## Test: a player renames: the name is free, and everything they hold follows
+**Purpose:** R467, R468: a name in use is refused, compared without case, the renamer's own excepted; taken, the claim, owners and chips' `by` follow
+**Input:** Dana and Ann claimed; Dana's chip on Devreux's Stagger; renames of Dana to ann, GM, gm, OPEN, blank, 33 characters, dana, Dee; then Dee taken
+**Expected:** all but dana and Dee refused; the claim moved to Dee; Sam's owner and the chip's `by` Dee; Beauford still Ann's
+**Refs:** crc-Claims.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 17
+**Fire alarm:** compare names with their case (no folding); red: "ann" is taken from Dana
+**Inject:** src/net/claims.ts:renameWhy
+**Pulled:** 2026-11-19 — rang: "ann" was taken from Dana; restored clean
+
+## Test: a rename goes through the GM's page, and its answer comes back
+**Purpose:** R469: a tab's `rename` is answered: refused with why, or taken, the change made and the claims sent
+**Input:** Dana's tab asks for Ann, then for Dee
+**Expected:** two answers: the first's why names Ann; the second `{to: Dee, why: null}`; the book's claim Dee is Dana's browser; the last claims sent hold Dee
+**Refs:** crc-Authority.md, crc-Claims.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 18
+**Fire alarm:** answer a free name without making the change (skip `renamed`); red: the book has no claim Dee
+**Inject:** src/net/authority.ts:Authority
+**Pulled:** 2026-11-19 — rang: the book had no claim Dee; restored clean

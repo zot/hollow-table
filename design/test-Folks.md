@@ -10,7 +10,7 @@
 **Alarm:** 1
 **Fire alarm:** Put you before the GM on a player's page: Mo's tags read Mo, Boss
 **Inject:** src/ui/folks.ts:tags
-**Pulled:** 2026-11-19 — re-pulled after R445 (tags changed): rang, Mo's tags read Mo, Boss; restored clean *Earlier —* 2026-11-13 — rang: Mo's tags read Mo before Boss
+**Pulled:** 2026-11-19 — re-pulled after R469 (tags gained said): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R445 (tags changed): rang, Mo's tags read Mo, Boss; restored clean *Earlier —* 2026-11-13 — rang: Mo's tags read Mo before Boss
 ## Test: quiet and offline
 **Purpose:** R293: a page unheard lately is dimmed and unlit; R163: this page offline is a red
 "offline" tag with why; the GM's page with no table is plain
@@ -29,7 +29,7 @@
 **Alarm:** 2
 **Fire alarm:** Make impostors red on every page, not just the GM's: Ann's page makes Sam red
 **Inject:** src/ui/folks.ts:tags
-**Pulled:** 2026-11-19 — re-aimed after R445 (the bar is on every page now, the red still the GM's): rang, Ann's page made the other Sam red; restored clean *Earlier —* 2026-11-13 — rang: Ann's page marked Sam an impostor
+**Pulled:** 2026-11-19 — re-pulled after R469 (tags gained said): rang; restored clean *Earlier —* 2026-11-19 — re-aimed after R445 (the bar is on every page now, the red still the GM's): rang, Ann's page made the other Sam red; restored clean *Earlier —* 2026-11-13 — rang: Ann's page marked Sam an impostor
 ## Test: names
 **Purpose:** R293: the GM's blank name is "GM", cancel keeps it, 32 characters at most; R294: an
 arrival is asked again for "GM" or blank, cancel is "Player"
@@ -59,7 +59,7 @@ arrival is asked again for "GM" or blank, cancel is "Player"
 **Alarm:** 4
 **Fire alarm:** Ignore the GM's why: Ann's page told why warns nothing
 **Inject:** src/ui/folks.ts:tags
-**Pulled:** 2026-11-19 — re-pulled after R445 (tags changed): rang, Ann's page told why warned nothing; restored clean *Earlier —* 2026-11-13 — rang: Ann's page told why warned nothing
+**Pulled:** 2026-11-19 — re-pulled after R469 (tags gained said): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R445 (tags changed): rang, Ann's page told why warned nothing; restored clean *Earlier —* 2026-11-13 — rang: Ann's page told why warned nothing
 ## Test: every page bars someone holding another browser's name
 **Purpose:** R445: the tag of someone using a name another browser holds is barred on every page, the holder's never
 **Input:** Sam held by `b-real`; Sam from `b-other` on Ann's page, the GM's, and the real Sam's; Sam from `b-real` on Ann's page; Sam from `b-other` on Ann's page before any claims arrived
@@ -69,4 +69,14 @@ arrival is asked again for "GM" or blank, cancel is "Player"
 **Alarm:** 5
 **Fire alarm:** bar impostors on the GM's page only (as before R445); red: Ann's page doesn't bar the other Sam
 **Inject:** src/ui/folks.ts:tags
-**Pulled:** 2026-11-19 — rang: Ann's page didn't bar the other Sam; restored clean
+**Pulled:** 2026-11-19 — re-pulled after R469 (tags gained said): rang; restored clean *Earlier —* 2026-11-19 — rang: Ann's page didn't bar the other Sam; restored clean
+## Test: a refused rename is said on your own tag
+**Purpose:** R469: a refusal is said on the page's own tag, after offline and "not yours"
+**Input:** Dana's own tag with a `said`; with `notYours` and `said`
+**Expected:** her name, warned `said`; then `notyours`
+**Refs:** crc-Folks.md
+**Code:** `src/ui/folks.test.ts`
+**Alarm:** 6
+**Fire alarm:** ignore `said`; red: the tag warns nothing
+**Inject:** src/ui/folks.ts:tags
+**Pulled:** 2026-11-19 — rang: the tag warned nothing; restored clean

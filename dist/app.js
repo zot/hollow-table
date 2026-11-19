@@ -2857,10 +2857,40 @@ function handOver(game, name2, browser) {
 function why(name2) {
   return `${name2} is played from another browser, so the GM's page shows you only what anyone sees and doesn't take your changes. The GM can hand ${name2} to you by clicking your name in their strip.`;
 }
+var fold = (s) => s.trim().toLowerCase();
+function renameWhy(game, from, to) {
+  const t = to.trim();
+  if (!t) return "A name can't be blank.";
+  if (t.length > 32) return "A name is at most 32 characters.";
+  if (fold(t) === fold(GM) || fold(t) === fold(OPEN)) return `\u201C${t}\u201D is a word the table keeps for itself.`;
+  for (const n of Object.keys(book(game).claims)) if (n !== from && fold(n) === fold(t)) return `${n} is already at this table.`;
+  for (const [, r] of game.all()) {
+    if ("kind" in r && r.kind === "character" && r.owner !== from && fold(r.owner) === fold(t)) return `${r.owner} already owns ${r.name}.`;
+  }
+  return null;
+}
+function renamed(game, from, to) {
+  const t = to.trim(), b = book(game), claims = { ...b.claims }, held = claims[from];
+  delete claims[from];
+  if (held !== void 0) claims[t] = held;
+  const follow = (r) => !("kind" in r) ? r : r.kind === "character" && r.owner === from ? { ...r, owner: t } : r.kind === "chip" && r.by === from ? { ...r, by: t } : r;
+  return (w) => {
+    w.put("book", { ...b, claims });
+    for (const [rid2, r] of game.all()) {
+      if (rid2 === "yards") {
+        const y = r;
+        w.put(rid2, { ...y, yards: y.yards.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i, records: i.records.map((x) => follow(x)) })) })) });
+      } else {
+        const f = follow(r);
+        if (f !== r) w.put(rid2, f);
+      }
+    }
+  };
+}
 
 // src/net/envelope.ts
 var VERSION = 1;
-var KINDS = ["hello", "here", "bye", "recs", "sync", "edit", "move", "intent", "roll", "crit", "take", "name", "refuse", "claim", "claims", "tape"];
+var KINDS = ["hello", "here", "bye", "recs", "sync", "edit", "move", "intent", "roll", "crit", "take", "name", "refuse", "claim", "claims", "tape", "rename"];
 var LIMITS = { dice: 40, moveItems: 8, batch: 1e4, why: 500, box: 4e6 };
 var tab = str(CAPS.id);
 var name = str(CAPS.name);
@@ -2921,7 +2951,9 @@ var BODIES = {
   // R446: who holds each name, from the GM's page: name → browser id.
   claims: fields({ claims: dict(str(CAPS.id)) }),
   // R466: a page come late asks (no receipts), and the GM's page answers with the table's view of its tape.
-  tape: fields({}, { receipts: list(receipt, KEPT) })
+  tape: fields({}, { receipts: list(receipt, KEPT) }),
+  // R469: a player's new name, and the GM's page's answer (why null: taken).
+  rename: fields({ to: name }, { why: whyOrNull })
 };
 var sealedRoll = (v) => fields({ re: seq, receipt })(v) && fewDice(v.receipt);
 var sealedRecs = fields({ g: seq, puts: list(put, LIMITS.batch) }, { dels: list(del, LIMITS.batch) });
@@ -3081,6 +3113,9 @@ var Authority = class {
     w.link.on("bye", (_, from) => {
       this.#tabs.delete(from.tab);
     });
+    w.link.on("rename", (body, from) => {
+      if (body.why === void 0) this.#rename(from.tab, body.to);
+    });
   }
   /** Everything sent or being sent has gone (for tests and orderly shutdown). */
   idle() {
@@ -3103,6 +3138,18 @@ var Authority = class {
   /** Re-sends to each tab whatever it now sees differently (after a hand-over, say). */
   recheck() {
     this.#queue(new Set(this.#w.game.all().map(([rid2]) => rid2)));
+  }
+  // R469: a player's rename: the name their tab holds (a nobody has none), checked, and if free, everything
+  // they hold follows it in one change; the tab is answered either way, and the claims go out as they change.
+  #rename(tab2, to) {
+    const t = this.#tabs.get(tab2), { game, link } = this.#w;
+    if (!t) return;
+    const who = this.#viewer(t)?.name, refused = who ? renameWhy(game, who, to) : "Only a name your browser holds can be renamed.";
+    if (!refused) {
+      game.change(renamed(game, who, to));
+      t.name = to.trim();
+    }
+    link.send("rename", { to, why: refused }, tab2);
   }
   // R168, R296: after the GM hands a name over, the new holder gets its secrets, and every page of
   // that name hears whether it holds it: `why` for the one that doesn't, null for the holder.
@@ -11050,7 +11097,7 @@ function isPageUndo(ev) {
 
 // src/ui/folks.ts
 function tags(me, people, held = () => void 0) {
-  const warn = me.why !== void 0 ? "offline" : me.notYours !== void 0 ? "notyours" : void 0;
+  const warn = me.why !== void 0 ? "offline" : me.notYours !== void 0 ? "notyours" : me.said !== void 0 ? "said" : void 0;
   const mine = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...warn && { warn } };
   const others = people.map((p) => {
     const holder = held(p.name), impostor = p.role === "player" && holder !== void 0 && holder !== p.browser;
@@ -11104,7 +11151,10 @@ var FolksView = class {
       e.textContent = t.warn === "offline" ? "offline" : t.warn === "notyours" ? "not yours" : t.name;
       if (t.warn === "offline") e.title = me.why ?? "Offline";
       else if (t.warn === "notyours") e.title = me.notYours;
-      else if (t.warn === "impostor") {
+      else if (t.warn === "said") {
+        e.title = me.said;
+        if (this.#w.rename) e.addEventListener("click", () => this.#w.rename?.());
+      } else if (t.warn === "impostor") {
         e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees. Click to hand ${t.name} to them.`;
         e.addEventListener("click", () => {
           if (confirm(`${t.name} is held by another computer. Hand ${t.name} to this one?
@@ -11113,8 +11163,8 @@ The other one will see ${t.name}'s things as a stranger does.`)) this.#w.handOve
         });
       } else if (t.impostor) e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees.`;
       else if (t.you) {
-        e.title = me.gm ? "You, the GM. Click to change the name players see." : "You";
-        if (me.gm) e.addEventListener("click", () => this.#w.rename?.());
+        e.title = me.gm ? "You, the GM. Click to change the name players see." : this.#w.rename ? "You. Click to change your name." : "You";
+        if (this.#w.rename) e.addEventListener("click", () => this.#w.rename?.());
       } else e.title = (t.gm ? "The GM" : "A player") + (t.stale ? ", not heard from lately" : "");
       return e;
     }));
@@ -13514,6 +13564,32 @@ async function main() {
     wire.on("claims", (b, from) => {
       if (from.browser === invited.gm) claims = b.claims;
     });
+    let said = null, saidUntil = 0;
+    const say = (why3) => {
+      said = why3;
+      saidUntil = clock.now() + 4e3;
+    };
+    wire.on("rename", (b, from) => {
+      if (from.browser !== invited.gm || b.why === void 0) return;
+      if (b.why) {
+        say(b.why);
+        return;
+      }
+      const to = b.to.trim(), id = store.current.id;
+      save(localStorage, id, to, load(localStorage, id, name2));
+      local("hollow.name", to);
+      location.reload();
+    });
+    const rename3 = () => {
+      const answer = prompt("Your name at the table", name2);
+      if (answer === null || answer.trim() === name2) return;
+      const gmTab = here(presence).find((p) => p.role === "gm" && !p.stale)?.tab;
+      if (!gmTab) {
+        say("The GM's page must be at the table to rename");
+        return;
+      }
+      void wire.send("rename", { to: answer.trim() }, gmTab);
+    };
     const rolls2 = new Rolls({ game: game2, sealer, clock, rng, link: wire, session: sessionStorage, gm: false, gmBrowser: invited.gm });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game2);
@@ -13524,7 +13600,11 @@ async function main() {
     const v = views(game2, store.current.id, { name: name2, gm: false }, blobs, moves2, tab2, (hash) => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls2);
     const { table: table2, drag: drag2, bar: bar2 } = v;
     hands2 = v.hands;
-    new FolksView(bar2.folks, bar2.youAre, { me: () => ({ ...meOf(presence, name2, false), ...notYours !== null && { notYours } }), people: () => here(presence), held: (n) => claims[n] });
+    new FolksView(bar2.folks, bar2.youAre, { me: () => ({
+      ...meOf(presence, name2, false),
+      ...notYours !== null && { notYours },
+      ...said !== null && clock.now() < saidUntil && { said }
+    }), people: () => here(presence), held: (n) => claims[n], rename: rename3 });
     return { version: "dev", date: "", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
   await store.start();

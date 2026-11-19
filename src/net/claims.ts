@@ -1,11 +1,11 @@
-// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169
+// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169, R467, R468
 // On the GM's page: which browser holds which name. The first browser to claim a name holds it; a
 // page claiming a name another browser holds is nobody until the GM hands the name over. The claims
 // live in the book, saved with the game; the book is never sent, but who holds each name goes to every
 // page as `claims` (Authority, R446).
 
-import { GM, type Book } from '../model/records.ts';
-import type { Game } from '../model/game.ts';
+import { GM, OPEN, type Book, type Rec, type Yards } from '../model/records.ts';
+import type { Game, Writer } from '../model/game.ts';
 
 const book = (game: Game) => game.get('book') as Book;
 
@@ -30,4 +30,44 @@ export function handOver(game: Game, name: string, browser: string): void {
 // R168: why a page is nobody, for its "not yours" chip.
 export function why(name: string): string {
   return `${name} is played from another browser, so the GM's page shows you only what anyone sees and doesn't take your changes. The GM can hand ${name} to you by clicking your name in their strip.`;
+}
+
+const fold = (s: string) => s.trim().toLowerCase();
+
+// R467: a name in use is refused, compared without case; the renamer's own name in another case is theirs.
+/** Why `to` can't be `from`'s new name, or null when it can. */
+export function renameWhy(game: Game, from: string, to: string): string | null {
+  const t = to.trim();
+  if (!t) return "A name can't be blank.";
+  if (t.length > 32) return 'A name is at most 32 characters.';
+  if (fold(t) === fold(GM) || fold(t) === fold(OPEN)) return `“${t}” is a word the table keeps for itself.`;
+  for (const n of Object.keys(book(game).claims)) if (n !== from && fold(n) === fold(t)) return `${n} is already at this table.`;
+  for (const [, r] of game.all()) {
+    if ('kind' in r && r.kind === 'character' && r.owner !== from && fold(r.owner) === fold(t)) return `${r.owner} already owns ${r.name}.`;
+  }
+  return null;
+}
+
+// R468: everything a player holds follows their new name: the claim, the characters they own and the
+// chips they put, buried ones in Boot Hill too; printed receipts keep the old name.
+/** The change that renames `from` to `to`. */
+export function renamed(game: Game, from: string, to: string): (w: Writer) => void {
+  const t = to.trim(), b = book(game), claims = { ...b.claims }, held = claims[from];
+  delete claims[from];
+  if (held !== undefined) claims[t] = held;
+  const follow = (r: Rec): Rec => !('kind' in r) ? r
+    : r.kind === 'character' && r.owner === from ? { ...r, owner: t }
+    : r.kind === 'chip' && r.by === from ? { ...r, by: t } : r;
+  return w => {
+    w.put('book', { ...b, claims });
+    for (const [rid, r] of game.all()) {
+      if (rid === 'yards') {
+        const y = r as Yards;
+        w.put(rid, { ...y, yards: y.yards.map(g => ({ ...g, items: g.items.map(i => ({ ...i, records: i.records.map(x => follow(x) as typeof x) })) })) });
+      } else {
+        const f = follow(r);
+        if (f !== r) w.put(rid, f);
+      }
+    }
+  };
 }
