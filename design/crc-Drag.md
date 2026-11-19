@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260, R273, R19, R119, R122, R288, R409
+**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R260, R273, R19, R119, R122, R288, R409, R451
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -17,7 +17,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - carry (R298, R299, R300): the one way anything is carried: paper, a card, a pool, a chip or an
   Influence card. Each kind gives only where the piece goes for the pointer, its aim, whether the
   bar would bury it, and what its drop changes. The carry leaves any writing and clears the text
-  selection (R223), lifts the piece (TableView.lift) and Moves.hold; each frame (Gesture.paced) it
+  selection (R223; and again on each frame and at the release whenever the browser has put the focus
+  back in writing, R451, as WebKit's selection does), lifts the piece (TableView.lift) and Moves.hold; each frame (Gesture.paced) it
   works out the place and aim, has Hands.show draw them on this page, sends the same items
   (Moves.drag), and lights the bar (this page's alone). At the release: Hands.drop, Moves.drop with
   no aim, the drop's change (one Game.change, inside still), Moves.release. A drop that changes

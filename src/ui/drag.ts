@@ -91,7 +91,10 @@ export class Drag {
     doc.body.classList.add('dragging');
     if (c.pointing) doc.body.classList.add('tapping');
     // R215: a move sets where it's headed; the next frame puts it there.
+    // R451: the browser may take up writing again as its text selection follows the pointer (WebKit does).
+    const keepOut = () => { if ((doc.activeElement as HTMLElement | null)?.isContentEditable) leaveWriting(doc); };
     const pace = paced<{ cx: number; cy: number }>(this.#w.schedule, ({ cx, cy }) => {
+      keepOut();
       last = c.frame(cx, cy);
       const it = item(last);
       hands.show(hand, [it], true);
@@ -103,6 +106,7 @@ export class Drag {
     pace.flush();
     this.#follow(doc, down, to, e => {
       pace.cancel();
+      keepOut();
       last = c.frame(e.clientX, e.clientY);
       const away = this.#overBar(doc, e.clientY);
       this.#lightBar(doc, null, false);

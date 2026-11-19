@@ -96,6 +96,36 @@ function writable(doc: Document, cls: string, source: string, save: (s: string) 
     t.dataset.source = s;
     save(s);
   });
+  // CRC: crc-PieceView.md | R450: select-all takes the whole place; WebKit's selects nothing once it holds
+  // non-editable dice or glyphs.
+  t.addEventListener('keydown', ev => {
+    if (ev.key.toLowerCase() !== 'a' || !(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey) return;
+    ev.preventDefault();
+    const all = doc.createRange(), sel = doc.getSelection();
+    all.selectNodeContents(t);
+    sel?.removeAllRanges();
+    sel?.addRange(all);
+  });
+  // R450: an edit over the whole place replaces it here, since WebKit won't delete across the
+  // non-editable pieces and puts the typing after them.
+  t.addEventListener('beforeinput', ev => {
+    const sel = doc.getSelection(), r = sel?.rangeCount ? sel.getRangeAt(0) : null;
+    if (!r || r.startContainer !== t || r.startOffset !== 0 || r.endContainer !== t || r.endOffset !== t.childNodes.length) return;
+    const typed = ev.inputType === 'insertText' ? ev.data ?? ''
+      : ev.inputType === 'insertFromPaste' ? ev.dataTransfer?.getData('text/plain') ?? ''
+      : ev.inputType === 'insertParagraph' || ev.inputType === 'insertLineBreak' ? '\n'
+      : ev.inputType.startsWith('delete') ? '' : null;
+    if (typed === null) return;
+    ev.preventDefault();
+    const lines = typed.split(/\r?\n/).map(l => { const d = doc.createElement('div'); if (l) d.textContent = l; else d.append(doc.createElement('br')); return d; });
+    t.replaceChildren(...lines);
+    const end = doc.createRange(), last = lines.at(-1)!;
+    end.selectNodeContents(last);
+    end.collapse(false);
+    sel!.removeAllRanges();
+    sel!.addRange(end);
+    t.dispatchEvent(new Event('input'));
+  });
   return t;
 }
 

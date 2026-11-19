@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -10,6 +10,8 @@ DOM a view of the records.
 - views: rid → its PieceView or PoolView element.
 
 ## Does
+- (R451) cancels `dragstart` on its root, so the browser's own drag never starts from a piece (WebKit's
+  would swallow the pointer moves a carry needs); files dropped from outside still arrive.
 - R419, R421, R438: a change to an Opinion Record or the Connection Table, or a piece going, redraws
   the cards, whose folders show them, on every page: a player's shows the records revealed to it.
 - render(changed): on Game changes, makes, updates or removes the view of each changed rid; nothing

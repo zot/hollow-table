@@ -162,3 +162,18 @@ test('a chip is carried where it was taken, and loose chips lie where they are',
   });
   expect(placed[0]).toBe(placed[1]);
 });
+
+test("a sticky carries from its text, again and again", async ({ page }) => {
+  // R451: in WebKit the browser's own drag started from the text, or its selection put the text back to
+  // writing after a carry, so the next press on the text wrote instead of carrying.
+  const sticky = page.locator(`[data-rid="${STICKY}"] .text`).first();
+  for (let k = 0; k < 3; k++) {
+    const b = await box(page, `[data-rid="${STICKY}"]`), t = (await sticky.boundingBox())!;
+    const x = t.x + t.width * 0.3, y = t.y + t.height * 0.5;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 60, y + 30, { steps: 6 });
+    await page.mouse.up();
+    await expect.poll(async () => Math.round((await box(page, `[data-rid="${STICKY}"]`)).x - b.x)).toBe(-60);
+  }
+});

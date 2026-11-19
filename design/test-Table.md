@@ -34,7 +34,7 @@ carried with the mouse, as a person does; measurements wait for the web fonts.
 **Alarm:** 2
 **Fire alarm:** Give a loose chip only its drag: clicks leave it at 2
 **Inject:** src/ui/table.ts:TableView
-**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the loose 2 stayed 2 when clicked (Chromium) *Earlier —* 2026-11-13 — rang: the loose 2 stayed 2 when clicked (Chromium)
+**Pulled:** 2026-11-19 — re-pulled after R451 (TableView changed): rang, the loose chip's clicks did nothing (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the loose 2 stayed 2 when clicked (Chromium) *Earlier —* 2026-11-13 — rang: the loose 2 stayed 2 when clicked (Chromium)
 ## Test: Influence in the browser
 **Purpose:** drawers, Roll Up and piles, the kill box, taps merging, secrecy
 **Expected:**
@@ -89,7 +89,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 3
 **Fire alarm:** Redraw a held piece like any other: the sticky jumps from the hand when its record changes
 **Inject:** src/ui/table.ts:TableView
-**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the held sticky jumped from 995,132 when its record changed (Chromium) *Earlier —* 2026-11-13 — rang: the held sticky jumped from 995,132 when its record changed (Chromium)
+**Pulled:** 2026-11-19 — re-pulled after R451 (TableView changed): rang, a held piece was redrawn under the hand (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the held sticky jumped from 995,132 when its record changed (Chromium) *Earlier —* 2026-11-13 — rang: the held sticky jumped from 995,132 when its record changed (Chromium)
 ## Test: a chip in hand
 **Purpose:** R216 for a chip from a slot
 **Expected:** centred on the pointer within a pixel
@@ -373,3 +373,25 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/tape.ts:TapeView
 **Pulled:** 2026-11-19 — rang (Chromium): no Transfer button; restored clean
 
+
+## Test: select-all takes the whole of an Opinion Record's text
+**Purpose:** R450: Ctrl+A or ⌘A in a written place selects all of it, non-editable dice and glyphs included, and typing replaces it
+**Input:** the GM makes Devreux's Opinion of Sam; clicks its text, presses select-all, types `Grudge`
+**Expected:** the record's text is `Grudge`. Chromium and Firefox pass without the fix; WebKit only with it
+**Refs:** crc-PieceView.md
+**Code:** `tests/table.spec.ts`
+**Alarm:** 29
+**Fire alarm:** leave select-all to the browser (our keydown handler returns at once); red, in WebKit only: the typing lands after the old text
+**Inject:** src/ui/piece.ts:writable
+**Pulled:** 2026-11-19 — rang in WebKit on gpubox (the standing suite's Chromium and Firefox never had the bug): the typing landed after the old text, "…+MajGrudge"; restored clean
+
+## Test: a sticky carries from its text, again and again
+**Purpose:** R451: a press and move on a piece's text carries it, every time; the browser neither drags the text itself nor leaves the text being written after a carry
+**Input:** three carries of the big sticky, each pressed on its text and moved 60 px left
+**Expected:** each carry moves the sticky 60 px. Chromium and Firefox pass without the fix; WebKit only with it
+**Refs:** crc-Drag.md, crc-TableView.md
+**Code:** `tests/drag.spec.ts`
+**Alarm:** 30
+**Fire alarm:** stop leaving writing during a carry (`keepOut` does nothing); red, in WebKit only: a carry moves the sticky 2 px, not 60
+**Inject:** src/ui/drag.ts:#carry
+**Pulled:** 2026-11-19 — rang in WebKit on gpubox (the standing suite's Chromium and Firefox never had the bug): a carry moved the sticky 2 px, not 60; restored clean

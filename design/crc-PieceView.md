@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -8,6 +8,8 @@ stickies, loose text, images, torn rolls and reference cards.
 - The record it shows, and the viewer (for redacted faces drawn face-down).
 
 ## Does
+- writable (R450): every written place takes Ctrl+A or ⌘A itself, selecting all of its contents, since
+  WebKit's select-all selects nothing in one that holds non-editable dice or glyphs.
 - frontOrder(front): the Damage columns in drawing order, rotated so `front` (the one brought
   forward, or none) is first, the rest following in turn (R253).
 - draw(record, old): makes or updates a piece's element; text written in place is left alone while

@@ -528,3 +528,16 @@ test('the GM transfers a Resource', async ({ page }) => {
   await expect(page.locator('#tape .strip .receipt').first()).toContainText('Transfer: Money, 2 Levels from Devreux');
   await expect(page.locator('#tape .strip .receipt').first().locator('button.transfer')).toHaveCount(0);
 });
+
+test("select-all takes the whole of an Opinion Record's text", async ({ page }) => {
+  // R450: WebKit's own select-all stops at the Reaction die and the glyphs, and puts the typing after them.
+  const card = page.locator('.obj.card[data-rid="o:00000003"]'), pool = page.locator('.obj.pool[data-rid="o:00000003"]');
+  await pool.locator('.makemenu').click();
+  await pool.locator('.poolmenu .opinionof', { hasText: 'Sam' }).click();
+  const text = card.locator('.infopaper.opinion .text');
+  await expect(text).toHaveText('Reaction ?Professional Respect (Composure, Suasion, Tact) +Maj');
+  await text.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Grudge');
+  await expect(text).toHaveText('Grudge');
+});

@@ -335,6 +335,8 @@ export class TableView {
   // R272: image files dropped from the desktop, each where it was dropped, a step of 24 apart.
   #images(): void {
     this.#root.addEventListener('dragover', e => { if (e.dataTransfer?.types.includes('Files')) e.preventDefault(); });
+    // R451: the browser's own drag never starts from the table; WebKit's would take the pointer moves a carry needs.
+    this.#root.addEventListener('dragstart', e => e.preventDefault());
     this.#root.addEventListener('drop', e => {
       const files = [...(e.dataTransfer?.files ?? [])].filter(f => f.type.startsWith('image/'));
       if (!files.length) return;

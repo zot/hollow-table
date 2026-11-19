@@ -68,6 +68,13 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
   ride, the card a sticky would pin to, the drawer a card would go home to. Over the bar it says
   whether letting go puts it away or buries it.
 - Picking something up leaves any writing and clears the text selection.
+- **Select-all takes the whole of what you're writing** (Bill, 11-19: "Both, as one item"): Ctrl+A,
+  or ⌘A, while writing selects all of that written place, its dice and glyphs too, in every browser.
+  Safari's own select-all stops at them and selects nothing.
+- **A press on a piece's text carries it like any other press** (Bill, 11-19): the browser never starts
+  a drag of its own from the table, and can't put you back to writing while you carry, so a press and
+  move on a sticky's writing carries the sticky, in Safari too, where the browser had dragged the text
+  instead, or left you writing in it after a carry.
 - Mats pass clicks through their empty space (beside the name) to the table.
 - Labels, slot rows, drawer tools, the roll row, the register and the bar don't select as text.
 

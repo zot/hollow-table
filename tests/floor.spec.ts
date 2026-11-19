@@ -79,8 +79,14 @@ test("the bar's text doesn't select", async ({ page }) => {
   // R17: the bar, the register and the pools' labels are not text to select (the build stamp is).
   const selectable = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#bar *, .pool .label, .pool .hd, .register *')]
     .filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent!.trim()))
-    // (Firefox reports "auto" under a parent that says "none", and still won't select it.)
-    .filter(e => { if (e.closest('.stamp')) return false; for (let a: HTMLElement | null = e; a; a = a.parentElement) if (getComputedStyle(a).userSelect === 'none') return false; return true; })
+    // (Firefox reports "auto" under a parent that says "none", and still won't select it. WebKit has
+    // only the prefixed `webkitUserSelect`.)
+    .filter(e => {
+      if (e.closest('.stamp')) return false;
+      const none = (a: HTMLElement) => { const st = getComputedStyle(a) as CSSStyleDeclaration & { webkitUserSelect?: string }; return (st.userSelect || st.webkitUserSelect) === 'none'; };
+      for (let a: HTMLElement | null = e; a; a = a.parentElement) if (none(a)) return false;
+      return true;
+    })
     .map(e => e.className || e.tagName));
   expect(selectable).toEqual([]);
 });

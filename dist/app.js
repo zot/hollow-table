@@ -2016,6 +2016,34 @@ function writable(doc, cls, source2, save2) {
     t.dataset.source = s;
     save2(s);
   });
+  t.addEventListener("keydown", (ev) => {
+    if (ev.key.toLowerCase() !== "a" || !(ev.ctrlKey || ev.metaKey) || ev.altKey || ev.shiftKey) return;
+    ev.preventDefault();
+    const all2 = doc.createRange(), sel = doc.getSelection();
+    all2.selectNodeContents(t);
+    sel?.removeAllRanges();
+    sel?.addRange(all2);
+  });
+  t.addEventListener("beforeinput", (ev) => {
+    const sel = doc.getSelection(), r = sel?.rangeCount ? sel.getRangeAt(0) : null;
+    if (!r || r.startContainer !== t || r.startOffset !== 0 || r.endContainer !== t || r.endOffset !== t.childNodes.length) return;
+    const typed3 = ev.inputType === "insertText" ? ev.data ?? "" : ev.inputType === "insertFromPaste" ? ev.dataTransfer?.getData("text/plain") ?? "" : ev.inputType === "insertParagraph" || ev.inputType === "insertLineBreak" ? "\n" : ev.inputType.startsWith("delete") ? "" : null;
+    if (typed3 === null) return;
+    ev.preventDefault();
+    const lines = typed3.split(/\r?\n/).map((l) => {
+      const d = doc.createElement("div");
+      if (l) d.textContent = l;
+      else d.append(doc.createElement("br"));
+      return d;
+    });
+    t.replaceChildren(...lines);
+    const end = doc.createRange(), last = lines.at(-1);
+    end.selectNodeContents(last);
+    end.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(end);
+    t.dispatchEvent(new Event("input"));
+  });
   return t;
 }
 var RULE_PX = 26;
@@ -11855,7 +11883,11 @@ var Drag = class {
     moves?.hold(c.rid);
     doc.body.classList.add("dragging");
     if (c.pointing) doc.body.classList.add("tapping");
+    const keepOut = () => {
+      if (doc.activeElement?.isContentEditable) leaveWriting(doc);
+    };
     const pace = paced(this.#w.schedule, ({ cx, cy }) => {
+      keepOut();
       last = c.frame(cx, cy);
       const it = item2(last);
       hands.show(hand, [it], true);
@@ -11867,6 +11899,7 @@ var Drag = class {
     pace.flush();
     this.#follow(doc, down, to, (e) => {
       pace.cancel();
+      keepOut();
       last = c.frame(e.clientX, e.clientY);
       const away = this.#overBar(doc, e.clientY);
       this.#lightBar(doc, null, false);
@@ -12456,6 +12489,7 @@ var TableView = class {
     this.#root.addEventListener("dragover", (e) => {
       if (e.dataTransfer?.types.includes("Files")) e.preventDefault();
     });
+    this.#root.addEventListener("dragstart", (e) => e.preventDefault());
     this.#root.addEventListener("drop", (e) => {
       const files = [...e.dataTransfer?.files ?? []].filter((f) => f.type.startsWith("image/"));
       if (!files.length) return;
