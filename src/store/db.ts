@@ -15,6 +15,8 @@ export interface Tx {
   put(store: StoreName, key: Key, value: unknown): Promise<void>;
   del(store: StoreName, key: Key): Promise<void>;
   all<T>(store: StoreName, prefix?: string): Promise<[Key, T][]>;
+  /** The keys alone, without reading the values (an image's bytes, a checkpoint's copy). */
+  keys(store: StoreName, prefix?: string): Promise<Key[]>;
 }
 
 export interface Db {
@@ -51,6 +53,7 @@ export class MemoryDb implements Db {
         del: async (s, k) => { writable(); store(s).delete(encode(k)); written.dels.push(`${s}:${encode(k)}`); },
         all: async <V>(s: StoreName, prefix?: string) =>
           [...store(s).values()].filter(([k]) => inPrefix(k, prefix)) as [Key, V][],
+        keys: async (s: StoreName, prefix?: string) => [...store(s).values()].map(([k]) => k).filter(k => inPrefix(k, prefix)),
       };
       const result = await fn(t);
       for (const [s, m] of work) this.#data.set(s, m);
@@ -96,6 +99,7 @@ export class IdbDb implements Db {
         const [keys, values] = await Promise.all([done(store.getAllKeys(r)), done(store.getAll(r))]);
         return keys.map((k, i): [Key, V] => [k as Key, values[i] as V]);
       },
+      keys: async (s: StoreName, prefix?: string) => await done(x.objectStore(s).getAllKeys(range(prefix))) as Key[],
     };
     return (async () => {
       let result: T;

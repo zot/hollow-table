@@ -91,3 +91,14 @@ then working again
 **Fire alarm:** ask after every save (keep never forgotten); red: asked twice
 **Inject:** src/store/gamestore.ts:GameStore.save
 **Pulled:** 2026-11-19 — rang: asked twice; restored clean
+
+## Test: deleting games, copies and checkpoints, and the images still used
+**Purpose:** R457, R458, R459: forget a game or a copy with all it holds, never the open one; forget a checkpoint; list the copies; know every image still used, buried ones included
+**Input:** the open game with an image in a checkpoint and then deleted; another game with an image; a copy; forget the open game; forget the other game, the checkpoint, then the copy; an image buried in Boot Hill's yards
+**Expected:** images a (the checkpoint) and b (the other game); the copy listed as joined; forgetting the open game rejects; the other game gone with its records; then only a; after the checkpoint, none; the buried image counts; the copy gone
+**Refs:** crc-GameStore.md
+**Code:** `src/store/gamestore.test.ts`
+**Alarm:** 8
+**Fire alarm:** count only top-level records as using an image (no deep look); red: the image in the checkpoint isn't counted
+**Inject:** src/store/gamestore.ts:GameStore.images
+**Pulled:** 2026-11-19 — rang: the image in the checkpoint wasn't counted (a in a checkpoint, b in another game); restored clean

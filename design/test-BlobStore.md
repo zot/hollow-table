@@ -23,3 +23,14 @@ accept keeps the right one and refuses the wrong; the URL is revoked only at the
 **Fire alarm:** store the file whole, as before R449; red: the add throws WebKit's error
 **Inject:** src/store/blobs.ts:#keep
 **Pulled:** 2026-11-19 — rang: the add threw WebKit's error (Error preparing Blob/File data to be stored in object store); restored clean
+
+## Test: images nothing uses are freed
+**Purpose:** R459: free deletes every image not in use and says how many
+**Input:** two images added; free with only the first in use
+**Expected:** one freed; the first still there; the second gone
+**Refs:** crc-BlobStore.md
+**Code:** `src/store/blobs.test.ts`
+**Alarm:** 3
+**Fire alarm:** free everything (ignore `inUse`); red: two freed, and the used one gone
+**Inject:** src/store/blobs.ts:BlobStore.free
+**Pulled:** 2026-11-19 — rang: two freed, not one; restored clean

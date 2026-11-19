@@ -223,6 +223,50 @@ export class GameStore {
     return this.#savedAt === null ? 'Saved' : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
   }
 
+  // R458: the copies this browser keeps of tables it joined as a player.
+  /** The copies of joined tables, newest opened first. */
+  async joined(): Promise<GameInfo[]> {
+    const all = await this.#db.tx(['games'], 'readonly', t => t.all<GameInfo>('games'));
+    return all.map(([, g]) => g).filter(g => g.copyOf).sort((a, b) => b.opened - a.opened);
+  }
+
+  // R457: a game or a copy goes with its records and checkpoints; never the one on the table.
+  /** Deletes a game or a copy forever. */
+  async forget(id: string): Promise<void> {
+    if (id === this.current?.id) throw new Error("the game on the table can't be deleted");
+    await this.#db.tx(['games', 'records', 'checkpoints'], 'readwrite', async t => {
+      for (const k of await t.keys('records', id)) await t.del('records', k);
+      for (const k of await t.keys('checkpoints', id)) await t.del('checkpoints', k);
+      await t.del('games', id);
+    });
+  }
+
+  /** Deletes one of the open game's checkpoints forever (R457). */
+  async forgetCheckpoint(id: string): Promise<void> {
+    const cur = this.#open();
+    await this.#db.tx(['checkpoints'], 'readwrite', t => t.del('checkpoints', [cur.id, id]));
+  }
+
+  // R459: every image still used, buried ones in Boot Hill's yards included, so nothing is freed that
+  // could be dug up or restored.
+  /** The hash of every image any game, copy or checkpoint in this browser uses, and the table as it stands. */
+  async images(): Promise<string[]> {
+    const used = new Set<string>();
+    const look = (v: unknown): void => {
+      if (Array.isArray(v)) { for (const x of v) look(x); return; }
+      if (!v || typeof v !== 'object') return;
+      const o = v as { kind?: unknown; blob?: unknown };
+      if (o.kind === 'image' && typeof o.blob === 'string') used.add(o.blob);
+      for (const x of Object.values(o)) look(x);
+    };
+    await this.#db.tx(['records', 'checkpoints'], 'readonly', async t => {
+      for (const [, r] of await t.all('records')) look(r);
+      for (const [, c] of await t.all('checkpoints')) look(c);
+    });
+    for (const [, r] of this.game.all()) look(r);
+    return [...used];
+  }
+
   /** R455: whether the browser keeps this storage: null until it has been asked. */
   kept(): boolean | null { return this.#kept; }
 

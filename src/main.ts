@@ -424,12 +424,17 @@ const keptNote = (k: boolean | null) => k === null ? '' : k ? ' · Storage kept'
 
 function ledgerOf(store: GameStore, blobs: BlobStore, player: boolean): LedgerWith {
   const onto = async (id: string) => { await store.open(id); location.reload(); };
+  // R459: after a deletion, images nothing uses go.
+  const free = async () => { await blobs.free(new Set(await store.images())); };
   return {
     player, now: () => clock.now(), round: () => (store.game.get('meta') as Meta).round,
     // R455: and whether the browser keeps this storage, once it has been asked.
     current: () => store.current!, status: () => store.status() + keptNote(store.kept()), rename: name => store.rename(name),
     checkpoints: () => store.checkpoints(), games: () => store.list(),
     checkpoint: name => store.checkpoint(name, false), restore: id => store.restore(id), open: onto,
+    forget: async id => { await store.forget(id); await free(); },
+    forgetCheckpoint: async id => { await store.forgetCheckpoint(id); await free(); },
+    joined: () => store.joined(),
     newGame: async name => onto((await store.add(name)).id),
     exported: () => exportGame(store, blobs, store.current!.id),
     imported: async text => onto((await importGame(store, blobs, text)).id),
@@ -537,7 +542,8 @@ async function main() {
   // R153: the real GM views as someone else from the seat's viewAs; the page reloads to change it.
   const gmSeat = loadSeat(localStorage, store.current!.id, GM), viewer: Viewer = gmSeat.viewAs ? { name: gmSeat.viewAs, gm: false } : { name: GM, gm: true };
   const { table: view, drag, bar, hands } = views(game, store.current!.id, viewer, blobs, moves, tab, hash => table?.images.missing.get(hash), ledgerOf(store, blobs, false), () => rolls,
-    name => store.checkpoint(name, true));
+    // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
+    name => store.checkpoint(name, true).finally(() => void store.images().then(i => blobs.free(new Set(i))).catch(() => undefined)));
   new FolksView(bar.folks, bar.youAre, {
     me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
     people: () => table ? here(table.presence) : [],

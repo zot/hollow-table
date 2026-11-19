@@ -10696,8 +10696,52 @@ var BarView = class {
   }
 };
 
-// src/ui/boothill.ts
+// src/ui/doom.ts
 var DOOM_MS = 3e3;
+var Doom = class {
+  #armed = null;
+  /** What's armed now, if anything. */
+  get armed() {
+    return this.#armed?.el ?? null;
+  }
+  /** Forgets what's armed without putting it back (it's about to be drawn again). */
+  drop() {
+    if (!this.#armed) return;
+    clearTimeout(this.#armed.t);
+    this.#armed = null;
+  }
+  /** Arms `el`, saying `says` on it; if it's armed already, puts it back and calls `destroy`. */
+  arm(el4, says, destroy) {
+    if (this.#armed) {
+      const same4 = this.#armed.el === el4;
+      this.#armed.undo();
+      this.drop();
+      if (same4) {
+        destroy();
+        return;
+      }
+    }
+    const input = el4 instanceof HTMLInputElement, was = input ? el4.value : [...el4.childNodes];
+    el4.classList.add("doom");
+    if (input) {
+      el4.value = says;
+      el4.readOnly = true;
+    } else el4.textContent = says;
+    const undo = () => {
+      el4.classList.remove("doom");
+      if (input) {
+        el4.value = was;
+        el4.readOnly = false;
+      } else el4.replaceChildren(...was);
+    };
+    this.#armed = { el: el4, undo, t: setTimeout(() => {
+      undo();
+      this.#armed = null;
+    }, DOOM_MS) };
+  }
+};
+
+// src/ui/boothill.ts
 var BootHillView = class {
   #w;
   #stone;
@@ -10706,7 +10750,7 @@ var BootHillView = class {
   #name;
   #prev;
   #items;
-  #doomed = null;
+  #dooms = new Doom();
   constructor(bar, root, w) {
     this.#w = w;
     const doc = bar.ownerDocument;
@@ -10760,7 +10804,7 @@ var BootHillView = class {
     this.#name.addEventListener("change", () => browse((y, cur) => rename(y, cur, this.#name.value)));
     gesture(this.#name, { shift: (e) => {
       e.preventDefault?.();
-      if (this.#yards().yards[this.#cur()]?.items.length) this.#doom(this.#name, "Delete everything here? Shift-click again", () => browse(forgetAll));
+      if (this.#yards().yards[this.#cur()]?.items.length) this.#dooms.arm(this.#name, "Delete everything here? Shift-click again", () => browse(forgetAll));
     } });
     doc.addEventListener("pointerdown", (e) => {
       if (!this.#w.open() || e.target.closest?.("#graves, #boothill")) return;
@@ -10786,11 +10830,8 @@ var BootHillView = class {
     this.#stone.classList.toggle("empty", !total3);
     this.#panel.hidden = !this.#w.open();
     this.#prev.disabled = cur === 0;
-    if (doc.activeElement !== this.#name && this.#doomed?.el !== this.#name) this.#name.value = g.name;
-    if (this.#doomed && this.#doomed.el !== this.#name) {
-      clearTimeout(this.#doomed.t);
-      this.#doomed = null;
-    }
+    if (doc.activeElement !== this.#name && this.#dooms.armed !== this.#name) this.#name.value = g.name;
+    if (this.#dooms.armed && this.#dooms.armed !== this.#name) this.#dooms.drop();
     if (!g.items.length) {
       const p = doc.createElement("p");
       p.textContent = "Nothing is buried here.";
@@ -10804,7 +10845,7 @@ var BootHillView = class {
       if (burial.gm && !burial.info) b.title = "A card the GM put away";
       gesture(b, {
         drag: (_down, move) => this.#digUp(item2, move),
-        shift: () => this.#doom(b, "Delete forever? Shift-click again", () => {
+        shift: () => this.#dooms.arm(b, "Delete forever? Shift-click again", () => {
           const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item: item2 });
           this.#w.game.change((x) => x.put("yards", f.yards));
           this.#w.setCur(f.cur);
@@ -10884,37 +10925,6 @@ var BootHillView = class {
     this.#w.setOpen(false);
     this.render();
     this.#w.carry(recs[0], e, e);
-  }
-  // R125: the first shift-click arms it red and says so; a second within 3 s deletes; else it reverts.
-  #doom(el4, says, destroy) {
-    if (this.#doomed?.el === el4) {
-      clearTimeout(this.#doomed.t);
-      this.#doomed.undo();
-      this.#doomed = null;
-      destroy();
-      return;
-    }
-    if (this.#doomed) {
-      this.#doomed.undo();
-      clearTimeout(this.#doomed.t);
-    }
-    const input = el4 instanceof HTMLInputElement, was = input ? el4.value : el4.textContent ?? "";
-    el4.classList.add("doom");
-    if (input) {
-      el4.value = says;
-      el4.readOnly = true;
-    } else el4.textContent = says;
-    const undo = () => {
-      el4.classList.remove("doom");
-      if (input) {
-        el4.value = was;
-        el4.readOnly = false;
-      } else el4.textContent = was;
-    };
-    this.#doomed = { el: el4, undo, t: setTimeout(() => {
-      undo();
-      this.#doomed = null;
-    }, DOOM_MS) };
   }
 };
 function isPageUndo(ev) {
@@ -11136,6 +11146,18 @@ var BlobStore = class {
     await this.#keep(hash, bytes);
     return true;
   }
+  // R459: what nothing uses goes.
+  /** Deletes every image not in `inUse`; how many went. */
+  async free(inUse) {
+    return this.#db.tx(["blobs"], "readwrite", async (t) => {
+      let n = 0;
+      for (const k of await t.keys("blobs")) if (typeof k === "string" && !inUse.has(k)) {
+        await t.del("blobs", k);
+        n++;
+      }
+      return n;
+    });
+  }
   /** An object URL for showing the image; each url() is paired with a release(). */
   async url(hash) {
     const shown3 = this.#shown.get(hash);
@@ -11201,7 +11223,8 @@ var IdbDb = class _IdbDb {
         const store = x.objectStore(s), r = range(prefix);
         const [keys2, values2] = await Promise.all([done(store.getAllKeys(r)), done(store.getAll(r))]);
         return keys2.map((k, i) => [k, values2[i]]);
-      }
+      },
+      keys: async (s, prefix) => await done(x.objectStore(s).getAllKeys(range(prefix)))
     };
     return (async () => {
       let result;
@@ -11562,6 +11585,49 @@ var GameStore = class {
     if (this.#pending.size) return "Saving\u2026";
     return this.#savedAt === null ? "Saved" : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
   }
+  // R458: the copies this browser keeps of tables it joined as a player.
+  /** The copies of joined tables, newest opened first. */
+  async joined() {
+    const all2 = await this.#db.tx(["games"], "readonly", (t) => t.all("games"));
+    return all2.map(([, g]) => g).filter((g) => g.copyOf).sort((a, b) => b.opened - a.opened);
+  }
+  // R457: a game or a copy goes with its records and checkpoints; never the one on the table.
+  /** Deletes a game or a copy forever. */
+  async forget(id) {
+    if (id === this.current?.id) throw new Error("the game on the table can't be deleted");
+    await this.#db.tx(["games", "records", "checkpoints"], "readwrite", async (t) => {
+      for (const k of await t.keys("records", id)) await t.del("records", k);
+      for (const k of await t.keys("checkpoints", id)) await t.del("checkpoints", k);
+      await t.del("games", id);
+    });
+  }
+  /** Deletes one of the open game's checkpoints forever (R457). */
+  async forgetCheckpoint(id) {
+    const cur = this.#open();
+    await this.#db.tx(["checkpoints"], "readwrite", (t) => t.del("checkpoints", [cur.id, id]));
+  }
+  // R459: every image still used, buried ones in Boot Hill's yards included, so nothing is freed that
+  // could be dug up or restored.
+  /** The hash of every image any game, copy or checkpoint in this browser uses, and the table as it stands. */
+  async images() {
+    const used = /* @__PURE__ */ new Set();
+    const look = (v) => {
+      if (Array.isArray(v)) {
+        for (const x of v) look(x);
+        return;
+      }
+      if (!v || typeof v !== "object") return;
+      const o = v;
+      if (o.kind === "image" && typeof o.blob === "string") used.add(o.blob);
+      for (const x of Object.values(o)) look(x);
+    };
+    await this.#db.tx(["records", "checkpoints"], "readonly", async (t) => {
+      for (const [, r] of await t.all("records")) look(r);
+      for (const [, c] of await t.all("checkpoints")) look(c);
+    });
+    for (const [, r] of this.game.all()) look(r);
+    return [...used];
+  }
   /** R455: whether the browser keeps this storage: null until it has been asked. */
   kept() {
     return this.#kept;
@@ -11747,6 +11813,7 @@ function newGame(now2) {
 }
 var LedgerView = class {
   #w;
+  #dooms = new Doom();
   #book;
   #page;
   #status;
@@ -11794,6 +11861,11 @@ var LedgerView = class {
   async render() {
     const w = this.#w, doc = this.#page.ownerDocument, cur = w.current();
     const [cps, games] = w.player ? [[], []] : await Promise.all([w.checkpoints(), w.games()]);
+    const joined = await w.joined();
+    const doomable = (b, click2, destroy) => gesture(b, {
+      click: click2 ?? void 0,
+      shift: () => this.#dooms.arm(b, "Shift-click again to delete forever", () => void destroy().then(() => this.render()))
+    });
     const el4 = (tag2, cls, text = "", title = "") => {
       const e = doc.createElement(tag2);
       e.className = cls;
@@ -11858,12 +11930,12 @@ var LedgerView = class {
           c.name,
           c.at,
           `entry${c.auto ? " auto" : ""}`,
-          "Restore the table to this checkpoint. The table as it stands is checkpointed first, so this can be undone."
+          "Restore the table to this checkpoint. The table as it stands is checkpointed first, so this can be undone. Shift-click twice to delete it forever."
         );
-        gesture(b, { click: async () => {
+        doomable(b, async () => {
           await w.restore(c.id);
           await this.render();
-        } });
+        }, () => w.forgetCheckpoint(c.id));
         list2.append(b);
       }
       const gl = el4("div", "entries");
@@ -11872,13 +11944,28 @@ var LedgerView = class {
           g.name,
           g.opened,
           `entry${here2 ? " current" : ""}`,
-          here2 ? "The game on the table" : "Put this game on the table (this one is saved as it is)"
+          here2 ? "The game on the table" : "Put this game on the table (this one is saved as it is). Shift-click twice to delete it forever."
         );
-        if (!here2) gesture(b, { click: () => void w.open(g.id) });
+        if (!here2) doomable(b, () => void w.open(g.id), () => w.forget(g.id));
         else b.disabled = true;
         gl.append(b);
       }
       parts2.push(el4("h4", "", "Checkpoints"), list2, el4("h4", "", "Games"), gl);
+    }
+    if (joined.length) {
+      const jl = el4("div", "entries");
+      for (const g of joined) {
+        const here2 = g.id === cur.id, b = this.#entry(
+          g.name,
+          g.opened,
+          `entry joined${here2 ? " current" : ""}`,
+          here2 ? "The table you are playing at" : `This browser's copy of a table it joined (room ${g.name}). Shift-click twice to delete it forever.`
+        );
+        if (!here2) doomable(b, null, () => w.forget(g.id));
+        else b.disabled = true;
+        jl.append(b);
+      }
+      parts2.push(el4("h4", "", "Tables joined"), jl);
     }
     this.#page.replaceChildren(...parts2);
   }
@@ -13233,6 +13320,9 @@ function ledgerOf(store, blobs, player) {
     await store.open(id);
     location.reload();
   };
+  const free2 = async () => {
+    await blobs.free(new Set(await store.images()));
+  };
   return {
     player,
     now: () => clock.now(),
@@ -13246,6 +13336,15 @@ function ledgerOf(store, blobs, player) {
     checkpoint: (name2) => store.checkpoint(name2, false),
     restore: (id) => store.restore(id),
     open: onto,
+    forget: async (id) => {
+      await store.forget(id);
+      await free2();
+    },
+    forgetCheckpoint: async (id) => {
+      await store.forgetCheckpoint(id);
+      await free2();
+    },
+    joined: () => store.joined(),
     newGame: async (name2) => onto((await store.add(name2)).id),
     exported: () => exportGame(store, blobs, store.current.id),
     imported: async (text) => onto((await importGame(store, blobs, text)).id)
@@ -13379,7 +13478,8 @@ async function main() {
     (hash) => table?.images.missing.get(hash),
     ledgerOf(store, blobs, false),
     () => rolls,
-    (name2) => store.checkpoint(name2, true)
+    // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
+    (name2) => store.checkpoint(name2, true).finally(() => void store.images().then((i) => blobs.free(new Set(i))).catch(() => void 0))
   );
   new FolksView(bar.folks, bar.youAre, {
     me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },

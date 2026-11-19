@@ -10,7 +10,7 @@ test hook. One opt-in spec meets through the public relays.
 **Expected:**
 - the GM opens the table; the invite names the room and the GM's browser id
 - a player joins as Dana and syncs; each sees the other live; the GM's claims hold Dana's browser id
-- the player's Ledger is a copy (no checkpoints, no game list)
+- the player's Ledger is a copy (no checkpoints, no game list; only Tables joined, R458)
 - the GM drags the sticky: the player's follows to the same place
 - the GM gives Sam to Dana; Dana drags Sam's pool and writes on the sticky: the GM's page has both
 - Dana moves the GM's Devreux: refused, and put back on her page too
@@ -245,3 +245,14 @@ by the drop
 **Fire alarm:** take a `claim` from any page (drop the GM's-browser check); red: Dana's tag reads "not yours"
 **Inject:** src/main.ts:main
 **Pulled:** 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean
+
+## Test: a player's Ledger lists the tables joined, and deletes the others
+**Purpose:** R457, R458: a player's Ledger lists this browser's copies of joined tables; the one being played can't be armed, another goes with two shift-clicks
+**Input:** Dana joins; her browser also keeps a copy `room-old`; her Ledger opened; `room-old` shift-clicked twice
+**Expected:** two Tables joined entries, the current one disabled; after the first shift-click `room-old` reads "Shift-click again to delete forever"; after the second one entry is left, and the store no longer has `room-old`
+**Refs:** crc-Ledger.md, crc-GameStore.md, ui-ledger.md
+**Code:** `tests/sync.spec.ts`
+**Alarm:** 19
+**Fire alarm:** leave the Tables joined list out of a player's Ledger (only the GM's draws it); red: no entries
+**Inject:** src/ui/ledger.ts:LedgerView.render
+**Pulled:** 2026-11-19 — rang: Dana's Ledger had no Tables joined entries (Chromium); restored clean

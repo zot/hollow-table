@@ -2,7 +2,7 @@
 // The seat in the browser: everything done for looking stays in this viewer's seat, never in the
 // game; a reload brings it back; each viewer has their own; a restore keeps it.
 import { expect, test, type Page } from '@playwright/test';
-import { open, records, storage } from './page.ts';
+import { hook, open, records, storage } from './page.ts';
 
 const DEVREUX = '.pool[data-rid="o:00000003"]';
 
@@ -97,4 +97,27 @@ test('the seat is not the game', async ({ page }) => {
   await expect(page.locator('#ledger .entry', { hasText: 'Before restoring “Seat check”' })).toBeVisible();
   expect(await seatOf(page, 'GM')).toBe(beforeRestore);
   await expect(page.locator(`${DEVREUX} .roller`)).toBeVisible();
+});
+
+test('the Ledger deletes a checkpoint and another game with two shift-clicks, never the game on the table', async ({ page }) => {
+  // R457: armed red and said, reverting after 3 s; a second deletes forever.
+  await open(page);
+  await hook(page, async h => { await h.store.checkpoint('Doomed', false); await h.store.add('Spare'); });
+  await page.locator('#ledgerbtn').click();
+  // By place, not by text: arming replaces the text.
+  const entries = page.locator('#ledger .entry'), at = async (text: string) => entries.nth((await entries.allTextContents()).findIndex(t => t.includes(text)));
+  // The Ledger draws its lists from the database: wait for them before reading where things are.
+  await expect(entries.filter({ hasText: 'Doomed' })).toHaveCount(1);
+  await expect(entries.filter({ hasText: 'Spare' })).toHaveCount(1);
+  const cp = await at('Doomed');
+  await cp.click({ modifiers: ['Shift'] });
+  await expect(cp).toHaveText('Shift-click again to delete forever');
+  await expect(cp).toHaveClass(/\bdoom\b/);
+  await cp.click({ modifiers: ['Shift'] });
+  await expect(page.locator('#ledger .entry', { hasText: 'Doomed' })).toHaveCount(0);
+  const spare = await at('Spare');
+  await spare.click({ modifiers: ['Shift'] });
+  await spare.click({ modifiers: ['Shift'] });
+  await expect(page.locator('#ledger .entry', { hasText: 'Spare' })).toHaveCount(0);
+  await expect(page.locator('#ledger .entry.current')).toBeDisabled();
 });

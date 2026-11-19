@@ -35,10 +35,10 @@ test('join and sync', async ({ browser }) => {
   await expect(dana.locator('#bar .folks .tag.gm')).toHaveClass(/\blive\b/);
   expect(await hook(gm, h => h.store.game.get('book').claims.Dana)).toBe(await hook(dana, h => h.identity.id));
 
-  // The player's Ledger is a copy: no checkpoints, no game list (R141).
+  // The player's Ledger is a copy: no checkpoints, no game list (R141); only the tables joined (R458).
   await dana.locator('#ledgerbtn').click();
   await expect(dana.locator('#ledger .copy')).toBeVisible();
-  await expect(dana.locator('#ledger .entries')).toHaveCount(0);
+  await expect(dana.locator('#ledger h4')).toHaveText(['Tables joined']);
   await dana.locator('#table').click({ position: { x: 5, y: 400 } });
 
   // The GM drags the sticky: Dana's follows to the same place.
@@ -76,4 +76,22 @@ test('join and sync', async ({ browser }) => {
   await expect(gm.locator('#bar .folks .tag', { hasText: 'Dana' })).toBeVisible({ timeout: 20_000 });
   await dana.context().close();
   await expect(gm.locator('#bar .folks .tag', { hasText: 'Dana' })).toHaveCount(0, { timeout: 70_000 });
+});
+
+test("a player's Ledger lists the tables joined, and deletes the others", async ({ browser }) => {
+  // R457, R458: the one being played can't be armed; another copy goes with two shift-clicks.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  await hook(dana, h => h.store.add('room-old', undefined, [], 'room-old'));
+  await dana.locator('#ledgerbtn').click();
+  const entries = dana.locator('#ledger .entry.joined');
+  await expect(entries).toHaveCount(2);
+  await expect(dana.locator('#ledger .entry.joined.current')).toBeDisabled();
+  // By place, not by text: arming replaces the text.
+  const old = entries.nth((await entries.allTextContents()).findIndex(t => t.includes('room-old')));
+  await old.click({ modifiers: ['Shift'] });
+  await expect(old).toHaveText('Shift-click again to delete forever');
+  await old.click({ modifiers: ['Shift'] });
+  await expect(dana.locator('#ledger .entry.joined')).toHaveCount(1);
+  expect(await hook(dana, h => h.store.joined().then((j: { name: string }[]) => j.map(g => g.name)))).not.toContain('room-old');
 });

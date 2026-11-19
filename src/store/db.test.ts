@@ -27,4 +27,6 @@ test('a transaction lands whole', async () => {
   await db.tx(['records'], 'readwrite', async t => { await t.put('records', ['g2', 'a'], 9); await t.put('records', ['g1', 'c'], 3); });
   const g1 = await db.tx(['records'], 'readonly', t => t.all<number>('records', 'g1'));
   assert.deepEqual(g1.map(([k, v]) => [k, v]).sort(), [[['g1', 'a'], 1], [['g1', 'c'], 3]]);
+  // R459: the keys alone, by the same prefix.
+  assert.deepEqual((await db.tx(['records'], 'readonly', t => t.keys('records', 'g1'))).sort(), [['g1', 'a'], ['g1', 'c']]);
 });

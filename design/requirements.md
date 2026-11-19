@@ -332,6 +332,9 @@
 - **R141:** A player's Ledger hides Checkpoint, Import, New game and the game list, and the copy never becomes the browser's own game.
 - **R454:** A checkpoint the store refuses is said in the Ledger's status ("Checkpoint “name” not kept:" and why) until one is kept; End ends the conflict even when its checkpoint isn't kept.
 - **R455:** Once a game is first saved on a page, the page asks the browser to keep its storage (navigator.storage.persist), once; the Ledger says "Storage kept" or "The browser may clear this storage".
+- **R457:** In the Ledger, a first shift-click or long press on a game or a checkpoint arms it red and says so, reverting after 3 s; a second deletes it forever, a game with its records and checkpoints; the game on the table can't be armed.
+- **R458:** The Ledger, the GM's and a player's, lists "Tables joined": this browser's copies of tables it joined, each with its room and when last opened, deletable the same way, but not the one on the table.
+- **R459:** After a deletion, and after End's checkpoint prunes old automatic ones, every image that no game, copy or checkpoint in this browser uses, nor the table as it stands, is freed from the store.
 
 ## Feature: ownership
 **Source:** specs/ownership.md

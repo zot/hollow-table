@@ -199,3 +199,37 @@ test('the browser is asked to keep the storage once, after the first save', asyn
   assert.equal(asked, 1, 'asked once');
   assert.equal(store.kept(), true);
 });
+
+test('deleting games, copies and checkpoints, and the images still used', async () => {
+  // R457: forget a game or a copy with its records and checkpoints, never the open one; forget a checkpoint.
+  // R458: the copies of joined tables listed. R459: every image a game, copy or checkpoint uses.
+  const db = new MemoryDb(), { clock, advance } = fakeClock();
+  const store = new GameStore(db, clock, memoryStorage());
+  const here = await store.start();
+  const img = (oid: string, blob: string): Image => ({ kind: 'image', oid, place: { x: 5, y: 5, z: 1, tilt: 0 }, blob, w: 40, h: 30 });
+  store.game.change(w => w.put(ridOf('0000000b'), img('0000000b', 'a'.repeat(64))));
+  await store.save();
+  const kept = await store.checkpoint('With a', false);
+  store.game.change(w => w.del(ridOf('0000000b')));
+  await store.save();
+  advance(10);
+  const other = await store.add('Other', [[ridOf('0000000c'), img('0000000c', 'b'.repeat(64))]]);
+  advance(10);
+  const copy = await store.copyFor('room-1');   // opens the copy
+  await store.open(here.id);
+  assert.deepEqual((await store.images()).sort(), ['a'.repeat(64), 'b'.repeat(64)], 'a in a checkpoint, b in another game');
+  assert.deepEqual((await store.joined()).map(g => g.id), [copy.id], 'the copy is listed as joined');
+  await assert.rejects(store.forget(here.id), 'not the open game');
+  await store.forget(other.id);
+  assert.ok(!(await store.list()).some(g => g.id === other.id), 'the other game is gone');
+  assert.equal((await db.tx(['records'], 'readonly', t => t.all('records', other.id))).length, 0, 'and its records');
+  assert.deepEqual(await store.images(), ['a'.repeat(64)]);
+  await store.forgetCheckpoint(kept.id);
+  assert.ok(!(await store.checkpoints()).some(c => c.id === kept.id), 'the checkpoint is gone');
+  assert.deepEqual(await store.images(), [], 'nothing uses a');
+  // A buried image can be dug up, so it's still used.
+  store.game.change(w => w.put('yards', { yards: [{ name: 'Old timers', named: true, items: [{ name: 'Image', records: [img('0000000d', 'c'.repeat(64))] }] }] } as Yards));
+  assert.deepEqual(await store.images(), ['c'.repeat(64)], 'a buried image is used');
+  await store.forget(copy.id);
+  assert.deepEqual(await store.joined(), [], 'the copy is gone');
+});

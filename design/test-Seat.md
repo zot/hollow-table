@@ -55,3 +55,14 @@ kept view comes back, and a partial one is filled in
 **Fire alarm:** give every viewer a row's controls (`mine` always true in the draw); red: the player has a Roll key
 **Inject:** src/ui/rollrow.ts:#draw
 **Pulled:** 2026-11-16 — re-pointed at the shared row (#22) and rang (Chromium): the player had a Roll key in Devreux's row; restored clean *Earlier —* 2026-11-15 — rang after the test was tightened (it first passed silent: its `exists` said yes to `o:world` too): "the seat on its own" failed, the opponent null; restored clean
+
+## Test: the Ledger deletes a checkpoint and another game with two shift-clicks, never the game on the table
+**Purpose:** R457: a first shift-click arms a Ledger entry red and says so; a second deletes it forever; the game on the table can't be armed
+**Input:** a checkpoint "Doomed" and a game "Spare"; the Ledger opened; each shift-clicked twice
+**Expected:** "Doomed" reads "Shift-click again to delete forever" with class `doom`, then is gone; "Spare" is gone; the current game's entry is disabled
+**Refs:** crc-Ledger.md, crc-BootHillView.md, ui-ledger.md
+**Code:** `tests/seat.spec.ts`
+**Alarm:** 5
+**Fire alarm:** delete at the first shift-click (no arming); red: "Doomed" is gone at once, and the second shift-click finds nothing
+**Inject:** src/ui/doom.ts:Doom.arm
+**Pulled:** 2026-11-19 — re-pulled after the simplifier rewrote Doom.arm: rang, Doomed went at the first shift-click (Chromium); restored clean *Earlier —* 2026-11-19 — rang: Doomed went at the first shift-click, and the second timed out finding nothing (Chromium); restored clean

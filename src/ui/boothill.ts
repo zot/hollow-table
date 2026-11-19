@@ -6,10 +6,9 @@ import type { Game } from '../model/game.ts';
 import { ridOf, type Burial, type Character, type Connections, type Oid, type Opinion, type PieceRecord, type Yards } from '../model/records.ts';
 import { empty, exhume, forget, forgetAll, lastCard, next, prev, raised, rename, withInfo, type At } from '../rules/yards.ts';
 import { rowOf, synced, tableOf } from '../rules/connections.ts';
+import { Doom } from './doom.ts';
 import { gesture, type PointerLike } from './gesture.ts';
 
-/** How long a first shift-click stays armed (R125). */
-export const DOOM_MS = 3000;
 
 export type BootHillWith = {
   game: Game;
@@ -33,7 +32,7 @@ export class BootHillView {
   #name: HTMLInputElement;
   #prev: HTMLButtonElement;
   #items: HTMLElement;
-  #doomed: { el: HTMLElement; undo: () => void; t: ReturnType<typeof setTimeout> } | null = null;
+  #dooms = new Doom();
 
   constructor(bar: HTMLElement, root: HTMLElement, w: BootHillWith) {
     this.#w = w;
@@ -90,7 +89,7 @@ export class BootHillView {
     // R125: two shift-clicks on the name delete everything in this graveyard.
     gesture(this.#name, { shift: e => {
       (e as Event).preventDefault?.();
-      if (this.#yards().yards[this.#cur()]?.items.length) this.#doom(this.#name, 'Delete everything here? Shift-click again', () => browse(forgetAll));
+      if (this.#yards().yards[this.#cur()]?.items.length) this.#dooms.arm(this.#name, 'Delete everything here? Shift-click again', () => browse(forgetAll));
     } });
     // R289: a press anywhere else closes the list.
     doc.addEventListener('pointerdown', e => {
@@ -113,8 +112,8 @@ export class BootHillView {
     this.#stone.classList.toggle('empty', !total);
     this.#panel.hidden = !this.#w.open();
     this.#prev.disabled = cur === 0;
-    if (doc.activeElement !== this.#name && this.#doomed?.el !== this.#name) this.#name.value = g.name;
-    if (this.#doomed && this.#doomed.el !== this.#name) { clearTimeout(this.#doomed.t); this.#doomed = null; }
+    if (doc.activeElement !== this.#name && this.#dooms.armed !== this.#name) this.#name.value = g.name;
+    if (this.#dooms.armed && this.#dooms.armed !== this.#name) this.#dooms.drop();
     // R289: oldest first; an empty graveyard says so.
     if (!g.items.length) {
       const p = doc.createElement('p');
@@ -132,7 +131,7 @@ export class BootHillView {
       // shift-click or a long press arms deleting it forever (R125).
       gesture(b, {
         drag: (_down, move) => this.#digUp(item, move),
-        shift: () => this.#doom(b, 'Delete forever? Shift-click again', () => {
+        shift: () => this.#dooms.arm(b, 'Delete forever? Shift-click again', () => {
           const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item });
           this.#w.game.change(x => x.put('yards', f.yards));
           this.#w.setCur(f.cur);
@@ -212,22 +211,6 @@ export class BootHillView {
     this.#w.carry(recs[0]!, e, e);
   }
 
-  // R125: the first shift-click arms it red and says so; a second within 3 s deletes; else it reverts.
-  #doom(el: HTMLElement, says: string, destroy: () => void): void {
-    if (this.#doomed?.el === el) {
-      clearTimeout(this.#doomed.t);
-      this.#doomed.undo();
-      this.#doomed = null;
-      destroy();
-      return;
-    }
-    if (this.#doomed) { this.#doomed.undo(); clearTimeout(this.#doomed.t); }
-    const input = el instanceof HTMLInputElement, was = input ? el.value : el.textContent ?? '';
-    el.classList.add('doom');
-    if (input) { el.value = says; el.readOnly = true; } else el.textContent = says;
-    const undo = () => { el.classList.remove('doom'); if (input) { el.value = was; el.readOnly = false; } else el.textContent = was; };
-    this.#doomed = { el, undo, t: setTimeout(() => { undo(); this.#doomed = null; }, DOOM_MS) };
-  }
 }
 
 type KeyLike = { key: string; ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean; target: EventTarget | null };

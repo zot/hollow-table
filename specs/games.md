@@ -69,6 +69,14 @@ Every piece of state says which tier it's in.
   table at once. Its Ledger hides Checkpoint, Import, New game and the game list: the GM checkpoints
   and restores. The copy never becomes the browser's own game.
 
-## Not yet
+## Deleting
 
-- Deleting a game, a checkpoint, or an image no game uses (prototype Item 26).
+- **Two shift-clicks delete forever, as in Boot Hill** (Bill, 11-19: "Two shift-clicks, like Boot
+  Hill"): shift-click or long-press a game or a checkpoint in the Ledger and it turns red and says so,
+  reverting after 3 s; a second deletes it, with everything it holds. **The game on the table can't be
+  deleted** ("No, only the others"): open another first.
+- **Tables joined** ("List them, deletable"; on both Ledgers, Bill, 11-19): the Ledger lists the copies
+  this browser keeps of tables it joined as a player, the room and when it was last opened, deletable
+  the same way; not the one being played.
+- **Images go when nothing uses them** ("Automatically"): after any deletion, and after End's
+  checkpoints are pruned, an image no game, copy or checkpoint in this browser uses is freed.

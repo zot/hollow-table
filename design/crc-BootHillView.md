@@ -1,9 +1,11 @@
 # BootHillView
-**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405, R428
+**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405, R428, R457
 
 The gravestone and its graveyard list.
 
 ## Does
+- Doom (`src/ui/doom.ts`, R125, R457): arming something to delete forever, shared with the Ledger: the
+  first shift-click turns it red and says so, reverting after 3 s; a second within that time deletes.
 - R428: an Opinion Record's burial comes up as a record: put back, its Connection written to its cell,
   slid out under a card of its row; undoCard digs up the newest Info card or record. A record whose
   row is gone stays buried.

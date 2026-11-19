@@ -643,7 +643,7 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 #graves .yname { flex: 1; min-width: 0; font: 600 19px/1.1 var(--hand); border: none; border-bottom: 1px solid #bbb; background: transparent; padding: 2px 4px; }
 #graves .items button { font: 600 20px/1.1 var(--hand); text-align: left; background: none; border: 1px solid #ccc; border-radius: 6px; padding: 4px 10px; cursor: grab; touch-action: none; }
 #graves .items button:hover { background: #f1ead9; }
-#graves .doom { background: var(--chip-neg) !important; color: #fff !important; }
+#graves .doom, #ledger .doom { background: var(--chip-neg) !important; color: #fff !important; }
 
 /* R291: the Ledger, a green cloth-bound book with "Ledger" up its spine. R132: it opens to a ruled
    ledger page: a red margin rule, a rule every 28 px, the actions written on the page, entries

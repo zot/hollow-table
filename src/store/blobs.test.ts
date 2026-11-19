@@ -53,3 +53,13 @@ test('images kept as bytes, where a Blob cannot be stored', async () => {
   assert.equal(was?.type, 'image/gif', 'an image stored whole still loads');
   assert.deepEqual(new Uint8Array(await was!.arrayBuffer()), new Uint8Array([71, 73, 70]));
 });
+
+test('images nothing uses are freed', async () => {
+  // R459.
+  const blobs = new BlobStore(new MemoryDb(), async () => ({ w: 1, h: 1 }));
+  const a = await blobs.add(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' }));
+  const b = await blobs.add(new Blob([new Uint8Array([4, 5, 6])], { type: 'image/png' }));
+  assert.equal(await blobs.free(new Set([a.blob])), 1, 'one freed');
+  assert.ok(await blobs.get(a.blob), 'the used one kept');
+  assert.equal(await blobs.get(b.blob), undefined, 'the unused one gone');
+});

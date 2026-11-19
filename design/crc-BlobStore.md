@@ -1,5 +1,5 @@
 # BlobStore
-**Requirements:** R26, R130, R194, R449
+**Requirements:** R26, R130, R194, R449, R459
 
 Image bytes by content: the SHA-256 of the bytes is the image's name in the game, the key here, and
 what the table asks for. Images are never stored in records.
@@ -9,6 +9,7 @@ what the table asks for. Images are never stored in records.
   private IndexedDB refuses a Blob); an older entry may be a Blob.
 
 ## Does
+- free(inUse) (R459): deletes every image not in `inUse`; says how many went.
 - add(file): hash it, store it, return `{blob, w, h}` for an Image record. Its size comes from a
   `measure` passed in (the page decodes the image; a test fakes it).
 - get(hash): a Blob made from what is stored, either shape, or nothing.

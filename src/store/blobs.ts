@@ -1,4 +1,4 @@
-// CRC: crc-BlobStore.md | R26, R130, R194, R449
+// CRC: crc-BlobStore.md | R26, R130, R194, R449, R459
 // Image bytes by content. The SHA-256 of the bytes is the image's name in the game, its key here,
 // and what the table asks for; records never hold the bytes.
 
@@ -56,6 +56,16 @@ export class BlobStore {
     if (await sha256(bytes) !== hash) return false;
     await this.#keep(hash, bytes);
     return true;
+  }
+
+  // R459: what nothing uses goes.
+  /** Deletes every image not in `inUse`; how many went. */
+  async free(inUse: ReadonlySet<string>): Promise<number> {
+    return this.#db.tx(['blobs'], 'readwrite', async t => {
+      let n = 0;
+      for (const k of await t.keys('blobs')) if (typeof k === 'string' && !inUse.has(k)) { await t.del('blobs', k); n++; }
+      return n;
+    });
   }
 
   /** An object URL for showing the image; each url() is paired with a release(). */

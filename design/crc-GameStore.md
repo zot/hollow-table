@@ -1,5 +1,5 @@
 # GameStore
-**Requirements:** R129, R130, R131, R133, R134, R135, R137, R140, R141, R291, R292, R418, R454, R455
+**Requirements:** R129, R130, R131, R133, R134, R135, R137, R140, R141, R291, R292, R418, R454, R455, R457, R458, R459
 
 The browser's games: the list, each game's records, checkpoints, and the write-through that keeps
 them current. Talks to the database only through Db.
@@ -17,6 +17,10 @@ them current. Talks to the database only through Db.
 - The clock, timers and localStorage are passed in, so a test runs on a fake clock and memory.
 
 ## Does
+- forget(id) (R457): deletes a game or a copy with its records and checkpoints; refuses the open one.
+  forgetCheckpoint(id): deletes one of the open game's checkpoints. joined() (R458): the copies of
+  tables joined, newest opened first. images() (R459): every image hash any game, copy or checkpoint
+  in this browser uses, and the table as it stands.
 - checkpoint (R454): a refused one is said by status() ("Checkpoint “name” not kept:" and why) until one
   is kept, and rethrown. (R455) After its first good save, asks `keep` (the page's
   navigator.storage.persist) once; kept() is its answer, null before.

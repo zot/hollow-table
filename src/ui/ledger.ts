@@ -1,9 +1,10 @@
-// CRC: crc-Ledger.md | R132, R133, R134, R139, R141, R291
+// CRC: crc-Ledger.md | R132, R133, R134, R139, R141, R291, R457, R458
 // The Ledger: a green cloth-bound book between the register and Boot Hill, opening to a ruled page
 // with the game's name, the save status, the actions written on it, the checkpoints and the games.
 // The words are pure (stamp, offer, named, newGame); the view draws the page and does the asking.
 
 import type { CheckpointInfo, GameInfo } from '../store/gamestore.ts';
+import { Doom } from './doom.ts';
 import { gesture } from './gesture.ts';
 
 const time = (at: number) => new Date(at).toTimeString().slice(0, 8);
@@ -23,7 +24,7 @@ export function named(answer: string | null): string | null {
 export function newGame(now: number): string { return `New game ${stamp(now)}`; }
 
 export type LedgerWith = {
-  /** A player's copy: only the name, the status and Export (R141). */
+  /** A player's copy: the name, the status, Export and Tables joined (R141, R458). */
   player: boolean;
   now: () => number;
   round: () => number;
@@ -33,6 +34,11 @@ export type LedgerWith = {
   checkpoints: () => Promise<CheckpointInfo[]>;
   games: () => Promise<GameInfo[]>;
   checkpoint: (name: string) => Promise<unknown>;
+  /** R457: deleting forever a game or copy (never the open one), or a checkpoint; each frees unused images. */
+  forget: (id: string) => Promise<void>;
+  forgetCheckpoint: (id: string) => Promise<void>;
+  /** R458: this browser's copies of tables it joined. */
+  joined: () => Promise<GameInfo[]>;
   restore: (id: string) => Promise<void>;
   /** Puts another game on the table (this one is saved first). */
   open: (id: string) => Promise<void>;
@@ -45,6 +51,7 @@ export type LedgerWith = {
 
 export class LedgerView {
   #w: LedgerWith;
+  #dooms = new Doom();
   #book: HTMLButtonElement;
   #page: HTMLElement;
   #status: HTMLElement;
@@ -95,6 +102,12 @@ export class LedgerView {
   async render(): Promise<void> {
     const w = this.#w, doc = this.#page.ownerDocument, cur = w.current();
     const [cps, games] = w.player ? [[], []] : await Promise.all([w.checkpoints(), w.games()]);
+    const joined = await w.joined();
+    // R457: a shift-click or long press arms an entry to delete forever, as in Boot Hill.
+    const doomable = (b: HTMLElement, click: (() => unknown) | null, destroy: () => Promise<void>) => gesture(b, {
+      click: click ?? undefined,
+      shift: () => this.#dooms.arm(b, 'Shift-click again to delete forever', () => void destroy().then(() => this.render())),
+    });
     const el = (tag: string, cls: string, text = '', title = '') => {
       const e = doc.createElement(tag);
       e.className = cls;
@@ -154,20 +167,32 @@ export class LedgerView {
       if (!cps.length) list.append(el('p', 'none', 'None yet. End makes one at the end of every conflict.'));
       for (const c of cps) {
         const b = this.#entry(c.name, c.at, `entry${c.auto ? ' auto' : ''}`,
-          'Restore the table to this checkpoint. The table as it stands is checkpointed first, so this can be undone.');
-        gesture(b, { click: async () => { await w.restore(c.id); await this.render(); } });
+          'Restore the table to this checkpoint. The table as it stands is checkpointed first, so this can be undone. Shift-click twice to delete it forever.');
+        doomable(b, async () => { await w.restore(c.id); await this.render(); }, () => w.forgetCheckpoint(c.id));
         list.append(b);
       }
       // The games, the one on the table greyed.
       const gl = el('div', 'entries');
       for (const g of games) {
         const here = g.id === cur.id, b = this.#entry(g.name, g.opened, `entry${here ? ' current' : ''}`,
-          here ? 'The game on the table' : 'Put this game on the table (this one is saved as it is)');
-        if (!here) gesture(b, { click: () => void w.open(g.id) });
+          here ? 'The game on the table' : 'Put this game on the table (this one is saved as it is). Shift-click twice to delete it forever.');
+        if (!here) doomable(b, () => void w.open(g.id), () => w.forget(g.id));
         else (b as HTMLButtonElement).disabled = true;
         gl.append(b);
       }
       parts.push(el('h4', '', 'Checkpoints'), list, el('h4', '', 'Games'), gl);
+    }
+    // R458: the copies of tables this browser joined, deletable; not the one on the table.
+    if (joined.length) {
+      const jl = el('div', 'entries');
+      for (const g of joined) {
+        const here = g.id === cur.id, b = this.#entry(g.name, g.opened, `entry joined${here ? ' current' : ''}`,
+          here ? 'The table you are playing at' : `This browser's copy of a table it joined (room ${g.name}). Shift-click twice to delete it forever.`);
+        if (!here) doomable(b, null, () => w.forget(g.id));
+        else (b as HTMLButtonElement).disabled = true;
+        jl.append(b);
+      }
+      parts.push(el('h4', '', 'Tables joined'), jl);
     }
     this.#page.replaceChildren(...parts);
   }
