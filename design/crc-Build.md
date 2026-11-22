@@ -12,8 +12,7 @@ How the sources become the page, and how the page is published and tested.
   Firefox, four tests at a time (the Deck's cores; `HOLLOW_WORKERS` changes it), a 1400 × 840 page; it builds and serves `dist/` on port 8781 for the run, a
   test origin of its own. Each test's pages get fresh contexts, so each has its own identity and
   database. `tests/page.ts`: open a page with the test hook and wait for it; read the game back as
-  held and as saved; read localStorage; a person (a fresh context with a name, the local relay and
-  the loopback); the GM's table and its invite; a player joining and synced.
+  held and as saved; read localStorage; a person (a fresh context with a name and the local relay); the GM's table and its invite; a player joining and synced.
 - `tests/relay.ts` (R297): the local Nostr relay the spec run starts on port 8782: EVENT
   acknowledged and passed to matching subscriptions (kind, `#x`, since), REQ answered with EOSE
   (nothing stored), CLOSE. `npm run spec:public` runs the one spec through the public relays.

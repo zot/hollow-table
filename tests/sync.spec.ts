@@ -27,7 +27,7 @@ async function agree(a: Page, b: Page, rid: string) {
 
 test('join and sync', async ({ browser }) => {
   const { gm, invite } = await gmTable(browser);
-  expect(invite).toMatch(/\?room=the-11-08-playtest-[0-9a-f]{32}&gm=[\w-]{20}$/);
+  expect(invite).toMatch(/\?room=the-11-08-playtest-[0-9a-f]{32}&gm=[0-9A-Za-z]{22}$/);
   const dana = await join(browser, invite, 'Dana', gm);
 
   // Each sees the other; the GM's claims hold Dana's browser.
@@ -94,4 +94,12 @@ test("a player's Ledger lists the tables joined, and deletes the others", async 
   await old.click({ modifiers: ['Shift'] });
   await expect(dana.locator('#ledger .entry.joined')).toHaveCount(1);
   expect(await hook(dana, h => h.store.joined().then((j: { name: string }[]) => j.map(g => g.name)))).not.toContain('room-old');
+});
+
+test('an invite from before Trystero proved ids opens no table, and says to ask for a new link', async ({ page }) => {
+  // R473: its `gm=` is a 20-character id; the page is neither the GM's nor a player's.
+  await page.goto(`http://127.0.0.1:8781/?test&room=the-11-08-playtest-${'0'.repeat(32)}&gm=${'A-'.repeat(10)}`);
+  await expect(page.locator('.old-invite')).toHaveText(/Ask the GM for a new link/);
+  expect(await page.evaluate(() => (window as unknown as { hollow: { ready: Promise<{ role: string }> } }).hollow.ready.then(h => h.role))).toBe('old');
+  await expect(page.locator('#table')).toHaveCount(0);
 });

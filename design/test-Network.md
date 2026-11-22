@@ -6,9 +6,9 @@ and Firefox, meeting through the local relay the spec run starts (R297), driven 
 test hook. One opt-in spec meets through the public relays.
 
 ## Test: join and sync
-**Purpose:** two pages find each other, prove identities and sync both ways
+**Purpose:** two pages find each other, prove identities and sync both ways; a page speaks for the tab its `hi` named (R471)
 **Expected:**
-- the GM opens the table; the invite names the room and the GM's browser id
+- the GM opens the table; the invite names the room and the GM's browser id (22 characters, R470)
 - a player joins as Dana and syncs; each sees the other live; the GM's claims hold Dana's browser id
 - the player's Ledger is a copy (no checkpoints, no game list; only Tables joined, R458)
 - the GM drags the sticky: the player's follows to the same place
@@ -18,6 +18,10 @@ test hook. One opt-in spec meets through the public relays.
 - the GM reloads: same room; Dana leaves: gone from the GM's strip
 **Refs:** crc-Wire.md, crc-Presence.md, crc-Copy.md, seq-join.md, seq-sync.md
 **Code:** `tests/sync.spec.ts`
+**Alarm:** 23
+**Fire alarm:** let a peer in under its Trystero peer id instead of the tab its `hi` named; red: the GM's catch-up, sent to Dana's tab, never reaches her
+**Inject:** src/net/wire.ts:Wire.#hello
+**Pulled:** 2026-11-22 — rang (Chromium): keyed by its Trystero peer id, Dana's page never got the catch-up (not synced); restored clean
 
 ## Test: secrets
 **Purpose:** Eve at the table, owning nothing, hears no secret word in the clear
@@ -42,7 +46,7 @@ while the first browser now reads "not yours", and the new holder's page bars th
 **Alarm:** 17
 **Fire alarm:** take `claims` from any page, not only the GM's browser; red: the impostor's empty claims take the bar off its tag on Dana's page
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R447 (main changed): rang, the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
+**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the bar left the impostor's tag; restored clean *Earlier —* 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R447 (main changed): rang, the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
 ## Test: a page that was away can't bring back what was buried
 **Purpose:** stale copies can't resurrect
 **Input:** Dana's page leaves the room; the GM buries the big sticky (which no one had changed since
@@ -73,7 +77,7 @@ one: the GM's page has it; Ann joins later and has both; an image nobody has is 
 **Alarm:** 3
 **Fire alarm:** The GM's page doesn't watch for images: Dana's image never reaches the GM
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the GM's page never got the blue image (Chromium) *Earlier —* 2026-11-13 — rang: Dana's image never reached the GM's page (Chromium)
+**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), Dana's image never reached the GM's page; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the GM's page never got the blue image (Chromium) *Earlier —* 2026-11-13 — rang: Dana's image never reached the GM's page (Chromium)
 ## Test: rolls at the table
 **Purpose:** rolls resolve on the GM's page; each page prints what it may know
 **Expected:**
@@ -89,7 +93,7 @@ one: the GM's page has it; Ann joins later and has both; an image nobody has is 
 **Alarm:** 4
 **Fire alarm:** Don't tell Rolls when the GM's page has gone: Dana's page keeps waiting on it
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept waiting on the GM's gone page (Chromium) *Earlier —* 2026-11-13 — rang: Dana's page kept waiting on the GM's gone page instead of saying nobody can roll (Chromium)
+**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the spec timed out with Dana's page waiting on the gone GM; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept waiting on the GM's gone page (Chromium) *Earlier —* 2026-11-13 — rang: Dana's page kept waiting on the GM's gone page instead of saying nobody can roll (Chromium)
 ## Test: one carry, shown alike
 **Purpose:** R298–R301: what one page carries shows lifted on another, aimed there, and is saved only
 by the drop
@@ -243,7 +247,7 @@ by the drop
 **Alarm:** 18
 **Fire alarm:** take a `claim` from any page (drop the GM's-browser check); red: Dana's tag reads "not yours"
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean
+**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), Dana's tag read "not yours"; restored clean *Earlier —* 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean
 ## Test: a player's Ledger lists the tables joined, and deletes the others
 **Purpose:** R457, R458: a player's Ledger lists this browser's copies of joined tables; the one being played can't be armed, another goes with two shift-clicks
 **Input:** Dana joins; her browser also keeps a copy `room-old`; her Ledger opened; `room-old` shift-clicked twice
@@ -286,4 +290,13 @@ by the drop
 **Alarm:** 22
 **Fire alarm:** reload without saving the new name (drop `local('hollow.name', to)`); red: the page comes back as Dana
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-19 — rang (Chromium): the page came back as Dana; restored clean
+**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the page came back as Dana; restored clean *Earlier —* 2026-11-19 — rang (Chromium): the page came back as Dana; restored clean
+## Test: an invite from before Trystero proved ids opens no table
+**Purpose:** R473: an old invite is neither the GM's page nor a player's, and says what to do
+**Expected:** a page opened by an invite whose `gm=` is a 20-character id shows "Ask the GM for a new link", its role is `old`, and there is no table
+**Refs:** crc-Presence.md
+**Code:** `tests/sync.spec.ts`
+**Alarm:** 24
+**Fire alarm:** let an old invite fall through to the player's page; red: no message, the page tries to join a room
+**Inject:** src/main.ts:main
+**Pulled:** 2026-11-22 — rang (Chromium): falling through, no old-invite message was shown; restored clean

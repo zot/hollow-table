@@ -778,3 +778,6 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 .infotab.opinion::before { background: var(--opinion); }
 .infopaper .connhead { text-decoration: underline; font: 13px var(--mono); margin-bottom: 4px; user-select: none; }
 .poolmenu .menuhead { font: italic 11px var(--mono); color: #666; padding: 6px 8px 2px; border-top: 1px solid #ddd; margin-top: 4px; }
+
+/* R473: an invite from before Trystero proved ids. */
+.old-invite { max-width: 32em; margin: 20vh auto; padding: 0 16px; font: 600 22px/1.4 var(--hand); text-align: center; }

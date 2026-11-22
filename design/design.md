@@ -225,3 +225,4 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T49: R63 retired by R462 (a Resource feeds a used card itself, flagged for the GM (Item 14))
 - T50: R260 retired by R463 (Resources and Motivations may mix on a card, flagged for the GM (Item 14))
 - T51: R111 retired by R465 (a latecomer's empty tape is filled once from the GM's (Item 24))
+- T52: R165 retired by R470 (Trystero 0.27 proves the keys (prototype Item 48); the sealing key now travels as R471)

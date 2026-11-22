@@ -1,4 +1,4 @@
-// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169, R467, R468
+// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169, R467, R468, R472
 // On the GM's page: which browser holds which name. The first browser to claim a name holds it; a
 // page claiming a name another browser holds is nobody until the GM hands the name over. The claims
 // live in the book, saved with the game; the book is never sent, but who holds each name goes to every
@@ -6,8 +6,17 @@
 
 import { GM, OPEN, type Book, type Rec, type Yards } from '../model/records.ts';
 import type { Game, Writer } from '../model/game.ts';
+import { ID } from './identity.ts';
 
 const book = (game: Game) => game.get('book') as Book;
+
+// R472: a claim held by an id of the old shape was made before Trystero proved ids; it goes, and the
+// player claims the name again on arriving.
+/** The change that drops claims made under the old ids, or null when there are none. */
+export function oldClaims(game: Game): ((w: Writer) => void) | null {
+  const b = book(game), claims = Object.fromEntries(Object.entries(b.claims).filter(([, id]) => ID.test(id)));
+  return Object.keys(claims).length === Object.keys(b.claims).length ? null : w => w.put('book', { ...b, claims });
+}
 
 // R166, R167: first come holds it; "GM" can't be claimed.
 /** The name this browser plays as: its claim, made now if the name is free; null if it is nobody. */

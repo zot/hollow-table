@@ -300,10 +300,10 @@ function serialize(lines) {
 function plain(line) {
   return line.map((r) => typeof r === "string" ? r : r.text).join("");
 }
-function marks(lines, tag2) {
+function marks(lines, tag) {
   const out = [];
   lines.forEach((l, line) => l.forEach((r, run2) => {
-    if (typeof r !== "string" && (!tag2 || r.mark === tag2)) out.push({ line, run: run2, mark: r.mark, text: r.text });
+    if (typeof r !== "string" && (!tag || r.mark === tag)) out.push({ line, run: run2, mark: r.mark, text: r.text });
   }));
   return out;
 }
@@ -316,12 +316,12 @@ function setMark(lines, at3, text) {
   if (!r || typeof r === "string" || !fits(r.mark, text)) return lines;
   return replaceLine(lines, at3.line, lines[at3.line].map((x, k) => k === at3.run ? { mark: r.mark, text } : x));
 }
-function mark(lines, range, tag2) {
+function mark(lines, range, tag) {
   const r = lines[range.line]?.[range.run];
   if (typeof r !== "string" || range.start < 0 || range.end > r.length || range.start >= range.end) return lines;
   const text = r.slice(range.start, range.end);
-  if (!fits(tag2, text)) return lines;
-  const parts2 = [r.slice(0, range.start), { mark: tag2, text }, r.slice(range.end)].filter((x) => x !== "");
+  if (!fits(tag, text)) return lines;
+  const parts2 = [r.slice(0, range.start), { mark: tag, text }, r.slice(range.end)].filter((x) => x !== "");
   const line = lines[range.line];
   return replaceLine(lines, range.line, [...line.slice(0, range.run), ...parts2, ...line.slice(range.run + 1)]);
 }
@@ -1137,8 +1137,8 @@ function candidates(t, records3, holder, chars) {
 }
 
 // src/ui/connections.ts
-var el = (doc, tag2, cls, text) => {
-  const e = doc.createElement(tag2);
+var el = (doc, tag, cls, text) => {
+  const e = doc.createElement(tag);
   if (cls) e.className = cls;
   if (text !== void 0) e.textContent = text;
   return e;
@@ -1781,7 +1781,7 @@ function before(a, b) {
   if (a.run !== b.run) return a.run < b.run;
   return a.offset <= b.offset;
 }
-function apply(lines, a, b, tag2) {
+function apply(lines, a, b, tag) {
   const [from, to] = before(a, b) ? [a, b] : [b, a];
   for (const p of [from, to]) {
     const r2 = lines[p.line]?.[p.run];
@@ -1796,19 +1796,19 @@ function apply(lines, a, b, tag2) {
   if (from.line !== to.line || from.run !== to.run) return lines;
   const r = line[from.run];
   if (typeof r !== "string") return lines;
-  if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag2);
-  if (tag2 === "res" || tag2 === "mot") {
-    const each = entries2(r, tag2);
+  if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag);
+  if (tag === "res" || tag === "mot") {
+    const each = entries2(r, tag);
     if (each) return replaceRun(lines, from.line, from.run, each);
   }
   const start = r.length - r.trimStart().length, end = r.trimEnd().length;
-  return mark(lines, { line: from.line, run: from.run, start, end }, tag2);
+  return mark(lines, { line: from.line, run: from.run, start, end }, tag);
 }
-function entries2(run2, tag2 = "res") {
+function entries2(run2, tag = "res") {
   const parts2 = run2.split(",");
   if (!parts2.every((p) => {
     const r = influence(p);
-    return !!r?.level && (tag2 === "mot" || r.sign === 1);
+    return !!r?.level && (tag === "mot" || r.sign === 1);
   })) return null;
   const out = [];
   const plainRun = (s) => {
@@ -1821,7 +1821,7 @@ function entries2(run2, tag2 = "res") {
     if (k > 0) plainRun(",");
     const t = p.trim(), at3 = p.indexOf(t);
     plainRun(p.slice(0, at3));
-    out.push({ mark: tag2, text: t });
+    out.push({ mark: tag, text: t });
     plainRun(p.slice(at3 + t.length));
   });
   return out;
@@ -1895,11 +1895,11 @@ function tray(piece2) {
     box2.append(b);
     return b;
   });
-  function use(b, tag2) {
+  function use(b, tag) {
     const t = last;
     const ends = t && selection(t);
     if (!t || !ends) return shake2(b);
-    const lines = read(t), out = apply(lines, ends[0], ends[1], tag2);
+    const lines = read(t), out = apply(lines, ends[0], ends[1], tag);
     if (out === lines) return shake2(b);
     render(out, t);
     t.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1913,8 +1913,8 @@ function tray(piece2) {
     const t = last, ends = t && t.contains(doc.getSelection()?.anchorNode ?? null) ? selection(t) : null;
     let k = -1, div;
     if (t && ends) {
-      const line = ends[1].line, tag2 = offered(read(t), line);
-      k = pens.findIndex((p) => p.dataset.mark === tag2);
+      const line = ends[1].line, tag = offered(read(t), line);
+      k = pens.findIndex((p) => p.dataset.mark === tag);
       if (k >= 0) div = t.children[line];
     }
     pens.forEach((p, i) => p.classList.toggle("offered", i === k && !!div));
@@ -1922,8 +1922,8 @@ function tray(piece2) {
       for (const p of pens) p.style.removeProperty("--dy");
       return;
     }
-    const scale = piece2.getBoundingClientRect().height / piece2.offsetHeight || 1;
-    const at3 = (div.getBoundingClientRect().top - box2.getBoundingClientRect().top) / scale;
+    const scale2 = piece2.getBoundingClientRect().height / piece2.offsetHeight || 1;
+    const at3 = (div.getBoundingClientRect().top - box2.getBoundingClientRect().top) / scale2;
     const step = pens[1].offsetTop - pens[0].offsetTop;
     places(pens.length, k, at3, step).forEach((y, i) => pens[i].style.setProperty("--dy", `${y - pens[i].offsetTop}px`));
   }
@@ -2041,8 +2041,8 @@ function tilt(oid) {
   for (const c of oid) h = h * 31 + c.charCodeAt(0) | 0;
   return `${((h >>> 0) % 13 - 6) * 0.25}deg`;
 }
-var el2 = (doc, tag2, cls, text) => {
-  const e = doc.createElement(tag2);
+var el2 = (doc, tag, cls, text) => {
+  const e = doc.createElement(tag);
   if (cls) e.className = cls;
   if (text !== void 0) e.textContent = text;
   return e;
@@ -2758,8 +2758,8 @@ function checkPress(ev, t) {
   if (t.ownerDocument.activeElement !== t) return;
   const line = ev.target.closest("div");
   if (line?.parentElement !== t || !line.classList.contains("sklpad")) return;
-  const box2 = line.getBoundingClientRect(), scale = box2.width / line.offsetWidth || 1;
-  if (ev.clientX >= box2.left + parseFloat(getComputedStyle(line).paddingLeft) * scale) return;
+  const box2 = line.getBoundingClientRect(), scale2 = box2.width / line.offsetWidth || 1;
+  if (ev.clientX >= box2.left + parseFloat(getComputedStyle(line).paddingLeft) * scale2) return;
   const k = [...t.children].indexOf(line), lines = read(t), out = toggleCheck(lines, k);
   if (out === lines) return;
   ev.preventDefault();
@@ -2839,8 +2839,56 @@ function mayChange(viewer, before2, after) {
   return !after || mine(after);
 }
 
+// src/net/identity.ts
+var ID = /^[0-9A-Za-z]{22}$/;
+var PUB = /^[\w-]{87}$/;
+var ALG = { name: "ECDSA", namedCurve: "P-256" };
+var SIG = { name: "ECDSA", hash: "SHA-256" };
+var BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+async function userIdOf(x, y) {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`trystero:uid:v1:${x}.${y}`)));
+  let n = digest.reduce((v, b) => v << 8n | BigInt(b), 0n) % 62n ** 22n, out = "";
+  for (let i = 0; i < 22; i++) {
+    out = BASE62[Number(n % 62n)] + out;
+    n /= 62n;
+  }
+  return out;
+}
+var Identity = class _Identity {
+  id;
+  #key;
+  #jwk;
+  constructor(id, key, jwk) {
+    this.id = id;
+    this.#key = key;
+    this.#jwk = jwk;
+  }
+  // R164: made on first use and kept; a page without a database keeps it for this load only.
+  /** This browser's identity, from the `identity` store. */
+  static async load(db) {
+    const kept = db && await db.tx(["identity"], "readonly", (t) => t.get("identity", "me"));
+    const pair = kept ?? await crypto.subtle.generateKey(ALG, false, ["sign", "verify"]);
+    if (db && !kept) await db.tx(["identity"], "readwrite", (t) => t.put("identity", "me", pair));
+    const { x, y } = await crypto.subtle.exportKey("jwk", pair.publicKey);
+    return new _Identity(await userIdOf(x, y), pair.privateKey, { kty: "EC", crv: "P-256", x, y });
+  }
+  // Seq: seq-join.md#1.2 | R470: what Trystero proves this browser with; the private half stays here.
+  /** This browser's identity as Trystero takes it. */
+  trystero() {
+    return {
+      userId: this.id,
+      signPubJwk: this.#jwk,
+      sign: async (payload) => new Uint8Array(await crypto.subtle.sign(SIG, this.#key, payload))
+    };
+  }
+};
+
 // src/net/claims.ts
 var book = (game) => game.get("book");
+function oldClaims(game) {
+  const b = book(game), claims = Object.fromEntries(Object.entries(b.claims).filter(([, id]) => ID.test(id)));
+  return Object.keys(claims).length === Object.keys(b.claims).length ? null : (w) => w.put("book", { ...b, claims });
+}
 function whoIs(game, name2, browser) {
   if (!name2 || name2 === GM) return null;
   const b = book(game), held = b.claims[name2];
@@ -3616,55 +3664,6 @@ var Copy = class {
   }
 };
 
-// src/net/b64.ts
-var b64 = (u8) => btoa(String.fromCharCode(...u8)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-var unb64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
-
-// src/net/identity.ts
-var PUB = /^[\w-]{87}$/;
-var ALG = { name: "ECDSA", namedCurve: "P-256" };
-var SIG = { name: "ECDSA", hash: "SHA-256" };
-var enc = new TextEncoder();
-async function idOf(raw) {
-  return b64(new Uint8Array(await crypto.subtle.digest("SHA-256", raw))).slice(0, 20);
-}
-var statement = (nonce, peers, idPub, sealPub) => enc.encode(JSON.stringify(["hollow-table handshake", nonce, peers.from, peers.to, idPub, sealPub]));
-var Identity = class _Identity {
-  id;
-  /** The public key, as sent in the handshake. */
-  pub;
-  #key;
-  constructor(id, pub, key) {
-    this.id = id;
-    this.pub = pub;
-    this.#key = key;
-  }
-  // R164: made on first use and kept; a page without a database keeps it for this load only.
-  /** This browser's identity, from the `identity` store. */
-  static async load(db) {
-    const kept = db && await db.tx(["identity"], "readonly", (t) => t.get("identity", "me"));
-    const pair = kept ?? await crypto.subtle.generateKey(ALG, false, ["sign", "verify"]);
-    if (db && !kept) await db.tx(["identity"], "readwrite", (t) => t.put("identity", "me", pair));
-    const raw = new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey));
-    return new _Identity(await idOf(raw), b64(raw), pair.privateKey);
-  }
-  // Seq: seq-join.md#1.4
-  /** Signs their nonce, the two peer ids, and this page's identity and sealing keys. */
-  async prove(theirNonce, peers, sealPub) {
-    const sig = await crypto.subtle.sign(SIG, this.#key, statement(theirNonce, peers, this.pub, sealPub));
-    return b64(new Uint8Array(sig));
-  }
-};
-async function verify(sig, ourNonce, peers, idPub, sealPub) {
-  if (typeof sig !== "string" || sig.length > 200 || typeof idPub !== "string" || !PUB.test(idPub) || typeof sealPub !== "string" || !PUB.test(sealPub)) return null;
-  try {
-    const raw = unb64(idPub), key = await crypto.subtle.importKey("raw", raw, ALG, false, ["verify"]);
-    return await crypto.subtle.verify(SIG, key, unb64(sig), statement(ourNonce, peers, idPub, sealPub)) ? await idOf(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
 // src/net/images.ts
 var RETRY_MS = 1e4;
 var NOBODY = "Nobody at the table has sent this image yet (the page that has it may be closed); trying again";
@@ -3886,10 +3885,12 @@ function invite(base, room2, gm) {
   return u.toString();
 }
 var ROOM2 = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/;
-var BROWSER = /^[\w-]{20}$/;
+var OLD = /^[\w-]{20}$/;
 function fromUrl(search) {
   const q = new URLSearchParams(search), room2 = q.get("room"), gm = q.get("gm");
-  return room2 && gm && ROOM2.test(room2) && BROWSER.test(gm) ? { room: room2, gm } : null;
+  if (!room2 || !gm || !ROOM2.test(room2)) return null;
+  if (ID.test(gm)) return { room: room2, gm };
+  return OLD.test(gm) ? "old" : null;
 }
 var Presence = class {
   /** tab → who is there. */
@@ -4667,11 +4668,15 @@ var Rolls = class {
   }
 };
 
+// src/net/b64.ts
+var b64 = (u8) => btoa(String.fromCharCode(...u8)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+var unb64 = (s) => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+
 // src/net/seal.ts
 var ECDH = { name: "ECDH", namedCurve: "P-256" };
-var enc2 = new TextEncoder();
+var enc = new TextEncoder();
 var dec = new TextDecoder();
-var ad = (what, from, to) => enc2.encode(`${what}:${from}>${to}`);
+var ad = (what, from, to) => enc.encode(`${what}:${from}>${to}`);
 var Sealer = class _Sealer {
   /** This page's sealing key, sent in the handshake. */
   pub;
@@ -4705,7 +4710,7 @@ var Sealer = class _Sealer {
     const data = await crypto.subtle.encrypt(
       { name: "AES-GCM", iv, additionalData: ad(what, from, to) },
       await this.#with(theirs),
-      enc2.encode(JSON.stringify(value2))
+      enc.encode(JSON.stringify(value2))
     );
     return { iv: b64(iv), data: b64(new Uint8Array(data)) };
   }
@@ -4776,6 +4781,8760 @@ var Stamps = class {
     if (s > (m.get(p) ?? 0)) m.set(p, s);
   }
 };
+
+// node_modules/@trystero-p2p/core/dist/primitives.mjs
+var encoder = /* @__PURE__ */ new TextEncoder();
+var decoder = /* @__PURE__ */ new TextDecoder();
+var libName = "Trystero";
+var libId = "trystero";
+var domainTag = (name2, version) => `${libId}:${name2}:v${version}`;
+var socketInitialFailureSymbol = /* @__PURE__ */ Symbol.for(`${libId}.socketInitialFailure`);
+var pluginSlotSymbol = /* @__PURE__ */ Symbol.for(`${libId}.slot`);
+var mkErr = (msg) => /* @__PURE__ */ new Error(`${libName}: ${msg}`);
+var unreachable = (x) => {
+  throw mkErr(x);
+};
+var toJson = JSON.stringify;
+var fromJson = (s) => {
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw mkErr(`failed to parse JSON (${s.length} bytes)`);
+  }
+};
+var encodeBytes = (txt) => encoder.encode(txt);
+var encodeBytesInto = (txt, dest) => encoder.encodeInto(txt, dest);
+var utf8ByteLength = (txt) => {
+  let bytes = 0;
+  for (let i = 0; i < txt.length; i++) {
+    const code = txt.charCodeAt(i);
+    if (code < 128) bytes += 1;
+    else if (code < 2048) bytes += 2;
+    else if (code >= 55296 && code <= 56319 && i + 1 < txt.length && (txt.charCodeAt(i + 1) & 64512) === 56320) {
+      bytes += 4;
+      i++;
+    } else bytes += 3;
+  }
+  return bytes;
+};
+var decodeBytes = (buf) => decoder.decode(buf);
+var b64UrlEncodeOpts = {
+  alphabet: "base64url",
+  omitPadding: true
+};
+var b64UrlDecodeOpts = { alphabet: "base64url" };
+var nativeToBase64 = Uint8Array.prototype.toBase64;
+var nativeFromBase64 = Uint8Array.fromBase64;
+var toBase64Url = typeof nativeToBase64 === "function" ? (bytes) => nativeToBase64.call(bytes, b64UrlEncodeOpts) : (bytes) => {
+  let bin = "";
+  for (let i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+var fromBase64Url = typeof nativeFromBase64 === "function" ? (b64url) => nativeFromBase64(b64url, b64UrlDecodeOpts) : (b64url) => {
+  const padded = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(padded + "=".repeat((4 - padded.length % 4) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+};
+var base62Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+var base64UrlRe = /^[A-Za-z0-9_-]+$/;
+var bytesToBigInt = (bytes) => {
+  let res = 0n;
+  for (const b of bytes) res = res << 8n | BigInt(b);
+  return res;
+};
+var bytesMatch = (a, b) => {
+  if (a.byteLength !== b.byteLength) return false;
+  for (let i = 0; i < a.byteLength; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
+var hash32 = (str2) => {
+  const bytes = encodeBytes(str2);
+  let h = 2166136261;
+  for (let i = 0; i < bytes.byteLength; i++) h = Math.imul(h ^ bytes[i], 16777619);
+  h ^= h >>> 16;
+  h = Math.imul(h, 2246822507);
+  h ^= h >>> 13;
+  h = Math.imul(h, 3266489909);
+  return (h ^ h >>> 16) >>> 0;
+};
+var createBoundedCache = (maxSize = 4096) => {
+  const map = /* @__PURE__ */ new Map();
+  return {
+    get size() {
+      return map.size;
+    },
+    get: (key) => {
+      if (!map.has(key)) return;
+      const value2 = map.get(key);
+      map.delete(key);
+      map.set(key, value2);
+      return value2;
+    },
+    has: (key) => map.has(key),
+    set: (key, value2) => {
+      if (map.has(key)) map.delete(key);
+      else if (map.size >= maxSize) {
+        const oldest = map.keys().next().value;
+        if (oldest !== void 0) map.delete(oldest);
+      }
+      map.set(key, value2);
+    },
+    delete: (key) => map.delete(key),
+    clear: () => map.clear(),
+    keys: () => [...map.keys()],
+    entries: () => [...map.entries()]
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/emitter.mjs
+var noOp = () => {
+};
+var logHandlerErr = (kind, err) => console.error(`${libName} ${kind} error:`, err);
+var createEventEmitter = (kind, onActiveChange) => {
+  const subs = /* @__PURE__ */ new Set();
+  let clearEpoch = 0;
+  const invoke = (handler, args) => {
+    try {
+      const res = handler(...args);
+      if (res && typeof res.then === "function") Promise.resolve(res).catch((err) => logHandlerErr(kind, err));
+    } catch (err) {
+      logHandlerErr(kind, err);
+    }
+  };
+  return [
+    (handler, options, getReplayItems) => {
+      if (typeof handler !== "function") throw mkErr(`${kind.endsWith("handler") ? kind : `${kind} handler`} must be a function`);
+      const signal = options?.signal;
+      if (signal?.aborted) return noOp;
+      const once = Boolean(options?.once);
+      const abortCleanup = signal ? new AbortController() : null;
+      let state;
+      const unsub = () => {
+        switch (state.phase) {
+          case "closed":
+            return;
+          case "replaying": {
+            const cleanup = state.abortCleanup;
+            state = { phase: "closed" };
+            cleanup?.abort();
+            return;
+          }
+          case "live": {
+            const { entry: liveEntry, abortCleanup: cleanup } = state;
+            state = { phase: "closed" };
+            cleanup?.abort();
+            if (subs.delete(liveEntry) && subs.size === 0) onActiveChange?.(false);
+            return;
+          }
+          default:
+            unreachable(state);
+        }
+      };
+      const entry = [(...args) => {
+        if (state.phase !== "live") return;
+        if (once) unsub();
+        invoke(handler, args);
+      }, unsub];
+      const activateAfterReplay = () => {
+        switch (state.phase) {
+          case "replaying": {
+            if (state.epoch !== clearEpoch) {
+              unsub();
+              return;
+            }
+            const wasEmpty = subs.size === 0;
+            state = {
+              phase: "live",
+              entry,
+              abortCleanup: state.abortCleanup
+            };
+            subs.add(entry);
+            if (wasEmpty) onActiveChange?.(true);
+            return;
+          }
+          case "live":
+          case "closed":
+            return;
+          default:
+            unreachable(state);
+        }
+      };
+      state = {
+        phase: "replaying",
+        epoch: clearEpoch,
+        abortCleanup
+      };
+      if (abortCleanup && signal) signal.addEventListener("abort", unsub, {
+        once: true,
+        signal: abortCleanup.signal
+      });
+      if (options?.replay && getReplayItems) {
+        const currentPhase = () => state;
+        for (const item2 of getReplayItems()) {
+          const cur = currentPhase();
+          if (cur.phase !== "replaying" || cur.epoch !== clearEpoch) {
+            unsub();
+            break;
+          }
+          if (once) unsub();
+          invoke(handler, item2);
+        }
+      }
+      activateAfterReplay();
+      return unsub;
+    },
+    (...args) => {
+      for (const sub of Array.from(subs)) sub[0](...args);
+    },
+    () => {
+      clearEpoch++;
+      for (const sub of Array.from(subs)) sub[1]();
+    },
+    () => subs.size > 0
+  ];
+};
+var initSingleHandler = (name2, onChange) => {
+  let current = null;
+  return [
+    (handler, options) => {
+      if (typeof handler !== "function") throw mkErr(`${name2} handler must be a function`);
+      const signal = options?.signal;
+      if (signal?.aborted) return noOp;
+      if (current) throw mkErr(`${name2} handler already registered; unsubscribe first`);
+      const once = Boolean(options?.once);
+      const abortCleanup = signal ? new AbortController() : null;
+      let active = true;
+      const unsub = () => {
+        if (!active) return;
+        active = false;
+        abortCleanup?.abort();
+        if (current?.[1] === unsub) {
+          current = null;
+          onChange?.(null);
+        }
+      };
+      const call = ((...args) => {
+        if (!active) return;
+        if (once) unsub();
+        return handler(...args);
+      });
+      current = [call, unsub];
+      if (abortCleanup && signal) signal.addEventListener("abort", unsub, {
+        once: true,
+        signal: abortCleanup.signal
+      });
+      onChange?.(call);
+      return unsub;
+    },
+    () => current?.[0] ?? null,
+    () => current?.[1]()
+  ];
+};
+
+// node_modules/@trystero-p2p/core/dist/utils.mjs
+var lockMethods = (target, methodNames) => {
+  for (const name2 of methodNames) {
+    const fn = target[name2];
+    Object.defineProperty(target, name2, {
+      get: () => fn,
+      set: () => {
+        throw new TypeError(`${libName}: ${name2} is a method; call ${name2}(handler), which returns an unsubscribe function`);
+      },
+      enumerable: true,
+      configurable: true
+    });
+  }
+  return target;
+};
+var authMetaKey = `__${libId}Auth`;
+var cmpStr = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+var warn = (msg) => console.warn(`${libName}: ${msg}`);
+var warnNoPeer = (id) => warn(`no peer with id ${id} found`);
+var warnEphemeralAdmin = () => warn("roles({selfAsAdmin: true}) with an ephemeral identity orphans the room on close; use identity: 'local' or an imported UserIdentity");
+var logErr = (kind, err) => console.error(`${libName} ${kind} error:`, err);
+var logActionHandlerErr = (err) => logErr("action handler", err);
+var peerDisconnectedMsg = "peer disconnected";
+var peerDisconnectedErr = /* @__PURE__ */ mkErr(peerDisconnectedMsg);
+var peerBannedMsg = "peer banned";
+var peerBannedErr = /* @__PURE__ */ mkErr(peerBannedMsg);
+var mkBannedErr = (reason, peerId) => ({
+  code: "banned",
+  message: reason ? `${peerBannedMsg}: ${reason}` : peerBannedMsg,
+  ...reason !== void 0 ? { reason } : {},
+  ...peerId ? { peerId } : {}
+});
+var peerLeftRoomErr = /* @__PURE__ */ mkErr("peer left room");
+var roomLeftErr = /* @__PURE__ */ mkErr("room left");
+var roomFullMsg = "room full";
+var roomFullErr = /* @__PURE__ */ mkErr(roomFullMsg);
+var operationAbortedMsg = "operation aborted";
+var insufficientAuthPrefix = "insufficient authority";
+var invalidP256KeyErr = /* @__PURE__ */ mkErr("invalid ECDSA P-256 public key");
+var posSafeIntErr = (name2) => mkErr(`${name2} must be a positive safe integer`);
+var requiresRolesErr = (feature) => mkErr(`${feature} requires roles() in joinRoom config`);
+var selfCertRoomRolesErr = /* @__PURE__ */ requiresRolesErr("self-certifying room ID");
+var actionRedefinedErr = (type) => mkErr(`action type "${type}" cannot be redefined`);
+var invalidActionMsg = (what) => `invalid action ${what}`;
+var noActivePeerMsg = (id) => `no active peer with id ${id}`;
+var requiredErr = (field2) => mkErr(`${field2} is required`);
+var { floor } = Math;
+var alloc = (n, f) => Array(n).fill(void 0).map(f);
+var base62UnbiasedLimit = 248;
+var genId = (n) => {
+  if (n <= 0) return "";
+  const buf = new Uint8Array(Math.ceil(n * 1.15) + 4);
+  let out = "";
+  while (out.length < n) {
+    crypto.getRandomValues(buf);
+    for (let i = 0; i < buf.byteLength && out.length < n; i++) {
+      const b = buf[i];
+      if (b < base62UnbiasedLimit) out += base62Alphabet[b % 62];
+    }
+  }
+  return out;
+};
+var all = /* @__PURE__ */ Promise.all.bind(Promise);
+var isBrowser = typeof window !== "undefined";
+var entries3 = Object.entries;
+var fromEntries = Object.fromEntries;
+var keys = Object.keys;
+var values = Object.values;
+var noOp2 = () => {
+};
+var candidateType = "candidate";
+var resetTimer = (timer) => {
+  if (timer !== null && timer !== void 0) clearTimeout(timer);
+  return null;
+};
+var unrefTimer = (t) => {
+  t?.unref?.();
+};
+var toErrorMessage = (reason, fallback) => {
+  if (reason instanceof Error && reason.message) return reason.message;
+  if (typeof reason === "string" && reason) return reason;
+  return toJson(reason ?? fallback);
+};
+var toError = (reason, fallback) => reason instanceof Error ? reason : mkErr(toErrorMessage(reason, fallback));
+var topicPath = (...parts2) => toJson(parts2);
+var shuffle = (xs, seed2) => {
+  const a = [...xs];
+  let state = (Math.trunc(seed2) || 1) >>> 0;
+  const rand = () => {
+    state = state + 1831565813 >>> 0;
+    let t = Math.imul(state ^ state >>> 15, 1 | state);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+  let i = a.length;
+  while (i) {
+    const j = floor(rand() * i--);
+    const tmp = a[i];
+    a[i] = a[j];
+    a[j] = tmp;
+  }
+  return a;
+};
+var strToNum = (str2, limit = Number.MAX_SAFE_INTEGER) => hash32(str2) % limit;
+var protocolViolations = /* @__PURE__ */ new WeakSet();
+var markProtocolViolation = (err) => {
+  protocolViolations.add(err);
+  return err;
+};
+var mkViolationErr = (msg) => markProtocolViolation(mkErr(msg));
+var userIdRegex = /* @__PURE__ */ new RegExp(`^[0-9A-Za-z]{${22}}$`);
+var selfCertifyingRoomRegex = /* @__PURE__ */ new RegExp(`^(.+)~([0-9A-Za-z]{${22}})$`);
+var splitSelfCertRoom = (roomId) => {
+  const match = selfCertifyingRoomRegex.exec(roomId);
+  return match?.[1] && match[2] ? [match[1], match[2]] : [roomId, null];
+};
+var formatSelfCertifyingRoomId = (base, userId) => `${splitSelfCertRoom(base)[0]}~${userId}`;
+var toPayloadSource = (data) => {
+  if (typeof Blob !== "undefined" && data instanceof Blob) return [2, data];
+  if (data instanceof ArrayBuffer || ArrayBuffer.isView(data)) return [2, data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength)];
+  const isText = typeof data === "string";
+  return [isText ? 0 : 1, encodeBytes(isText ? data : toJson(data))];
+};
+var hasIceUrl = (servers, pattern) => servers.some(({ urls }) => [urls].flat().some((url) => pattern.test(url)));
+var isObj = (v) => Boolean(v && typeof v === "object" && !Array.isArray(v));
+var isStr = (v) => typeof v === "string" && v.length > 0;
+var isPosSafeInt = (n) => typeof n === "number" && Number.isSafeInteger(n) && n > 0;
+var isValidSig = (s) => typeof s === "string" && s.length >= 64 && s.length <= 128;
+var validateRoleCertificateShape = (c) => isObj(c) && c["v"] === 1 && isStr(c["certId"]) && isStr(c["issuerPubKey"]) && isStr(c["subUserId"]) && isStr(c["appId"]) && isStr(c["roomId"]) && Array.isArray(c["roles"]) && c["roles"].length > 0 && c["roles"].every(isStr) && isPosSafeInt(c["seq"]) && isPosSafeInt(c["iat"]) && isValidSig(c["sig"]);
+var createWindowCounter = (maxEntries, limit, windowMs = 3e4) => {
+  const map = createBoundedCache(maxEntries);
+  return [
+    (id) => {
+      const now2 = Date.now();
+      let cur = map.get(id);
+      if (!cur || now2 - cur[1] > windowMs) {
+        cur = [0, now2];
+        map.set(id, cur);
+      }
+      return ++cur[0] >= limit;
+    },
+    (id) => {
+      map.delete(id);
+    },
+    (id) => {
+      const cur = map.get(id);
+      return Boolean(cur && Date.now() - cur[1] <= windowMs && cur[0] >= limit);
+    }
+  ];
+};
+
+// node_modules/@trystero-p2p/core/dist/anti-entropy.mjs
+var defaultFanout = 2;
+var defaultPullTimeoutMs = 1500;
+var defaultPeriodicIntervalMs = 15e3;
+var defaultMaxPages = 32;
+var timeoutCooldownMs = 1e4;
+var isValidSyncCursor = (c) => c === void 0 || typeof c === "string" && c.length <= 512;
+var hashWithSeed = (value2, seed2) => {
+  let h = (2166136261 ^ seed2) >>> 0;
+  for (let i = 0; i < value2.length; i++) {
+    h ^= value2.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h;
+};
+var occupiesFanoutSlot = (state) => state.phase === "in-flight" || state.phase === "completed";
+var createAntiEntropySync = ({ fanout = defaultFanout, pullTimeoutMs = defaultPullTimeoutMs, periodicIntervalMs = defaultPeriodicIntervalMs, maxPages = defaultMaxPages, canSync = () => true, getDirectPeers, isPeerSendable, sendPull }) => {
+  const seed2 = crypto.getRandomValues(/* @__PURE__ */ new Uint32Array(1))[0];
+  const peerStates = /* @__PURE__ */ new Map();
+  let schedulerPhase = "active";
+  let periodicCursor = 0;
+  const countCompleted = () => {
+    let count = 0;
+    for (const state of peerStates.values()) if (state.phase === "completed") count++;
+    return count;
+  };
+  const countActiveOrCompleted = () => {
+    let count = 0;
+    for (const state of peerStates.values()) if (occupiesFanoutSlot(state)) count++;
+    return count;
+  };
+  const hasInFlight = () => {
+    for (const state of peerStates.values()) if (state.phase === "in-flight") return true;
+    return false;
+  };
+  const clearPeerState = (peerId) => {
+    const cur = peerStates.get(peerId);
+    if (!cur) return;
+    switch (cur.phase) {
+      case "in-flight":
+        resetTimer(cur.timer);
+        peerStates.delete(peerId);
+        return;
+      case "completed":
+      case "cooldown":
+        peerStates.delete(peerId);
+        return;
+      default:
+        unreachable(cur);
+    }
+  };
+  const isCoolingDown = (peerId, now2) => {
+    const cur = peerStates.get(peerId);
+    if (cur?.phase !== "cooldown") return false;
+    if (now2 >= cur.until) {
+      peerStates.delete(peerId);
+      return false;
+    }
+    return true;
+  };
+  const selectRankedPeers = (skipCooldown = true) => {
+    const now2 = Date.now();
+    return getDirectPeers().filter((id) => isPeerSendable(id) && (!skipCooldown || !isCoolingDown(id, now2))).map((id) => [id, hashWithSeed(id, seed2)]).sort((a, b) => a[1] - b[1] || cmpStr(a[0], b[0])).map(([id]) => id);
+  };
+  const transitionFailedPull = (peerId, pullId) => {
+    const cur = peerStates.get(peerId);
+    if (schedulerPhase === "closed" || cur?.phase !== "in-flight" || cur.pullId !== pullId) return;
+    resetTimer(cur.timer);
+    if (isPeerSendable(peerId)) peerStates.set(peerId, {
+      phase: "cooldown",
+      until: Date.now() + timeoutCooldownMs
+    });
+    else peerStates.delete(peerId);
+    if (countCompleted() < fanout) fillFanout();
+  };
+  const makePullTimer = (peerId, pullId) => {
+    const timer = setTimeout(() => transitionFailedPull(peerId, pullId), pullTimeoutMs);
+    unrefTimer(timer);
+    return timer;
+  };
+  const startPull = (peerId, cursor, pages2 = 0, preserveStaleDigest = false) => {
+    if (schedulerPhase === "closed" || !canSync() || pages2 >= maxPages || !isPeerSendable(peerId)) {
+      clearPeerState(peerId);
+      return false;
+    }
+    const prev2 = peerStates.get(peerId);
+    if (prev2?.phase === "in-flight") resetTimer(prev2.timer);
+    const pullId = /* @__PURE__ */ Symbol();
+    const timer = makePullTimer(peerId, pullId);
+    peerStates.set(peerId, {
+      phase: "in-flight",
+      pullId,
+      timer,
+      pages: pages2 + 1,
+      staleDigest: preserveStaleDigest
+    });
+    Promise.resolve().then(() => sendPull(peerId, cursor)).catch(() => transitionFailedPull(peerId, pullId));
+    return true;
+  };
+  const fillFanout = () => {
+    if (schedulerPhase === "closed" || !canSync()) return;
+    let activeOrCompleted = countActiveOrCompleted();
+    for (const candidate of selectRankedPeers()) {
+      if (activeOrCompleted >= fanout) break;
+      if (!peerStates.has(candidate) && startPull(candidate)) activeOrCompleted++;
+    }
+  };
+  const pullPeer = (peerId, force = false) => {
+    if (schedulerPhase === "closed" || !canSync()) return;
+    const cur = peerStates.get(peerId);
+    if (!cur) {
+      startPull(peerId);
+      return;
+    }
+    switch (cur.phase) {
+      case "in-flight":
+        if (force && !cur.staleDigest) peerStates.set(peerId, {
+          ...cur,
+          staleDigest: true
+        });
+        return;
+      case "completed":
+        if (force) startPull(peerId);
+        return;
+      case "cooldown":
+        startPull(peerId);
+        return;
+      default:
+        unreachable(cur);
+    }
+  };
+  const onSyncPage = (fromPeerId, nextCursor) => {
+    const cur = peerStates.get(fromPeerId);
+    if (schedulerPhase === "closed" || cur?.phase !== "in-flight") return;
+    if (nextCursor && cur.pages < maxPages) {
+      startPull(fromPeerId, nextCursor, cur.pages, cur.staleDigest);
+      return;
+    }
+    resetTimer(cur.timer);
+    if (cur.staleDigest) {
+      peerStates.delete(fromPeerId);
+      startPull(fromPeerId);
+      return;
+    }
+    peerStates.set(fromPeerId, { phase: "completed" });
+  };
+  const onPeerJoined = (peerId, forcePull = false) => {
+    if (schedulerPhase === "closed") return;
+    const cur = peerStates.get(peerId);
+    if (cur?.phase === "in-flight") {
+      if (!cur.staleDigest) peerStates.set(peerId, {
+        ...cur,
+        staleDigest: true
+      });
+    } else peerStates.delete(peerId);
+    if (forcePull) pullPeer(peerId, true);
+    fillFanout();
+  };
+  const onPeerDisconnected = (peerId) => {
+    clearPeerState(peerId);
+    if (schedulerPhase !== "closed" && countCompleted() < fanout) fillFanout();
+  };
+  const scheduleRepull = () => {
+    if (schedulerPhase !== "active" || getDirectPeers().length === 0) return;
+    schedulerPhase = "repull-queued";
+    queueMicrotask(() => {
+      if (schedulerPhase !== "repull-queued") return;
+      schedulerPhase = "active";
+      if (!canSync()) return;
+      for (const [pid, state] of peerStates) switch (state.phase) {
+        case "completed":
+          peerStates.delete(pid);
+          break;
+        case "in-flight":
+          if (!state.staleDigest) peerStates.set(pid, {
+            ...state,
+            staleDigest: true
+          });
+          break;
+        case "cooldown":
+          break;
+        default:
+          unreachable(state);
+      }
+      fillFanout();
+    });
+  };
+  const periodicTimer = periodicIntervalMs > 0 ? setInterval(() => {
+    if (schedulerPhase === "closed" || !canSync() || hasInFlight()) return;
+    let ranked = selectRankedPeers();
+    if (ranked.length === 0) ranked = selectRankedPeers(false);
+    if (ranked.length === 0) return;
+    const pick = ranked[periodicCursor++ % ranked.length];
+    startPull(pick);
+  }, periodicIntervalMs) : void 0;
+  unrefTimer(periodicTimer);
+  const destroy = () => {
+    schedulerPhase = "closed";
+    if (periodicTimer !== void 0) clearInterval(periodicTimer);
+    for (const state of peerStates.values()) if (state.phase === "in-flight") resetTimer(state.timer);
+    peerStates.clear();
+  };
+  return {
+    pullPeer,
+    onSyncPage,
+    onPeerJoined,
+    onPeerDisconnected,
+    scheduleRepull,
+    isPullInFlight: (peerId) => peerStates.get(peerId)?.phase === "in-flight",
+    destroy
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/crypto.mjs
+var ecdsaKeyAlgo = {
+  name: "ECDSA",
+  namedCurve: "P-256"
+};
+var ecdsaSignAlgo = {
+  name: "ECDSA",
+  hash: "SHA-256"
+};
+var algo = "AES-GCM";
+var gcmIvBytes = 12;
+var hmacAlgo = "HMAC";
+var pbkdf2Iterations = 6e5;
+var emptyHkdfSalt = /* @__PURE__ */ new Uint8Array(32);
+var roomAesInfo = /* @__PURE__ */ encodeBytes(domainTag("room-aes", 3));
+var roomHmacInfo = /* @__PURE__ */ encodeBytes(domainTag("room-hmac", 3));
+var topicHashCache = /* @__PURE__ */ createBoundedCache(4096);
+var derivedRoomKeysCache = /* @__PURE__ */ createBoundedCache(64);
+var p256N = 115792089210356248762697446949407573529996955224135760342422259061068512044369n;
+var p256HalfN = p256N >> 1n;
+var normalizeLowSP256Signature = (sig) => {
+  if (sig.byteLength !== 64) return sig;
+  const s = bytesToBigInt(sig.subarray(32, 64));
+  if (s <= p256HalfN) return sig;
+  const out = sig.slice();
+  let lowS = p256N - s;
+  for (let i = 63; i >= 32; i--) {
+    out[i] = Number(lowS & 255n);
+    lowS >>= 8n;
+  }
+  return out;
+};
+var isLowSP256Signature = (sig) => {
+  if (sig.byteLength !== 64) return false;
+  const r = bytesToBigInt(sig.subarray(0, 32));
+  const s = bytesToBigInt(sig.subarray(32, 64));
+  return r > 0n && r < p256N && s > 0n && s <= p256HalfN;
+};
+var sha256 = async (input) => new Uint8Array(await crypto.subtle.digest("SHA-256", typeof input === "string" ? encodeBytes(input) : input));
+var ecdsaSign = async (privateKey, data) => normalizeLowSP256Signature(new Uint8Array(await crypto.subtle.sign(ecdsaSignAlgo, privateKey, data)));
+var ecdsaVerify = (publicKey, sig, data) => crypto.subtle.verify(ecdsaSignAlgo, publicKey, sig, data);
+var hashTopic = async (str2) => {
+  const cached = topicHashCache.get(str2);
+  if (cached !== void 0) return cached;
+  const digest = toBase64Url(await sha256(str2));
+  topicHashCache.set(str2, digest);
+  return digest;
+};
+var derivePasswordRoomKeys = (secret, appId, roomId) => {
+  const cacheKey = toJson([
+    secret,
+    appId,
+    roomId
+  ]);
+  const existing = derivedRoomKeysCache.get(cacheKey);
+  if (existing) return existing;
+  const deriveP = (async () => {
+    const [baseKey, salt] = await Promise.all([crypto.subtle.importKey("raw", encodeBytes(secret), "PBKDF2", false, ["deriveBits"]), sha256(toJson([
+      domainTag("pbkdf2-master", 3),
+      appId,
+      roomId
+    ]))]);
+    const masterBits = new Uint8Array(await crypto.subtle.deriveBits({
+      name: "PBKDF2",
+      salt,
+      iterations: pbkdf2Iterations,
+      hash: "SHA-256"
+    }, baseKey, 256));
+    try {
+      const hkdfKey = await crypto.subtle.importKey("raw", masterBits, "HKDF", false, ["deriveKey"]);
+      const [aesKey, hmacKey] = await Promise.all([crypto.subtle.deriveKey({
+        name: "HKDF",
+        hash: "SHA-256",
+        salt: emptyHkdfSalt,
+        info: roomAesInfo
+      }, hkdfKey, {
+        name: algo,
+        length: 256
+      }, false, ["encrypt", "decrypt"]), crypto.subtle.deriveKey({
+        name: "HKDF",
+        hash: "SHA-256",
+        salt: emptyHkdfSalt,
+        info: roomHmacInfo
+      }, hkdfKey, {
+        name: hmacAlgo,
+        hash: "SHA-256",
+        length: 256
+      }, false, ["sign", "verify"])]);
+      return {
+        aesKey,
+        hmacKey
+      };
+    } finally {
+      masterBits.fill(0);
+    }
+  })();
+  deriveP.catch(() => {
+    derivedRoomKeysCache.delete(cacheKey);
+  });
+  derivedRoomKeysCache.set(cacheKey, deriveP);
+  return deriveP;
+};
+var genKey = async (secret, appId, roomId) => {
+  if (!secret) {
+    const aesRaw = await sha256(toJson([
+      domainTag("room-aes", 3),
+      appId,
+      roomId
+    ]));
+    return crypto.subtle.importKey("raw", aesRaw, { name: algo }, false, ["encrypt", "decrypt"]);
+  }
+  return (await derivePasswordRoomKeys(secret, appId, roomId)).aesKey;
+};
+var gcmParams = (iv, aad) => aad === void 0 ? {
+  name: algo,
+  iv
+} : {
+  name: algo,
+  iv,
+  additionalData: encodeBytes(aad)
+};
+var encrypt = async (keyP, plaintext, aad) => {
+  const iv = crypto.getRandomValues(new Uint8Array(gcmIvBytes));
+  const ct = new Uint8Array(await crypto.subtle.encrypt(gcmParams(iv, aad), await keyP, encodeBytes(plaintext)));
+  const packed = new Uint8Array(gcmIvBytes + ct.byteLength);
+  packed.set(iv, 0);
+  packed.set(ct, gcmIvBytes);
+  return toBase64Url(packed);
+};
+var decrypt = async (keyP, raw, aad) => {
+  if (typeof raw !== "string" || !base64UrlRe.test(raw)) throw mkErr("invalid ciphertext");
+  const packed = fromBase64Url(raw);
+  if (packed.byteLength < 28 || toBase64Url(packed) !== raw) throw mkErr("invalid ciphertext");
+  return decodeBytes(await crypto.subtle.decrypt(gcmParams(packed.subarray(0, gcmIvBytes), aad), await keyP, packed.subarray(gcmIvBytes)));
+};
+
+// node_modules/@trystero-p2p/core/dist/identity-idb.mjs
+var lockPrefix = `${libId}:user_identity:v1:`;
+var idbDbName = `${libId}_identity_v1`;
+var idbStoreName = "identities";
+var idbErr = (op) => mkErr(`IndexedDB ${op} failed`);
+var idbProbeBytes = /* @__PURE__ */ encodeBytes(domainTag("idb-key-probe", 1));
+var buildUserIdentityFromIdbRecord = (rec) => ({
+  userId: rec.userId,
+  signPubJwk: rec.signPubJwk,
+  sign: (payload) => ecdsaSign(rec.privateKey, payload)
+});
+var openIdentityDb = () => new Promise((resolve3, reject) => {
+  const req = indexedDB.open(idbDbName, 1);
+  req.onupgradeneeded = () => {
+    const db = req.result;
+    if (!db.objectStoreNames.contains(idbStoreName)) db.createObjectStore(idbStoreName);
+  };
+  req.onsuccess = () => resolve3(req.result);
+  req.onerror = () => reject(req.error ?? idbErr("open"));
+});
+var idbGetRecord = (db, appId) => new Promise((resolve3, reject) => {
+  const req = db.transaction(idbStoreName, "readonly").objectStore(idbStoreName).get(appId);
+  req.onsuccess = () => resolve3(req.result);
+  req.onerror = () => reject(req.error ?? idbErr("get"));
+});
+var idbWriteTx = (db, run2, op) => new Promise((resolve3, reject) => {
+  const tx = db.transaction(idbStoreName, "readwrite");
+  let state;
+  const stageResult = (value2) => {
+    switch (state.phase) {
+      case "pending":
+      case "staged":
+        state = {
+          phase: "staged",
+          value: value2
+        };
+        return;
+      case "done":
+        return;
+      default:
+        unreachable(state);
+    }
+  };
+  const fail = (err) => {
+    switch (state.phase) {
+      case "pending":
+      case "staged":
+        state = { phase: "done" };
+        reject(err instanceof Error ? err : tx.error ?? idbErr(op));
+        return;
+      case "done":
+        return;
+      default:
+        unreachable(state);
+    }
+  };
+  state = { phase: "pending" };
+  tx.oncomplete = () => {
+    switch (state.phase) {
+      case "staged": {
+        const { value: value2 } = state;
+        state = { phase: "done" };
+        resolve3(value2);
+        return;
+      }
+      case "pending":
+        state = { phase: "done" };
+        reject(idbErr(op));
+        return;
+      case "done":
+        return;
+      default:
+        unreachable(state);
+    }
+  };
+  tx.onabort = () => fail(tx.error);
+  tx.onerror = (event) => fail(event?.target?.error ?? tx.error);
+  try {
+    run2(tx.objectStore(idbStoreName), stageResult);
+  } catch (err) {
+    fail(err);
+  }
+});
+var idbPutRecord = (db, appId, candidate) => idbWriteTx(db, (store, setResult) => {
+  setResult(candidate);
+  store.put(candidate, appId);
+}, "put");
+var checkThenAddIdbRecord = (db, idbKey, candidate) => idbWriteTx(db, (store, setResult) => {
+  const getReq = store.get(idbKey);
+  getReq.onsuccess = () => {
+    const found = getReq.result;
+    if (found !== void 0) {
+      setResult([found, true]);
+      return;
+    }
+    setResult([candidate, false]);
+    store.add(candidate, idbKey);
+  };
+}, "add");
+var isValidStoredIdbRecord = async (rec, verifyUserIdKey2, verifyWithP2562) => {
+  if (!rec || typeof rec !== "object" || !rec.userId || !rec.signPubJwk || !rec.privateKey || !await verifyUserIdKey2(rec.userId, rec.signPubJwk)) return false;
+  try {
+    return await verifyWithP2562(await ecdsaSign(rec.privateKey, idbProbeBytes), idbProbeBytes, rec.signPubJwk);
+  } catch {
+    return false;
+  }
+};
+var withNavigatorLock = async (appId, fn) => {
+  const lockName = `${lockPrefix}${appId}`;
+  const run2 = async () => {
+    const db = await openIdentityDb();
+    try {
+      return await fn(db);
+    } finally {
+      db.close();
+    }
+  };
+  const locks = typeof navigator !== "undefined" ? navigator.locks : void 0;
+  return typeof locks?.request === "function" ? locks.request(lockName, run2) : run2();
+};
+var loadOrCreateIdbIdentity = (idbKey, generateRecord, verifyUserIdKey2, verifyWithP2562) => withNavigatorLock(idbKey, async (db) => {
+  const validateOrRepair = async (rec) => await isValidStoredIdbRecord(rec, verifyUserIdKey2, verifyWithP2562) ? rec : idbPutRecord(db, idbKey, await generateRecord());
+  const existing = await idbGetRecord(db, idbKey);
+  if (existing !== void 0) return buildUserIdentityFromIdbRecord(await validateOrRepair(existing));
+  const candidate = await generateRecord();
+  const [record, wasExisting] = await checkThenAddIdbRecord(db, idbKey, candidate);
+  return buildUserIdentityFromIdbRecord(wasExisting ? await validateOrRepair(record) : record);
+});
+
+// node_modules/@trystero-p2p/core/dist/identity.mjs
+var base62Radix = 62n;
+var userKeyPrefix = `${libId}_uk_`;
+var maxCachedSigPayloadBytes = 4096;
+var maxSigCacheTotalBytes = 2097152;
+var maxSigCacheEntries = 8192;
+var keyPairTestPayload = /* @__PURE__ */ encodeBytes(domainTag("identity-self-test", 1));
+var userIdMismatchErr = /* @__PURE__ */ mkErr("invalid custom user identity; userId does not match signPubJwk");
+var invalidCustomIdentityErr = /* @__PURE__ */ mkErr('invalid custom user identity; use "local", "none", loader, or importUserIdentity()');
+var invalidCustomSignatureErr = /* @__PURE__ */ mkErr("invalid custom user identity signature; sign() must return a valid 64-byte IEEE P1363 ECDSA P-256 SHA-256 signature");
+var encodeBase62 = (bytes, length) => {
+  const modulus = base62Radix ** BigInt(length);
+  let val = bytesToBigInt(bytes) % modulus;
+  let out = "";
+  for (let i = 0; i < length; i++) {
+    out = base62Alphabet[Number(val % base62Radix)] + out;
+    val /= base62Radix;
+  }
+  return out;
+};
+var pubJwkToUncompressedBytes = (pubKeyOrJwk) => {
+  let x;
+  let y;
+  if (typeof pubKeyOrJwk === "string") {
+    if (pubKeyOrJwk.length !== 87 || pubKeyOrJwk[43] !== ".") return null;
+    x = pubKeyOrJwk.slice(0, 43);
+    y = pubKeyOrJwk.slice(44);
+  } else {
+    if (!pubKeyOrJwk || typeof pubKeyOrJwk !== "object" || pubKeyOrJwk.d !== void 0 || pubKeyOrJwk.kty && pubKeyOrJwk.kty !== "EC" || pubKeyOrJwk.crv && pubKeyOrJwk.crv !== "P-256" || typeof pubKeyOrJwk.x !== "string" || typeof pubKeyOrJwk.y !== "string" || !pubKeyOrJwk.x || !pubKeyOrJwk.y) return null;
+    x = pubKeyOrJwk.x;
+    y = pubKeyOrJwk.y;
+  }
+  try {
+    const xBytes = fromBase64Url(x);
+    const yBytes = fromBase64Url(y);
+    if (xBytes.byteLength !== 32 || yBytes.byteLength !== 32 || toBase64Url(xBytes) !== x || toBase64Url(yBytes) !== y) return null;
+    const uncompressed = /* @__PURE__ */ new Uint8Array(65);
+    uncompressed[0] = 4;
+    uncompressed.set(xBytes, 1);
+    uncompressed.set(yBytes, 33);
+    return uncompressed;
+  } catch {
+    return null;
+  }
+};
+var makeP256Jwk = (x = "", y = "", crv = "P-256", kty = "EC") => ({
+  crv,
+  kty,
+  x,
+  y
+});
+var toCompactPub = (pubKeyOrJwk) => {
+  if (typeof pubKeyOrJwk === "object" && pubKeyOrJwk !== null) {
+    const byRef = cleanJwkRecordCache.get(pubKeyOrJwk);
+    if (byRef) return byRef.compactPub;
+  }
+  if (!pubJwkToUncompressedBytes(pubKeyOrJwk)) return null;
+  return typeof pubKeyOrJwk === "string" ? pubKeyOrJwk : `${pubKeyOrJwk.x}.${pubKeyOrJwk.y}`;
+};
+var jwkToCompactPub = (pubKeyOrJwk) => {
+  const compact = toCompactPub(pubKeyOrJwk);
+  if (!compact) throw invalidP256KeyErr;
+  return compact;
+};
+var compactPubToJwk = (pub) => typeof pub === "string" && pubJwkToUncompressedBytes(pub) ? makeP256Jwk(pub.slice(0, 43), pub.slice(44)) : null;
+var resolvedPubKeyCache = /* @__PURE__ */ createBoundedCache();
+var cleanJwkRecordCache = /* @__PURE__ */ new WeakMap();
+var pendingPubKeyCache = /* @__PURE__ */ new Map();
+var getCachedPubKeyRecord = (pubKeyOrJwk) => {
+  if (typeof pubKeyOrJwk === "object" && pubKeyOrJwk !== null) {
+    const byRef = cleanJwkRecordCache.get(pubKeyOrJwk);
+    if (byRef) return byRef;
+  }
+  const compactPub = toCompactPub(pubKeyOrJwk);
+  return compactPub ? resolvedPubKeyCache.get(compactPub) : void 0;
+};
+var getVerifiedPubKeyRecord = (pubKeyOrJwk, preimportedVerifyKey) => {
+  if (typeof pubKeyOrJwk === "object" && pubKeyOrJwk !== null) {
+    const byRef = cleanJwkRecordCache.get(pubKeyOrJwk);
+    if (byRef) return Promise.resolve(byRef);
+  }
+  const uncompressed = pubJwkToUncompressedBytes(pubKeyOrJwk);
+  if (!uncompressed) return Promise.resolve(null);
+  const x = typeof pubKeyOrJwk === "string" ? pubKeyOrJwk.slice(0, 43) : pubKeyOrJwk.x;
+  const y = typeof pubKeyOrJwk === "string" ? pubKeyOrJwk.slice(44) : pubKeyOrJwk.y;
+  const compactPub = `${x}.${y}`;
+  const existing = resolvedPubKeyCache.get(compactPub);
+  if (existing) return Promise.resolve(existing);
+  const inflight = pendingPubKeyCache.get(compactPub);
+  if (inflight) return inflight;
+  const p = (async () => {
+    try {
+      const [verifyKey, peerDigest, userDigest] = await Promise.all([
+        preimportedVerifyKey ? Promise.resolve(preimportedVerifyKey) : crypto.subtle.importKey("raw", uncompressed, ecdsaKeyAlgo, false, ["verify"]),
+        sha256(`${domainTag("pid", 1)}:${compactPub}`),
+        sha256(`${domainTag("uid", 1)}:${compactPub}`)
+      ]);
+      const cleanJwk = Object.freeze(makeP256Jwk(x, y));
+      const record = {
+        compactPub,
+        cleanJwk,
+        verifyKey,
+        peerId: encodeBase62(peerDigest, 20),
+        userId: encodeBase62(userDigest, 22)
+      };
+      cleanJwkRecordCache.set(cleanJwk, record);
+      resolvedPubKeyCache.set(compactPub, record);
+      return record;
+    } catch {
+      return null;
+    } finally {
+      pendingPubKeyCache.delete(compactPub);
+    }
+  })();
+  pendingPubKeyCache.set(compactPub, p);
+  return p;
+};
+var isValidUserId = (id) => typeof id === "string" && userIdRegex.test(id);
+var createByteBoundedPayloadCache = () => {
+  const map = /* @__PURE__ */ new Map();
+  let totalBytes = 0;
+  return {
+    get: (key) => {
+      const val = map.get(key);
+      if (val !== void 0) {
+        map.delete(key);
+        map.set(key, val);
+      }
+      return val;
+    },
+    set: (key, val) => {
+      const prev2 = map.get(key);
+      if (prev2 !== void 0) {
+        totalBytes -= prev2.byteLength;
+        map.delete(key);
+      }
+      while (map.size >= maxSigCacheEntries || map.size > 0 && totalBytes + val.byteLength > maxSigCacheTotalBytes) {
+        const oldestKey = map.keys().next().value;
+        if (oldestKey === void 0) break;
+        const oldestVal = map.get(oldestKey);
+        if (oldestVal) totalBytes -= oldestVal.byteLength;
+        map.delete(oldestKey);
+      }
+      map.set(key, val);
+      totalBytes += val.byteLength;
+    }
+  };
+};
+var verifiedSigPayloads = /* @__PURE__ */ createByteBoundedPayloadCache();
+var inFlightSigVerifies = /* @__PURE__ */ new Map();
+var verifyWithP256 = (sigBytes, payload, pubKeyOrJwk) => {
+  if (!sigBytes || sigBytes.byteLength !== 64) return false;
+  const cachedRec = getCachedPubKeyRecord(pubKeyOrJwk);
+  if (cachedRec && payload.byteLength <= maxCachedSigPayloadBytes) {
+    const cached = verifiedSigPayloads.get(`${cachedRec.compactPub}:${toBase64Url(sigBytes)}`);
+    if (cached) return bytesMatch(cached, payload);
+  }
+  return verifyWithP256Async(sigBytes, payload, pubKeyOrJwk, cachedRec);
+};
+var verifyWithP256Async = async (sigBytes, payload, pubKeyOrJwk, cachedRec) => {
+  const rec = cachedRec ?? await getVerifiedPubKeyRecord(pubKeyOrJwk);
+  if (!rec) return false;
+  if (payload.byteLength > maxCachedSigPayloadBytes) {
+    if (!isLowSP256Signature(sigBytes)) return false;
+    try {
+      return await ecdsaVerify(rec.verifyKey, sigBytes, payload);
+    } catch {
+      return false;
+    }
+  }
+  const cacheKey = `${rec.compactPub}:${toBase64Url(sigBytes)}`;
+  const cached = verifiedSigPayloads.get(cacheKey);
+  if (cached) return bytesMatch(cached, payload);
+  if (!isLowSP256Signature(sigBytes)) return false;
+  const inFlight = inFlightSigVerifies.get(cacheKey);
+  if (inFlight && bytesMatch(inFlight[0], payload)) return inFlight[1];
+  const snapshot = payload.slice();
+  const promise = ecdsaVerify(rec.verifyKey, sigBytes, snapshot).then((ok) => {
+    if (ok) {
+      verifiedSigPayloads.set(cacheKey, snapshot);
+      if (inFlightSigVerifies.get(cacheKey)?.[1] === promise) inFlightSigVerifies.delete(cacheKey);
+      return true;
+    }
+    if (inFlightSigVerifies.get(cacheKey)?.[1] === promise) inFlightSigVerifies.delete(cacheKey);
+    return false;
+  }, () => {
+    if (inFlightSigVerifies.get(cacheKey)?.[1] === promise) inFlightSigVerifies.delete(cacheKey);
+    return false;
+  });
+  inFlightSigVerifies.set(cacheKey, [snapshot, promise]);
+  return promise;
+};
+var verifyIdKey = (id, pubKeyOrJwk, field2) => {
+  const cached = getCachedPubKeyRecord(pubKeyOrJwk);
+  return cached ? cached[field2] === id : getVerifiedPubKeyRecord(pubKeyOrJwk).then((rec) => Boolean(rec && rec[field2] === id));
+};
+var verifyPeerIdKey = (peerId, pubKeyOrJwk) => Boolean(peerId && typeof peerId === "string") && verifyIdKey(peerId, pubKeyOrJwk, "peerId");
+var verifyUserIdKey = (userId, pubKeyOrJwk) => isValidUserId(userId) && verifyIdKey(userId, pubKeyOrJwk, "userId");
+var generateP256KeyMaterial = async (extractable) => {
+  const keyPair = await crypto.subtle.generateKey(ecdsaKeyAlgo, extractable, ["sign", "verify"]);
+  const rawJwk = await crypto.subtle.exportKey("jwk", extractable ? keyPair.privateKey : keyPair.publicKey);
+  const rec = await getVerifiedPubKeyRecord(makeP256Jwk(rawJwk.x, rawJwk.y), keyPair.publicKey);
+  if (!rec) throw invalidP256KeyErr;
+  return [
+    keyPair,
+    rawJwk,
+    rec
+  ];
+};
+var defaultAppKey = "__default__";
+var maxEpochResolveRetries = 8;
+var normalizeAppId = (appId) => appId || defaultAppKey;
+var appControllers = /* @__PURE__ */ new Map();
+var appEndpointCache = /* @__PURE__ */ createBoundedCache();
+var runtimeUserIdentityBySlot = /* @__PURE__ */ createBoundedCache();
+var getAppController = (appKey) => {
+  let ctrl = appControllers.get(appKey);
+  if (!ctrl) {
+    ctrl = {
+      epoch: 0,
+      inFlightLoad: null,
+      opTail: Promise.resolve()
+    };
+    appControllers.set(appKey, ctrl);
+  }
+  return ctrl;
+};
+var enqueueControllerOp = (ctrl, fn) => {
+  const next2 = ctrl.opTail.catch(noOp2).then(fn);
+  ctrl.opTail = next2.catch(noOp2);
+  return next2;
+};
+var nextIdentityClientSeq = 0;
+var createIdentityClientId = () => `c${++nextIdentityClientSeq}`;
+var slotForAppKey = (appKey, clientId = "", epoch = getAppController(appKey).epoch) => `${clientId}\0${epoch}\0${appKey}`;
+var createEndpointIdentity = () => generateP256KeyMaterial(false).then(([keyPair, , rec]) => ({
+  peerId: rec.peerId,
+  signPrivateKey: keyPair.privateKey,
+  signPublicKey: keyPair.publicKey,
+  signPubJwk: rec.cleanJwk,
+  sign: (payload) => ecdsaSign(keyPair.privateKey, payload)
+}));
+var getDefaultEndpointIdentity = (appId, clientId) => {
+  const appKey = normalizeAppId(appId);
+  const slot2 = slotForAppKey(appKey, clientId);
+  const existing = appEndpointCache.get(slot2);
+  if (existing) return existing;
+  const created = createEndpointIdentity();
+  created.catch(() => {
+    if (appEndpointCache.get(slot2) === created) appEndpointCache.delete(slot2);
+  });
+  appEndpointCache.set(slot2, created);
+  return created;
+};
+var extractableUserKeys = /* @__PURE__ */ new WeakMap();
+var trustedUserIdentities = /* @__PURE__ */ new WeakSet();
+var generateNonExtractableIdbRecord = async () => {
+  const [keyPair, , rec] = await generateP256KeyMaterial(false);
+  return {
+    userId: rec.userId,
+    signPubJwk: rec.cleanJwk,
+    privateKey: keyPair.privateKey
+  };
+};
+var createNonExtractableUserIdentity = () => generateNonExtractableIdbRecord().then((rec) => {
+  const id = buildUserIdentityFromIdbRecord(rec);
+  trustedUserIdentities.add(id);
+  return id;
+});
+var isUserIdentityObjectStructural = (val) => Boolean(val && typeof val === "object" && typeof val.userId === "string" && isValidUserId(val.userId) && val.signPubJwk && pubJwkToUncompressedBytes(val.signPubJwk) && typeof val.sign === "function");
+var withPersistence = (val, persistence, cleanJwk = val.signPubJwk) => {
+  const isKnownTrusted = trustedUserIdentities.has(val);
+  const wrapped = {
+    userId: val.userId,
+    signPubJwk: cleanJwk,
+    sign: isKnownTrusted ? val.sign : async (payload) => normalizeLowSP256Signature(new Uint8Array(await val.sign(payload))),
+    persistence
+  };
+  const userKey = extractableUserKeys.get(val);
+  if (userKey !== void 0) extractableUserKeys.set(wrapped, userKey);
+  if (isKnownTrusted) trustedUserIdentities.add(wrapped);
+  return wrapped;
+};
+var coerceCustomUserIdentity = async (val) => {
+  if (!isUserIdentityObjectStructural(val)) throw invalidCustomIdentityErr;
+  const rec = await getVerifiedPubKeyRecord(val.signPubJwk);
+  if (!rec || rec.userId !== val.userId) throw userIdMismatchErr;
+  if (!trustedUserIdentities.has(val)) {
+    let rawSig;
+    try {
+      rawSig = new Uint8Array(await val.sign(keyPairTestPayload.slice()));
+    } catch (cause) {
+      throw mkErr(`custom user identity sign() failed startup check: ${cause instanceof Error ? cause.message : String(cause)}`);
+    }
+    const normalizedSig = normalizeLowSP256Signature(rawSig);
+    if (normalizedSig.byteLength !== 64 || !await ecdsaVerify(rec.verifyKey, normalizedSig, keyPairTestPayload)) throw invalidCustomSignatureErr;
+  }
+  return withPersistence(val, val.persistence ?? "custom", rec.cleanJwk);
+};
+var hasIndexedDB = () => {
+  try {
+    return typeof globalThis !== "undefined" && "indexedDB" in globalThis && Boolean(globalThis.indexedDB);
+  } catch {
+    return false;
+  }
+};
+var isEphemeralIdentityConfig = (identity) => identity === "none" || (identity === void 0 || identity === "local") && !hasIndexedDB();
+var validateIdentityConfig = (config) => {
+  const raw = config?.identity;
+  if (raw === void 0 || raw === "none" || raw === "local" || typeof raw === "function") return;
+  if (isUserIdentityObjectStructural(raw)) {
+    const cached = getCachedPubKeyRecord(raw.signPubJwk);
+    if (cached && cached.userId !== raw.userId) throw userIdMismatchErr;
+    return;
+  }
+  throw invalidCustomIdentityErr;
+};
+var getOrCreateEphemeralIdentity = (appKey, clientId = "", epoch = getAppController(appKey).epoch) => {
+  const slot2 = slotForAppKey(appKey, clientId, epoch);
+  const existing = runtimeUserIdentityBySlot.get(slot2);
+  if (existing) return existing;
+  const created = createNonExtractableUserIdentity().then((id) => withPersistence(id, "none"));
+  created.catch(() => {
+    if (runtimeUserIdentityBySlot.get(slot2) === created) runtimeUserIdentityBySlot.delete(slot2);
+  });
+  runtimeUserIdentityBySlot.set(slot2, created);
+  return created;
+};
+var epochSupersededErr = /* @__PURE__ */ mkErr("identity epoch superseded by clearUserIdentity");
+var startAppLocalLoad = (appKey, ctrl, targetEpoch) => {
+  const promise = enqueueControllerOp(ctrl, async () => {
+    if (ctrl.epoch !== targetEpoch) throw epochSupersededErr;
+    const id = await loadOrCreateIdbIdentity(appKey, generateNonExtractableIdbRecord, verifyUserIdKey, verifyWithP256);
+    trustedUserIdentities.add(id);
+    return withPersistence(id, "local");
+  }).finally(() => {
+    if (ctrl.inFlightLoad?.promise === promise) ctrl.inFlightLoad = null;
+  });
+  ctrl.inFlightLoad = {
+    epoch: targetEpoch,
+    promise
+  };
+  return promise;
+};
+var resolveUserIdentity = async (appId, roomId, config, clientId) => {
+  const raw = config?.identity;
+  if (typeof raw === "function") return coerceCustomUserIdentity(await raw({
+    appId,
+    roomId
+  }));
+  if (raw !== void 0 && raw !== "none" && raw !== "local") return coerceCustomUserIdentity(raw);
+  const appKey = normalizeAppId(appId);
+  const ctrl = getAppController(appKey);
+  if ((raw === "none" || raw === "local" ? raw : hasIndexedDB() ? "local" : "none") === "none") return getOrCreateEphemeralIdentity(appKey, clientId, ctrl.epoch);
+  if (!hasIndexedDB()) {
+    warn("IndexedDB unavailable; falling back to identity: 'none'");
+    return getOrCreateEphemeralIdentity(appKey, clientId, ctrl.epoch);
+  }
+  for (let attempt = 0; attempt < maxEpochResolveRetries; attempt++) {
+    const targetEpoch = ctrl.epoch;
+    const loadPromise = ctrl.inFlightLoad?.epoch === targetEpoch ? ctrl.inFlightLoad.promise : startAppLocalLoad(appKey, ctrl, targetEpoch);
+    try {
+      const resolved = await loadPromise;
+      if (ctrl.epoch === targetEpoch) return resolved;
+    } catch {
+      if (ctrl.epoch !== targetEpoch) continue;
+      warn("IndexedDB unavailable; falling back to identity: 'none'");
+      return getOrCreateEphemeralIdentity(appKey, clientId, targetEpoch);
+    }
+  }
+  return getOrCreateEphemeralIdentity(appKey, clientId, ctrl.epoch);
+};
+
+// node_modules/@trystero-p2p/core/dist/signed-record.mjs
+var zeroHlc = [0, 0];
+var defaultMaxClockSkewMs = 6e4;
+var stateMaxFutureSkewMs = 1e4;
+var maxObservedClockDragMs = 5e3;
+var maxJsonDepth = 64;
+var canonTag = (tag, items, version = 1) => toJson([domainTag(tag, version), ...items]);
+var isValidHlc = (v) => Array.isArray(v) && v.length === 2 && isPosSafeInt(v[0]) && typeof v[1] === "number" && Number.isSafeInteger(v[1]) && v[1] >= 0;
+var compareHlc = (a, b) => a[0] - b[0] || a[1] - b[1];
+var signWith = async (signer, payload) => {
+  const bytes = encodeBytes(payload);
+  const signature = typeof signer === "function" ? normalizeLowSP256Signature(await signer(bytes)) : await ecdsaSign(signer, bytes);
+  return toBase64Url(signature);
+};
+var verifySig = (pub, payload, sig) => {
+  try {
+    const res = verifyWithP256(fromBase64Url(sig), encodeBytes(payload), pub);
+    return typeof res === "boolean" ? res : res.catch(() => false);
+  } catch {
+    return false;
+  }
+};
+var canonicalizeAndMeasureJson = (value2, maxBytes = Number.POSITIVE_INFINITY) => {
+  const seen3 = /* @__PURE__ */ new Set();
+  const walk = (item2, depth) => {
+    if (depth > maxJsonDepth) return null;
+    if (item2 === null || typeof item2 === "boolean") return String(item2);
+    if (typeof item2 === "number") return Number.isFinite(item2) ? toJson(item2) : null;
+    if (typeof item2 === "string") return toJson(item2);
+    if (typeof item2 !== "object") return null;
+    const obj2 = item2;
+    if (seen3.has(obj2)) return null;
+    const isArr = Array.isArray(obj2);
+    if (!isArr) {
+      const proto = Object.getPrototypeOf(obj2);
+      if (proto !== Object.prototype && proto !== null) return null;
+    }
+    seen3.add(obj2);
+    try {
+      if (isArr) {
+        const parts3 = [];
+        for (let i = 0; i < obj2.length; i++) {
+          const serialized = walk(obj2[i], depth + 1);
+          if (serialized === null) return null;
+          parts3.push(serialized);
+        }
+        return `[${parts3.join(",")}]`;
+      }
+      const record = obj2;
+      const sortedKeys = keys(record).sort();
+      const parts2 = [];
+      for (let i = 0; i < sortedKeys.length; i++) {
+        const key = sortedKeys[i];
+        const prop = record[key];
+        if (prop === void 0) continue;
+        const serialized = walk(prop, depth + 1);
+        if (serialized === null) return null;
+        parts2.push(`${toJson(key)}:${serialized}`);
+      }
+      return `{${parts2.join(",")}}`;
+    } finally {
+      seen3.delete(obj2);
+    }
+  };
+  const json = walk(value2, 0);
+  if (json === null) return 0;
+  const bytes = utf8ByteLength(json);
+  return bytes > maxBytes ? 1 : [json, bytes];
+};
+var canonicalizeJson = (value2) => {
+  const res = canonicalizeAndMeasureJson(value2);
+  if (!Array.isArray(res)) throw mkErr("value must be valid finite JSON");
+  return res[0];
+};
+var createMonotonicClock = (initial = 0) => {
+  let lastWall = initial;
+  let lastCounter = 0;
+  return {
+    peek: () => lastWall,
+    observe: (ts, maxForwardMs = maxObservedClockDragMs) => {
+      const bounded = Math.min(ts, Date.now() + maxForwardMs);
+      if (bounded > lastWall) {
+        lastWall = bounded;
+        lastCounter = 0;
+      }
+    },
+    next: (minTs = 0) => {
+      const now2 = Date.now();
+      const target = Math.max(now2, lastWall + 1, minTs);
+      const maxGlobal = now2 + maxObservedClockDragMs;
+      if (target <= maxGlobal) lastWall = target;
+      else if (maxGlobal > lastWall) lastWall = maxGlobal;
+      lastCounter = 0;
+      return target;
+    },
+    nextHlc: (ns, minHlc = zeroHlc, maxSkewMs = stateMaxFutureSkewMs) => {
+      const now2 = Date.now();
+      const targetWall = Math.max(now2, lastWall, minHlc[0]);
+      if (targetWall > now2 + maxSkewMs) throw mkErr(`state clock skew exceeded for "${ns}"`);
+      const counter = targetWall > lastWall && targetWall > minHlc[0] ? 0 : Math.max(targetWall === lastWall ? lastCounter : -1, targetWall === minHlc[0] ? minHlc[1] : -1) + 1;
+      const maxGlobal = now2 + maxObservedClockDragMs;
+      if (targetWall <= maxGlobal) {
+        lastWall = targetWall;
+        lastCounter = counter;
+      } else if (maxGlobal > lastWall) {
+        lastWall = maxGlobal;
+        lastCounter = 0;
+      }
+      return [targetWall, counter];
+    }
+  };
+};
+var createTokenBucketLimiter = (ratePerSec, burst, maxKeys = 512) => {
+  const buckets = createBoundedCache(maxKeys);
+  return {
+    consume: (key, cost = 1) => {
+      const now2 = Date.now();
+      const cur = buckets.get(key);
+      if (!cur) {
+        if (burst < cost) return false;
+        buckets.set(key, [burst - cost, now2]);
+        return true;
+      }
+      const elapsedSec = Math.max(0, now2 - cur[1]) / 1e3;
+      if (elapsedSec > 0) {
+        cur[0] = Math.min(burst, cur[0] + elapsedSec * ratePerSec);
+        cur[1] = now2;
+      }
+      if (cur[0] < cost) return false;
+      cur[0] -= cost;
+      return true;
+    },
+    delete: (key) => {
+      buckets.delete(key);
+    },
+    clear: () => {
+      buckets.clear();
+    }
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/relay-manager.mjs
+var { min } = Math;
+var defaultRetryMs = 3333;
+var maxRetryMs = 6e4;
+var socketClosedErr = /* @__PURE__ */ mkErr("relay socket closed");
+var socketRetryPeriods = /* @__PURE__ */ createBoundedCache(256);
+var hasLiveSocket = (s) => s.phase === "connecting" || s.phase === "open";
+var isSocketDormant = (s) => s.phase === "backoff-wait" || s.phase === "parked-offline";
+var socketControllers = /* @__PURE__ */ new Set();
+var socketWakeFns = /* @__PURE__ */ new WeakMap();
+var defaultIsRelayClosed = (relay) => Boolean(relay.isClosed);
+var relayConnectivity = "auto";
+var isRelayOffline = false;
+var stopWatchingOnline = null;
+var getRelays = (config, defaults, defaultN, deriveFromAppId = false) => config.relayConfig?.urls || (deriveFromAppId ? shuffle(defaults, strToNum(config.appId)) : defaults).slice(0, config.relayConfig?.redundancy ?? defaultN);
+var holdRelaySockets = () => {
+  isRelayOffline = true;
+  socketControllers.forEach((c) => c[0]());
+};
+var reconnectRelaySockets = () => {
+  isRelayOffline = false;
+  socketRetryPeriods.clear();
+  socketControllers.forEach((c) => c[1]());
+};
+var attachOnlineWatcher = () => {
+  if (stopWatchingOnline || typeof addEventListener !== "function") return;
+  const controller = new AbortController();
+  const { signal } = controller;
+  addEventListener("online", reconnectRelaySockets, { signal });
+  addEventListener("offline", holdRelaySockets, { signal });
+  if (typeof document !== "undefined" && typeof document.addEventListener === "function") document.addEventListener("visibilitychange", () => {
+    if (!isRelayOffline && document.visibilityState === "visible") reconnectRelaySockets();
+  }, { signal });
+  stopWatchingOnline = () => controller.abort();
+};
+var detachWebSocket = (socket) => {
+  socket.onopen = socket.onclose = socket.onmessage = null;
+  socket.close();
+};
+var makeSocket = (url, onMessage, onReconnect) => {
+  const client = {
+    url,
+    isClosed: false,
+    send: noOp2
+  };
+  const failureWaiters = /* @__PURE__ */ new Set();
+  let lifecycle = {
+    phase: "parked-offline",
+    didOpen: false
+  };
+  const settleAttempt = (err) => {
+    failureWaiters.forEach((w) => w(err));
+    failureWaiters.clear();
+  };
+  const createReadyGate = () => {
+    const { promise, resolve: resolve3, reject } = Promise.withResolvers();
+    promise.catch(noOp2);
+    Object.defineProperty(promise, socketInitialFailureSymbol, {
+      value: () => {
+        if (lifecycle.phase === "open" || lifecycle.phase === "closed" || isRelayOffline) return Promise.resolve(null);
+        if (lifecycle.phase === "backoff-wait" && lifecycle.attemptFailure) return Promise.resolve(lifecycle.attemptFailure);
+        return new Promise((res) => {
+          failureWaiters.add(res);
+        });
+      },
+      enumerable: false,
+      configurable: true
+    });
+    return {
+      promise,
+      resolve: resolve3,
+      reject
+    };
+  };
+  let readyGate = createReadyGate();
+  client.ready = readyGate.promise;
+  const rotateReadyGateAfterDisconnect = () => {
+    readyGate = createReadyGate();
+    client.ready = readyGate.promise;
+  };
+  if (relayConnectivity === "auto") attachOnlineWatcher();
+  const getDidOpen = (state) => state.phase === "open" ? true : state.didOpen;
+  const init = () => {
+    switch (lifecycle.phase) {
+      case "closed":
+      case "connecting":
+      case "open":
+        return;
+      case "backoff-wait":
+        clearTimeout(lifecycle.timer);
+        if (isRelayOffline) {
+          lifecycle = {
+            phase: "parked-offline",
+            didOpen: lifecycle.didOpen
+          };
+          return;
+        }
+        break;
+      case "parked-offline":
+        if (isRelayOffline) return;
+        break;
+      default:
+        unreachable(lifecycle);
+    }
+    const didOpen = lifecycle.didOpen;
+    const socket = new WebSocket(url);
+    client.socket = socket;
+    client.url = socket.url ?? url;
+    lifecycle = {
+      phase: "connecting",
+      socket,
+      didOpen
+    };
+    socket.onclose = () => {
+      if (!hasLiveSocket(lifecycle) || lifecycle.socket !== socket) return;
+      const wasOpen = lifecycle.phase === "open";
+      const nextDidOpen = getDidOpen(lifecycle);
+      client.send = noOp2;
+      if (wasOpen) rotateReadyGateAfterDisconnect();
+      if (isRelayOffline) {
+        lifecycle = {
+          phase: "parked-offline",
+          didOpen: nextDidOpen
+        };
+        if (!wasOpen) settleAttempt(null);
+        return;
+      }
+      const attemptFailure = wasOpen ? null : mkErr(`failed to connect to relay ${client.url}`);
+      if (attemptFailure) settleAttempt(attemptFailure);
+      const period = socketRetryPeriods.get(url) ?? defaultRetryMs;
+      socketRetryPeriods.set(url, period);
+      const timer = setTimeout(init, Math.random() * period);
+      socketRetryPeriods.set(url, min(period * 2, maxRetryMs));
+      lifecycle = {
+        phase: "backoff-wait",
+        didOpen: nextDidOpen,
+        timer,
+        attemptFailure
+      };
+    };
+    socket.onmessage = (e) => {
+      try {
+        onMessage(String(e.data));
+      } catch {
+      }
+    };
+    socket.onopen = () => {
+      if (lifecycle.phase !== "connecting" || lifecycle.socket !== socket) return;
+      const isReconnect = lifecycle.didOpen;
+      lifecycle = {
+        phase: "open",
+        socket
+      };
+      settleAttempt(null);
+      readyGate.resolve(client);
+      socketRetryPeriods.set(url, defaultRetryMs);
+      if (isReconnect) onReconnect?.();
+    };
+    client.send = (data) => {
+      if (socket.readyState === 1) socket.send(data);
+    };
+  };
+  const controller = [() => {
+    switch (lifecycle.phase) {
+      case "closed":
+      case "parked-offline":
+        return;
+      case "backoff-wait":
+        clearTimeout(lifecycle.timer);
+        lifecycle = {
+          phase: "parked-offline",
+          didOpen: lifecycle.didOpen
+        };
+        settleAttempt(null);
+        return;
+      case "connecting":
+      case "open": {
+        const wasOpen = lifecycle.phase === "open";
+        const didOpen = getDidOpen(lifecycle);
+        const activeSocket = lifecycle.socket;
+        client.send = noOp2;
+        lifecycle = {
+          phase: "parked-offline",
+          didOpen
+        };
+        if (wasOpen) rotateReadyGateAfterDisconnect();
+        settleAttempt(null);
+        detachWebSocket(activeSocket);
+        return;
+      }
+      default:
+        unreachable(lifecycle);
+    }
+  }, () => {
+    if (lifecycle.phase === "closed") return;
+    socketRetryPeriods.set(url, defaultRetryMs);
+    if (isSocketDormant(lifecycle)) init();
+  }];
+  socketControllers.add(controller);
+  socketWakeFns.set(client, () => {
+    if (!isRelayOffline && isSocketDormant(lifecycle)) controller[1]();
+  });
+  client.close = () => {
+    if (lifecycle.phase === "closed") return;
+    const prev2 = lifecycle;
+    client.isClosed = true;
+    client.send = noOp2;
+    lifecycle = { phase: "closed" };
+    settleAttempt(null);
+    readyGate.reject(socketClosedErr);
+    socketControllers.delete(controller);
+    socketWakeFns.delete(client);
+    socketRetryPeriods.delete(url);
+    switch (prev2.phase) {
+      case "parked-offline":
+        break;
+      case "backoff-wait":
+        clearTimeout(prev2.timer);
+        break;
+      case "connecting":
+      case "open":
+        detachWebSocket(prev2.socket);
+        break;
+      default:
+        unreachable(prev2);
+    }
+  };
+  if (!isRelayOffline) init();
+  return client;
+};
+var createRelayScopedStore = () => {
+  const store = /* @__PURE__ */ new WeakMap();
+  return { forRelay: (relay) => {
+    let map = store.get(relay);
+    if (!map) {
+      map = /* @__PURE__ */ Object.create(null);
+      store.set(relay, map);
+    }
+    return map;
+  } };
+};
+var relayLeaseReleases = /* @__PURE__ */ new WeakMap();
+var releaseRelayLease = (leaseTarget) => {
+  if (leaseTarget && typeof leaseTarget === "object") {
+    const release = relayLeaseReleases.get(leaseTarget);
+    if (release) {
+      relayLeaseReleases.delete(leaseTarget);
+      release();
+    }
+  }
+};
+var createRelayManager = (getSocket, closeRelay, isRelayClosed) => {
+  const pooledByKey = /* @__PURE__ */ new Map();
+  const relayKeys = /* @__PURE__ */ new WeakMap();
+  const leaseCounts = /* @__PURE__ */ new WeakMap();
+  const closedRelays = /* @__PURE__ */ new WeakSet();
+  const checkClosed = isRelayClosed ?? defaultIsRelayClosed;
+  const unpool = (relay) => {
+    const key = relayKeys.get(relay);
+    if (key !== void 0 && pooledByKey.get(key) === relay) pooledByKey.delete(key);
+  };
+  return {
+    register: (key, createRelay) => {
+      let relay = pooledByKey.get(key);
+      if (relay && checkClosed(relay)) {
+        unpool(relay);
+        leaseCounts.delete(relay);
+        relay = void 0;
+      }
+      if (!relay) {
+        relay = createRelay();
+        pooledByKey.set(key, relay);
+        relayKeys.set(relay, key);
+      } else socketWakeFns.get(relay)?.();
+      return relay;
+    },
+    lease: (relay, readyP) => {
+      socketWakeFns.get(relay)?.();
+      leaseCounts.set(relay, (leaseCounts.get(relay) ?? 0) + 1);
+      const leasedP = Promise.resolve(readyP).then((r) => r);
+      leasedP.catch(noOp2);
+      const getInitialFailure = readyP[socketInitialFailureSymbol];
+      if (typeof getInitialFailure === "function") Object.defineProperty(leasedP, socketInitialFailureSymbol, {
+        value: getInitialFailure,
+        enumerable: false,
+        configurable: true
+      });
+      let released = false;
+      relayLeaseReleases.set(leasedP, () => {
+        if (released) return;
+        released = true;
+        const prev2 = leaseCounts.get(relay);
+        if (!prev2 || prev2 <= 0) return;
+        if (prev2 > 1) {
+          leaseCounts.set(relay, prev2 - 1);
+          return;
+        }
+        leaseCounts.delete(relay);
+        unpool(relay);
+        if (!closedRelays.has(relay) && !checkClosed(relay)) {
+          closedRelays.add(relay);
+          closeRelay?.(relay);
+        }
+      });
+      return leasedP;
+    },
+    evict: unpool,
+    getSockets: () => fromEntries([...pooledByKey.entries()].flatMap(([key, relay]) => {
+      const socket = checkClosed(relay) ? void 0 : getSocket(relay);
+      return socket ? [[key, socket]] : [];
+    }))
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/data-limits.mjs
+var maxActionFrameBytes = 16384;
+var maxBulkFrameBytes = 65536;
+var maxRoomFrameBytes = 17408;
+var pendingDataTimeoutMs = 1e4;
+var transferTimeoutMs = 12e4;
+
+// node_modules/@trystero-p2p/core/dist/action-wire.mjs
+var inlineKind = 0;
+var offerKind = 1;
+var chunkKind = 2;
+var acceptedKind = 3;
+var rejectedKind = 4;
+var cancelledKind = 5;
+var wideBulkFlag = 64;
+var inlineHeaderSize = 36;
+var offerHeaderSize = 48;
+var controlHeaderSize = 6;
+var chunkHeaderSize = 14;
+var minChunkSize = maxActionFrameBytes - chunkHeaderSize;
+var maxChunkSize = maxBulkFrameBytes - chunkHeaderSize;
+var defaultMaxReceiveBytes = 256 * 1024 ** 2;
+var maxControlBufferedBytes = 1024 ** 2;
+var maxPendingTransfers = 1024;
+var maxPendingPerPeer = 64;
+var maxDecisions = 128;
+var maxDecisionsPerPeer = 8;
+var maxPreListenerMessages = 32;
+var sizeLimitMsg = "payload exceeds receiver size limit";
+var invalidPayloadMsg = invalidActionMsg("payload");
+var textFormat = 0;
+var jsonFormat = 1;
+var binaryFormat = 2;
+var bulkPhaseClass = {
+  pending: {
+    waiting: true,
+    reserved: false,
+    active: false,
+    admitted: false
+  },
+  deciding: {
+    waiting: true,
+    reserved: false,
+    active: false,
+    admitted: false
+  },
+  queued: {
+    waiting: true,
+    reserved: false,
+    active: false,
+    admitted: true
+  },
+  accepted: {
+    waiting: false,
+    reserved: true,
+    active: true,
+    admitted: true
+  },
+  receiving: {
+    waiting: false,
+    reserved: true,
+    active: true,
+    admitted: true
+  },
+  buffered: {
+    waiting: false,
+    reserved: true,
+    active: false,
+    admitted: true
+  },
+  closed: {
+    waiting: false,
+    reserved: false,
+    active: false,
+    admitted: false
+  }
+};
+var isBulkSettled = (s) => s.phase === "failed" || s.phase === "done";
+var makeActionError = (kind, message) => {
+  const error = Object.assign(mkErr(message), { kind });
+  if (kind === "aborted") error.name = "AbortError";
+  return error;
+};
+var throwIfAborted = (signal) => {
+  if (signal?.aborted) throw makeActionError("aborted", operationAbortedMsg);
+};
+var viewOf = (bytes) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+var buildControlPacket = (kind, id, size = controlHeaderSize) => {
+  const bytes = new Uint8Array(size);
+  bytes[0] = 3;
+  bytes[1] = kind;
+  viewOf(bytes).setUint32(2, id);
+  return bytes;
+};
+var startIdleTimer = (getLast, onTimeout, onReschedule) => {
+  const tick = () => {
+    const remaining = transferTimeoutMs - (Date.now() - getLast());
+    if (remaining > 0) {
+      const next2 = setTimeout(tick, remaining);
+      unrefTimer(next2);
+      onReschedule(next2);
+    } else onTimeout();
+  };
+  const initial = setTimeout(tick, transferTimeoutMs);
+  unrefTimer(initial);
+  return initial;
+};
+var decodeActionType = (frame2) => decodeBytes(frame2.subarray(2, 34)).replaceAll("\0", "");
+var decideReceive = (decide, settle) => {
+  let result;
+  try {
+    result = decide();
+  } catch {
+    return settle(false);
+  }
+  return typeof result === "boolean" ? settle(result) : Promise.resolve(result).then((value2) => settle(value2 === true), () => settle(false));
+};
+var decodePayload = (bytes, format, copy) => format === binaryFormat ? copy ? bytes.slice() : bytes : format === jsonFormat ? fromJson(decodeBytes(bytes)) : decodeBytes(bytes);
+var emitRxProgress = (registration, value2, peerId, metadata) => {
+  try {
+    registration.onProgress(value2, peerId, metadata);
+  } catch (error) {
+    logErr("progress handler", error);
+  }
+};
+var deliverPayload = (registration, data, peerId, metadata) => {
+  emitRxProgress(registration, 1, peerId, metadata);
+  try {
+    registration.receiver?.(data, peerId, metadata);
+  } catch (error) {
+    logActionHandlerErr(error);
+  }
+};
+var createActionWireManager = ({ resolveTransport, getPeerIds, canReceiveFromPeer, onPeerError, broadcastInline, checkAborted = throwIfAborted, onUnknownType, maxReceiveBytes = defaultMaxReceiveBytes }) => {
+  if (!Number.isSafeInteger(maxReceiveBytes) || maxReceiveBytes <= 0) throw posSafeIntErr("maxReceiveBytes");
+  const actions = /* @__PURE__ */ new Map();
+  const rxActions = /* @__PURE__ */ new Map();
+  const outgoing = /* @__PURE__ */ new Map();
+  const outgoingInlineQueues = /* @__PURE__ */ new Map();
+  const peers = /* @__PURE__ */ new Map();
+  const preListenerQueues = /* @__PURE__ */ new Map();
+  const waitingBulk = /* @__PURE__ */ new Set();
+  const decisions = /* @__PURE__ */ new Map();
+  const failedTransports = /* @__PURE__ */ new WeakSet();
+  let preListenerSweepTimer = null;
+  let nextTransferId = 0;
+  let pendingCount = 0;
+  let decisionCount = 0;
+  let reservedBytes = 0;
+  let draining = false;
+  let drainDirty = false;
+  const disconnectedTransferErr = () => makeActionError("disconnected", peerDisconnectedMsg);
+  const invalidFrameMsg = invalidActionMsg("frame");
+  const isCurrent = (transfer2) => transfer2.state.phase !== "closed";
+  const payloadLimit = (registration) => Math.min(maxReceiveBytes, registration?.maxPayloadBytes ?? maxReceiveBytes);
+  const markDrainDirty = () => {
+    if (draining) drainDirty = true;
+  };
+  const failPeer = (peerId, reason, protocolViolation = true) => {
+    const target = resolveTransport(peerId, true);
+    if (target && !failedTransports.has(target)) {
+      failedTransports.add(target);
+      warn(`${reason}; disconnecting peer ${peerId}`);
+      onPeerError(peerId, protocolViolation ? mkViolationErr(reason) : mkErr(reason));
+    }
+  };
+  const sendControlFrame = (peerId, target, id, kind, reason = "") => {
+    if (!target || !target.isOpen) return;
+    const text = encodeBytes(reason).subarray(0, 200);
+    const bytes = buildControlPacket(kind, id, controlHeaderSize + text.length);
+    bytes.set(text, controlHeaderSize);
+    try {
+      if (target.bufferedAmount > maxControlBufferedBytes) throw mkErr("control send buffer is full");
+      target.sendFrame(bytes, id);
+    } catch {
+      failPeer(peerId, "unable to send action control", false);
+    }
+  };
+  const sendControl = (peerId, id, kind, reason = "") => {
+    sendControlFrame(peerId, resolveTransport(peerId, true), id, kind, reason);
+  };
+  const notifyRejected = (message, reason, scope, bulkId) => {
+    scope?.[3](reason);
+    rxActions.get(message.type)?.onReject?.(message.peerId, message.metadata, reason);
+    if (bulkId !== void 0) sendControl(message.peerId, bulkId, rejectedKind, reason);
+  };
+  const rotateWaitingForPeer = (peerId) => {
+    for (const queued of Array.from(waitingBulk)) if (queued.message.peerId === peerId) {
+      waitingBulk.delete(queued);
+      waitingBulk.add(queued);
+    }
+  };
+  const releaseDecisionSlot = (peerId) => {
+    decisionCount--;
+    const count = (decisions.get(peerId) ?? 1) - 1;
+    if (count > 0) decisions.set(peerId, count);
+    else decisions.delete(peerId);
+  };
+  const transitionBulk = (transfer2, next2) => {
+    const from = bulkPhaseClass[transfer2.state.phase];
+    const to = bulkPhaseClass[next2.phase];
+    const { peerId, size } = transfer2.message;
+    const peer = peers.get(peerId);
+    if (from.reserved !== to.reserved) {
+      reservedBytes += to.reserved ? size : -size;
+      if (!to.reserved) markDrainDirty();
+    }
+    if (from.waiting !== to.waiting) {
+      if (to.waiting) waitingBulk.add(transfer2);
+      else waitingBulk.delete(transfer2);
+    }
+    if (from.active !== to.active && peer) {
+      if (to.active) peer.activeBulk = transfer2;
+      else if (peer.activeBulk === transfer2) {
+        peer.activeBulk = null;
+        rotateWaitingForPeer(peerId);
+      }
+    }
+    transfer2.state = next2;
+    if (next2.phase === "buffered") markDrainDirty();
+  };
+  const releaseTransfer = (transfer2) => {
+    if (transfer2.state.phase === "closed") return false;
+    const { peerId } = transfer2.message;
+    const peer = peers.get(peerId);
+    transfer2.unbindScopeAbort?.();
+    transfer2.unbindScopeAbort = null;
+    transfer2.timer = resetTimer(transfer2.timer);
+    const admissionController = transfer2.controller;
+    transfer2.controller = null;
+    if (transfer2.kind === "inline") {
+      transfer2.state = { phase: "closed" };
+      const queue = peer?.inlineQueues.get(transfer2.queueKey);
+      if (queue) {
+        const idx = queue.indexOf(transfer2);
+        if (idx >= 0) queue.splice(idx, 1);
+        if (!queue.length) peer.inlineQueues.delete(transfer2.queueKey);
+      }
+    } else {
+      peer?.bulkTransfers.delete(transfer2.transferId);
+      transitionBulk(transfer2, { phase: "closed" });
+    }
+    if (peer) {
+      peer.pendingCount--;
+      pendingCount--;
+      if (!peer.pendingCount) peers.delete(peerId);
+    }
+    admissionController?.abort();
+    return true;
+  };
+  const rejectRx = (transfer2, reason) => {
+    if (!releaseTransfer(transfer2)) return;
+    notifyRejected(transfer2.message, reason, transfer2.scope, transfer2.kind === "bulk" ? transfer2.transferId : void 0);
+  };
+  const enterDeciding = (transfer2) => {
+    if (transfer2.state.phase !== "pending") return null;
+    const { peerId } = transfer2.message;
+    if (decisionCount >= maxDecisions || (decisions.get(peerId) ?? 0) >= maxDecisionsPerPeer) {
+      rejectRx(transfer2, "too many pending receive decisions");
+      return null;
+    }
+    const controller = new AbortController();
+    transfer2.controller = controller;
+    decisionCount++;
+    decisions.set(peerId, (decisions.get(peerId) ?? 0) + 1);
+    if (transfer2.kind === "inline") transfer2.state = {
+      phase: "deciding",
+      data: transfer2.state.data
+    };
+    else transitionBulk(transfer2, { phase: "deciding" });
+    return controller;
+  };
+  const enterReady = (transfer2) => {
+    if (transfer2.kind === "inline") switch (transfer2.state.phase) {
+      case "pending":
+      case "deciding":
+        transfer2.state = {
+          phase: "ready",
+          data: transfer2.state.data
+        };
+        return true;
+      case "ready":
+        return true;
+      case "closed":
+        return false;
+      default:
+        return unreachable(transfer2.state);
+    }
+    switch (transfer2.state.phase) {
+      case "pending":
+      case "deciding":
+        transitionBulk(transfer2, { phase: "queued" });
+        return true;
+      case "queued":
+      case "accepted":
+      case "receiving":
+      case "buffered":
+        return true;
+      case "closed":
+        return false;
+      default:
+        return unreachable(transfer2.state);
+    }
+  };
+  const acceptBulk = (transfer2) => {
+    if (transfer2.state.phase !== "queued") return;
+    const peer = peers.get(transfer2.message.peerId);
+    if (!peer || peer.activeBulk !== null || reservedBytes + transfer2.message.size > maxReceiveBytes) return;
+    transfer2.lastSeenAt = Date.now();
+    transitionBulk(transfer2, { phase: "accepted" });
+    sendControl(transfer2.message.peerId, transfer2.transferId, acceptedKind);
+  };
+  const beginReceivingChunks = (transfer2) => {
+    switch (transfer2.state.phase) {
+      case "receiving":
+        return transfer2.state;
+      case "accepted": {
+        const totalSize = transfer2.message.size;
+        try {
+          const nextState = {
+            phase: "receiving",
+            data: new Uint8Array(totalSize),
+            seenChunks: new Uint8Array(Math.ceil(Math.ceil(totalSize / transfer2.chunkSize) / 8)),
+            offset: 0
+          };
+          transitionBulk(transfer2, nextState);
+          return nextState;
+        } catch {
+          rejectRx(transfer2, "unable to allocate receive buffer");
+          drain();
+          return null;
+        }
+      }
+      case "pending":
+      case "deciding":
+      case "queued":
+      case "buffered":
+      case "closed":
+        return null;
+      default:
+        return unreachable(transfer2.state);
+    }
+  };
+  const parkCompletedBulk = (transfer2) => {
+    if (transfer2.state.phase !== "receiving") return;
+    const { data } = transfer2.state;
+    transitionBulk(transfer2, {
+      phase: "buffered",
+      data
+    });
+  };
+  const isAdmittedTransfer = (transfer2) => transfer2.kind === "inline" ? transfer2.state.phase === "ready" : bulkPhaseClass[transfer2.state.phase].admitted;
+  const admit = (transfer2, registration) => {
+    if (transfer2.state.phase !== "pending") return isAdmittedTransfer(transfer2);
+    if (transfer2.message.size > payloadLimit(registration)) {
+      rejectRx(transfer2, sizeLimitMsg);
+      return false;
+    }
+    const receive = transfer2.scope ? transfer2.scope[2] : registration.receiveGate;
+    if (!receive) {
+      if (!registration.receiver) return false;
+      return enterReady(transfer2);
+    }
+    const controller = enterDeciding(transfer2);
+    if (!controller) return false;
+    const { peerId } = transfer2.message;
+    let settled = false;
+    const result = decideReceive(() => receive({
+      byteLength: transfer2.message.size,
+      peerId,
+      signal: controller.signal,
+      ...transfer2.message.metadata === void 0 ? {} : { metadata: transfer2.message.metadata }
+    }), (allow) => {
+      if (!settled) {
+        settled = true;
+        releaseDecisionSlot(peerId);
+      }
+      if (transfer2.state.phase !== "deciding") return false;
+      if (allow) return enterReady(transfer2);
+      rejectRx(transfer2, "payload rejected by receiver");
+      return false;
+    });
+    if (typeof result === "boolean") return result;
+    result.then(() => drain());
+    return false;
+  };
+  const complete = (transfer2, registration, bytes, copyBinary) => {
+    let payload;
+    try {
+      payload = decodePayload(bytes, transfer2.message.format, copyBinary);
+    } catch {
+      releaseTransfer(transfer2);
+      failPeer(transfer2.message.peerId, invalidPayloadMsg);
+      return;
+    }
+    releaseTransfer(transfer2);
+    deliverPayload(registration, payload, transfer2.message.peerId, transfer2.message.metadata);
+  };
+  const tryInline = (transfer2) => {
+    const registration = rxActions.get(transfer2.message.type);
+    if (!registration) return;
+    if (transfer2.state.phase === "pending" && !admit(transfer2, registration)) return;
+    if (transfer2.state.phase !== "ready") return;
+    if (registration.receiver) complete(transfer2, registration, transfer2.state.data, true);
+    else if (!transfer2.scope) {
+      const { data } = transfer2.state;
+      const { lastSeenAt, message } = transfer2;
+      releaseTransfer(transfer2);
+      bufferPreListenerInline(message, data, true, true, lastSeenAt);
+    }
+  };
+  const tryBulk = (transfer2) => {
+    const registration = rxActions.get(transfer2.message.type);
+    if (!registration) return;
+    switch (transfer2.state.phase) {
+      case "pending":
+        if (admit(transfer2, registration) && registration.receiver) acceptBulk(transfer2);
+        return;
+      case "queued":
+        if (registration.receiver) acceptBulk(transfer2);
+        return;
+      case "buffered":
+        if (registration.receiver) complete(transfer2, registration, transfer2.state.data, false);
+        return;
+      case "deciding":
+      case "accepted":
+      case "receiving":
+      case "closed":
+        return;
+      default:
+        unreachable(transfer2.state);
+    }
+  };
+  const drainInline = (peerId, queueKey) => {
+    const queue = peers.get(peerId)?.inlineQueues.get(queueKey);
+    while (queue?.[0]) {
+      const head = queue[0];
+      tryInline(head);
+      if (isCurrent(head)) break;
+    }
+  };
+  const drain = () => {
+    if (draining) {
+      drainDirty = true;
+      return;
+    }
+    draining = true;
+    try {
+      do {
+        drainDirty = false;
+        for (const transfer2 of waitingBulk) tryBulk(transfer2);
+        for (const [id, peer] of peers) {
+          for (const transfer2 of peer.bulkTransfers.values()) if (transfer2.state.phase === "buffered") tryBulk(transfer2);
+          for (const key of peer.inlineQueues.keys()) drainInline(id, key);
+        }
+      } while (drainDirty);
+    } finally {
+      draining = false;
+      drainDirty = false;
+    }
+  };
+  const ensurePreListenerSweepTimer = () => {
+    if (!preListenerSweepTimer) {
+      preListenerSweepTimer = setTimeout(sweepPreListenerQueues, pendingDataTimeoutMs);
+      unrefTimer(preListenerSweepTimer);
+    }
+  };
+  const sweepPreListenerQueues = () => {
+    preListenerSweepTimer = resetTimer(preListenerSweepTimer);
+    const now2 = Date.now();
+    let hasRemaining = false;
+    for (const [peerId, byType] of preListenerQueues) {
+      for (const [type, ring] of byType) {
+        while (ring.length > 0 && now2 - ring[0].receivedAt > 1e4) ring.shift();
+        if (ring.length === 0) byType.delete(type);
+        else hasRemaining = true;
+      }
+      if (byType.size === 0) preListenerQueues.delete(peerId);
+    }
+    if (hasRemaining) ensurePreListenerSweepTimer();
+  };
+  const bufferPreListenerInline = (message, dataSlice, admitted = false, alreadyOwned = false, receivedAt = Date.now()) => {
+    const now2 = Date.now();
+    let byType = preListenerQueues.get(message.peerId);
+    if (!byType) {
+      byType = /* @__PURE__ */ new Map();
+      preListenerQueues.set(message.peerId, byType);
+    }
+    let ring = byType.get(message.type);
+    if (!ring) {
+      ring = [];
+      byType.set(message.type, ring);
+    }
+    while (ring.length > 0 && now2 - ring[0].receivedAt > 1e4) ring.shift();
+    if (ring.length >= maxPreListenerMessages) ring.shift();
+    ring.push({
+      admitted,
+      message,
+      data: alreadyOwned ? dataSlice : dataSlice.slice(),
+      receivedAt
+    });
+    ensurePreListenerSweepTimer();
+  };
+  const createTransferBase = (message, scope) => ({
+    message,
+    scope,
+    unbindScopeAbort: null,
+    controller: null,
+    lastSeenAt: Date.now(),
+    timer: null
+  });
+  const ensureIdleTimer = (transfer2) => {
+    if (!isCurrent(transfer2) || transfer2.timer) return;
+    transfer2.timer = startIdleTimer(() => transfer2.lastSeenAt, () => {
+      rejectRx(transfer2, "action transfer timed out");
+      drain();
+    }, (nextTimer) => {
+      if (isCurrent(transfer2)) transfer2.timer = nextTimer;
+      else clearTimeout(nextTimer);
+    });
+  };
+  const enqueueTransfer = (transfer2, deferTimer = false) => {
+    const { peerId } = transfer2.message;
+    let peer = peers.get(peerId);
+    if (pendingCount >= maxPendingTransfers || (peer?.pendingCount ?? 0) >= maxPendingPerPeer) {
+      notifyRejected(transfer2.message, "too many pending transfers", transfer2.scope, transfer2.kind === "bulk" ? transfer2.transferId : void 0);
+      return false;
+    }
+    if (!peer) {
+      peer = {
+        bulkTransfers: /* @__PURE__ */ new Map(),
+        inlineQueues: /* @__PURE__ */ new Map(),
+        activeBulk: null,
+        pendingCount: 0
+      };
+      peers.set(peerId, peer);
+    }
+    peer.pendingCount++;
+    pendingCount++;
+    if (transfer2.kind === "inline") {
+      const queue = peer.inlineQueues.get(transfer2.queueKey) ?? [];
+      queue.push(transfer2);
+      peer.inlineQueues.set(transfer2.queueKey, queue);
+    } else {
+      peer.bulkTransfers.set(transfer2.transferId, transfer2);
+      transitionBulk(transfer2, { phase: "pending" });
+    }
+    if (!deferTimer) ensureIdleTimer(transfer2);
+    if (transfer2.scope) {
+      const sig = transfer2.scope[1];
+      const cancel = () => {
+        rejectRx(transfer2, "receive cancelled");
+        drain();
+      };
+      if (sig.aborted) {
+        cancel();
+        return false;
+      }
+      const ac = new AbortController();
+      sig.addEventListener("abort", cancel, {
+        once: true,
+        signal: ac.signal
+      });
+      transfer2.unbindScopeAbort = () => ac.abort();
+    }
+    return true;
+  };
+  const flushPreListenerType = (type, registration) => {
+    const isFlushable = () => Boolean(registration.receiver || registration.receiveGate);
+    if (!isFlushable()) return;
+    const now2 = Date.now();
+    for (const peerId of Array.from(preListenerQueues.keys())) {
+      if (!isFlushable()) break;
+      while (isFlushable()) {
+        const byType = preListenerQueues.get(peerId);
+        const ring = byType?.get(type);
+        if (!ring || ring.length === 0) {
+          if (byType) {
+            byType.delete(type);
+            if (byType.size === 0) preListenerQueues.delete(peerId);
+          }
+          break;
+        }
+        if (now2 - ring[0].receivedAt > 1e4) {
+          ring.shift();
+          continue;
+        }
+        if (ring[0].admitted && !registration.receiver) break;
+        const entry = ring.shift();
+        if (ring.length === 0) {
+          byType.delete(type);
+          if (byType.size === 0) preListenerQueues.delete(peerId);
+        }
+        if (entry.message.size > payloadLimit(registration)) {
+          notifyRejected(entry.message, sizeLimitMsg);
+          continue;
+        }
+        if (entry.admitted || registration.receiver && !registration.receiveGate && !peers.get(peerId)?.inlineQueues.has(type)) {
+          let payload;
+          try {
+            payload = decodePayload(entry.data, entry.message.format, false);
+          } catch {
+            if (byType) {
+              byType.delete(type);
+              if (byType.size === 0) preListenerQueues.delete(peerId);
+            }
+            failPeer(peerId, invalidPayloadMsg);
+            break;
+          }
+          deliverPayload(registration, payload, peerId, entry.message.metadata);
+        } else {
+          const transfer2 = {
+            ...createTransferBase(entry.message),
+            kind: "inline",
+            queueKey: type,
+            state: {
+              phase: "pending",
+              data: entry.data
+            }
+          };
+          if (enqueueTransfer(transfer2, true)) {
+            drainInline(peerId, type);
+            ensureIdleTimer(transfer2);
+          }
+        }
+      }
+    }
+  };
+  const resolveAdmission = (message, bulkId) => {
+    const registration = rxActions.get(message.type);
+    if (!registration) {
+      if (bulkId !== void 0) sendControl(message.peerId, bulkId, rejectedKind, "unregistered action");
+      return null;
+    }
+    const scope = registration.receiveScope?.(message.peerId, message.metadata);
+    if (scope === null || scope?.[1].aborted) {
+      if (bulkId !== void 0) sendControl(message.peerId, bulkId, rejectedKind, "unexpected response");
+      return null;
+    }
+    if (message.size > payloadLimit(registration)) {
+      notifyRejected(message, sizeLimitMsg, scope, bulkId);
+      return null;
+    }
+    return [registration, scope];
+  };
+  const clearPeer = (peerId) => {
+    for (const transfer2 of outgoing.get(peerId)?.values() ?? []) transfer2.fail(disconnectedTransferErr());
+    outgoing.delete(peerId);
+    outgoingInlineQueues.delete(peerId);
+    preListenerQueues.delete(peerId);
+    const peer = peers.get(peerId);
+    if (peer) {
+      for (const transfer2 of Array.from(peer.bulkTransfers.values())) releaseTransfer(transfer2);
+      for (const queue of Array.from(peer.inlineQueues.values())) queue.slice().forEach((transfer2) => {
+        releaseTransfer(transfer2);
+      });
+    }
+    drain();
+  };
+  const raceAbort = (p, signal) => new Promise((resolve3, reject) => {
+    const onAbort = () => {
+      try {
+        checkAborted(signal);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    const ac = new AbortController();
+    signal.addEventListener("abort", onAbort, {
+      once: true,
+      signal: ac.signal
+    });
+    p.then(resolve3, reject).finally(() => {
+      ac.abort();
+    });
+  });
+  const sendFrameToTransport = async (transport, bytes, check3, signal, transferId, isOffer, initialDrain, onBeforeSend, onSendFailed) => {
+    check3();
+    const drainRes = initialDrain ?? transport.waitForDrain(signal);
+    if (drainRes !== true) {
+      if (!await drainRes) {
+        checkAborted(signal);
+        throw makeActionError("disconnected", "data channel stopped draining");
+      }
+      check3();
+    }
+    onBeforeSend?.();
+    try {
+      transport.sendFrame(bytes, transferId, isOffer);
+    } catch {
+      const err = disconnectedTransferErr();
+      onSendFailed?.(err);
+      throw err;
+    }
+  };
+  const sendBulkToPeer = async (peerId, transport, offerFrame, transferId, source2, size, metadata, progressCb, signal) => {
+    const { promise: permission, resolve: acceptOffer, reject: rejectOffer } = Promise.withResolvers();
+    permission.catch(noOp2);
+    const transfers = outgoing.get(peerId) ?? /* @__PURE__ */ new Map();
+    if (transfers.has(transferId)) throw mkErr("action transfer id in use");
+    outgoing.set(peerId, transfers);
+    const failTransfer = (error, fromReceiver = false, didSendOfferOverride) => {
+      if (isBulkSettled(bulkState)) return;
+      let didSendOffer = true;
+      if (bulkState.phase === "offering") {
+        didSendOffer = bulkState.sent;
+        clearTimeout(bulkState.timer);
+        bulkState = {
+          phase: "failed",
+          error,
+          fromReceiver,
+          didSendOffer: didSendOfferOverride ?? didSendOffer
+        };
+        rejectOffer(error);
+        return;
+      }
+      bulkState = {
+        phase: "failed",
+        error,
+        fromReceiver,
+        didSendOffer: didSendOfferOverride ?? didSendOffer
+      };
+    };
+    let bulkState = {
+      phase: "offering",
+      sent: false,
+      timer: startIdleTimer(() => bulkState.phase === "offering" ? bulkState.lastSeen : 0, () => failTransfer(makeActionError("timeout", "action offer timed out")), (nextTimer) => {
+        if (bulkState.phase === "offering") bulkState.timer = nextTimer;
+        else clearTimeout(nextTimer);
+      }),
+      lastSeen: Date.now()
+    };
+    const currentBulkState = () => bulkState;
+    const check3 = () => {
+      if (bulkState.phase === "failed") throw bulkState.error;
+      try {
+        checkAborted(signal);
+        if (!transport.isOpen) throw disconnectedTransferErr();
+      } catch (err) {
+        failTransfer(err);
+        throw err;
+      }
+    };
+    transfers.set(transferId, {
+      accept: () => {
+        if (bulkState.phase === "offering" && bulkState.sent) {
+          clearTimeout(bulkState.timer);
+          bulkState = { phase: "streaming" };
+          acceptOffer();
+          return true;
+        }
+        return false;
+      },
+      fail: (error, fromReceiver = false) => {
+        failTransfer(error, fromReceiver);
+      },
+      touch: () => {
+        if (bulkState.phase === "offering") bulkState.lastSeen = Date.now();
+      }
+    });
+    const abortCleanup = signal ? new AbortController() : null;
+    if (abortCleanup && signal) signal.addEventListener("abort", () => {
+      try {
+        checkAborted(signal);
+      } catch (error) {
+        failTransfer(error);
+      }
+    }, {
+      once: true,
+      signal: abortCleanup.signal
+    });
+    try {
+      const useWideChunks = (transport.maxBulkFrameBytes ?? 16384) >= maxBulkFrameBytes;
+      const txChunkSize = useWideChunks ? maxChunkSize : minChunkSize;
+      let peerOfferFrame = offerFrame;
+      if (useWideChunks) {
+        peerOfferFrame = offerFrame.slice();
+        peerOfferFrame[1] = peerOfferFrame[1] | wideBulkFlag;
+      }
+      await sendFrameToTransport(transport, peerOfferFrame, check3, signal, transferId, true, void 0, () => {
+        if (bulkState.phase === "offering") bulkState.sent = true;
+      }, (err) => {
+        failTransfer(err, false, false);
+      });
+      await permission;
+      for (let offset = 0; offset < size; offset += txChunkSize) {
+        check3();
+        const length = Math.min(txChunkSize, size - offset);
+        const bytes = buildControlPacket(chunkKind, transferId, chunkHeaderSize + length);
+        viewOf(bytes).setFloat64(controlHeaderSize, offset);
+        bytes.set(source2 instanceof Uint8Array ? source2.subarray(offset, offset + length) : new Uint8Array(await source2.slice(offset, offset + length).arrayBuffer()), chunkHeaderSize);
+        await sendFrameToTransport(transport, bytes, check3, signal, transferId);
+        transfers.forEach((t) => t.touch());
+        progressCb?.((offset + length) / size, peerId, metadata);
+      }
+      check3();
+      if (currentBulkState().phase === "streaming") bulkState = { phase: "done" };
+    } catch (error) {
+      failTransfer(error);
+      const failedState = currentBulkState();
+      if (failedState.phase === "failed" && failedState.didSendOffer && !failedState.fromReceiver && transport.isOpen && transport.bufferedAmount <= maxControlBufferedBytes) sendControlFrame(peerId, transport, transferId, cancelledKind);
+      throw failedState.phase === "failed" ? failedState.error : error;
+    } finally {
+      const finalState = currentBulkState();
+      if (finalState.phase === "offering") clearTimeout(finalState.timer);
+      abortCleanup?.abort();
+      transfers.delete(transferId);
+      if (!transfers.size && outgoing.get(peerId) === transfers) outgoing.delete(peerId);
+    }
+  };
+  const handleControlOrChunk = (peerId, bytes, kind, view) => {
+    if (bytes.length < controlHeaderSize || (kind === acceptedKind || kind === cancelledKind) && bytes.length !== controlHeaderSize || kind === rejectedKind && bytes.length > 206) {
+      failPeer(peerId, invalidActionMsg("control"));
+      return;
+    }
+    const id = view.getUint32(2);
+    if (kind === acceptedKind) {
+      const transfers = outgoing.get(peerId);
+      if (transfers?.get(id)?.accept()) transfers.forEach((t) => t.touch());
+      return;
+    }
+    if (kind === rejectedKind) {
+      outgoing.get(peerId)?.get(id)?.fail(makeActionError("rejected", decodeBytes(bytes.subarray(controlHeaderSize))), true);
+      return;
+    }
+    if (kind === cancelledKind) {
+      const transfer3 = peers.get(peerId)?.bulkTransfers.get(id);
+      if (transfer3) {
+        releaseTransfer(transfer3);
+        transfer3.scope?.[3]("response cancelled by sender");
+      }
+      drain();
+      return;
+    }
+    const offset = bytes.length >= chunkHeaderSize ? view.getFloat64(controlHeaderSize) : NaN;
+    const chunkData = bytes.subarray(chunkHeaderSize);
+    const transfer2 = peers.get(peerId)?.bulkTransfers.get(id);
+    if (!transfer2) return;
+    const totalSize = transfer2.message.size;
+    const rxChunkSize = transfer2.chunkSize;
+    if (!bulkPhaseClass[transfer2.state.phase].active || !Number.isSafeInteger(offset) || offset < 0 || offset >= totalSize || offset % rxChunkSize !== 0 || !chunkData.length || chunkData.length !== Math.min(rxChunkSize, totalSize - offset)) {
+      failPeer(peerId, invalidActionMsg("chunk"));
+      return;
+    }
+    const rxState = beginReceivingChunks(transfer2);
+    if (!rxState) return;
+    const chunkIdx = offset / rxChunkSize;
+    const byteIdx = chunkIdx >>> 3;
+    const bitMask = 1 << (chunkIdx & 7);
+    if ((rxState.seenChunks[byteIdx] & bitMask) !== 0) {
+      failPeer(peerId, invalidActionMsg("chunk"));
+      return;
+    }
+    rxState.seenChunks[byteIdx] |= bitMask;
+    rxState.data.set(chunkData, offset);
+    rxState.offset += chunkData.length;
+    const now2 = Date.now();
+    transfer2.lastSeenAt = now2;
+    for (const queued of waitingBulk) if (queued.state.phase === "queued" && rxActions.get(queued.message.type)?.receiver) queued.lastSeenAt = now2;
+    if (rxState.offset === totalSize) {
+      const registration = rxActions.get(transfer2.message.type);
+      if (registration?.receiver) complete(transfer2, registration, rxState.data, false);
+      else parkCompletedBulk(transfer2);
+      drain();
+    } else {
+      const registration = rxActions.get(transfer2.message.type);
+      if (registration) emitRxProgress(registration, rxState.offset / totalSize, peerId, transfer2.message.metadata);
+    }
+  };
+  const makeWireAction = (type, options = {}) => {
+    const sendToPending = Boolean(options.sendToPending);
+    const receiveWhilePending = Boolean(options.receiveWhilePending);
+    const { maxPayloadBytes, receiveScope } = options;
+    const cached = actions.get(type);
+    if (cached) {
+      if (cached.sendToPending !== sendToPending || cached.receiveWhilePending !== receiveWhilePending || cached.maxPayloadBytes !== maxPayloadBytes || cached.receiveScope !== receiveScope) throw actionRedefinedErr(type);
+      return cached.action;
+    }
+    const typeBytes = encodeBytes(type);
+    if (!type || type.includes("\0") || typeBytes.length > 32) throw mkErr("action type must be 1\u201332 non-null UTF-8 bytes");
+    const registration = {
+      ...maxPayloadBytes === void 0 ? {} : { maxPayloadBytes },
+      ...receiveScope ? { receiveScope } : {},
+      receiver: null,
+      receiveGate: null,
+      onReject: null,
+      onProgress: noOp2
+    };
+    rxActions.set(type, registration);
+    const actionObj = {
+      onMessage: (handler) => {
+        registration.receiver = handler;
+        flushPreListenerType(type, registration);
+        drain();
+      },
+      onReceive: (handler) => {
+        registration.receiveGate = handler;
+        if (handler) flushPreListenerType(type, registration);
+        drain();
+      },
+      onReject: (handler) => {
+        registration.onReject = handler;
+      },
+      onProgress: (handler) => {
+        registration.onProgress = handler;
+      },
+      send: async (data, targets, metadata, progressCb, signal) => {
+        checkAborted(signal);
+        if (data === void 0) throw mkErr("action data cannot be undefined");
+        const [format, source2] = toPayloadSource(data);
+        const size = source2 instanceof Uint8Array ? source2.byteLength : source2.size;
+        const metaJson = metadata === void 0 ? "" : toJson(metadata);
+        const metaByteLen = metadata === void 0 ? 0 : utf8ByteLength(metaJson);
+        if (metaByteLen > 16384 - offerHeaderSize) throw mkErr("action metadata is too large");
+        const isSmall = inlineHeaderSize + metaByteLen + size <= maxActionFrameBytes;
+        const transferId = isSmall ? 0 : nextTransferId++ >>> 0;
+        const headerSize = isSmall ? inlineHeaderSize : offerHeaderSize;
+        const startFrame = new Uint8Array(headerSize + metaByteLen + (isSmall ? size : 0));
+        startFrame[0] = 3;
+        startFrame[1] = (isSmall ? inlineKind : offerKind) | format << 4;
+        startFrame.set(typeBytes, 2);
+        const view = viewOf(startFrame);
+        view.setUint16(34, metaByteLen);
+        if (!isSmall) {
+          view.setUint32(36, transferId);
+          view.setFloat64(40, size);
+        }
+        if (metaByteLen > 0) encodeBytesInto(metaJson, startFrame.subarray(headerSize, headerSize + metaByteLen));
+        if (isSmall) startFrame.set(source2 instanceof Uint8Array ? source2 : new Uint8Array(await source2.arrayBuffer()), headerSize + metaByteLen);
+        const isExplicitTarget = targets !== void 0 && targets !== null;
+        if (!isExplicitTarget && isSmall && !sendToPending && broadcastInline) {
+          const bcastResult = broadcastInline(startFrame, (peerId) => progressCb?.(1, peerId, metadata), signal);
+          if (typeof bcastResult === "boolean" ? bcastResult : await bcastResult) return;
+        }
+        const rawIds = isExplicitTarget ? [targets].flat() : getPeerIds(sendToPending);
+        const uniqueIds = [...new Set(rawIds)];
+        if (isExplicitTarget && uniqueIds.length === 0) throw makeActionError("disconnected", "target peer list must not be empty");
+        const resolvedTargets = [];
+        for (const peerId of uniqueIds) {
+          const transport = resolveTransport(peerId, sendToPending);
+          if (!transport || !transport.isOpen) {
+            if (isExplicitTarget) throw makeActionError("disconnected", noActivePeerMsg(peerId));
+            continue;
+          }
+          resolvedTargets.push([peerId, transport]);
+        }
+        const pendingPromises = [];
+        const pushPending = (p) => {
+          p.catch(noOp2);
+          pendingPromises.push(p);
+        };
+        for (const [peerId, transport] of resolvedTargets) if (isSmall) {
+          checkAborted(signal);
+          const prevQueue = outgoingInlineQueues.get(peerId);
+          const drainRes = prevQueue ? void 0 : transport.waitForDrain(signal);
+          if (drainRes === true) {
+            try {
+              transport.sendFrame(startFrame);
+            } catch {
+              throw disconnectedTransferErr();
+            }
+            progressCb?.(1, peerId, metadata);
+            continue;
+          }
+          const task = (async () => {
+            await prevQueue;
+            await sendFrameToTransport(transport, startFrame, () => {
+              checkAborted(signal);
+              if (!transport.isOpen) throw disconnectedTransferErr();
+            }, signal, void 0, void 0, drainRes);
+            progressCb?.(1, peerId, metadata);
+          })();
+          const tail = task.catch(noOp2).finally(() => {
+            if (outgoingInlineQueues.get(peerId) === tail) outgoingInlineQueues.delete(peerId);
+          });
+          outgoingInlineQueues.set(peerId, tail);
+          pushPending(prevQueue && signal ? raceAbort(task, signal) : task);
+        } else pushPending(sendBulkToPeer(peerId, transport, startFrame, transferId, source2, size, metadata, progressCb, signal));
+        if (pendingPromises.length > 0) await all(pendingPromises);
+      }
+    };
+    actions.set(type, {
+      sendToPending,
+      receiveWhilePending,
+      maxPayloadBytes,
+      receiveScope,
+      action: actionObj
+    });
+    return actionObj;
+  };
+  const handleData = (peerId, data) => {
+    if (data.byteLength < 2 || data.byteLength > 65536) {
+      failPeer(peerId, invalidFrameMsg);
+      return;
+    }
+    const bytes = new Uint8Array(data);
+    if (bytes[0] !== 3) {
+      failPeer(peerId, "incompatible action protocol version");
+      return;
+    }
+    const kind = bytes[1] & 15;
+    const format = bytes[1] >>> 4 & 3;
+    const flags = bytes[1] >>> 6;
+    const view = viewOf(bytes);
+    if (kind > cancelledKind || format > binaryFormat || flags > (kind === offerKind ? 1 : 0) || kind > offerKind && format !== textFormat || kind !== chunkKind && bytes.length > 16384) {
+      failPeer(peerId, invalidFrameMsg);
+      return;
+    }
+    if (kind >= chunkKind) {
+      handleControlOrChunk(peerId, bytes, kind, view);
+      return;
+    }
+    const headerSize = kind === inlineKind ? inlineHeaderSize : offerHeaderSize;
+    if (bytes.length < headerSize) {
+      failPeer(peerId, invalidActionMsg("header"));
+      return;
+    }
+    const type = decodeActionType(bytes);
+    let registered = actions.get(type);
+    if (!registered && onUnknownType) {
+      onUnknownType(type);
+      registered = actions.get(type);
+    }
+    if (!canReceiveFromPeer(peerId, Boolean(registered?.receiveWhilePending))) return;
+    const metaLength = view.getUint16(34);
+    const payloadIndex = headerSize + metaLength;
+    const size = kind === inlineKind ? bytes.length - payloadIndex : view.getFloat64(40);
+    const transferId = kind === offerKind ? view.getUint32(36) : 0;
+    if (!type || payloadIndex > bytes.length || !Number.isSafeInteger(size) || size < 0 || kind === offerKind && (size === 0 || payloadIndex !== bytes.length)) {
+      failPeer(peerId, invalidActionMsg("proposal"));
+      return;
+    }
+    let metadata;
+    try {
+      if (metaLength) metadata = fromJson(decodeBytes(bytes.subarray(headerSize, payloadIndex)));
+    } catch {
+      failPeer(peerId, invalidActionMsg("metadata"));
+      return;
+    }
+    const message = {
+      peerId,
+      type,
+      format,
+      size,
+      metadata
+    };
+    if (kind === inlineKind) {
+      const dataSlice = bytes.subarray(payloadIndex);
+      const resolved2 = resolveAdmission(message);
+      if (!resolved2) return;
+      const [registration, scope] = resolved2;
+      const queueKey = scope ? `${type}\0${scope[0]}` : type;
+      const hasGate = Boolean(scope ? scope[2] : registration.receiveGate);
+      if (registration.receiver && !hasGate && !peers.get(peerId)?.inlineQueues.has(queueKey)) {
+        let payload;
+        try {
+          payload = decodePayload(dataSlice, format, true);
+        } catch {
+          failPeer(peerId, invalidPayloadMsg);
+          return;
+        }
+        deliverPayload(registration, payload, peerId, metadata);
+        return;
+      }
+      if (!registration.receiver && !hasGate && !peers.get(peerId)?.inlineQueues.has(queueKey)) {
+        bufferPreListenerInline(message, dataSlice);
+        return;
+      }
+      const transfer3 = {
+        ...createTransferBase(message, scope),
+        kind: "inline",
+        queueKey,
+        state: {
+          phase: "pending",
+          data: dataSlice.slice()
+        }
+      };
+      if (enqueueTransfer(transfer3, true)) {
+        drainInline(peerId, queueKey);
+        ensureIdleTimer(transfer3);
+      }
+      return;
+    }
+    if (peers.get(peerId)?.bulkTransfers.has(transferId)) {
+      failPeer(peerId, "duplicate action offer");
+      return;
+    }
+    const resolved = resolveAdmission(message, transferId);
+    if (!resolved) return;
+    const transfer2 = {
+      ...createTransferBase(message, resolved[1]),
+      kind: "bulk",
+      transferId,
+      chunkSize: flags === 1 ? maxChunkSize : minChunkSize,
+      state: { phase: "closed" }
+    };
+    if (enqueueTransfer(transfer2)) drain();
+  };
+  return {
+    makeWireAction,
+    handleData,
+    clearPeer
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/peer-transport.mjs
+var backpressureWaitTimeoutMs = 1e4;
+var waitForBufferedAmountLow = (channel, signal, timeoutMs = backpressureWaitTimeoutMs) => {
+  if (signal?.aborted) return false;
+  if (channel.readyState !== "open" || channel.bufferedAmount <= (channel.bufferedAmountLowThreshold ?? 0)) return channel.readyState === "open";
+  return new Promise((res) => {
+    let settled = false;
+    let timeout = null;
+    const abortCleanup = new AbortController();
+    const onBufferLow = () => finish(true);
+    const onCloseOrError = () => finish(false);
+    const toggleChannel = (op) => {
+      channel[op]("bufferedamountlow", onBufferLow);
+      channel[op]("close", onCloseOrError);
+      channel[op]("error", onCloseOrError);
+    };
+    const finish = (didDrain) => {
+      if (settled) return;
+      settled = true;
+      toggleChannel("removeEventListener");
+      abortCleanup.abort();
+      timeout = resetTimer(timeout);
+      res(didDrain);
+    };
+    timeout = setTimeout(() => finish(false), timeoutMs);
+    unrefTimer(timeout);
+    toggleChannel("addEventListener");
+    signal?.addEventListener("abort", onCloseOrError, {
+      once: true,
+      signal: abortCleanup.signal
+    });
+    if (channel.readyState !== "open" || signal?.aborted) {
+      finish(false);
+      return;
+    }
+    if (channel.bufferedAmount <= (channel.bufferedAmountLowThreshold ?? 0)) finish(true);
+  });
+};
+var destroyAfterFlush = (peer, graceMs = 40, capMs = 150, onDone) => {
+  if (peer.isDead) {
+    onDone?.();
+    return noOp2;
+  }
+  peer.setHandlers({
+    connect: noOp2,
+    data: noOp2,
+    stream: noOp2,
+    close: noOp2,
+    error: noOp2
+  });
+  const channel = peer.channel;
+  if (!channel || channel.readyState !== "open") {
+    peer.destroy();
+    onDone?.();
+    return noOp2;
+  }
+  const hasEventTarget = typeof channel.addEventListener === "function";
+  let state;
+  const finish = () => {
+    switch (state.phase) {
+      case "done":
+        return;
+      case "grace-hold":
+        resetTimer(state.graceTimer);
+        resetTimer(state.capTimer);
+        break;
+      case "draining":
+        resetTimer(state.capTimer);
+        break;
+      default:
+        unreachable(state);
+    }
+    state = { phase: "done" };
+    if (hasEventTarget) {
+      channel.removeEventListener("bufferedamountlow", maybeFinish);
+      channel.removeEventListener("close", finish);
+      channel.removeEventListener("error", finish);
+    }
+    peer.destroy();
+    onDone?.();
+  };
+  const isBufferDrained = () => channel.readyState !== "open" || typeof channel.bufferedAmount !== "number" || channel.bufferedAmount <= 0;
+  const maybeFinish = () => {
+    if (state.phase === "draining" && isBufferDrained()) finish();
+  };
+  const capTimer = setTimeout(finish, Math.max(graceMs, capMs));
+  unrefTimer(capTimer);
+  if (graceMs > 0) {
+    const graceTimer = setTimeout(() => {
+      if (state.phase === "grace-hold") {
+        state = {
+          phase: "draining",
+          capTimer: state.capTimer
+        };
+        maybeFinish();
+      }
+    }, graceMs);
+    unrefTimer(graceTimer);
+    state = {
+      phase: "grace-hold",
+      graceTimer,
+      capTimer
+    };
+  } else state = {
+    phase: "draining",
+    capTimer
+  };
+  if (hasEventTarget) {
+    try {
+      channel.bufferedAmountLowThreshold = 0;
+    } catch {
+    }
+    channel.addEventListener("bufferedamountlow", maybeFinish);
+    channel.addEventListener("close", finish);
+    channel.addEventListener("error", finish);
+  }
+  if (graceMs <= 0) maybeFinish();
+  return finish;
+};
+var createDirectPeerTransport = (peer, isCurrent) => ({
+  get isOpen() {
+    const channelState = peer.channel?.readyState;
+    return (!isCurrent || isCurrent()) && !peer.isDead && channelState !== "closing" && channelState !== "closed";
+  },
+  get bufferedAmount() {
+    return typeof peer.channel?.bufferedAmount === "number" ? peer.channel.bufferedAmount : 0;
+  },
+  get maxBulkFrameBytes() {
+    const sctpMax = peer.connection?.sctp?.maxMessageSize;
+    return typeof sctpMax === "number" && Number.isFinite(sctpMax) && sctpMax >= 65536 ? maxBulkFrameBytes : maxActionFrameBytes;
+  },
+  sendFrame: (bytes) => {
+    peer.sendData(bytes);
+  },
+  waitForDrain: (signal) => {
+    if (signal?.aborted || isCurrent && !isCurrent() || peer.isDead) return false;
+    if (!peer.channel) return true;
+    return waitForBufferedAmountLow(peer.channel, signal);
+  },
+  close: () => peer.destroy()
+});
+
+// node_modules/@trystero-p2p/core/dist/signal-handler.mjs
+var signalKeys = [
+  "offer",
+  "answer",
+  "candidate"
+];
+var maxSignalMessageChars = 131072;
+var maxSignalOfferIdChars = 64;
+var maxSignalSdpChars = 65536;
+var maxSignalCandidateChars = 4096;
+var maxTrackedSignalPeers = 256;
+var decryptErrDedupeTtlMs = 6e4;
+var signalPeerIdPattern = /^[0-9A-Za-z]{20}$/;
+var signalIdPattern = /^[\w.~:!-]{1,64}$/;
+var buildSignalAad = (type, peerId, offerId) => `${type}|${peerId}|${offerId}`;
+var isValidSignalId = (value2, maxLen) => typeof value2 === "string" && value2.length > 0 && value2.length <= maxLen && signalIdPattern.test(value2);
+var isValidSignalPeerId = (value2) => typeof value2 === "string" && signalPeerIdPattern.test(value2);
+var isValidSignalOfferId = (value2) => isValidSignalId(value2, maxSignalOfferIdChars);
+var toPayload = (msg) => {
+  if (typeof msg === "string") {
+    if (msg.length > maxSignalMessageChars) return null;
+    try {
+      const parsed = fromJson(msg);
+      return isObj(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  return isObj(msg) ? msg : null;
+};
+var getString = (payload, key) => typeof payload[key] === "string" && payload[key] ? payload[key] : void 0;
+var isPeerHandle = (value2) => Boolean(value2 && typeof value2 === "object" && typeof value2.signal === "function" && typeof value2.destroy === "function" && typeof value2.setHandlers === "function");
+var parseSignalEnvelope = (msg) => {
+  const payload = toPayload(msg);
+  if (!payload) return null;
+  const isRawString = typeof msg === "string";
+  const hasSignalContent = signalKeys.some((k) => k in payload);
+  if ("peerId" in payload && !isValidSignalPeerId(payload["peerId"]) || (hasSignalContent || payload["offerId"] !== void 0) && !isValidSignalOfferId(payload["offerId"]) || signalKeys.some((k) => {
+    if (!(k in payload)) return false;
+    const val = payload[k];
+    return typeof val !== "string" || val === "" || val.length > (k === "candidate" ? maxSignalCandidateChars : maxSignalSdpChars);
+  }) || "peer" in payload && (isRawString || payload["peer"] !== void 0 && !isPeerHandle(payload["peer"]))) return null;
+  return [
+    getString(payload, "peerId") ?? "",
+    getString(payload, "offer"),
+    getString(payload, "answer"),
+    getString(payload, "candidate"),
+    getString(payload, "offerId"),
+    isPeerHandle(payload["peer"]) ? payload["peer"] : void 0
+  ];
+};
+var hasTurnServer = (config) => hasIceUrl([...config.turnConfig ?? [], ...config.rtcConfig?.iceServers ?? []], /^turns?:/i);
+var isDeadConnState = (s) => s === "closed" || s === "failed";
+var getConnectedPeerHealth = (peer) => {
+  const { connection: pc, channel: ch } = peer;
+  return peer.isDead || isDeadConnState(pc.connectionState) || isDeadConnState(pc.iceConnectionState) || ch?.readyState === "closing" || ch?.readyState === "closed" ? "stale" : !ch || ch.readyState !== "open" ? "transient" : "live";
+};
+var offerPostAnswerTtlMs = 23333;
+var offerTtl = 57333;
+var offerIdSize = 12;
+var disconnectedPeerGraceMs = 7533;
+var answeringTtlMs = 23333;
+var isSlotAnnounceable = (slot2) => !slot2 || slot2.phase === "exhausted";
+var hasCandidateSender = (slot2) => slot2?.phase === "retrying" || slot2?.phase === "exhausted";
+var clearRelaySlots = (slots2) => {
+  for (let i = 0; i < slots2.length; i++) {
+    const slot2 = slots2[i];
+    if (slot2?.phase === "retrying") resetTimer(slot2.retryTimer);
+    slots2[i] = void 0;
+  }
+  slots2.length = 0;
+};
+var freezeRelayRetriesKeepSenders = (slots2) => {
+  for (let i = 0; i < slots2.length; i++) {
+    const slot2 = slots2[i];
+    if (!slot2) continue;
+    switch (slot2.phase) {
+      case "reserved":
+        slots2[i] = void 0;
+        break;
+      case "retrying":
+        resetTimer(slot2.retryTimer);
+        slots2[i] = {
+          phase: "exhausted",
+          sendCandidate: slot2.sendCandidate
+        };
+        break;
+      case "exhausted":
+        break;
+      default:
+        unreachable(slot2);
+    }
+  }
+};
+var clearOfferRelaySlot = (state, relayId) => {
+  const current = state.relaySlots[relayId];
+  if (!current) return;
+  if (current.phase === "retrying") resetTimer(current.retryTimer);
+  state.relaySlots[relayId] = void 0;
+};
+var clearOfferRelayIfReserved = (state, relayId) => {
+  if (state?.relaySlots[relayId]?.phase === "reserved") state.relaySlots[relayId] = void 0;
+};
+var hasLiveOutboundOffer = (state, peer, offerId) => (state.outbound.phase === "advertising" || state.outbound.phase === "answered") && (!peer || state.outbound.peer === peer) && (offerId === void 0 || state.outbound.offerId === offerId);
+var hasOutboundActivity = (state) => {
+  switch (state.outbound.phase) {
+    case "idle":
+      return state.relaySlots.some(Boolean);
+    case "allocating":
+    case "advertising":
+    case "answered":
+      return true;
+    default:
+      return unreachable(state.outbound);
+  }
+};
+var countPendingPeerConnections = (peerStates, excludePeerId) => {
+  let count = 0;
+  for (const [id, s] of peerStates) {
+    if (id === excludePeerId || s.connection.phase === "connected") continue;
+    if (s.outbound.phase === "allocating" || hasLiveOutboundOffer(s) && !s.outbound.peer.isDead) count++;
+    if (s.inbound.phase === "answering" && !s.inbound.peer.isDead) count++;
+  }
+  return count;
+};
+var isPeerStateIdle = (s) => s.connection.phase === "disconnected" && s.inbound.phase === "idle" && !hasOutboundActivity(s);
+var prunePeerStates = (peerStates) => {
+  for (const [peerId, s] of peerStates) if (isPeerStateIdle(s)) peerStates.delete(peerId);
+};
+var counterAnnounceTimestamps = /* @__PURE__ */ new WeakMap();
+var destroyAlive = (peer) => {
+  if (peer && !peer.isDead) peer.destroy();
+};
+var resetAnsweringState = (state) => {
+  counterAnnounceTimestamps.delete(state);
+  if (state.inbound.phase === "answering") resetTimer(state.inbound.expiryTimer);
+  state.inbound = { phase: "idle" };
+};
+var clearAnswering = (state, peer) => {
+  if (state.inbound.phase === "answering" && state.inbound.peer === peer) {
+    resetAnsweringState(state);
+    if (state.connectedPeer !== peer) destroyAlive(peer);
+  }
+};
+var markPeerConnected = (state, physical) => {
+  if (state.inbound.phase === "answering" && state.inbound.peer !== physical) destroyAlive(state.inbound.peer);
+  resetAnsweringState(state);
+  state.connection = {
+    phase: "connected",
+    peer: physical,
+    unhealthySince: null
+  };
+};
+var detachConnectedPeer = (state, physical) => {
+  if (state?.connection.phase === "connected" && state.connection.peer === physical) state.connection = { phase: "disconnected" };
+};
+var clearConnectedPeer = (state) => {
+  if (state.connection.phase !== "connected") return;
+  const { peer } = state.connection;
+  state.connection = { phase: "disconnected" };
+  destroyAlive(peer);
+};
+var resetOfferState = (state) => {
+  counterAnnounceTimestamps.delete(state);
+  clearRelaySlots(state.relaySlots);
+  switch (state.outbound.phase) {
+    case "idle":
+    case "allocating":
+      break;
+    case "advertising":
+    case "answered":
+      resetTimer(state.outbound.expiryTimer);
+      if (state.outbound.peer !== state.connectedPeer) destroyAlive(state.outbound.peer);
+      break;
+    default:
+      unreachable(state.outbound);
+  }
+  state.outbound = { phase: "idle" };
+  state.didReportFailure = false;
+};
+var createPeerState = () => ({
+  outbound: { phase: "idle" },
+  inbound: { phase: "idle" },
+  connection: { phase: "disconnected" },
+  relaySlots: [],
+  didReportFailure: false,
+  get offerPeer() {
+    return hasLiveOutboundOffer(this) ? this.outbound.peer : null;
+  },
+  get answeringPeer() {
+    return this.inbound.phase === "answering" ? this.inbound.peer : null;
+  },
+  get connectedPeer() {
+    return this.connection.phase === "connected" ? this.connection.peer : null;
+  }
+});
+var getState = (peerStates, peerId) => {
+  const existing = peerStates.get(peerId);
+  if (existing) return existing;
+  if (peerStates.size >= maxTrackedSignalPeers) {
+    let evictKey;
+    let fallbackKey;
+    for (const [k, s] of peerStates) {
+      if (isPeerStateIdle(s)) {
+        evictKey = k;
+        break;
+      }
+      if (fallbackKey === void 0 && s.connection.phase === "disconnected") fallbackKey = k;
+    }
+    const targetKey = evictKey ?? fallbackKey;
+    if (targetKey !== void 0) {
+      const evicted = peerStates.get(targetKey);
+      if (evicted) {
+        destroyAlive(evicted.answeringPeer);
+        resetOfferState(evicted);
+        resetAnsweringState(evicted);
+      }
+      peerStates.delete(targetKey);
+    }
+  }
+  const created = createPeerState();
+  peerStates.set(peerId, created);
+  return created;
+};
+var createSignalHandler = (ctx) => {
+  const { appId, getRoomId, config, peerStates, getRootTopicPlaintext, rootTopicP, selfTopicP, toPlain, toCipher, isLeaving, onError, checkoutOffers, claimLeasedOffer, reclaimLeasedOffer, encryptOffer, initPeer: initPeerFn, connectPeer, disconnectPeer, announceIntervals, announceIntervalMs: announceIntervalMs2, getSelfIdNow, selfIdP, onPeerDiscovered, shouldConnectPeer } = ctx;
+  const relaySignalPeers = [];
+  const recentDecryptErrors = createBoundedCache(512);
+  const dialBackoffs = createBoundedCache(512);
+  const inFlightOfferDecrypts = /* @__PURE__ */ new Map();
+  const getSelfId = () => selfIdP;
+  const peerTopicOf = (peerId) => hashTopic(topicPath(getRootTopicPlaintext(), peerId));
+  const atPendingCap = (peerId) => countPendingPeerConnections(peerStates, peerId) >= 64;
+  const reportSdpFailure = (state, peerId) => {
+    if (isLeaving() || state.connection.phase === "connected" || state.didReportFailure) return;
+    state.didReportFailure = true;
+    const turnConfigured = hasTurnServer(config);
+    onError?.({
+      code: "peer-connect-failed",
+      peerId,
+      turnConfigured,
+      message: `could not connect to peer ${peerId} after exchanging SDP; ${turnConfigured ? "verify TURN server URLs and credentials" : "configure TURN via turnConfig or rtcConfig.iceServers"}`,
+      appId,
+      roomId: getRoomId()
+    });
+  };
+  const reportDecryptErr = (peerId, stage, cause) => {
+    const key = `${peerId}:${stage}`;
+    const now2 = Date.now();
+    const prev2 = recentDecryptErrors.get(key);
+    if (prev2 !== void 0 && now2 - prev2 < decryptErrDedupeTtlMs) return;
+    recentDecryptErrors.set(key, now2);
+    onError?.({
+      code: "decrypt-failed",
+      peerId,
+      stage,
+      message: `failed to decrypt ${stage} (incorrect password or corrupted signal)`,
+      appId,
+      roomId: getRoomId(),
+      cause
+    });
+  };
+  const createAnsweringExpiryTimer = (peerId, peer) => {
+    const timer = setTimeout(() => {
+      const current = peerStates.get(peerId);
+      if (!current || current.connection.phase === "connected" || current.inbound.phase !== "answering" || current.inbound.peer !== peer) return;
+      if (current.inbound.didSendAnswer) reportSdpFailure(current, peerId);
+      clearAnswering(current, peer);
+      prunePeerStates(peerStates);
+    }, answeringTtlMs);
+    unrefTimer(timer);
+    return timer;
+  };
+  const createOfferExpiryTimer = (peerId, offerId, ttlMs = offerTtl) => {
+    const timer = setTimeout(() => {
+      const current = peerStates.get(peerId);
+      if (!current || current.connection.phase === "connected" || !hasLiveOutboundOffer(current, void 0, offerId)) return;
+      if (current.outbound.phase === "answered") reportSdpFailure(current, peerId);
+      resetOfferState(current);
+      prunePeerStates(peerStates);
+    }, ttlMs);
+    unrefTimer(timer);
+    return timer;
+  };
+  const bindOfferPeerHandlers = (state, peerId, peer, onSignal) => {
+    const onClosedOrError = () => {
+      if (state.offerPeer === peer && state.connection.phase !== "connected") {
+        if (state.outbound.phase === "answered") reportSdpFailure(state, peerId);
+        resetOfferState(state);
+      }
+      disconnectPeer(peer, peerId);
+      prunePeerStates(peerStates);
+    };
+    peer.setHandlers({
+      connect: () => {
+        dialBackoffs.delete(peerId);
+        connectPeer(peer, peerId);
+      },
+      ...onSignal ? { signal: onSignal } : {},
+      close: onClosedOrError,
+      error: onClosedOrError
+    });
+  };
+  const ensureOffer = (state, peerId) => {
+    switch (state.outbound.phase) {
+      case "advertising":
+        return Promise.resolve([
+          state.outbound.peer,
+          state.outbound.offerSdp,
+          state.outbound.offerId
+        ]);
+      case "allocating":
+        return state.outbound.promise;
+      case "answered":
+        return Promise.resolve(null);
+      case "idle":
+        break;
+      default:
+        return unreachable(state.outbound);
+    }
+    if (atPendingCap(peerId)) return Promise.resolve(null);
+    const isAllocCanceled = () => isLeaving() || state.outbound.phase !== "allocating" || state.outbound.promise !== pending;
+    const allocateOffer = async () => {
+      const localSelfId = getSelfIdNow() ?? await getSelfId();
+      let firstOffer;
+      try {
+        firstOffer = (await checkoutOffers(1, false, (peer2, oid) => encryptOffer(peer2, localSelfId, oid), offerIdSize))[0];
+      } catch (error) {
+        if (isAllocCanceled()) return null;
+        throw error;
+      }
+      if (!firstOffer) {
+        if (isAllocCanceled()) return null;
+        throw mkErr("failed to allocate offer peer");
+      }
+      const { peer, offer: offer3 } = firstOffer;
+      const offerId = firstOffer.offerId || genId(offerIdSize);
+      if (isAllocCanceled()) {
+        peer.destroy();
+        return null;
+      }
+      const bufferedCandidates = [];
+      const expiryTimer = createOfferExpiryTimer(peerId, offerId);
+      state.didReportFailure = false;
+      state.outbound = {
+        phase: "advertising",
+        peer,
+        offerId,
+        offerSdp: offer3,
+        expiryTimer,
+        bufferedCandidates
+      };
+      bindOfferPeerHandlers(state, peerId, peer, (signal) => {
+        if (state.connection.phase !== "connected" && hasLiveOutboundOffer(state, peer, offerId)) {
+          state.outbound.bufferedCandidates.push(signal);
+          for (const slot2 of state.relaySlots) if (hasCandidateSender(slot2)) slot2.sendCandidate(signal);
+        }
+      });
+      return [
+        peer,
+        offer3,
+        offerId
+      ];
+    };
+    const pending = allocateOffer().finally(() => {
+      if (state.outbound.phase === "allocating" && state.outbound.promise === pending) state.outbound = { phase: "idle" };
+    });
+    state.outbound = {
+      phase: "allocating",
+      promise: pending
+    };
+    return pending;
+  };
+  const transitionOutboundToAnswered = (state, peerId, peer, offerId) => {
+    let bufferedCandidates = [];
+    if (hasLiveOutboundOffer(state)) {
+      resetTimer(state.outbound.expiryTimer);
+      if (state.outbound.peer === peer && state.outbound.offerId === offerId) {
+        bufferedCandidates = state.outbound.bufferedCandidates;
+        freezeRelayRetriesKeepSenders(state.relaySlots);
+      } else {
+        clearRelaySlots(state.relaySlots);
+        if (state.connectedPeer !== state.outbound.peer) destroyAlive(state.outbound.peer);
+      }
+    } else clearRelaySlots(state.relaySlots);
+    state.outbound = {
+      phase: "answered",
+      peer,
+      offerId,
+      expiryTimer: createOfferExpiryTimer(peerId, offerId, offerPostAnswerTtlMs),
+      bufferedCandidates
+    };
+  };
+  const handleAnnouncement = async (relayId, peerId, signalPeer, retryAttempt = 0) => {
+    const state = peerStates.get(peerId);
+    if (!state || state.connection.phase === "connected" || state.inbound.phase !== "idle" || state.outbound.phase === "answered") {
+      clearOfferRelayIfReserved(state, relayId);
+      return;
+    }
+    if (state.relaySlots[relayId]?.phase !== "reserved") return;
+    let peerTopic;
+    let offerInfo;
+    let localSelfId;
+    try {
+      [peerTopic, offerInfo, localSelfId] = await all([
+        peerTopicOf(peerId),
+        ensureOffer(state, peerId),
+        getSelfId()
+      ]);
+    } catch (err) {
+      clearOfferRelayIfReserved(state, relayId);
+      prunePeerStates(peerStates);
+      throw err;
+    }
+    if (!offerInfo) {
+      clearOfferRelayIfReserved(state, relayId);
+      return;
+    }
+    if (isLeaving()) {
+      resetOfferState(state);
+      return;
+    }
+    const isStateConnected = (s) => s.connection.phase === "connected";
+    if (isStateConnected(state) || state.inbound.phase !== "idle" || state.outbound.phase !== "advertising" || state.relaySlots[relayId]?.phase !== "reserved") {
+      clearOfferRelayIfReserved(state, relayId);
+      return;
+    }
+    const [offerPeer, offerSdp, offerId] = offerInfo;
+    const sendCandidate = (signal) => {
+      if (isLeaving() || state.connection.phase === "connected" || !hasLiveOutboundOffer(state, offerPeer, offerId) || signal.type !== "candidate") return;
+      toCipher(signal, localSelfId, offerId).then((enc2) => {
+        if (!isLeaving() && state.connection.phase !== "connected" && hasLiveOutboundOffer(state, offerPeer, offerId)) signalPeer(peerTopic, toJson({
+          peerId: localSelfId,
+          offerId,
+          candidate: enc2.sdp
+        }));
+      }).catch(noOp2);
+    };
+    const retryTimer = setTimeout(() => {
+      if (retryAttempt >= 2 || isLeaving() || state.connection.phase === "connected" || state.inbound.phase !== "idle" || state.outbound.phase !== "advertising" || state.outbound.peer !== offerPeer || state.outbound.offerId !== offerId) {
+        const cur = peerStates.get(peerId);
+        if (cur && cur.connection.phase !== "connected") {
+          if (retryAttempt >= 2 && hasLiveOutboundOffer(cur, offerPeer, offerId)) cur.relaySlots[relayId] = {
+            phase: "exhausted",
+            sendCandidate
+          };
+          else clearOfferRelaySlot(cur, relayId);
+          prunePeerStates(peerStates);
+        }
+        return;
+      }
+      state.relaySlots[relayId] = { phase: "reserved" };
+      handleAnnouncement(relayId, peerId, signalPeer, retryAttempt + 1).catch((err) => {
+        if (!isLeaving()) logErr("signal", err);
+      });
+    }, retryAttempt === 0 && announceIntervals[relayId] === void 0 ? 2e3 : (announceIntervals[relayId] ?? announceIntervalMs2) * 0.9);
+    unrefTimer(retryTimer);
+    signalPeer(peerTopic, toJson({
+      peerId: localSelfId,
+      offerId,
+      offer: offerSdp
+    }));
+    state.relaySlots[relayId] = {
+      phase: "retrying",
+      retryTimer,
+      sendCandidate
+    };
+    state.outbound.bufferedCandidates.forEach(sendCandidate);
+  };
+  const replayExistingAnswerIfMatch = async (state, relayId, peerId, offer3, offerId, signalPeer) => {
+    if (state.inbound.phase !== "answering" || state.inbound.peer.isDead || state.inbound.replay.offer !== offer3 || state.inbound.replay.offerId !== offerId) return;
+    const { replay } = state.inbound;
+    const lastSentAt = replay.lastSentAt[relayId];
+    if (lastSentAt !== void 0 && Date.now() - lastSentAt < 1e3) return;
+    replay.lastSentAt[relayId] = Date.now();
+    const peerTopic = await peerTopicOf(peerId);
+    if (!isLeaving() && state.connection.phase !== "connected" && state.inbound.phase === "answering" && state.inbound.replay === replay) {
+      const send = (message) => {
+        signalPeer(peerTopic, message);
+      };
+      replay.relays[relayId] = send;
+      replay.messages.forEach(send);
+    }
+  };
+  const decryptOfferDeduped = (peerId, offer3, offerId) => {
+    const key = `${peerId}|${offerId}|${offer3}`;
+    const existing = inFlightOfferDecrypts.get(key);
+    if (existing) return existing;
+    const task = toPlain({
+      type: "offer",
+      sdp: offer3
+    }, peerId, offerId).catch((err) => {
+      reportDecryptErr(peerId, "offer", err);
+      return null;
+    }).finally(() => {
+      inFlightOfferDecrypts.delete(key);
+    });
+    inFlightOfferDecrypts.set(key, task);
+    return task;
+  };
+  const handleOffer = async (relayId, peerId, offer3, offerId, signalPeer) => {
+    if (!offerId) return;
+    const localSelfId = getSelfIdNow() ?? await getSelfId();
+    if (shouldConnectPeer && !shouldConnectPeer(peerId, "inbound")) return;
+    const existingState = peerStates.get(peerId);
+    if (existingState && (existingState.inbound.phase === "answering" || existingState.outbound.phase === "answered")) return replayExistingAnswerIfMatch(existingState, relayId, peerId, offer3, offerId, signalPeer);
+    if (existingState && hasOutboundActivity(existingState) && localSelfId < peerId) return;
+    if (atPendingCap(peerId)) return;
+    const plainOffer = await decryptOfferDeduped(peerId, offer3, offerId);
+    if (!plainOffer || isLeaving()) return;
+    const state = getState(peerStates, peerId);
+    if (state.connection.phase === "connected") return;
+    if (state.inbound.phase === "answering" || state.outbound.phase === "answered") return replayExistingAnswerIfMatch(state, relayId, peerId, offer3, offerId, signalPeer);
+    if (hasOutboundActivity(state)) {
+      if (localSelfId < peerId) return;
+      resetOfferState(state);
+    }
+    if (atPendingCap(peerId)) {
+      prunePeerStates(peerStates);
+      return;
+    }
+    const answerPeer = initPeerFn(false, config);
+    const replay = {
+      offer: offer3,
+      offerId,
+      messages: [],
+      lastSentAt: [],
+      relays: []
+    };
+    replay.lastSentAt[relayId] = Date.now();
+    const expiryTimer = createAnsweringExpiryTimer(peerId, answerPeer);
+    let preAnswerCandidates = [];
+    state.didReportFailure = false;
+    state.inbound = {
+      phase: "answering",
+      peer: answerPeer,
+      offerId,
+      expiryTimer,
+      didSendAnswer: false,
+      replay
+    };
+    const isActiveAnswering = (s) => !isLeaving() && s.inbound.phase === "answering" && s.inbound.peer === answerPeer && !answerPeer.isDead;
+    const onClosedOrError = () => {
+      if (state.inbound.phase === "answering" && state.inbound.peer === answerPeer && state.connection.phase !== "connected" && state.inbound.didSendAnswer) reportSdpFailure(state, peerId);
+      clearAnswering(state, answerPeer);
+      disconnectPeer(answerPeer, peerId);
+      prunePeerStates(peerStates);
+    };
+    answerPeer.setHandlers({
+      connect: () => {
+        dialBackoffs.delete(peerId);
+        connectPeer(answerPeer, peerId);
+      },
+      close: onClosedOrError,
+      error: onClosedOrError
+    });
+    if (answerPeer.isDead) {
+      clearAnswering(state, answerPeer);
+      prunePeerStates(peerStates);
+      return;
+    }
+    const peerTopic = await peerTopicOf(peerId);
+    if (!isActiveAnswering(state) || state.inbound.replay !== replay) return;
+    replay.relays[relayId] = (message) => {
+      signalPeer(peerTopic, message);
+    };
+    let publishQueue = Promise.resolve();
+    const enqueueEncryptedPublish = (signal) => {
+      publishQueue = publishQueue.then(async () => {
+        const enc2 = await toCipher(signal, localSelfId, offerId);
+        if (!isActiveAnswering(state)) return;
+        const isAnswer = signal.type === "answer";
+        const message = toJson({
+          peerId: localSelfId,
+          offerId,
+          ...isAnswer ? { answer: enc2.sdp } : { candidate: enc2.sdp }
+        });
+        const now2 = Date.now();
+        replay.messages.push(message);
+        replay.relays.forEach((send, id) => {
+          if (send) {
+            replay.lastSentAt[id] = now2;
+            send(message);
+          }
+        });
+        if (isAnswer && preAnswerCandidates) {
+          state.inbound.didSendAnswer = true;
+          const queued = preAnswerCandidates;
+          preAnswerCandidates = null;
+          queued.forEach(enqueueEncryptedPublish);
+        }
+      }).catch(noOp2);
+    };
+    answerPeer.setHandlers({ signal: (signal) => {
+      if (!isActiveAnswering(state) || signal.type !== "answer" && signal.type !== "candidate") return;
+      if (signal.type === "candidate" && preAnswerCandidates) preAnswerCandidates.push(signal);
+      else enqueueEncryptedPublish(signal);
+    } });
+    await answerPeer.signal(plainOffer);
+  };
+  const handleCandidate = async (peerId, candidate, offerId, peer) => {
+    if (!offerId) return;
+    const state = peerStates.get(peerId);
+    if (!peer && !state?.offerPeer && !state?.answeringPeer) return;
+    let plainCandidate;
+    try {
+      plainCandidate = await toPlain({
+        type: candidateType,
+        sdp: candidate
+      }, peerId, offerId);
+    } catch {
+      return;
+    }
+    const currentState = peerStates.get(peerId);
+    const targetPeer = peer && !peer.isDead ? peer : currentState && hasLiveOutboundOffer(currentState, void 0, offerId) ? currentState.outbound.peer : currentState?.inbound.phase === "answering" && currentState.inbound.offerId === offerId ? currentState.inbound.peer : null;
+    if (targetPeer && !targetPeer.isDead) targetPeer.signal(plainCandidate);
+  };
+  const handleAnswer = async (peerId, answer, offerId, peer) => {
+    if (!offerId) return;
+    if (shouldConnectPeer && !shouldConnectPeer(peerId, peer ? "outbound" : "inbound")) {
+      if (peer) {
+        reclaimLeasedOffer(peer);
+        destroyAlive(peer);
+      } else {
+        const currentState = peerStates.get(peerId);
+        if (currentState && hasLiveOutboundOffer(currentState, void 0, offerId)) resetOfferState(currentState);
+      }
+      return;
+    }
+    const localSelfId = getSelfIdNow() ?? await getSelfId();
+    let plainAnswer;
+    try {
+      plainAnswer = await toPlain({
+        type: "answer",
+        sdp: answer
+      }, peerId, offerId);
+    } catch (err) {
+      if (peer) {
+        reclaimLeasedOffer(peer);
+        destroyAlive(peer);
+      }
+      reportDecryptErr(peerId, "answer", err);
+      return;
+    }
+    if (peer) {
+      if (!claimLeasedOffer(peer) || peer.isDead) {
+        destroyAlive(peer);
+        return;
+      }
+      const state2 = getState(peerStates, peerId);
+      if (state2.connection.phase === "connected" || state2.outbound.phase === "answered" || state2.inbound.phase === "answering" && !state2.inbound.peer.isDead && localSelfId > peerId) {
+        peer.destroy();
+        return;
+      }
+      if (state2.inbound.phase === "answering") clearAnswering(state2, state2.inbound.peer);
+      resetOfferState(state2);
+      transitionOutboundToAnswered(state2, peerId, peer, offerId);
+      bindOfferPeerHandlers(state2, peerId, peer);
+      peer.signal(plainAnswer);
+      return;
+    }
+    const state = peerStates.get(peerId);
+    if (!state || state.outbound.phase !== "advertising" || state.outbound.offerId !== offerId || state.outbound.peer.isDead) return;
+    const offerPeer = state.outbound.peer;
+    transitionOutboundToAnswered(state, peerId, offerPeer, offerId);
+    offerPeer.signal(plainAnswer);
+  };
+  const sendDirectPing = (peerId, localSelfId, state, signalPeer) => peerTopicOf(peerId).then((peerSelfTopic) => {
+    if (!isLeaving() && state.connection.phase !== "connected" && state.inbound.phase === "idle" && state.outbound.phase !== "answered") signalPeer(peerSelfTopic, toJson({ peerId: localSelfId }));
+  });
+  return {
+    handleMessage: (relayId) => async (topic, msg, signalPeer) => {
+      try {
+        if (isLeaving()) return;
+        relaySignalPeers[relayId] = signalPeer;
+        const parsed = parseSignalEnvelope(msg);
+        if (!parsed) return;
+        const [peerId, offer3, answer, candidate, offerId, peer] = parsed;
+        const knownSelfId = getSelfIdNow();
+        if (!peerId || knownSelfId && peerId === knownSelfId) return;
+        const [rootTopic, selfTopic, localSelfId] = await all([
+          rootTopicP,
+          selfTopicP,
+          getSelfId()
+        ]);
+        if (peerId === localSelfId || isLeaving() || topic !== rootTopic && topic !== selfTopic) return;
+        onPeerDiscovered?.(peerId, relayId, signalPeer);
+        const state = peerStates.get(peerId);
+        if (state?.connection.phase === "connected") {
+          const health = getConnectedPeerHealth(state.connection.peer);
+          if (health === "live") {
+            state.connection.unhealthySince = null;
+            return;
+          }
+          if (health === "stale") clearConnectedPeer(state);
+          else {
+            const nowMs = Date.now();
+            if (nowMs - (state.connection.unhealthySince ??= nowMs) < disconnectedPeerGraceMs) return;
+            clearConnectedPeer(state);
+          }
+        }
+        if (!offer3 && !answer && !candidate) {
+          if (shouldConnectPeer && !shouldConnectPeer(peerId, "outbound") || !peerStates.has(peerId) && atPendingCap(peerId)) return;
+          const announceState = getState(peerStates, peerId);
+          if (announceState.inbound.phase !== "idle" || announceState.connection.phase === "connected" || announceState.outbound.phase === "answered") return;
+          if (localSelfId >= peerId && !announceState.offerPeer) {
+            let lastSentByRelay = counterAnnounceTimestamps.get(announceState);
+            if (!lastSentByRelay) {
+              lastSentByRelay = [];
+              counterAnnounceTimestamps.set(announceState, lastSentByRelay);
+            }
+            const lastSentAt = lastSentByRelay[relayId];
+            if (lastSentAt !== void 0 && Date.now() - lastSentAt < 1e3) return;
+            lastSentByRelay[relayId] = Date.now();
+            await sendDirectPing(peerId, localSelfId, announceState, signalPeer);
+            return;
+          }
+          if (isSlotAnnounceable(announceState.relaySlots[relayId])) {
+            announceState.relaySlots[relayId] = { phase: "reserved" };
+            await handleAnnouncement(relayId, peerId, signalPeer);
+          }
+          return;
+        }
+        if (offer3) {
+          await handleOffer(relayId, peerId, offer3, offerId, signalPeer);
+          return;
+        }
+        if (candidate) {
+          await handleCandidate(peerId, candidate, offerId, peer);
+          return;
+        }
+        if (answer) await handleAnswer(peerId, answer, offerId, peer);
+      } catch (err) {
+        if (!isLeaving()) logErr("signal", err);
+      }
+    },
+    dialPeer: (peerId) => {
+      if (!isValidSignalPeerId(peerId)) return;
+      getSelfId().then((localSelfId) => {
+        if (isLeaving() || !peerId || peerId === localSelfId || shouldConnectPeer && !shouldConnectPeer(peerId, "outbound") || !peerStates.has(peerId) && atPendingCap(peerId)) return;
+        const state = getState(peerStates, peerId);
+        if (state.connection.phase === "connected" || state.inbound.phase !== "idle" || state.outbound.phase !== "idle" || !relaySignalPeers.some(Boolean)) return;
+        const now2 = Date.now();
+        const backoff = dialBackoffs.get(peerId);
+        if (backoff && now2 < backoff[1]) return;
+        const attempts = (backoff?.[0] ?? 0) + 1;
+        dialBackoffs.set(peerId, [attempts, now2 + Math.min(6e4, 2e3 * 2 ** (attempts - 1))]);
+        relaySignalPeers.forEach((signalPeer, relayId) => {
+          if (!signalPeer) return;
+          if (localSelfId < peerId) {
+            if (state.outbound.phase !== "answered" && isSlotAnnounceable(state.relaySlots[relayId])) {
+              state.relaySlots[relayId] = { phase: "reserved" };
+              handleAnnouncement(relayId, peerId, signalPeer).catch((err) => {
+                if (!isLeaving()) logErr("signal", err);
+              });
+            }
+          } else sendDirectPing(peerId, localSelfId, state, signalPeer).catch(noOp2);
+        });
+      }).catch((err) => {
+        if (!isLeaving()) logErr("signal", err);
+      });
+    }
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/offer-manager.mjs
+var offerLeaseTtlMs = 18e4;
+var defaultOfferIdSize = 20;
+var offerRoomLeftErr = /* @__PURE__ */ mkErr("room left while preparing offer");
+var createOfferManager = (makeOffer) => {
+  const leaseStates = /* @__PURE__ */ new WeakMap();
+  const activeLeases = /* @__PURE__ */ new Set();
+  let destroyed = false;
+  const closeLease = (peer) => {
+    const entry = leaseStates.get(peer);
+    if (entry?.phase === "leased") resetTimer(entry.timer);
+    activeLeases.delete(peer);
+    leaseStates.set(peer, { phase: "closed" });
+    peer.destroy();
+  };
+  const claimLeased = (peer) => {
+    if (destroyed || peer.isDead) return false;
+    const entry = leaseStates.get(peer);
+    if (!entry) return true;
+    switch (entry.phase) {
+      case "leased":
+        resetTimer(entry.timer);
+        activeLeases.delete(peer);
+        leaseStates.set(peer, { phase: "claimed" });
+        return true;
+      case "claimed":
+        return true;
+      case "closed":
+        return false;
+      default:
+        return unreachable(entry);
+    }
+  };
+  const reclaimLeased = (peer) => {
+    if (leaseStates.get(peer)?.phase === "leased") closeLease(peer);
+  };
+  const checkout = (n, leaseOffers, encryptOffer, offerIdSize2 = defaultOfferIdSize) => {
+    const toRecord = async (didRetry = false) => {
+      if (destroyed) throw offerRoomLeftErr;
+      const peer = makeOffer();
+      const offerId = genId(offerIdSize2);
+      try {
+        const offer3 = await encryptOffer(peer, offerId);
+        if (destroyed) throw offerRoomLeftErr;
+        if (leaseOffers) {
+          const timer = setTimeout(() => {
+            if (leaseStates.get(peer)?.phase === "leased") closeLease(peer);
+          }, offerLeaseTtlMs);
+          unrefTimer(timer);
+          leaseStates.set(peer, {
+            phase: "leased",
+            timer
+          });
+          activeLeases.add(peer);
+          return {
+            peer,
+            offer: offer3,
+            offerId,
+            claim: () => {
+              claimLeased(peer);
+            },
+            reclaim: () => reclaimLeased(peer)
+          };
+        }
+        return {
+          peer,
+          offer: offer3,
+          offerId
+        };
+      } catch (error) {
+        peer.destroy();
+        if (!didRetry && !destroyed) return toRecord(true);
+        throw error;
+      }
+    };
+    return all(alloc(n, () => toRecord()));
+  };
+  return {
+    checkout,
+    getOffers: (n, encryptOffer) => checkout(n, true, encryptOffer),
+    claimLeased,
+    reclaimLeased,
+    destroy: () => {
+      if (destroyed) return;
+      destroyed = true;
+      for (const peer of Array.from(activeLeases)) closeLease(peer);
+    }
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/peer.mjs
+var iceTimeout = 15e3;
+var iceCandidateSettleMs = 150;
+var disconnectedCloseDelayMs = 5e3;
+var iceCandidateEvent = "icecandidate";
+var iceStateEvent = "icegatheringstatechange";
+var iceConnectionStateEvent = "iceconnectionstatechange";
+var offerType = "offer";
+var answerType = "answer";
+var outOfRangePattern = /out of range/i;
+var maxPendingRemoteCandidates = 128;
+var maxRemoteCandidateSdpLength = 8192;
+var peer_default = (initiator, config) => {
+  const { trickleIce, rtcConfig, rtcPolyfill, turnConfig } = config;
+  const iceServers = [...rtcConfig?.iceServers ?? defaultIceServers, ...turnConfig ?? []];
+  const pc = new (rtcPolyfill ?? RTCPeerConnection)({
+    ...rtcConfig,
+    iceServers
+  });
+  let connectHandler;
+  let closeHandler;
+  let errorHandler;
+  const pendingIceGathering = /* @__PURE__ */ new Set();
+  const shouldTrickleIce = trickleIce !== false;
+  const pendingRemoteCandidates = [];
+  let activeCandidateFlush = null;
+  const streamSenders = /* @__PURE__ */ new WeakMap();
+  const trackSender = (stream, sender) => {
+    let senders = streamSenders.get(stream);
+    if (!senders) {
+      senders = /* @__PURE__ */ new Set();
+      streamSenders.set(stream, senders);
+    }
+    senders.add(sender);
+  };
+  let lifecycle = { phase: "open" };
+  let negotiation = { phase: "idle" };
+  let offerGeneration = 0;
+  let dataState = { phase: "unbound-idle" };
+  let signalHandler;
+  const pendingSignals = [];
+  let streamHandler;
+  const pendingStreams = [];
+  let dataChannel = null;
+  let settledOffer;
+  let resolveInitialOffer = null;
+  const initialOfferP = initiator ? new Promise((resolve3) => {
+    resolveInitialOffer = resolve3;
+  }) : void 0;
+  const settleInitialOffer = (signal) => {
+    if (resolveInitialOffer) {
+      const resolve3 = resolveInitialOffer;
+      resolveInitialOffer = null;
+      settledOffer = signal;
+      resolve3(signal);
+    }
+  };
+  const clearDisconnectedGrace = () => {
+    if (lifecycle.phase === "disconnected-grace") {
+      resetTimer(lifecycle.timer);
+      lifecycle = { phase: "open" };
+    }
+  };
+  const emitClose = () => {
+    if (lifecycle.phase === "closed") return;
+    if (lifecycle.phase === "disconnected-grace") resetTimer(lifecycle.timer);
+    lifecycle = { phase: "closed" };
+    offerGeneration += 1;
+    negotiation = { phase: "idle" };
+    settleInitialOffer();
+    if (dataState.phase === "unbound-buffering") {
+      resetTimer(dataState.deadlineTimer);
+      dataState.queue.length = 0;
+    }
+    dataState = { phase: "closed" };
+    signalHandler = void 0;
+    pendingSignals.length = 0;
+    streamHandler = void 0;
+    pendingStreams.length = 0;
+    pendingRemoteCandidates.length = 0;
+    pendingIceGathering.forEach((finish) => finish());
+    closeHandler?.();
+  };
+  const isClosed = () => {
+    if (lifecycle.phase !== "closed" && pc.connectionState === "closed") emitClose();
+    return lifecycle.phase === "closed";
+  };
+  const emitSignal = (signal) => {
+    if (isClosed()) return;
+    if (signal.type === offerType) {
+      const wasInitialOfferPending = resolveInitialOffer !== null;
+      settleInitialOffer(signal);
+      if (wasInitialOfferPending && !signalHandler && !pc.remoteDescription) return;
+    }
+    if (signalHandler) signalHandler(signal);
+    else pendingSignals.push(signal);
+  };
+  const appendSignalHandler = (handler) => {
+    if (isClosed()) return;
+    if (signalHandler) {
+      const prev2 = signalHandler;
+      signalHandler = (sig) => {
+        prev2(sig);
+        handler(sig);
+      };
+      return;
+    }
+    signalHandler = handler;
+    for (const queued of pendingSignals.splice(0)) {
+      if (isClosed() || !signalHandler) break;
+      signalHandler(queued);
+    }
+  };
+  const localDescriptionSignal = (peerConnection) => ({
+    type: peerConnection.localDescription?.type ?? offerType,
+    sdp: peerConnection.localDescription?.sdp ?? ""
+  });
+  const getRemoteUfrag = () => pc.remoteDescription?.sdp?.match(/a=ice-ufrag:(\S+)/)?.[1] ?? null;
+  const canApplyRemoteCandidate = (candidate) => {
+    if (!pc.remoteDescription) return false;
+    const remoteMLineCount = (pc.remoteDescription.sdp?.match(/^m=/gm) ?? []).length;
+    if (typeof candidate.sdpMLineIndex === "number" && remoteMLineCount > 0 && candidate.sdpMLineIndex >= remoteMLineCount) return false;
+    const remoteUfrag = getRemoteUfrag();
+    return !(remoteUfrag && candidate.usernameFragment && candidate.usernameFragment !== remoteUfrag);
+  };
+  const addIceCandidateSafe = async (candidate) => {
+    try {
+      await pc.addIceCandidate(candidate);
+      return true;
+    } catch (err) {
+      if (err instanceof Error && outOfRangePattern.test(err.message) && typeof candidate.sdpMLineIndex === "number") return false;
+      throw err;
+    }
+  };
+  const queueRemoteCandidate = (candidate) => {
+    if (isClosed()) return;
+    if (pendingRemoteCandidates.length >= maxPendingRemoteCandidates) pendingRemoteCandidates.shift();
+    pendingRemoteCandidates.push(candidate);
+  };
+  const flushPendingRemoteCandidates = async () => {
+    if (isClosed() || !pc.remoteDescription) return;
+    if (activeCandidateFlush) {
+      await activeCandidateFlush;
+      if (isClosed() || !pc.remoteDescription) return;
+    }
+    if (!pendingRemoteCandidates.length) return;
+    const runFlush = (async () => {
+      const stillPending = [];
+      try {
+        while (!isClosed() && pc.remoteDescription && pendingRemoteCandidates.length > 0) {
+          const remoteUfrag = getRemoteUfrag();
+          for (const candidate of pendingRemoteCandidates.splice(0)) {
+            if (isClosed()) return;
+            if (remoteUfrag && candidate.usernameFragment && candidate.usernameFragment !== remoteUfrag) continue;
+            if (!canApplyRemoteCandidate(candidate) || !await addIceCandidateSafe(candidate)) stillPending.push(candidate);
+          }
+        }
+      } finally {
+        if (!isClosed() && stillPending.length > 0) {
+          const tail = pendingRemoteCandidates.splice(0);
+          for (const item2 of [...stillPending, ...tail]) queueRemoteCandidate(item2);
+        }
+        activeCandidateFlush = null;
+      }
+    })();
+    activeCandidateFlush = runFlush;
+    await runFlush;
+  };
+  const addRemoteCandidate = async (candidate) => {
+    if (activeCandidateFlush || !canApplyRemoteCandidate(candidate)) {
+      queueRemoteCandidate(candidate);
+      return;
+    }
+    if (!await addIceCandidateSafe(candidate)) queueRemoteCandidate(candidate);
+  };
+  const setupDataChannel = (channel) => {
+    channel.binaryType = "arraybuffer";
+    channel.bufferedAmountLowThreshold = 65535;
+    const failData = () => {
+      warn("excessive pre-handler data; disconnecting peer");
+      channel.close();
+      pc.close();
+      emitClose();
+    };
+    channel.onmessage = (e) => {
+      if (dataChannel !== channel || dataState.phase === "closed") return;
+      const data = e.data;
+      const maxFrameBytes = dataState.phase === "bound" ? maxBulkFrameBytes : maxRoomFrameBytes;
+      if (!(data instanceof ArrayBuffer) && !ArrayBuffer.isView(data) || data.byteLength > maxFrameBytes) {
+        failData();
+        return;
+      }
+      switch (dataState.phase) {
+        case "bound":
+          dataState.handler(data);
+          break;
+        case "unbound-idle": {
+          const deadlineTimer = setTimeout(failData, pendingDataTimeoutMs);
+          unrefTimer(deadlineTimer);
+          dataState = {
+            phase: "unbound-buffering",
+            queue: [data],
+            deadlineTimer
+          };
+          break;
+        }
+        case "unbound-buffering":
+          if (dataState.queue.length >= 64) {
+            failData();
+            return;
+          }
+          dataState.queue.push(data);
+          break;
+        default:
+          unreachable(dataState);
+      }
+    };
+    channel.onopen = () => {
+      if (dataChannel === channel && !isClosed()) connectHandler?.();
+    };
+    channel.onclose = () => {
+      if (dataChannel === channel) emitClose();
+    };
+    channel.onerror = ({ error }) => {
+      if (dataChannel !== channel || isClosed() || error?.errorDetail === "sctp-failure" && (error.sctpCauseCode === 12 || /^User-Initiated Abort\b/.test(error.message))) return;
+      errorHandler?.(toError(error, "data channel error"));
+    };
+  };
+  const expectsTurnCandidate = hasIceUrl(iceServers, /^turns?:/i);
+  const expectsStunCandidate = !expectsTurnCandidate && hasIceUrl(iceServers, /^stuns?:/i);
+  const targetCandidatePattern = expectsTurnCandidate ? /\btyp relay\b/ : expectsStunCandidate ? /\btyp (?:srflx|relay|prflx)\b/ : /\btyp (?:host|srflx|relay|prflx)\b/;
+  const waitForIceGathering = async (peerConnection) => {
+    await new Promise((resolve3) => {
+      let done2 = false;
+      let settleTimeout = null;
+      const finish = () => {
+        if (done2) return;
+        done2 = true;
+        resetTimer(timeout);
+        resetTimer(settleTimeout);
+        peerConnection.removeEventListener(iceStateEvent, checkState);
+        peerConnection.removeEventListener(iceCandidateEvent, onCandidate);
+        pendingIceGathering.delete(finish);
+        resolve3();
+      };
+      const scheduleSettle = (candidateLine = "") => {
+        if (done2) return;
+        const sdp = `${peerConnection.localDescription?.sdp ?? ""}
+${candidateLine}`;
+        if (targetCandidatePattern.test(sdp)) {
+          resetTimer(settleTimeout);
+          settleTimeout = setTimeout(finish, iceCandidateSettleMs);
+          unrefTimer(settleTimeout);
+        }
+      };
+      const checkState = () => {
+        if (peerConnection.iceGatheringState === "complete" || isClosed()) finish();
+        else scheduleSettle();
+      };
+      const onCandidate = (event) => {
+        const { candidate } = event;
+        if (candidate) scheduleSettle(candidate.candidate);
+        else finish();
+      };
+      const timeout = setTimeout(finish, iceTimeout);
+      unrefTimer(timeout);
+      pendingIceGathering.add(finish);
+      peerConnection.addEventListener(iceStateEvent, checkState);
+      peerConnection.addEventListener(iceCandidateEvent, onCandidate);
+      checkState();
+    });
+    return localDescriptionSignal(peerConnection);
+  };
+  const readLocalDescription = () => shouldTrickleIce ? localDescriptionSignal(pc) : waitForIceGathering(pc);
+  const emitLocalDescriptionSignal = async (expectedGen) => {
+    const signal = await readLocalDescription();
+    if (isClosed() || expectedGen !== void 0 && offerGeneration !== expectedGen) return;
+    emitSignal(signal);
+    return signal;
+  };
+  if (initiator) {
+    dataChannel = pc.createDataChannel("data");
+    setupDataChannel(dataChannel);
+  } else pc.ondatachannel = ({ channel }) => {
+    if (dataChannel && dataChannel !== channel) {
+      dataChannel.onopen = dataChannel.onclose = dataChannel.onmessage = dataChannel.onerror = null;
+      dataChannel.close();
+    }
+    dataChannel = channel;
+    setupDataChannel(channel);
+  };
+  const createOffer = async () => {
+    if (isClosed() || negotiation.phase !== "idle" || pc.signalingState !== "stable") {
+      if (isClosed()) settleInitialOffer();
+      return;
+    }
+    const gen = ++offerGeneration;
+    negotiation = {
+      phase: "making-offer",
+      gen
+    };
+    try {
+      await pc.setLocalDescription();
+      if (isClosed() || offerGeneration !== gen) return;
+      return await emitLocalDescriptionSignal(gen);
+    } catch (err) {
+      if (offerGeneration !== gen) return;
+      settleInitialOffer();
+      errorHandler?.(toError(err, "failed to create local offer"));
+    } finally {
+      if (negotiation.phase === "making-offer" && negotiation.gen === gen) negotiation = { phase: "idle" };
+    }
+  };
+  pc.onnegotiationneeded = () => {
+    createOffer();
+  };
+  pc.onicecandidate = ({ candidate }) => {
+    if (!shouldTrickleIce || !candidate || isClosed()) return;
+    const candidatePayload = typeof candidate.toJSON === "function" ? candidate.toJSON() : {
+      candidate: candidate.candidate,
+      sdpMid: candidate.sdpMid,
+      sdpMLineIndex: candidate.sdpMLineIndex,
+      usernameFragment: candidate.usernameFragment
+    };
+    emitSignal({
+      type: candidateType,
+      sdp: JSON.stringify(candidatePayload)
+    });
+  };
+  const isDisconnectedState = () => pc.connectionState === "disconnected" || pc.iceConnectionState === "disconnected";
+  const handleConnectionStateChange = () => {
+    if (lifecycle.phase === "closed") return;
+    const cs = pc.connectionState;
+    const is = pc.iceConnectionState;
+    if (cs === "failed" || cs === "closed" || is === "failed" || is === "closed") {
+      emitClose();
+      return;
+    }
+    if (cs === "connected" || cs === "connecting" || is === "connected" || is === "completed" || is === "checking") {
+      clearDisconnectedGrace();
+      return;
+    }
+    if (isDisconnectedState() && lifecycle.phase === "open") {
+      const timer = setTimeout(() => {
+        if (lifecycle.phase !== "disconnected-grace") return;
+        lifecycle = { phase: "open" };
+        if (isDisconnectedState()) emitClose();
+      }, disconnectedCloseDelayMs);
+      unrefTimer(timer);
+      lifecycle = {
+        phase: "disconnected-grace",
+        timer
+      };
+    }
+  };
+  pc.onconnectionstatechange = handleConnectionStateChange;
+  pc.addEventListener(iceConnectionStateEvent, handleConnectionStateChange);
+  pc.ontrack = (e) => {
+    const stream = e.streams[0];
+    if (stream && !isClosed()) {
+      if (streamHandler) streamHandler(stream);
+      else pendingStreams.push(stream);
+    }
+  };
+  if (initiator) queueMicrotask(() => {
+    if (!isClosed() && negotiation.phase === "idle" && pc.signalingState === "stable" && !pc.localDescription) pc.onnegotiationneeded?.(new Event("negotiationneeded"));
+  });
+  return {
+    connection: pc,
+    get channel() {
+      return dataChannel;
+    },
+    get isDead() {
+      return isClosed();
+    },
+    getOffer: async () => {
+      if (!initiator) return;
+      if (resolveInitialOffer !== null) return initialOfferP;
+      if (settledOffer && !pc.remoteDescription) return settledOffer;
+      return pc.localDescription?.type === offerType ? readLocalDescription() : settledOffer;
+    },
+    async signal(sdp) {
+      if (isClosed()) return;
+      if (sdp.type === "candidate") {
+        if (sdp.sdp.length > maxRemoteCandidateSdpLength) return;
+        try {
+          const candidate = JSON.parse(sdp.sdp);
+          if (candidate && typeof candidate === "object") await addRemoteCandidate(candidate);
+        } catch (err) {
+          errorHandler?.(toError(err, "failed to parse remote candidate"));
+        }
+        return;
+      }
+      if (dataChannel?.readyState === "open" && !sdp.sdp?.includes("a=rtpmap")) return;
+      try {
+        const rtcSdp = { ...sdp };
+        if (sdp.type === offerType) {
+          const isCollision = negotiation.phase === "making-offer" || pc.signalingState !== "stable" && negotiation.phase !== "applying-remote-answer";
+          if (isCollision && initiator) return;
+          offerGeneration += 1;
+          if (negotiation.phase === "making-offer") negotiation = { phase: "idle" };
+          if (isCollision && pc.signalingState !== "stable") await all([pc.setLocalDescription({ type: "rollback" }), pc.setRemoteDescription(rtcSdp)]);
+          else await pc.setRemoteDescription(rtcSdp);
+          await flushPendingRemoteCandidates();
+          await pc.setLocalDescription();
+          return await emitLocalDescriptionSignal();
+        }
+        if (sdp.type === answerType) {
+          negotiation = { phase: "applying-remote-answer" };
+          try {
+            await pc.setRemoteDescription(rtcSdp);
+            await flushPendingRemoteCandidates();
+          } finally {
+            if (negotiation.phase === "applying-remote-answer") negotiation = { phase: "idle" };
+          }
+        }
+      } catch (err) {
+        if (!isClosed()) errorHandler?.(toError(err, "failed to apply remote signal"));
+      }
+    },
+    sendData: (data) => {
+      if (isClosed() || !dataChannel || dataChannel.readyState === "closing" || dataChannel.readyState === "closed") throw mkErr(peerDisconnectedMsg);
+      dataChannel.send(data);
+    },
+    destroy: () => {
+      clearDisconnectedGrace();
+      settleInitialOffer();
+      dataChannel?.close();
+      if (pc.connectionState !== "closed") pc.close();
+      emitClose();
+    },
+    setHandlers: (newHandlers) => {
+      if ("connect" in newHandlers) connectHandler = newHandlers.connect;
+      if ("close" in newHandlers) closeHandler = newHandlers.close;
+      if ("error" in newHandlers) errorHandler = newHandlers.error;
+      if ("data" in newHandlers && dataState.phase !== "closed") {
+        const nextDataHandler = newHandlers.data;
+        if (nextDataHandler) {
+          let queuedData = [];
+          if (dataState.phase === "unbound-buffering") {
+            resetTimer(dataState.deadlineTimer);
+            queuedData = dataState.queue.splice(0);
+          }
+          dataState = {
+            phase: "bound",
+            handler: nextDataHandler
+          };
+          for (const frame2 of queuedData) {
+            if (dataState.phase !== "bound") break;
+            dataState.handler(frame2);
+          }
+        } else {
+          if (dataState.phase === "unbound-buffering") resetTimer(dataState.deadlineTimer);
+          dataState = { phase: "unbound-idle" };
+        }
+      }
+      if (newHandlers.signal) appendSignalHandler(newHandlers.signal);
+      if ("stream" in newHandlers && !isClosed()) {
+        streamHandler = newHandlers.stream;
+        if (streamHandler) for (const stream of pendingStreams.splice(0)) {
+          if (isClosed() || !streamHandler) break;
+          streamHandler(stream);
+        }
+      }
+    },
+    addStream: (stream) => {
+      stream.getTracks().forEach((track) => {
+        const sender = pc.addTrack(track, stream);
+        if (sender) trackSender(stream, sender);
+      });
+    },
+    removeStream: (stream) => {
+      const senders = streamSenders.get(stream);
+      if (senders) {
+        streamSenders.delete(stream);
+        senders.forEach((sender) => pc.removeTrack(sender));
+        return;
+      }
+      const tracks = stream.getTracks();
+      pc.getSenders().forEach((sender) => {
+        if (sender.track && tracks.includes(sender.track)) pc.removeTrack(sender);
+      });
+    },
+    addTrack: (track, stream) => {
+      const sender = pc.addTrack(track, stream);
+      if (sender && stream) trackSender(stream, sender);
+    },
+    removeTrack: (track, stream) => {
+      const sender = pc.getSenders().find((s) => s.track === track);
+      if (sender) {
+        if (stream) streamSenders.get(stream)?.delete(sender);
+        pc.removeTrack(sender);
+      }
+    },
+    replaceTrack: (oldTrack, newTrack) => {
+      const sender = pc.getSenders().find((s) => s.track === oldTrack);
+      if (sender) return sender.replaceTrack(newTrack);
+    }
+  };
+};
+var defaultIceServers = [...alloc(3, (_, i) => `stun:stun${i || ""}.l.google.com:19302`), "stun:stun.cloudflare.com:3478"].map((url) => ({ urls: url }));
+
+// node_modules/@trystero-p2p/core/dist/actions.mjs
+var maxConcurrentRequestsPerPeer = 64;
+var requestFailedMsg = "request failed";
+var getEnvelopeRecord = (metadata) => isObj(metadata) && typeof metadata["r"] === "string" ? metadata : null;
+var getRequestMetadata = (metadata) => {
+  const record = getEnvelopeRecord(metadata);
+  return record ? [record.r, Object.hasOwn(record, "m") ? record.m : void 0] : null;
+};
+var getResponseMetadata = (metadata) => {
+  const record = getEnvelopeRecord(metadata);
+  return record ? [record.r, typeof record.e === "string" ? record.e : void 0] : null;
+};
+var withMetadata = (context, metadata) => metadata === void 0 ? context : {
+  ...context,
+  metadata
+};
+var wrapAuthMetadata = (cert, userMetadata) => cert ? {
+  [authMetaKey]: cert,
+  ...userMetadata === void 0 ? {} : { m: userMetadata }
+} : userMetadata;
+var extractAuthMetadata = (wireMeta) => {
+  if (isObj(wireMeta) && authMetaKey in wireMeta) {
+    const rawCert = wireMeta[authMetaKey];
+    return [validateRoleCertificateShape(rawCert) ? rawCert : void 0, Object.hasOwn(wireMeta, "m") ? wireMeta["m"] : void 0];
+  }
+  return [void 0, wireMeta];
+};
+var normalizeRequiredRoles = (roles2) => {
+  if (roles2 === void 0) return [];
+  const list2 = [roles2].flat().filter(Boolean);
+  if (list2.length === 0) throw mkErr("action roles must contain at least one non-empty role name");
+  return [...new Set(list2)].sort();
+};
+var sameSortedRoles = (a, b) => a.length === b.length && a.every((role, idx) => role === b[idx]);
+var createActionManager = (deps) => {
+  const resolveTransport = deps.getTransport;
+  const userIdOf2 = (peerId) => deps.getPeerUserId ? deps.getPeerUserId(peerId) : peerId;
+  const rolesOf = (peerId) => deps.getPeerRoles ? [...deps.getPeerRoles(peerId)] : [];
+  const hasActivePeer = (peerId) => Boolean(resolveTransport(peerId, false)?.isOpen);
+  const publicActions = /* @__PURE__ */ Object.create(null);
+  const internalActions = /* @__PURE__ */ new Map();
+  const requestWaiters = /* @__PURE__ */ new Map();
+  const activeRequestControllers = /* @__PURE__ */ new Map();
+  const { makeWireAction, handleData, clearPeer: clearWirePeer } = createActionWireManager({
+    resolveTransport,
+    getPeerIds: deps.getPeerIds,
+    canReceiveFromPeer: deps.canReceiveFromPeer,
+    onPeerError: deps.onPeerError,
+    ...deps.broadcastInline ? { broadcastInline: deps.broadcastInline } : {},
+    ...deps.onUnknownType ? { onUnknownType: deps.onUnknownType } : {},
+    ...deps.maxReceiveBytes === void 0 ? {} : { maxReceiveBytes: deps.maxReceiveBytes }
+  });
+  const toProgressBridge = (handler, metadata) => handler ? (progress, peerId) => {
+    const res = handler(progress, withMetadata({
+      peerId,
+      userId: userIdOf2(peerId)
+    }, metadata));
+    if (res && typeof res.then === "function") Promise.resolve(res).catch((err) => logErr("progress handler", err));
+  } : void 0;
+  const makeInternalAction = (type, options = {}) => {
+    const wireType = type.startsWith("@_") ? type : `${"@_"}${type}`;
+    const sendToPending = Boolean(options.sendToPending);
+    const wireAction = makeWireAction(wireType, options);
+    const existing = internalActions.get(wireType);
+    if (existing) return existing;
+    const [subProgress, emitProgress, , hasProgressListeners] = createEventEmitter("progress handler");
+    const [subMessage, emitMessage] = createEventEmitter("internal action handler", (active) => {
+      wireAction.onMessage(active ? (payload, peerId, metadata) => {
+        emitMessage(payload, withMetadata({
+          peerId,
+          userId: userIdOf2(peerId)
+        }, metadata));
+      } : null);
+    });
+    const [setReceiveGate, getReceiveGate] = initSingleHandler("onReceive", (handler) => {
+      wireAction.onReceive(handler ? (ctx) => handler(withMetadata({
+        peerId: ctx.peerId,
+        userId: userIdOf2(ctx.peerId),
+        byteLength: ctx.byteLength,
+        signal: ctx.signal
+      }, ctx.metadata)) : null);
+    });
+    wireAction.onProgress((progress, peerId, metadata) => {
+      if (hasProgressListeners()) emitProgress(progress, withMetadata({
+        peerId,
+        userId: userIdOf2(peerId)
+      }, metadata));
+    });
+    const action2 = lockMethods({
+      send: (data, sendOpts = {}) => wireAction.send(data, deps.resolveSendTarget ? deps.resolveSendTarget(sendOpts.target, sendToPending) : sendOpts.target, sendOpts.metadata, toProgressBridge(sendOpts.onProgress, sendOpts.metadata), sendOpts.signal),
+      onMessage: (handler, listenerOpts) => subMessage(handler, listenerOpts),
+      onReceiveProgress: (handler, listenerOpts) => subProgress(handler, listenerOpts),
+      onReceive: (handler, listenerOpts) => setReceiveGate(handler ?? getReceiveGate(), listenerOpts)
+    }, [
+      "onMessage",
+      "onReceive",
+      "onReceiveProgress"
+    ]);
+    internalActions.set(wireType, action2);
+    return action2;
+  };
+  const closeWaiter = (waiter) => {
+    const prev2 = waiter.state;
+    switch (prev2.phase) {
+      case "done":
+        return false;
+      case "preparing":
+        waiter.state = { phase: "done" };
+        requestWaiters.delete(waiter.requestId);
+        prev2.controller.abort();
+        return true;
+      case "active":
+        waiter.state = { phase: "done" };
+        resetTimer(prev2.timer);
+        requestWaiters.delete(waiter.requestId);
+        prev2.controller.abort();
+        return true;
+      default:
+        return unreachable(prev2);
+    }
+  };
+  const isWaiterSettled = (waiter) => waiter.state.phase === "done";
+  const activateWaiter = (waiter, timeoutMs) => {
+    if (waiter.state.phase !== "preparing") return false;
+    let timer = null;
+    if (timeoutMs !== void 0) {
+      timer = setTimeout(() => {
+        if (waiter.state.phase === "active") waiter.reject(makeActionError("timeout", "request timed out"));
+      }, timeoutMs);
+      unrefTimer(timer);
+    }
+    waiter.state = {
+      phase: "active",
+      controller: waiter.state.controller,
+      timer
+    };
+    return true;
+  };
+  const clearPeer = (id, error) => {
+    clearWirePeer(id);
+    const controllers = activeRequestControllers.get(id);
+    if (controllers) {
+      activeRequestControllers.delete(id);
+      controllers.forEach((controller) => controller.abort());
+    }
+    const disconnectedErr = makeActionError("disconnected", toErrorMessage(error, peerDisconnectedMsg));
+    for (const waiter of Array.from(requestWaiters.values())) {
+      if (waiter.peerId !== id) continue;
+      switch (waiter.state.phase) {
+        case "preparing":
+        case "active":
+          waiter.reject(disconnectedErr);
+          break;
+        case "done":
+          break;
+        default:
+          unreachable(waiter.state);
+      }
+    }
+  };
+  const matchResponseWaiter = (peerId, metadata) => {
+    const parsed = getResponseMetadata(metadata);
+    const waiter = parsed ? requestWaiters.get(parsed[0]) : void 0;
+    return parsed && waiter && waiter.state.phase === "active" && waiter.peerId === peerId ? [parsed, waiter] : null;
+  };
+  const responseAction = makeWireAction(`${"@_"}response`, { receiveScope: (peerId, metadata) => {
+    const matched = matchResponseWaiter(peerId, metadata);
+    if (!matched) return null;
+    const [parsed, waiter] = matched;
+    if (waiter.state.phase !== "active") return null;
+    const receive = parsed[1] === void 0 ? waiter.getReceive() : null;
+    return [
+      parsed[0],
+      waiter.state.controller.signal,
+      receive ? (context) => receive({
+        byteLength: context.byteLength,
+        peerId: context.peerId,
+        userId: userIdOf2(context.peerId),
+        kind: "response",
+        signal: context.signal,
+        roles: rolesOf(context.peerId)
+      }) : null,
+      (reason) => {
+        waiter.reject(makeActionError("rejected", reason));
+      }
+    ];
+  } });
+  responseAction.onProgress((progress, id, metadata) => {
+    const matched = matchResponseWaiter(id, metadata);
+    if (matched && matched[0][1] === void 0) matched[1].emitReceiveProgress(progress, {
+      peerId: id,
+      userId: userIdOf2(id)
+    });
+  });
+  responseAction.onMessage((payload, id, metadata) => {
+    const matched = matchResponseWaiter(id, metadata);
+    if (!matched) return;
+    const [parsed, waiter] = matched;
+    if (parsed[1] !== void 0) waiter.reject(makeActionError("rejected", parsed[1]));
+    else waiter.resolve(payload);
+  });
+  const makeActionCore = (type, config, internal) => {
+    if (!internal && type.startsWith("@_")) throw mkErr(`action namespace "${type}" is reserved for internal protocol use`);
+    if (config && ("onMessage" in config || "onRequest" in config || "onReceive" in config || "onReceiveProgress" in config)) throw mkErr("makeAction config does not accept event handlers; subscribe via action.on*(fn)");
+    const kind = config?.kind ?? "message";
+    const requiredRoles = normalizeRequiredRoles(config?.roles);
+    const hasRoleGuard = requiredRoles.length > 0;
+    const existing = publicActions[type];
+    if (existing) {
+      if (existing.kind !== kind || existing.internal !== internal || !sameSortedRoles(existing.requiredRoles, requiredRoles)) throw actionRedefinedErr(type);
+      return existing.action;
+    }
+    if (hasRoleGuard) deps.registerActionAuthority?.(type, requiredRoles);
+    const rawAction = makeWireAction(type);
+    const [subProgress, emitProgress, clearProgress, hasProgressListeners] = createEventEmitter("progress handler");
+    const extractWireMeta = (metadata) => extractAuthMetadata(kind === "request" ? getRequestMetadata(metadata)?.[1] : metadata);
+    const resolveReqPeer = (target) => (deps.resolveRequestTarget ? deps.resolveRequestTarget(target, false) : target) ?? target;
+    const buildPeerContext = (peerId, userMeta) => withMetadata({
+      peerId,
+      userId: userIdOf2(peerId),
+      roles: rolesOf(peerId)
+    }, userMeta);
+    const buildGateContext = (context, userMeta) => ({
+      ...buildPeerContext(context.peerId, userMeta),
+      byteLength: context.byteLength,
+      signal: context.signal,
+      kind
+    });
+    const syncReceiveGate = () => {
+      if (!Boolean(getReceiveGate()) && !hasRoleGuard) {
+        rawAction.onReceive(null);
+        return;
+      }
+      rawAction.onReceive((context) => {
+        const [inlineCert, userMeta] = extractWireMeta(context.metadata);
+        if (!hasRoleGuard) {
+          const gate = getReceiveGate();
+          return gate ? gate(buildGateContext(context, userMeta)) : true;
+        }
+        if (!deps.authorizePeerAction) return false;
+        const authRes = deps.authorizePeerAction(context.peerId, requiredRoles, inlineCert);
+        const afterAuth = (allowed) => {
+          if (!allowed) return false;
+          const gate = getReceiveGate();
+          return gate ? gate(buildGateContext(context, userMeta)) : true;
+        };
+        return typeof authRes === "boolean" ? afterAuth(authRes) : authRes.then(afterAuth, () => false);
+      });
+    };
+    const [setReceiveGate, getReceiveGate, clearReceiveGate] = initSingleHandler("onReceive", () => syncReceiveGate());
+    syncReceiveGate();
+    rawAction.onProgress((progress, peerId, metadata) => {
+      if (hasProgressListeners()) {
+        const [, userMeta] = extractWireMeta(metadata);
+        emitProgress(progress, withMetadata({
+          peerId,
+          userId: userIdOf2(peerId)
+        }, userMeta));
+      }
+    });
+    const prepareSendMeta = async (userMeta) => {
+      if (!hasRoleGuard) return userMeta;
+      if (!deps.getLocalActionCert) throw mkErr(`${insufficientAuthPrefix} for action "${type}": requires [${requiredRoles.join(", ")}]`);
+      const cert = await deps.getLocalActionCert(requiredRoles, type);
+      return wrapAuthMetadata(cert, userMeta);
+    };
+    if (kind === "message") {
+      const receiveMessage = (payload, peerId, metadata) => {
+        if (hasRoleGuard && (!deps.authorizePeerAction || deps.authorizePeerAction(peerId, requiredRoles) !== true)) return;
+        const [, userMeta] = extractAuthMetadata(metadata);
+        emitMessage(payload, buildPeerContext(peerId, userMeta));
+      };
+      const [subMessage, emitMessage, clearMessage] = createEventEmitter("action handler", (active) => rawAction.onMessage(active ? receiveMessage : null));
+      const action2 = lockMethods({
+        send: async (data, options = {}) => {
+          throwIfAborted(options.signal);
+          const wireMetadata = hasRoleGuard ? await prepareSendMeta(options.metadata) : options.metadata;
+          await rawAction.send(data, deps.resolveSendTarget ? deps.resolveSendTarget(options.target, false) : options.target, wireMetadata, toProgressBridge(options.onProgress, options.metadata), options.signal);
+        },
+        onMessage: (handler, options) => subMessage(handler, options),
+        onReceive: (handler, options) => setReceiveGate(handler, options),
+        onReceiveProgress: (handler, options) => subProgress(handler, options)
+      }, [
+        "onMessage",
+        "onReceive",
+        "onReceiveProgress"
+      ]);
+      publicActions[type] = {
+        kind,
+        requiredRoles,
+        action: action2,
+        internal,
+        clear: () => {
+          clearMessage();
+          clearReceiveGate();
+          clearProgress();
+        }
+      };
+      return action2;
+    }
+    rawAction.onReject((peerId, metadata, reason) => {
+      const parsed = getRequestMetadata(metadata);
+      if (parsed) responseAction.send(null, peerId, {
+        r: parsed[0],
+        e: reason
+      }).catch(noOp2);
+    });
+    const receiveRequest = (payload, peerId, metadata) => {
+      const parsed = getRequestMetadata(metadata);
+      if (!parsed) return;
+      const requestId = parsed[0];
+      let peerControllers = activeRequestControllers.get(peerId);
+      if ((peerControllers?.size ?? 0) >= maxConcurrentRequestsPerPeer) {
+        responseAction.send(null, peerId, {
+          r: requestId,
+          e: "too many concurrent requests"
+        }).catch(noOp2);
+        return;
+      }
+      const controller = new AbortController();
+      if (!peerControllers) {
+        peerControllers = /* @__PURE__ */ new Set();
+        activeRequestControllers.set(peerId, peerControllers);
+      }
+      peerControllers.add(controller);
+      const runHandler = async () => {
+        if (hasRoleGuard && (!deps.authorizePeerAction || await deps.authorizePeerAction(peerId, requiredRoles) !== true)) throw mkErr(`${insufficientAuthPrefix} for request`);
+        const handler = getRequestGate();
+        if (!handler) throw mkErr("no active request handler");
+        const [, userMeta] = extractAuthMetadata(parsed[1]);
+        const response = await handler(payload, {
+          ...buildPeerContext(peerId, userMeta),
+          signal: controller.signal
+        });
+        if (response === void 0) throw mkErr("request handler returned undefined");
+        return response;
+      };
+      runHandler().then((response) => controller.signal.aborted ? void 0 : responseAction.send(response, peerId, { r: requestId }, void 0, controller.signal), (error) => controller.signal.aborted ? void 0 : responseAction.send(null, peerId, {
+        r: requestId,
+        e: toErrorMessage(error, requestFailedMsg).slice(0, 512)
+      }, void 0, controller.signal)).catch(noOp2).finally(() => {
+        const set2 = activeRequestControllers.get(peerId);
+        set2?.delete(controller);
+        if (set2 && !set2.size) activeRequestControllers.delete(peerId);
+        controller.abort();
+      });
+    };
+    const [setRequestGate, getRequestGate, clearRequestGate] = initSingleHandler("onRequest", (handler) => rawAction.onMessage(handler ? receiveRequest : null));
+    const requestToResolvedPeer = async (data, resolvedTarget, displayTarget, options) => {
+      const { metadata, onProgress, signal, timeoutMs } = options;
+      throwIfAborted(signal);
+      if (!hasActivePeer(resolvedTarget)) throw makeActionError("disconnected", noActivePeerMsg(displayTarget));
+      const requestId = crypto.randomUUID();
+      const controller = new AbortController();
+      const { promise: responsePromise, resolve: resolve3, reject } = Promise.withResolvers();
+      responsePromise.catch(noOp2);
+      const waiter = {
+        requestId,
+        peerId: resolvedTarget,
+        state: {
+          phase: "preparing",
+          controller
+        },
+        getReceive: getReceiveGate,
+        emitReceiveProgress: emitProgress,
+        resolve: (payload) => {
+          if (closeWaiter(waiter)) resolve3(payload);
+        },
+        reject: (err) => {
+          if (closeWaiter(waiter)) reject(err);
+        }
+      };
+      requestWaiters.set(requestId, waiter);
+      if (signal) {
+        const rejectAsAborted = () => {
+          waiter.reject(makeActionError("aborted", operationAbortedMsg));
+        };
+        if (signal.aborted) rejectAsAborted();
+        else signal.addEventListener("abort", rejectAsAborted, {
+          once: true,
+          signal: controller.signal
+        });
+      }
+      if (isWaiterSettled(waiter)) return await responsePromise;
+      let innerMeta = metadata;
+      if (hasRoleGuard) {
+        try {
+          innerMeta = await prepareSendMeta(metadata);
+        } catch (err) {
+          waiter.reject(toError(err, requestFailedMsg));
+          return await responsePromise;
+        }
+        if (isWaiterSettled(waiter)) return await responsePromise;
+        if (!hasActivePeer(resolvedTarget)) {
+          waiter.reject(makeActionError("disconnected", noActivePeerMsg(displayTarget)));
+          return await responsePromise;
+        }
+      }
+      if (!activateWaiter(waiter, timeoutMs)) return await responsePromise;
+      try {
+        const sendSignal = signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
+        rawAction.send(data, resolvedTarget, innerMeta === void 0 ? { r: requestId } : {
+          r: requestId,
+          m: innerMeta
+        }, toProgressBridge(onProgress, metadata), sendSignal).catch((err) => {
+          waiter.reject(toError(err, requestFailedMsg));
+        });
+        return await responsePromise;
+      } finally {
+        waiter.reject(makeActionError("aborted", operationAbortedMsg));
+      }
+    };
+    const requestOne = (data, options) => {
+      const { target, ...rest } = options;
+      return requestToResolvedPeer(data, resolveReqPeer(target), target, rest);
+    };
+    const lockedAction = lockMethods({
+      request: requestOne,
+      requestMany: async (data, options) => {
+        const { targets, onResult, ...requestOptions } = options;
+        throwIfAborted(requestOptions.signal);
+        return all(targets.map(async (target) => {
+          const resolvedTarget = resolveReqPeer(target);
+          const base = {
+            peerId: resolvedTarget,
+            userId: userIdOf2(resolvedTarget) || target
+          };
+          let result;
+          try {
+            result = {
+              ...base,
+              status: "fulfilled",
+              value: await requestToResolvedPeer(data, resolvedTarget, target, requestOptions)
+            };
+          } catch (err) {
+            const error = toError(err, requestFailedMsg);
+            if (error.kind === "aborted" || !error.kind) throw error;
+            result = error.kind === "timeout" || error.kind === "disconnected" ? {
+              ...base,
+              status: error.kind
+            } : {
+              ...base,
+              status: "rejected",
+              error
+            };
+          }
+          onResult?.(result);
+          return result;
+        }));
+      },
+      onRequest: (handler, options) => setRequestGate(handler, options),
+      onReceive: (handler, options) => setReceiveGate(handler, options),
+      onReceiveProgress: (handler, options) => subProgress(handler, options)
+    }, [
+      "onRequest",
+      "onReceive",
+      "onReceiveProgress"
+    ]);
+    publicActions[type] = {
+      kind,
+      requiredRoles,
+      action: lockedAction,
+      internal,
+      clear: () => {
+        clearRequestGate();
+        clearReceiveGate();
+        clearProgress();
+      }
+    };
+    return lockedAction;
+  };
+  return {
+    makeAction: ((type, config) => makeActionCore(type, config, false)),
+    makeInternalAction,
+    makeInternalRequestAction: (type) => {
+      const wireType = type.startsWith("@_") ? type : `${"@_"}${type}`;
+      return makeActionCore(wireType, { kind: "request" }, true);
+    },
+    handleData,
+    clearPeer,
+    clearListeners: () => {
+      values(publicActions).forEach((entry) => {
+        if (!entry.internal) entry.clear();
+      });
+    }
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/handshake.mjs
+var peerIdentityErr = /* @__PURE__ */ mkErr("peer identity verification failed");
+var handshakeDisconnectErr = /* @__PURE__ */ mkErr("peer disconnected during handshake");
+var defaultHandshakeTimeoutMs = 1e4;
+var maxBufferedHandshakeMessages = 16;
+var hsStepKey = `__${libId}_id`;
+var hsDomain = /* @__PURE__ */ domainTag("id-hs", 2);
+var extractDtlsFingerprints = (sdp) => {
+  if (!sdp || typeof sdp !== "string") return [];
+  const matches = sdp.matchAll(/^a=fingerprint:([^\r\n]+)$/gm);
+  const set2 = /* @__PURE__ */ new Set();
+  for (const m of matches) {
+    const val = m[1]?.trim().toLowerCase();
+    if (val) set2.add(val);
+  }
+  return [...set2].sort();
+};
+var parseAndVerifyPeerIdentityClaims = async (raw, expectedStep, remotePeerId, expectedRemoteDtls, localDtls = []) => {
+  if (!raw || typeof raw !== "object") throw peerIdentityErr;
+  const msg = raw;
+  if (msg[hsStepKey] !== expectedStep || typeof msg.n !== "string" || msg.n.length < 16 || !Array.isArray(msg.dtls) || !isStr(msg.uid) || typeof msg.pk !== "string" || typeof msg.uk !== "string" || expectedStep === 2 && (typeof msg.ps !== "string" || typeof msg.us !== "string")) throw peerIdentityErr;
+  const dtls = msg.dtls.filter((x) => typeof x === "string");
+  if (expectedRemoteDtls.length > 0 && expectedRemoteDtls.join(",") !== dtls.join(",") || localDtls.length > 0 && dtls.length === 0) throw mkErr("DTLS fingerprint mismatch");
+  const peerPubJwk = compactPubToJwk(msg.pk);
+  const userPubJwk = compactPubToJwk(msg.uk);
+  if (!peerPubJwk || !userPubJwk) throw peerIdentityErr;
+  const [peerOk, userOk] = await all([verifyPeerIdKey(remotePeerId, peerPubJwk), verifyUserIdKey(msg.uid, userPubJwk)]);
+  if (!peerOk || !userOk) throw peerIdentityErr;
+  return [
+    msg.n,
+    dtls,
+    msg.uid,
+    peerPubJwk,
+    userPubJwk,
+    typeof msg.ps === "string" ? msg.ps : void 0,
+    typeof msg.us === "string" ? msg.us : void 0
+  ];
+};
+var verifyTranscriptDualSignatures = async (transcriptBytes, peerSigB64, userSigB64, peerPubJwk, userPubJwk) => {
+  const [peerOk, userOk] = await all([verifyWithP256(fromBase64Url(peerSigB64), transcriptBytes, peerPubJwk), verifyWithP256(fromBase64Url(userSigB64), transcriptBytes, userPubJwk)]);
+  if (!peerOk || !userOk) throw peerIdentityErr;
+};
+var createIdentityHandshake = (deps) => {
+  const { endpointIdentityP, appId, roomId, getUserIdentity, onVerified } = deps;
+  const signTranscript = async (transcriptBytes, localUser) => {
+    const localEndpoint = await endpointIdentityP;
+    const [psBytes, usBytes] = await all([localEndpoint.sign(transcriptBytes), localUser.sign(transcriptBytes)]);
+    return {
+      ps: toBase64Url(psBytes),
+      us: toBase64Url(new Uint8Array(usBytes))
+    };
+  };
+  const encodeTranscript = (resolvedRoomId, initPeerId, respPeerId, initNonce, respNonce, initDtls, respDtls, initUid, respUid) => encodeBytes(toJson([
+    hsDomain,
+    appId,
+    resolvedRoomId,
+    initPeerId,
+    respPeerId,
+    initNonce,
+    respNonce,
+    initDtls,
+    respDtls,
+    initUid,
+    respUid
+  ]));
+  const run2 = async (remotePeerId, send, receive, isInitiator, peerHandle) => {
+    const [resolvedRoomId, localUser, localEndpoint] = await all([
+      roomId,
+      getUserIdentity(),
+      endpointIdentityP
+    ]);
+    const effectiveSelfId = localEndpoint.peerId;
+    const peer = peerHandle ?? deps.getPeerHandle?.(remotePeerId);
+    const localDtls = extractDtlsFingerprints(peer?.connection?.localDescription?.sdp);
+    const remoteDtls = extractDtlsFingerprints(peer?.connection?.remoteDescription?.sdp);
+    if (peer?.connection && (!localDtls.length || !remoteDtls.length)) throw mkErr("DTLS fingerprint missing");
+    const sendClaims = (step, n, extra) => send({
+      [hsStepKey]: step,
+      n,
+      dtls: localDtls,
+      uid: localUser.userId,
+      pk: jwkToCompactPub(localEndpoint.signPubJwk),
+      uk: jwkToCompactPub(localUser.signPubJwk),
+      ...extra
+    });
+    const verifyStep = (raw, step) => parseAndVerifyPeerIdentityClaims(raw, step, remotePeerId, remoteDtls, localDtls);
+    const resolveRemoteDtls = (claimed) => remoteDtls.length > 0 ? remoteDtls : claimed;
+    const toVerified = (userId, peerPubKey, userPubKey) => ({
+      userId,
+      peerPubKey,
+      userPubKey
+    });
+    if (isInitiator) {
+      const initNonce = crypto.randomUUID();
+      await sendClaims(1, initNonce);
+      const { data: step2 } = await receive();
+      const [rNonce, rDtls, rUid, rPeerPub, rUserPub, rPs, rUs] = await verifyStep(step2, 2);
+      const transcriptBytes2 = encodeTranscript(resolvedRoomId, effectiveSelfId, remotePeerId, initNonce, rNonce, localDtls, resolveRemoteDtls(rDtls), localUser.userId, rUid);
+      await verifyTranscriptDualSignatures(transcriptBytes2, rPs, rUs, rPeerPub, rUserPub);
+      const sigs = await signTranscript(transcriptBytes2, localUser);
+      const sendStep3 = () => send({
+        [hsStepKey]: 3,
+        ...sigs
+      });
+      const verified2 = toVerified(rUid, rPeerPub, rUserPub);
+      try {
+        onVerified?.(remotePeerId, verified2, peer);
+      } catch (err) {
+        if (err === peerBannedErr) await sendStep3();
+        throw err;
+      }
+      await sendStep3();
+      return verified2;
+    }
+    const { data: step1 } = await receive();
+    const [iNonce, iDtls, iUid, iPeerPub, iUserPub] = await verifyStep(step1, 1);
+    const respNonce = crypto.randomUUID();
+    const transcriptBytes = encodeTranscript(resolvedRoomId, remotePeerId, effectiveSelfId, iNonce, respNonce, resolveRemoteDtls(iDtls), localDtls, iUid, localUser.userId);
+    await sendClaims(2, respNonce, await signTranscript(transcriptBytes, localUser));
+    const { data: step3 } = await receive();
+    if (!step3 || typeof step3 !== "object") throw peerIdentityErr;
+    const msg3 = step3;
+    if (msg3[hsStepKey] !== 3 || typeof msg3.ps !== "string" || typeof msg3.us !== "string") throw peerIdentityErr;
+    await verifyTranscriptDualSignatures(transcriptBytes, msg3.ps, msg3.us, iPeerPub, iUserPub);
+    const verified = toVerified(iUid, iPeerPub, iUserPub);
+    onVerified?.(remotePeerId, verified, peer);
+    return verified;
+  };
+  return { run: run2 };
+};
+var clearQueue = (queue, error) => {
+  queue.messages.length = 0;
+  for (const [, reject] of queue.waiters.splice(0)) reject(error);
+};
+var clearEntryTimer = (entry) => {
+  if ("timer" in entry) resetTimer(entry.timer);
+};
+var createHandshakeManager = (deps) => {
+  const { selfIdP, onPeerHandshake, onHandshakeError, deferResponderReady, sendHandshakeData, sendHandshakeReady, onLocalHandshakePassed, acquireAdmissionSlot, beforeSendHandshakeReady, onActivate, onFailure } = deps;
+  const peerStates = /* @__PURE__ */ new Map();
+  const getCurrentPending = (id, peer) => {
+    const entry = peerStates.get(id);
+    if (!entry || entry.phase === "active" || peer && entry.peer !== peer) return;
+    return entry;
+  };
+  const activatePeer = (id, entry) => {
+    clearEntryTimer(entry);
+    peerStates.set(id, {
+      phase: "active",
+      peer: entry.peer
+    });
+    onActivate(id, entry.peer);
+  };
+  const failPeerHandshake = (id, peer, reason) => {
+    const entry = peerStates.get(id);
+    if (!entry || entry.peer !== peer) return;
+    clearEntryTimer(entry);
+    onHandshakeError?.(id, reason);
+    onFailure(id, peer, reason);
+  };
+  const beginPreparingReady = (id, peer, timer, remoteReady) => {
+    if (!acquireAdmissionSlot(id, peer)) return;
+    const current = getCurrentPending(id, peer);
+    if (!current) return;
+    const nextRemoteReady = remoteReady || current.phase === "awaiting-remote-ready" || "remoteReady" in current && current.remoteReady;
+    peerStates.set(id, {
+      phase: "preparing-ready",
+      peer,
+      timer,
+      remoteReady: nextRemoteReady
+    });
+    const finishReady = (payload) => {
+      const preparing = peerStates.get(id);
+      if (!preparing || preparing.phase !== "preparing-ready" || preparing.peer !== peer) return;
+      const isRemoteReady = preparing.remoteReady;
+      if (isRemoteReady) {
+        clearEntryTimer(preparing);
+        peerStates.set(id, {
+          phase: "active",
+          peer
+        });
+      } else peerStates.set(id, {
+        phase: "awaiting-peer-ready",
+        peer,
+        timer: preparing.timer
+      });
+      sendHandshakeReady(payload || "", id).catch((err) => failPeerHandshake(id, peer, mkErr(`handshake ready send failed: ${toErrorMessage(err, "send failed")}`)));
+      if (isRemoteReady) onActivate(id, peer);
+    };
+    let prep;
+    try {
+      prep = beforeSendHandshakeReady(id, peer);
+    } catch {
+      prep = void 0;
+    }
+    if (prep) {
+      prep.then(finishReady, () => finishReady());
+      return;
+    }
+    finishReady();
+  };
+  const clearPeerInternal = (id, error) => {
+    const entry = peerStates.get(id);
+    if (!entry) return;
+    clearEntryTimer(entry);
+    if ("queue" in entry) clearQueue(entry.queue, error);
+    peerStates.delete(id);
+  };
+  return {
+    addPeer: (id, peer) => {
+      if (peerStates.has(id)) clearPeerInternal(id, handshakeDisconnectErr);
+      peerStates.set(id, {
+        phase: "added",
+        peer,
+        queue: {
+          messages: [],
+          waiters: []
+        },
+        remoteReady: false
+      });
+    },
+    clearPeer: clearPeerInternal,
+    canReceiveFromPeer: (id, receiveWhilePending) => {
+      const entry = peerStates.get(id);
+      return Boolean(entry && (entry.phase === "active" || receiveWhilePending));
+    },
+    start: (id, peer) => {
+      const existing = peerStates.get(id);
+      if (!existing || existing.phase !== "added" || existing.peer !== peer) return;
+      const timer = setTimeout(() => failPeerHandshake(id, peer, mkErr(`handshake timed out after ${defaultHandshakeTimeoutMs}ms`)), defaultHandshakeTimeoutMs);
+      unrefTimer(timer);
+      peerStates.set(id, {
+        phase: "running-steps",
+        peer,
+        timer,
+        role: "resolving",
+        queue: existing.queue,
+        remoteReady: existing.remoteReady
+      });
+      const sendHandshake = async (data, metadata) => {
+        if (peerStates.get(id)?.peer !== peer) throw handshakeDisconnectErr;
+        await sendHandshakeData(data, id, metadata);
+      };
+      const receiveHandshake = () => new Promise((resolve3, reject) => {
+        const current = peerStates.get(id);
+        if (!current || current.peer !== peer || current.phase !== "running-steps") {
+          reject(handshakeDisconnectErr);
+          return;
+        }
+        const buffered = current.queue.messages.shift();
+        if (buffered) {
+          resolve3(buffered);
+          return;
+        }
+        current.queue.waiters.push([resolve3, reject]);
+      });
+      selfIdP.then((effectiveSelfId) => {
+        const isInitiator = effectiveSelfId < id;
+        const current = peerStates.get(id);
+        if (current?.phase === "running-steps" && current.peer === peer) peerStates.set(id, {
+          ...current,
+          role: isInitiator ? "initiator" : "responder"
+        });
+        return onPeerHandshake(id, sendHandshake, receiveHandshake, isInitiator, peer);
+      }).then(() => {
+        const current = peerStates.get(id);
+        if (!current || current.phase !== "running-steps" || current.peer !== peer) return;
+        clearQueue(current.queue, handshakeDisconnectErr);
+        if (!onLocalHandshakePassed(id, peer)) return;
+        const latest = peerStates.get(id);
+        if (!latest || latest.phase !== "running-steps" || latest.peer !== peer) return;
+        if (deferResponderReady && latest.role === "responder" && !latest.remoteReady) {
+          peerStates.set(id, {
+            phase: "awaiting-remote-ready",
+            peer,
+            timer: latest.timer
+          });
+          return;
+        }
+        beginPreparingReady(id, peer, latest.timer, latest.remoteReady);
+      }).catch((err) => failPeerHandshake(id, peer, toError(err, "handshake failed")));
+    },
+    receiveData: (data, id, metadata) => {
+      const entry = peerStates.get(id);
+      if (!entry || !("queue" in entry)) return;
+      const payload = metadata === void 0 ? { data } : {
+        data,
+        metadata
+      };
+      const waiter = entry.queue.waiters.shift();
+      if (waiter) {
+        waiter[0](payload);
+        return;
+      }
+      if (entry.queue.messages.length >= maxBufferedHandshakeMessages) {
+        failPeerHandshake(id, entry.peer, mkErr("too many pending handshake messages"));
+        return;
+      }
+      entry.queue.messages.push(payload);
+    },
+    receiveReady: (id) => {
+      const entry = peerStates.get(id);
+      if (!entry || entry.phase === "active") return;
+      switch (entry.phase) {
+        case "added":
+        case "running-steps":
+        case "preparing-ready":
+          peerStates.set(id, {
+            ...entry,
+            remoteReady: true
+          });
+          return;
+        case "awaiting-remote-ready":
+          beginPreparingReady(id, entry.peer, entry.timer, true);
+          return;
+        case "awaiting-peer-ready":
+          activatePeer(id, entry);
+          return;
+        default:
+          unreachable(entry);
+      }
+    },
+    getPeer: (id) => peerStates.get(id)?.peer
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/media.mjs
+var isStreamTracked = (entry) => entry?.phase === "waiting" || entry?.phase === "active";
+var toParsedMediaMeta = (value2) => {
+  if (!isObj(value2) || typeof value2["k"] !== "string") return null;
+  const rawTrackCount = value2["t"];
+  const hasMetadata = Object.hasOwn(value2, "m");
+  return {
+    key: value2["k"],
+    streamId: typeof value2["s"] === "string" ? value2["s"] : void 0,
+    expectedTrackCount: typeof rawTrackCount === "number" && Number.isInteger(rawTrackCount) && rawTrackCount >= 0 ? rawTrackCount : void 0,
+    hasMetadata,
+    metadata: hasMetadata ? value2["m"] : void 0
+  };
+};
+var tracksOf = (stream) => stream?.getTracks?.() ?? [];
+var streamIdOf = (stream) => typeof stream.id === "string" ? stream.id : void 0;
+var waitingForTracks = (expectedCount, currentTracks) => expectedCount !== void 0 && expectedCount > 0 && currentTracks.length < expectedCount;
+var bindTargetEvent = (target, event, listener, cleanups) => {
+  if (typeof target.addEventListener === "function" && typeof target.removeEventListener === "function") {
+    target.addEventListener(event, listener);
+    cleanups.push(() => {
+      target.removeEventListener?.(event, listener);
+    });
+  }
+};
+var makeStreamKeyGetter = () => {
+  const localStreamKeys = /* @__PURE__ */ new WeakMap();
+  return (stream) => {
+    let key = localStreamKeys.get(stream);
+    if (!key) {
+      key = crypto.randomUUID();
+      localStreamKeys.set(stream, key);
+    }
+    return key;
+  };
+};
+var createMediaIdentityCache = () => {
+  const remoteStreamsByKey = /* @__PURE__ */ new Map();
+  const remoteStreamsById = /* @__PURE__ */ new Map();
+  const remoteStreamKeys = /* @__PURE__ */ new WeakMap();
+  return {
+    getStreamKey: makeStreamKeyGetter(),
+    rememberRemoteStream: (key, stream, streamId) => {
+      const previous = remoteStreamKeys.get(stream);
+      if (previous !== void 0 && remoteStreamsByKey.get(previous) === stream) remoteStreamsByKey.delete(previous);
+      remoteStreamKeys.set(stream, key);
+      remoteStreamsByKey.set(key, stream);
+      if (streamId) remoteStreamsById.set(streamId, stream);
+    },
+    getRemoteStream: (key, streamId) => remoteStreamsByKey.get(key) ?? (streamId ? remoteStreamsById.get(streamId) : void 0),
+    hasRemoteMedia: () => remoteStreamsByKey.size > 0,
+    clearRemote: () => {
+      remoteStreamsByKey.clear();
+      remoteStreamsById.clear();
+    }
+  };
+};
+var findWaitingStream = (peerState, streamId) => {
+  for (const [stream, record] of peerState.streams) if (record.phase === "waiting" && (!streamId || stream.id === streamId)) return stream;
+};
+var countWaitingStreams = (peerState) => {
+  let count = 0;
+  for (const record of peerState.streams.values()) if (record.phase === "waiting") count++;
+  return count;
+};
+var createMediaManager = ({ iterate, isActive, preparePeer, getPeerUserId, onPeerError, onPeerMediaPinChange }) => {
+  const peerRemoteMedia = /* @__PURE__ */ new Map();
+  const peerLocalMedia = /* @__PURE__ */ new Map();
+  const [subStream, emitStreamEvt, clearStreamEvt] = createEventEmitter("peer stream handler");
+  const getLocalStreamKey = makeStreamKeyGetter();
+  const localStreamMetas = /* @__PURE__ */ new WeakMap();
+  const localStreamRawTracks = /* @__PURE__ */ new WeakMap();
+  const globalReplacedTracks = /* @__PURE__ */ new WeakMap();
+  let nextLocalSyncGen = 0;
+  const ensurePeerRemoteMedia = (id) => {
+    let state = peerRemoteMedia.get(id);
+    if (!state) {
+      state = {
+        identityCache: createMediaIdentityCache(),
+        metaQueue: [],
+        streams: /* @__PURE__ */ new Map()
+      };
+      peerRemoteMedia.set(id, state);
+    }
+    return state;
+  };
+  const ensurePeerLocalMedia = (id) => {
+    let state = peerLocalMedia.get(id);
+    if (!state) {
+      state = { streams: /* @__PURE__ */ new Map() };
+      peerLocalMedia.set(id, state);
+    }
+    return state;
+  };
+  const hasActiveRemoteMediaForPeer = (id) => {
+    const remote = peerRemoteMedia.get(id);
+    if (!remote) return false;
+    for (const record of remote.streams.values()) if (record.phase === "active") return true;
+    return false;
+  };
+  const hasSyncedLocalMediaForPeer = (id) => Boolean(peerLocalMedia.get(id)?.streams.size);
+  const updatePeerPin = (id) => {
+    onPeerMediaPinChange?.(id, hasActiveRemoteMediaForPeer(id) || hasSyncedLocalMediaForPeer(id));
+  };
+  const getMediaPeer = async (id, directPeer) => {
+    const mediaPeer = directPeer ?? (preparePeer ? await preparePeer(id) : void 0);
+    if (!mediaPeer) throw peerDisconnectedErr;
+    return mediaPeer;
+  };
+  const resolveTrack = (track) => {
+    let current = track;
+    const seen3 = /* @__PURE__ */ new Set();
+    while (!seen3.has(current)) {
+      const next2 = globalReplacedTracks.get(current);
+      if (!next2) break;
+      seen3.add(current);
+      current = next2;
+    }
+    return current;
+  };
+  const resolveStreamTracks = (stream) => {
+    const rawTracks = tracksOf(stream);
+    const prevRaw = localStreamRawTracks.get(stream);
+    if (prevRaw) {
+      for (const track of rawTracks) if (!prevRaw.has(track)) globalReplacedTracks.delete(track);
+    }
+    localStreamRawTracks.set(stream, new Set(rawTracks));
+    return rawTracks.map(resolveTrack);
+  };
+  const isRemoteStreamActive = (stream, hadTracks) => {
+    if ("active" in stream && stream.active === false) return false;
+    const tracks = stream.getTracks?.();
+    if (!tracks) return true;
+    if (hadTracks && tracks.length === 0) return false;
+    return tracks.length === 0 || !tracks.every((t) => t?.readyState === "ended");
+  };
+  const deactivateRemoteStream = (id, peerState, stream, entry) => {
+    if (peerState.streams.get(stream) !== entry) return;
+    entry.cleanup();
+    peerState.streams.set(stream, {
+      phase: "inactive",
+      key: entry.key
+    });
+    updatePeerPin(id);
+  };
+  const deactivateAllPeerRemoteStreams = (peerState) => {
+    for (const [stream, record] of Array.from(peerState.streams.entries())) switch (record.phase) {
+      case "waiting":
+        record.cleanup();
+        peerState.streams.delete(stream);
+        break;
+      case "active":
+        record.cleanup();
+        peerState.streams.set(stream, {
+          phase: "inactive",
+          key: record.key
+        });
+        break;
+      case "inactive":
+        break;
+      default:
+        unreachable(record);
+    }
+  };
+  const toMediaCtx = (id, hasMetadata, metadata) => {
+    const userId = getPeerUserId ? getPeerUserId(id) : id;
+    return hasMetadata && metadata !== void 0 ? {
+      peerId: id,
+      userId,
+      metadata
+    } : {
+      peerId: id,
+      userId
+    };
+  };
+  const matchQueuedMetaForStream = (peerState, stream) => {
+    if (!peerState.metaQueue.length) return null;
+    const streamId = streamIdOf(stream);
+    const index = streamId ? peerState.metaQueue.findIndex((meta) => !meta.streamId || meta.streamId === streamId) : 0;
+    if (index < 0) return null;
+    const candidate = peerState.metaQueue[index];
+    if (waitingForTracks(candidate.expectedTrackCount, tracksOf(stream))) return null;
+    peerState.metaQueue.splice(index, 1);
+    return candidate;
+  };
+  const tryPromoteStreamFromQueuedMeta = (id, stream) => {
+    if (!isActive(id)) return false;
+    const peerState = peerRemoteMedia.get(id);
+    if (!peerState) return false;
+    const matched = matchQueuedMetaForStream(peerState, stream);
+    if (!matched) return false;
+    activateRemoteStream(id, peerState, matched.key, stream, matched.hasMetadata, matched.metadata);
+    return true;
+  };
+  const ensureWaitingStream = (id, peerState, stream) => {
+    const existing = peerState.streams.get(stream);
+    if (isStreamTracked(existing)) return;
+    if (countWaitingStreams(peerState) >= 64) return;
+    const cleanups = [];
+    bindTargetEvent(stream, "addtrack", () => {
+      tryPromoteStreamFromQueuedMeta(id, stream);
+    }, cleanups);
+    peerState.streams.set(stream, {
+      phase: "waiting",
+      cleanup: () => {
+        while (cleanups.length > 0) cleanups.pop()();
+      }
+    });
+  };
+  const activateRemoteStream = (id, peerState, key, stream, hasMetadata, metadata) => {
+    if (!isActive(id)) return;
+    peerState.identityCache.rememberRemoteStream(key, stream, streamIdOf(stream));
+    const prev2 = peerState.streams.get(stream);
+    if (isStreamTracked(prev2)) prev2.cleanup();
+    const curTracks = tracksOf(stream);
+    let hadTracks = Boolean(prev2?.phase === "active" && prev2.hadTracks || curTracks.length > 0);
+    if (!isRemoteStreamActive(stream, hadTracks)) {
+      peerState.streams.set(stream, {
+        phase: "inactive",
+        key
+      });
+      if (prev2?.phase === "active") updatePeerPin(id);
+      return;
+    }
+    const metaSig = hasMetadata && metadata !== void 0 ? `m:${toJson(metadata)}` : "";
+    const prevEmittedSig = prev2?.phase === "active" ? prev2.emittedSig : void 0;
+    const cleanups = [];
+    const observedTracks = /* @__PURE__ */ new Set();
+    const cleanup = () => {
+      while (cleanups.length > 0) cleanups.pop()();
+    };
+    let currentEntry = {
+      phase: "active",
+      key,
+      hasMetadata,
+      metadata,
+      emittedSig: metaSig,
+      hadTracks,
+      cleanup
+    };
+    const pruneIfInactive = () => {
+      if (!isRemoteStreamActive(stream, hadTracks)) deactivateRemoteStream(id, peerState, stream, currentEntry);
+    };
+    const observeTrack = (track) => {
+      if (!track || observedTracks.has(track)) return;
+      observedTracks.add(track);
+      if (!hadTracks) {
+        hadTracks = true;
+        if (peerState.streams.get(stream) === currentEntry) {
+          currentEntry = {
+            ...currentEntry,
+            hadTracks: true
+          };
+          peerState.streams.set(stream, currentEntry);
+        }
+      }
+      bindTargetEvent(track, "ended", pruneIfInactive, cleanups);
+    };
+    const onDynamicTrackAdded = () => {
+      if (peerState.streams.get(stream) !== currentEntry) return;
+      for (const track of tracksOf(stream)) observeTrack(track);
+      if (!tryPromoteStreamFromQueuedMeta(id, stream)) pruneIfInactive();
+    };
+    bindTargetEvent(stream, "removetrack", pruneIfInactive, cleanups);
+    bindTargetEvent(stream, "inactive", pruneIfInactive, cleanups);
+    bindTargetEvent(stream, "addtrack", onDynamicTrackAdded, cleanups);
+    for (const track of curTracks) observeTrack(track);
+    currentEntry = {
+      ...currentEntry,
+      hadTracks
+    };
+    peerState.streams.set(stream, currentEntry);
+    updatePeerPin(id);
+    if (prevEmittedSig !== metaSig) emitStreamEvt(stream, toMediaCtx(id, hasMetadata, metadata));
+  };
+  return {
+    addStream: async (stream, options, sendMeta) => {
+      const key = getLocalStreamKey(stream);
+      const metadata = Object.hasOwn(options, "metadata") ? (localStreamMetas.set(stream, options.metadata), options.metadata) : localStreamMetas.get(stream);
+      const initialEffectiveTracks = resolveStreamTracks(stream);
+      await all(iterate(options.target, async (id, directPeer) => {
+        const opGen = ++nextLocalSyncGen;
+        const peerLocal = ensurePeerLocalMedia(id);
+        const prevEntry = peerLocal.streams.get(stream);
+        peerLocal.streams.set(stream, prevEntry?.phase === "synced" ? {
+          phase: "synced",
+          syncGen: opGen,
+          appliedTracks: prevEntry.appliedTracks
+        } : {
+          phase: "syncing-initial",
+          syncGen: opGen
+        });
+        updatePeerPin(id);
+        const rollbackInitialIfCurrent = () => {
+          const curLocal = peerLocalMedia.get(id);
+          const cur = curLocal?.streams.get(stream);
+          if (cur?.syncGen === opGen && cur.phase === "syncing-initial") {
+            curLocal.streams.delete(stream);
+            if (!curLocal.streams.size) peerLocalMedia.delete(id);
+            updatePeerPin(id);
+          }
+        };
+        let mediaPeer;
+        try {
+          mediaPeer = await getMediaPeer(id, directPeer);
+        } catch (err) {
+          rollbackInitialIfCurrent();
+          throw err;
+        }
+        if (peerLocalMedia.get(id)?.streams.get(stream)?.syncGen !== opGen) return;
+        try {
+          await sendMeta({
+            k: key,
+            s: stream.id,
+            ...initialEffectiveTracks.length > 0 ? { t: initialEffectiveTracks.length } : {},
+            ...metadata === void 0 ? {} : { m: metadata }
+          }, { target: id });
+        } catch (err) {
+          rollbackInitialIfCurrent();
+          throw err;
+        }
+        const current = peerLocalMedia.get(id)?.streams.get(stream);
+        if (!current || current.syncGen !== opGen) return;
+        const latestRawTracks = tracksOf(stream);
+        const latestEffectiveTracks = latestRawTracks.map(resolveTrack);
+        switch (current.phase) {
+          case "syncing-initial":
+            peerLocalMedia.get(id)?.streams.set(stream, {
+              phase: "synced",
+              syncGen: opGen,
+              appliedTracks: new Set(latestEffectiveTracks)
+            });
+            if (latestEffectiveTracks.length !== latestRawTracks.length || latestEffectiveTracks.some((track, index) => track !== latestRawTracks[index])) latestEffectiveTracks.forEach((track) => mediaPeer.addTrack(track, stream));
+            else mediaPeer.addStream(stream);
+            return;
+          case "synced": {
+            const nextSet = new Set(latestEffectiveTracks);
+            for (const prevTrack of current.appliedTracks.difference(nextSet)) {
+              mediaPeer.removeTrack(prevTrack, stream);
+              current.appliedTracks.delete(prevTrack);
+            }
+            for (const nextTrack of nextSet.difference(current.appliedTracks)) {
+              mediaPeer.addTrack(nextTrack, stream);
+              current.appliedTracks.add(nextTrack);
+            }
+            return;
+          }
+          default:
+            unreachable(current);
+        }
+      }));
+    },
+    removeStream: (stream, target) => {
+      if (!target) {
+        localStreamMetas.delete(stream);
+        localStreamRawTracks.delete(stream);
+      }
+      iterate(target, (id, directPeer) => {
+        const peerLocal = peerLocalMedia.get(id);
+        const prevEntry = peerLocal?.streams.get(stream);
+        if (peerLocal) {
+          peerLocal.streams.delete(stream);
+          if (!peerLocal.streams.size) peerLocalMedia.delete(id);
+        }
+        updatePeerPin(id);
+        if (!directPeer || prevEntry?.phase === "syncing-initial") return;
+        directPeer.removeStream(stream);
+        if (prevEntry?.phase === "synced") for (const track of prevEntry.appliedTracks.difference(new Set(tracksOf(stream)))) directPeer.removeTrack(track, stream);
+      });
+    },
+    replaceTrack: async (oldTrack, newTrack, target) => {
+      globalReplacedTracks.set(oldTrack, newTrack);
+      globalReplacedTracks.delete(newTrack);
+      await all(iterate(target, async (id, directPeer) => {
+        const peerLocal = peerLocalMedia.get(id);
+        let hasMatchingStream = false;
+        if (peerLocal) {
+          for (const [stream, streamEntry] of peerLocal.streams.entries()) if (streamEntry.phase === "synced" && streamEntry.appliedTracks.has(oldTrack)) {
+            streamEntry.appliedTracks.delete(oldTrack);
+            streamEntry.appliedTracks.add(newTrack);
+            hasMatchingStream = true;
+          } else if (streamEntry.phase === "syncing-initial" && tracksOf(stream).some((raw) => raw === oldTrack || resolveTrack(raw) === newTrack)) hasMatchingStream = true;
+        }
+        if (!hasMatchingStream && !directPeer) return;
+        await (await getMediaPeer(id, directPeer)).replaceTrack(oldTrack, newTrack);
+      }));
+    },
+    receiveStreamMeta: (meta, id) => {
+      if (!isActive(id)) return;
+      const parsed = toParsedMediaMeta(meta);
+      if (!parsed) return;
+      const peerState = ensurePeerRemoteMedia(id);
+      const waitingStream = findWaitingStream(peerState, parsed.streamId);
+      const candidateStream = waitingStream ?? peerState.identityCache.getRemoteStream(parsed.key, parsed.streamId);
+      const candidateTracks = tracksOf(candidateStream);
+      if (candidateStream && (waitingStream !== void 0 || candidateTracks.length > 0) && !waitingForTracks(parsed.expectedTrackCount, candidateTracks)) {
+        const staleMetaIdx = peerState.metaQueue.findIndex((item2) => item2.key === parsed.key);
+        if (staleMetaIdx >= 0) peerState.metaQueue.splice(staleMetaIdx, 1);
+        activateRemoteStream(id, peerState, parsed.key, candidateStream, parsed.hasMetadata, parsed.metadata);
+        return;
+      }
+      if (candidateStream && waitingForTracks(parsed.expectedTrackCount, candidateTracks)) ensureWaitingStream(id, peerState, candidateStream);
+      const existingIdx = peerState.metaQueue.findIndex((item2) => item2.key === parsed.key);
+      if (existingIdx >= 0) {
+        peerState.metaQueue[existingIdx] = parsed;
+        return;
+      }
+      if (peerState.metaQueue.length >= 64) {
+        warn("too many pending stream metadata messages");
+        onPeerError(id, mkErr("too many pending media metadata messages"));
+        return;
+      }
+      peerState.metaQueue.push(parsed);
+    },
+    receiveRemoteStream: (id, stream) => {
+      if (!isActive(id)) return;
+      const peerState = ensurePeerRemoteMedia(id);
+      const matched = matchQueuedMetaForStream(peerState, stream);
+      if (matched) {
+        activateRemoteStream(id, peerState, matched.key, stream, matched.hasMetadata, matched.metadata);
+        return;
+      }
+      ensureWaitingStream(id, peerState, stream);
+    },
+    clearPeer: (id) => {
+      const remote = peerRemoteMedia.get(id);
+      if (remote) {
+        deactivateAllPeerRemoteStreams(remote);
+        peerRemoteMedia.delete(id);
+      }
+      peerLocalMedia.delete(id);
+      onPeerMediaPinChange?.(id, false);
+    },
+    clearListeners: () => {
+      clearStreamEvt();
+      for (const [id, peerState] of peerRemoteMedia) {
+        deactivateAllPeerRemoteStreams(peerState);
+        updatePeerPin(id);
+      }
+    },
+    onPeerStream: (handler, options) => subStream(handler, options, () => {
+      const items = [];
+      for (const [id, peerState] of peerRemoteMedia) {
+        if (!isActive(id)) {
+          deactivateAllPeerRemoteStreams(peerState);
+          updatePeerPin(id);
+          continue;
+        }
+        for (const [stream, record] of Array.from(peerState.streams.entries())) {
+          if (record.phase !== "active") continue;
+          if (!isRemoteStreamActive(stream, record.hadTracks)) {
+            deactivateRemoteStream(id, peerState, stream, record);
+            continue;
+          }
+          items.push([stream, toMediaCtx(id, record.hasMetadata, record.metadata)]);
+        }
+      }
+      return items;
+    })
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/state.mjs
+var defaultMaxStateBytes = 16384;
+var maxAllowedStateBytes = 65536;
+var maxUserStateBytesPerUser = 65536;
+var minSlotBroadcastIntervalMs = 40;
+var maxLiveRecordsPerSec = 60;
+var maxLiveRecordBurst = 120;
+var maxSyncRecordsPerBatch = 1024;
+var maxPullPages = 16;
+var maxSyncChunkBytes = 184320;
+var maxHandshakeStateBytes = 61440;
+var handshakeStateDeadlineMs = 400;
+var offlineStagingTtlMs = 5e3;
+var maxFlushRetries = 8;
+var tombstoneBytes = 32;
+var allowedRecordKeys = /* @__PURE__ */ new Set([
+  "v",
+  "k",
+  "appId",
+  "roomId",
+  "ns",
+  "hlc",
+  "peerId",
+  "userId",
+  "pub",
+  "val",
+  "del",
+  "cert",
+  "sig"
+]);
+var stateRecordPayload = (record, canonVal) => canonTag("state", [
+  record.v,
+  record.k,
+  record.appId,
+  record.roomId,
+  record.ns,
+  record.hlc,
+  record.peerId,
+  record.userId,
+  record.pub,
+  record.del === true ? null : canonVal ?? canonicalizeJson(record.val),
+  record.del === true ? 1 : 0,
+  record.cert?.sig ?? ""
+]);
+var validateAndMeasureRecord = (raw, maxBytes = Number.POSITIVE_INFINITY) => {
+  if (!isObj(raw) || keys(raw).some((k) => !allowedRecordKeys.has(k))) return null;
+  if (raw["v"] !== 1 || raw["k"] !== "s" && raw["k"] !== "u" || !isStr(raw["appId"]) || !isStr(raw["roomId"]) || !isStr(raw["ns"]) || raw["ns"].length > 256 || !isValidHlc(raw["hlc"]) || !isValidSignalPeerId(raw["peerId"]) || !isValidUserId(raw["userId"]) || typeof raw["pub"] !== "string" || !compactPubToJwk(raw["pub"]) || !isValidSig(raw["sig"]) || raw["cert"] !== void 0 && !validateRoleCertificateShape(raw["cert"])) return null;
+  if (raw["del"] !== void 0) return raw["del"] === true && raw["k"] === "u" && raw["val"] === void 0 ? {
+    rec: raw,
+    bytes: tombstoneBytes,
+    canonVal: void 0
+  } : null;
+  if (!("val" in raw) || raw["val"] === void 0) return null;
+  const measured = canonicalizeAndMeasureJson(raw["val"], maxBytes);
+  return Array.isArray(measured) ? {
+    rec: raw,
+    bytes: measured[1],
+    canonVal: measured[0]
+  } : null;
+};
+var signStateRecord = async (signer, pubJwk, params, canonVal) => {
+  const hlc = typeof params.hlc === "number" ? [params.hlc, 0] : params.hlc ?? [Date.now(), 0];
+  const base = {
+    v: 1,
+    appId: params.appId,
+    roomId: params.roomId,
+    ns: params.ns,
+    hlc,
+    peerId: params.peerId,
+    userId: params.userId,
+    pub: jwkToCompactPub(pubJwk),
+    ...params.cert ? { cert: params.cert } : {}
+  };
+  const unsigned = params.del === true ? {
+    ...base,
+    k: "u",
+    del: true
+  } : {
+    ...base,
+    k: params.kind ?? "s",
+    val: params.val
+  };
+  const sig = await signWith(signer, stateRecordPayload(unsigned, canonVal));
+  return {
+    ...unsigned,
+    sig
+  };
+};
+var compareStateRecords = (a, b) => compareHlc(a.hlc, b.hlc) || cmpStr(a.userId, b.userId) || cmpStr(a.peerId, b.peerId) || cmpStr(a.sig, b.sig);
+var maxHlc = (a, b) => compareHlc(a, b) >= 0 ? a : b;
+var toWireRecord = (rec, includePub) => ({
+  v: rec.v,
+  k: rec.k,
+  ns: rec.ns,
+  hlc: rec.hlc,
+  peerId: rec.peerId,
+  userId: rec.userId,
+  ...includePub ? { pub: rec.pub } : {},
+  ...rec.del === true ? { del: true } : { val: rec.val },
+  ...rec.cert !== void 0 ? { cert: rec.cert } : {},
+  sig: rec.sig
+});
+var fromWireRecord = (raw, appId, roomId, pubMap) => {
+  if (!isObj(raw) || "appId" in raw || "roomId" in raw) return null;
+  const uid = raw["userId"];
+  const pub = raw["pub"] === void 0 && isStr(uid) ? pubMap?.[uid] : raw["pub"];
+  return {
+    ...raw,
+    appId,
+    roomId,
+    pub
+  };
+};
+var validateSlotArgs = (ns, initialValue, maxBytes, rolesOpt, rolesLoaded, defaultClosed, fnName, roleLabel) => {
+  if (!isStr(ns) || ns.length > 256) throw mkErr(`${fnName} requires a non-empty namespace string`);
+  const measuredInit = canonicalizeAndMeasureJson(initialValue === void 0 ? null : initialValue);
+  if (!Array.isArray(measuredInit)) throw mkErr(`state "${ns}" initialValue must be valid JSON`);
+  const initVal = fromJson(measuredInit[0]);
+  if (maxBytes !== void 0 && (!isPosSafeInt(maxBytes) || maxBytes > maxAllowedStateBytes)) throw mkErr(`state "${ns}" maxBytes must be a positive integer <= ${maxAllowedStateBytes}`);
+  if (rolesOpt !== void 0 && !rolesLoaded) throw requiresRolesErr(roleLabel);
+  let reqRoles = null;
+  if (rolesLoaded) {
+    if (rolesOpt === void 0) reqRoles = defaultClosed ? ["admin"] : null;
+    else {
+      const raw = [rolesOpt].flat();
+      if (!raw.includes("*")) {
+        const list2 = raw.filter(Boolean);
+        if (!list2.length) throw mkErr(`${roleLabel} roles must not be empty; use "*" for open`);
+        reqRoles = list2;
+      }
+    }
+  }
+  return [
+    initVal,
+    maxBytes ?? defaultMaxStateBytes,
+    reqRoles
+  ];
+};
+var getLiveEntry = (slot2, key) => {
+  const entry = slot2.entries.get(key);
+  return entry && !entry.rec.del ? entry : void 0;
+};
+var estimateWireRecordBytes = (wire) => encodeBytes(toJson(wire)).byteLength + 120;
+var sig8 = (rec) => rec.sig.slice(0, 8);
+var quotaErr = (ns) => mkErr(`state "${ns}" exceeds user quota`);
+var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureReady, hasRolesPlugin, getRolesProvider, getScaleProvider, isPeerActive, isPeerPendingHandshake, isDirectPeer, getDirectPeerIds, isUserOnline, getKnownPeerUserId, isPeerBanned, getPeerRoles, makeInternalAction, onInvalidRecord }) => {
+  const slots2 = /* @__PURE__ */ new Map();
+  const liveRateLimiter = createTokenBucketLimiter(maxLiveRecordsPerSec, maxLiveRecordBurst, 512);
+  const [hitSyncQuota] = createWindowCounter(512, 96);
+  const [hitFwdSyncQuota] = createWindowCounter(512, 96);
+  const stagedHandshake = /* @__PURE__ */ new Map();
+  const sentHandshakeSigs = /* @__PURE__ */ new Map();
+  const pendingOfflineUserRecs = createBoundedCache(128);
+  const onlineEpoch = /* @__PURE__ */ new Map();
+  const activeOnlineUsers = /* @__PURE__ */ new Set();
+  const pendingJoinWaiters = /* @__PURE__ */ new Map();
+  const clock2 = createMonotonicClock();
+  let destroyed = false;
+  const isDestroyed = () => destroyed;
+  const isPeerLiveOrPending = (peerId) => isPeerActive(peerId) || Boolean(isPeerPendingHandshake?.(peerId));
+  const getOnlineEpoch = (uid) => onlineEpoch.get(uid) ?? 0;
+  const bumpOnlineEpoch = (uid) => {
+    if (!uid) return;
+    const next2 = getOnlineEpoch(uid) + 1;
+    if (!onlineEpoch.has(uid) && onlineEpoch.size >= 4096) {
+      for (const k of onlineEpoch.keys()) if (!activeOnlineUsers.has(k) && !isUserOnline(k)) {
+        onlineEpoch.delete(k);
+        break;
+      }
+    }
+    onlineEpoch.set(uid, next2);
+  };
+  const setUserPresence = (userId, online) => {
+    if (isDestroyed() || !userId) return;
+    if (online) {
+      if (!activeOnlineUsers.has(userId)) {
+        activeOnlineUsers.add(userId);
+        bumpOnlineEpoch(userId);
+      }
+    } else if (activeOnlineUsers.delete(userId)) bumpOnlineEpoch(userId);
+  };
+  const setSlotOptimistic = (slot2, next2) => {
+    slot2.optimistic = next2;
+    slot2.snapshot = null;
+  };
+  const clearSlotOptimistic = (slot2) => {
+    if (slot2.optimistic !== null) {
+      slot2.optimistic = null;
+      slot2.snapshot = null;
+    }
+  };
+  const enqueuePendingOp = (slot2, fields2) => {
+    const { promise, resolve: resolve3, reject } = Promise.withResolvers();
+    slot2.ops.push({
+      ...fields2,
+      promise,
+      resolve: resolve3,
+      reject
+    });
+    flushSlot(slot2);
+    return promise;
+  };
+  const isScaleActive = () => Boolean(getScaleProvider?.());
+  const resolvePendingJoin = (peerId, ok) => {
+    const waiter = pendingJoinWaiters.get(peerId);
+    if (waiter) {
+      pendingJoinWaiters.delete(peerId);
+      waiter.resolve(ok);
+    }
+  };
+  const waitPeerReady = (peerId) => {
+    if (!isPeerPendingHandshake?.(peerId)) return isPeerActive(peerId) ? null : false;
+    let waiter = pendingJoinWaiters.get(peerId);
+    if (!waiter) {
+      const { promise, resolve: resolve3 } = Promise.withResolvers();
+      waiter = {
+        promise,
+        resolve: resolve3,
+        count: 0
+      };
+      pendingJoinWaiters.set(peerId, waiter);
+    }
+    if (waiter.count >= 8) return false;
+    waiter.count++;
+    return waiter.promise;
+  };
+  const readyRoomForPeer = async (peerId, waitP) => {
+    if (waitP && !await waitP) return null;
+    let roomId;
+    try {
+      ({ roomId } = await ensureReady());
+    } catch {
+      return null;
+    }
+    return isDestroyed() || !isPeerActive(peerId) || isPeerBanned(peerId) ? null : roomId;
+  };
+  const withinUserQuota = (uid, target, nextBytes) => {
+    let count = 0;
+    let bytes = nextBytes;
+    for (const slot2 of slots2.values()) {
+      if (slot2.kind !== "u" || slot2 === target) continue;
+      if (slot2.optimistic && uid === getLocalUserId()) {
+        count++;
+        bytes += slot2.optimistic.bytes;
+        continue;
+      }
+      const entry = uid ? slot2.entries.get(uid) : void 0;
+      if (entry) {
+        count++;
+        bytes += entry.bytes;
+      }
+    }
+    return count < 32 && bytes <= maxUserStateBytesPerUser;
+  };
+  const mkCtxBase = (prev2, peerId, userId, roles2, timestamp) => ({
+    prev: prev2,
+    peerId,
+    userId,
+    roles: [...roles2],
+    timestamp
+  });
+  const toSharedCtx = (rec, prev2, roles2) => mkCtxBase(prev2, rec.peerId, rec.userId, roles2, rec.hlc[0]);
+  const toUserCtx = (rec, prev2, roles2, removed, ts = rec.hlc[0], online = isUserOnline(rec.userId)) => {
+    const localUid = getLocalUserId();
+    return {
+      ...mkCtxBase(prev2, rec.peerId, rec.userId, roles2, ts),
+      self: Boolean(localUid && rec.userId === localUid),
+      online,
+      removed
+    };
+  };
+  const isRecordAuthorizedNow = (rec, reqRoles) => {
+    if (isPeerBanned(rec.userId)) return false;
+    if (!reqRoles) return true;
+    const rp = getRolesProvider();
+    if (!rp) return false;
+    const active = rp.getPeerRoles(rec.userId);
+    if (rec.cert) return reqRoles.some((r) => rec.cert.roles.includes(r) && active.includes(r));
+    return reqRoles.some((r) => active.includes(r));
+  };
+  const evictEntry = (slot2, key, entry, now2, roles2) => {
+    slot2.entries.delete(key);
+    slot2.snapshot = null;
+    if (slot2.kind === "s") slot2.emit(slot2.initialValue, mkCtxBase(entry.value, getSelfId(), entry.rec.userId, roles2, now2));
+    else if (!entry.rec.del) slot2.emit(void 0, toUserCtx(entry.rec, entry.value, roles2, true, now2, false));
+  };
+  const stateAction = makeInternalAction ? makeInternalAction("state", {
+    receiveWhilePending: true,
+    maxPayloadBytes: 262144
+  }) : null;
+  const sendState = (msg, targets) => {
+    if (stateAction) stateAction.send(msg, targets === void 0 ? void 0 : { target: targets }).catch(noOp2);
+  };
+  const broadcastLiveRecord = (rec) => {
+    sendState({
+      t: "rec",
+      r: toWireRecord(rec, true)
+    });
+  };
+  const verifyParsedRecord = async ({ rec, bytes, canonVal }, reqRoles, fromPeerId) => {
+    const roomId = getRoomId();
+    if (rec.appId !== appId || rec.roomId !== roomId || rec.cert && rec.cert.subUserId !== rec.userId) return "invalid";
+    const signer = await getVerifiedPubKeyRecord(rec.pub);
+    if (!signer || signer.userId !== rec.userId) return "invalid";
+    if (!await verifySig(rec.pub, stateRecordPayload(rec, canonVal), rec.sig)) return "invalid";
+    const now2 = Date.now();
+    const existingWall = slots2.get(`${rec.k}:${rec.ns}`)?.entries.get(rec.k === "s" ? "" : rec.userId)?.rec.hlc[0] ?? 0;
+    const maxFutureWall = Math.min(now2 + defaultMaxClockSkewMs, Math.max(now2 + stateMaxFutureSkewMs, rec.cert ? rec.cert.iat + stateMaxFutureSkewMs : 0, existingWall));
+    if (rec.hlc[0] > maxFutureWall || rec.cert && rec.hlc[0] < rec.cert.iat) return "drop";
+    if (isPeerBanned(rec.userId)) return "drop";
+    const rp = getRolesProvider();
+    if (rp) {
+      const roleRes = await rp.verifyStateRecordRoles(rec, reqRoles, fromPeerId);
+      if (!roleRes.valid) return "drop";
+      clock2.observe(rec.hlc[0]);
+      return {
+        rec,
+        roles: roleRes.roles,
+        bytes
+      };
+    }
+    if (reqRoles && reqRoles.length > 0) return "drop";
+    clock2.observe(rec.hlc[0]);
+    return {
+      rec,
+      roles: [],
+      bytes
+    };
+  };
+  const stageOfflineUserRecord = (slot2, rec, roles2, bytes) => {
+    if (bytes > slot2.maxBytes) return;
+    const now2 = Date.now();
+    let byNs = pendingOfflineUserRecs.get(rec.userId);
+    if (!byNs) {
+      byNs = /* @__PURE__ */ new Map();
+      pendingOfflineUserRecs.set(rec.userId, byNs);
+    } else if (!byNs.has(slot2.namespace) && byNs.size >= 32) return;
+    const prev2 = byNs.get(slot2.namespace);
+    if (prev2 && now2 - prev2.seenAt < offlineStagingTtlMs && compareStateRecords(rec, prev2.rec) <= 0) return;
+    let totalBytes = bytes;
+    for (const [ns, entry] of byNs) if (ns !== slot2.namespace) totalBytes += entry.bytes;
+    if (totalBytes > maxUserStateBytesPerUser) return;
+    byNs.set(slot2.namespace, {
+      slot: slot2,
+      rec,
+      roles: [...roles2],
+      bytes,
+      seenAt: now2
+    });
+  };
+  const commitEntry = (slot2, rec, roles2, bytes, skipValidate = false, allowStageOffline = false, silentCommit = false) => {
+    if (isDestroyed()) return null;
+    const key = slot2.kind === "s" ? "" : rec.userId;
+    if (slot2.kind === "u" && !isUserOnline(key)) {
+      if (allowStageOffline) stageOfflineUserRecord(slot2, rec, roles2, bytes);
+      return null;
+    }
+    const curRaw = slot2.entries.get(key);
+    if (curRaw && compareStateRecords(rec, curRaw.rec) <= 0) return null;
+    const curLive = curRaw && !curRaw.rec.del ? curRaw : void 0;
+    const prevVal = curLive ? curLive.value : slot2.initialValue;
+    const isLocalTarget = slot2.kind === "s" || getLocalUserId() !== "" && rec.userId === getLocalUserId();
+    const suppressForPendingOptimistic = !skipValidate && isLocalTarget && slot2.optimistic !== null && (slot2.ops.length > 0 || slot2.flushState.phase === "stepping" && compareHlc(rec.hlc, slot2.flushState.signingHlc ?? [slot2.optimistic.timestamp, 0]) <= 0) && rec.hlc[0] <= Date.now() + 1e4;
+    if (rec.del) {
+      if (slot2.kind !== "u" || !withinUserQuota(key, slot2, bytes)) return null;
+      const next3 = {
+        rec,
+        value: slot2.initialValue,
+        prev: prevVal,
+        roles: [...roles2],
+        bytes
+      };
+      slot2.entries.set(key, next3);
+      if (suppressForPendingOptimistic) {
+        slot2.optimistic.prev = slot2.initialValue;
+        return next3;
+      }
+      if (!skipValidate && isLocalTarget) clearSlotOptimistic(slot2);
+      slot2.snapshot = null;
+      if (!silentCommit && curLive) slot2.emit(void 0, toUserCtx(rec, prevVal, roles2, true));
+      return next3;
+    }
+    if (bytes > slot2.maxBytes || slot2.kind === "u" && !withinUserQuota(key, slot2, bytes)) return null;
+    const nextVal = rec.val;
+    const next2 = {
+      rec,
+      value: nextVal,
+      prev: prevVal,
+      roles: [...roles2],
+      bytes
+    };
+    if (slot2.kind === "s") {
+      const emitPrev2 = !skipValidate && slot2.optimistic !== null && !suppressForPendingOptimistic ? slot2.optimistic.value : prevVal;
+      const ctx2 = toSharedCtx(rec, prevVal, roles2);
+      if (!skipValidate && slot2.validate) {
+        let valid = false;
+        try {
+          valid = slot2.validate(nextVal, ctx2);
+        } catch {
+          valid = false;
+        }
+        if (!valid) return null;
+      }
+      slot2.entries.set(key, next2);
+      if (suppressForPendingOptimistic) {
+        slot2.optimistic.prev = nextVal;
+        return next2;
+      }
+      if (!skipValidate) clearSlotOptimistic(slot2);
+      slot2.snapshot = null;
+      if (!silentCommit) slot2.emit(nextVal, emitPrev2 === prevVal ? ctx2 : toSharedCtx(rec, emitPrev2, roles2));
+      return next2;
+    }
+    const emitPrev = !skipValidate && isLocalTarget && slot2.optimistic !== null && !suppressForPendingOptimistic ? slot2.optimistic.value : prevVal;
+    const ctx = toUserCtx(rec, prevVal, roles2, false);
+    if (!skipValidate && slot2.validate) {
+      let valid = false;
+      try {
+        valid = slot2.validate(nextVal, ctx);
+      } catch {
+        valid = false;
+      }
+      if (!valid) return null;
+    }
+    slot2.entries.set(key, next2);
+    if (suppressForPendingOptimistic) {
+      slot2.optimistic.prev = nextVal;
+      return next2;
+    }
+    if (!skipValidate && isLocalTarget) clearSlotOptimistic(slot2);
+    slot2.snapshot = null;
+    if (!silentCommit) slot2.emit(nextVal, emitPrev === prevVal ? ctx : toUserCtx(rec, emitPrev, roles2, false));
+    return next2;
+  };
+  const captureUserIngress = (uid) => ({
+    startedOnline: isUserOnline(uid),
+    startEpoch: getOnlineEpoch(uid)
+  });
+  const applyIncoming = async (rawRec, fromPeerId, allowStageOffline = false, ingressSnapshot) => {
+    if (isDestroyed()) return null;
+    const parsed = validateAndMeasureRecord(rawRec, maxAllowedStateBytes);
+    if (!parsed) {
+      onInvalidRecord?.(fromPeerId);
+      return null;
+    }
+    if (isPeerBanned(parsed.rec.userId)) return null;
+    const slot2 = slots2.get(`${parsed.rec.k}:${parsed.rec.ns}`);
+    if (!slot2) return null;
+    if (!parsed.rec.del && parsed.bytes > slot2.maxBytes) return null;
+    const entryKey = slot2.kind === "s" ? "" : parsed.rec.userId;
+    const { startedOnline, startEpoch } = slot2.kind === "u" ? ingressSnapshot ?? captureUserIngress(entryKey) : {
+      startedOnline: true,
+      startEpoch: 0
+    };
+    if (slot2.kind === "s" || startedOnline) {
+      const curRaw = slot2.entries.get(entryKey);
+      if (curRaw && compareStateRecords(parsed.rec, curRaw.rec) <= 0) return null;
+      if (!withinUserQuota(entryKey, slot2, parsed.bytes) && slot2.kind === "u") return null;
+    }
+    const verified = await verifyParsedRecord(parsed, slot2.requiredRoles, fromPeerId);
+    if (isDestroyed()) return null;
+    if (verified === "invalid") {
+      onInvalidRecord?.(fromPeerId);
+      return null;
+    }
+    if (verified === "drop" || isPeerBanned(verified.rec.userId)) return null;
+    if (slot2.kind === "u") {
+      const curEpoch = getOnlineEpoch(entryKey);
+      if (startedOnline) {
+        if (curEpoch !== startEpoch) return null;
+      } else {
+        const joinedOnceWithoutLeaving = isUserOnline(entryKey) && curEpoch === startEpoch + 1;
+        if (curEpoch !== startEpoch && !joinedOnceWithoutLeaving) return null;
+      }
+    }
+    return commitEntry(slot2, verified.rec, verified.roles, verified.bytes, false, allowStageOffline && !startedOnline && getOnlineEpoch(entryKey) === startEpoch);
+  };
+  const getAuthorizedEntriesSorted = () => {
+    const list2 = [];
+    for (const slot2 of slots2.values()) for (const [entryKey, entry] of slot2.entries) {
+      if (slot2.kind === "u" && !isUserOnline(entryKey)) continue;
+      if (isRecordAuthorizedNow(entry.rec, slot2.requiredRoles)) list2.push([slot2.kind === "s" ? `s:${slot2.namespace}` : `u:${slot2.namespace}\0${entryKey}`, entry]);
+    }
+    list2.sort((a, b) => cmpStr(a[0], b[0]));
+    return list2;
+  };
+  const buildDigestMap = (cursor) => {
+    const digest = {};
+    let count = 0;
+    for (const [dKey, entry] of getAuthorizedEntriesSorted()) {
+      if (cursor !== void 0 && cmpStr(dKey, cursor) <= 0) continue;
+      if (count >= maxSyncRecordsPerBatch) break;
+      digest[dKey] = [entry.rec.hlc, sig8(entry.rec)];
+      count++;
+    }
+    return digest;
+  };
+  const sendSyncBatches = (peerId, records3, nextCursor, forwarded = false) => {
+    if (!stateAction || isDestroyed() || !isPeerActive(peerId)) return;
+    const sendSyncMsg = (p, r, includeCursor) => sendState({
+      t: "sync",
+      p,
+      r,
+      ...includeCursor && nextCursor ? { n: nextCursor } : {},
+      ...forwarded ? { f: 1 } : {}
+    }, peerId);
+    if (!records3.length) {
+      if (!forwarded) sendSyncMsg({}, [], true);
+      return;
+    }
+    const chunks = [];
+    let curP = {};
+    let curR = [];
+    let curBytes = 0;
+    for (const rec of records3) {
+      const wire = toWireRecord(rec, false);
+      const est = estimateWireRecordBytes(wire);
+      if (curR.length > 0 && curBytes + est > maxSyncChunkBytes) {
+        chunks.push([curP, curR]);
+        curP = {};
+        curR = [];
+        curBytes = 0;
+      }
+      curP[rec.userId] = rec.pub;
+      curR.push(wire);
+      curBytes += est;
+    }
+    if (curR.length > 0) chunks.push([curP, curR]);
+    chunks.forEach(([p, r], i) => {
+      sendSyncMsg(p, r, i === chunks.length - 1);
+    });
+  };
+  const forwardAppliedToDirectOthers = (records3, excludePeerId) => {
+    if (!stateAction || !records3.length || !isScaleActive()) return;
+    for (const pid of getDirectPeerIds()) if (pid !== excludePeerId && !isPeerBanned(pid)) sendSyncBatches(pid, records3, void 0, true);
+  };
+  const isDirectSendable = (peerId) => isDirectPeer(peerId) && !isPeerBanned(peerId);
+  const antiEntropy = createAntiEntropySync({
+    maxPages: maxPullPages,
+    canSync: () => Boolean(stateAction) && slots2.size > 0,
+    getDirectPeers: getDirectPeerIds,
+    isPeerSendable: isDirectSendable,
+    sendPull: async (peerId, cursor) => {
+      if (!stateAction || isDestroyed() || !isDirectSendable(peerId)) return;
+      const msg = {
+        t: "pull",
+        d: buildDigestMap(cursor),
+        ...cursor !== void 0 ? { c: cursor } : {}
+      };
+      await stateAction.send(msg, { target: peerId });
+    }
+  });
+  if (stateAction) {
+    const runWhenReady = (peerId, fn) => {
+      const waitP = waitPeerReady(peerId);
+      if (waitP === false) return;
+      readyRoomForPeer(peerId, waitP).then((rid2) => rid2 !== null ? fn(rid2) : void 0).catch(noOp2);
+    };
+    stateAction.onMessage((raw, { peerId: fromPeerId }) => {
+      if (isDestroyed() || isPeerBanned(fromPeerId) || !isObj(raw)) return;
+      const msg = raw;
+      if (msg.t === "rec") {
+        if (!liveRateLimiter.consume(fromPeerId)) return;
+        const rawUid = isObj(msg.r) && isStr(msg.r["userId"]) ? msg.r["userId"] : void 0;
+        const ingress = rawUid ? captureUserIngress(rawUid) : void 0;
+        runWhenReady(fromPeerId, async (roomId) => {
+          const rec = fromWireRecord(msg.r, appId, roomId);
+          if (!rec) {
+            onInvalidRecord?.(fromPeerId);
+            return;
+          }
+          if (isDirectPeer(fromPeerId) && rec.peerId === fromPeerId) {
+            const knownUid = getKnownPeerUserId(fromPeerId);
+            if (knownUid && knownUid !== rec.userId) {
+              onInvalidRecord?.(fromPeerId);
+              return;
+            }
+          }
+          await applyIncoming(rec, fromPeerId, true, ingress);
+        });
+        return;
+      }
+      if (msg.t === "pull") {
+        if (hitSyncQuota(fromPeerId) || !isObj(msg.d)) return;
+        if (!isValidSyncCursor(msg.c)) {
+          onInvalidRecord?.(fromPeerId);
+          return;
+        }
+        const dEntries = entries3(msg.d);
+        if (dEntries.length > maxSyncRecordsPerBatch) {
+          onInvalidRecord?.(fromPeerId);
+          return;
+        }
+        const remoteDigest = /* @__PURE__ */ new Map();
+        for (const [k, v] of dEntries) {
+          if (!Array.isArray(v) || v.length !== 2 || !isValidHlc(v[0]) || typeof v[1] !== "string" || v[1].length > 16) {
+            onInvalidRecord?.(fromPeerId);
+            return;
+          }
+          remoteDigest.set(k, [v[0], v[1]]);
+        }
+        const cursor = msg.c;
+        runWhenReady(fromPeerId, () => {
+          const afterCursor = getAuthorizedEntriesSorted().filter(([k]) => cursor === void 0 || cmpStr(k, cursor) > 0);
+          const page = afterCursor.slice(0, maxSyncRecordsPerBatch);
+          const nextCursor = afterCursor.length > maxSyncRecordsPerBatch ? page[page.length - 1][0] : void 0;
+          const isNewerDigest = (hA, sA, hB, sB) => {
+            const cmp = compareHlc(hA, hB);
+            return cmp > 0 || cmp === 0 && sA !== sB;
+          };
+          const toSend = [];
+          for (const [k, entry] of page) {
+            const localRec = entry.rec;
+            const rem = remoteDigest.get(k);
+            if (!rem || isNewerDigest(localRec.hlc, sig8(localRec), rem[0], rem[1])) toSend.push(localRec);
+          }
+          sendSyncBatches(fromPeerId, toSend, nextCursor);
+          if (cursor === void 0 && !antiEntropy.isPullInFlight(fromPeerId)) for (const [k, rem] of remoteDigest) {
+            let slot2;
+            let entryKey = "";
+            if (k.startsWith("s:")) {
+              const candidate = slots2.get(k);
+              if (candidate?.kind === "s") slot2 = candidate;
+            } else if (k.startsWith("u:")) {
+              const sep = k.indexOf("\0");
+              if (sep > 2) {
+                const uid = k.slice(sep + 1);
+                const candidate = slots2.get(k.slice(0, sep));
+                if (candidate?.kind === "u" && isUserOnline(uid)) {
+                  slot2 = candidate;
+                  entryKey = uid;
+                }
+              }
+            }
+            if (!slot2) continue;
+            const localEntry = slot2.entries.get(entryKey);
+            const validLocal = localEntry && isRecordAuthorizedNow(localEntry.rec, slot2.requiredRoles) ? localEntry.rec : void 0;
+            if (!validLocal || isNewerDigest(rem[0], rem[1], validLocal.hlc, sig8(validLocal))) {
+              antiEntropy.pullPeer(fromPeerId, true);
+              break;
+            }
+          }
+        });
+        return;
+      }
+      if (msg.t === "sync") {
+        if (msg.f && !isScaleActive() || (msg.f ? hitFwdSyncQuota : hitSyncQuota)(fromPeerId) || !isObj(msg.p) || !Array.isArray(msg.r)) return;
+        if (msg.r.length > maxSyncRecordsPerBatch || !isValidSyncCursor(msg.n)) {
+          onInvalidRecord?.(fromPeerId);
+          return;
+        }
+        if (!msg.f) antiEntropy.onSyncPage(fromPeerId, msg.n);
+        const pubMap = msg.p;
+        const ingressByUid = /* @__PURE__ */ new Map();
+        for (const wireRec of msg.r) if (isObj(wireRec) && wireRec["k"] === "u" && isStr(wireRec["userId"])) {
+          const uid = wireRec["userId"];
+          if (!ingressByUid.has(uid)) ingressByUid.set(uid, captureUserIngress(uid));
+        }
+        runWhenReady(fromPeerId, async (roomId) => {
+          const newlyApplied = [];
+          for (const wireRec of msg.r) {
+            if (isDestroyed() || isPeerBanned(fromPeerId)) return;
+            const fullRec = fromWireRecord(wireRec, appId, roomId, pubMap);
+            if (!fullRec) {
+              onInvalidRecord?.(fromPeerId);
+              return;
+            }
+            const applied = await applyIncoming(fullRec, fromPeerId, true, fullRec.k === "u" ? ingressByUid.get(fullRec.userId) : void 0);
+            if (applied) newlyApplied.push(applied.rec);
+          }
+          forwardAppliedToDirectOthers(newlyApplied, fromPeerId);
+        });
+      }
+    });
+  }
+  const obtainWriteAuth = async (reqRoles, ns, uid) => {
+    const rp = getRolesProvider();
+    if (rp) {
+      const res = await rp.getStateWriteCert(reqRoles, ns);
+      return [res.cert, res.roles];
+    }
+    if (reqRoles && reqRoles.length > 0) throw mkErr(`${insufficientAuthPrefix} to update state "${ns}": requires [${reqRoles.join(", ")}]`);
+    return [null, [...getPeerRoles(uid)]];
+  };
+  const resolveOps = (ops) => {
+    for (const op of ops) op.resolve();
+  };
+  const rejectOps = (ops, err) => {
+    for (const op of ops) op.reject(err);
+  };
+  const rollbackOptimisticIfIdle = (slot2, uid) => {
+    if (!slot2.optimistic || slot2.ops.length > 0) return;
+    const prevOpt = slot2.optimistic;
+    clearSlotOptimistic(slot2);
+    const now2 = Date.now();
+    const selfId = getSelfId();
+    const roles2 = uid ? [...getPeerRoles(uid)] : [];
+    if (slot2.kind === "s") {
+      const curVal = slot2.entries.get("")?.value ?? slot2.initialValue;
+      if (curVal !== prevOpt.value) slot2.emit(curVal, mkCtxBase(prevOpt.value, selfId, uid, roles2, now2));
+    } else {
+      const curLive = uid ? getLiveEntry(slot2, uid) : void 0;
+      if (curLive) {
+        if (prevOpt.del || curLive.value !== prevOpt.value) slot2.emit(curLive.value, {
+          ...mkCtxBase(prevOpt.del ? slot2.initialValue : prevOpt.value, selfId, uid, roles2, now2),
+          self: true,
+          online: true,
+          removed: false
+        });
+      } else if (!prevOpt.del) slot2.emit(void 0, {
+        ...mkCtxBase(prevOpt.value, selfId, uid, roles2, now2),
+        self: true,
+        online: true,
+        removed: true
+      });
+    }
+  };
+  const settleAbortedOrFailedBatch = (slot2, ops, err, uid) => {
+    if (isDestroyed()) {
+      resolveOps(ops);
+      return;
+    }
+    rollbackOptimisticIfIdle(slot2, uid);
+    rejectOps(ops, err);
+  };
+  const measureErr = (slot2, cand, code) => code === 1 && Array.isArray(canonicalizeAndMeasureJson(cand)) ? mkErr(`state "${slot2.namespace}" exceeds maxBytes (${slot2.maxBytes})`) : mkErr(`state "${slot2.namespace}" value must contain only finite JSON numbers`);
+  const flushSlot = (slot2) => {
+    switch (slot2.flushState.phase) {
+      case "pacing":
+      case "stepping":
+        return slot2.flushState.flushPromise;
+      case "idle":
+        break;
+      default:
+        return unreachable(slot2.flushState);
+    }
+    const { promise: flushPromise, resolve: doneFlush } = Promise.withResolvers();
+    (async () => {
+      try {
+        while (!isDestroyed() && slot2.ops.length > 0) {
+          if (!(slot2.ops.some((op) => Boolean(op.urgent)) || !Number.isFinite(slot2.lastBroadcastAt) || isDestroyed())) {
+            const waitMs = Math.min(minSlotBroadcastIntervalMs, minSlotBroadcastIntervalMs - (performance.now() - slot2.lastBroadcastAt));
+            if (waitMs > 0) await new Promise((resolve3) => {
+              let finished = false;
+              const finish = () => {
+                if (finished) return;
+                finished = true;
+                clearTimeout(timer);
+                resolve3();
+              };
+              const timer = setTimeout(finish, waitMs);
+              unrefTimer(timer);
+              slot2.flushState = {
+                phase: "pacing",
+                flushPromise,
+                wake: finish
+              };
+            });
+          }
+          if (isDestroyed() || slot2.ops.length === 0) break;
+          const { promise: stepPromise, resolve: doneStep } = Promise.withResolvers();
+          const stepState = {
+            phase: "stepping",
+            flushPromise,
+            stepPromise,
+            signingHlc: null,
+            activeOps: []
+          };
+          slot2.flushState = stepState;
+          try {
+            let readySelfId;
+            let readyUser;
+            let readyRoomId;
+            let authCert;
+            let authRoles;
+            try {
+              ({ selfId: readySelfId, user: readyUser, roomId: readyRoomId } = await ensureReady());
+              if (isDestroyed()) {
+                resolveOps(slot2.ops.splice(0));
+                break;
+              }
+              [authCert, authRoles] = await obtainWriteAuth(slot2.requiredRoles, slot2.namespace, readyUser.userId);
+            } catch (err) {
+              settleAbortedOrFailedBatch(slot2, slot2.ops.splice(0), err, getLocalUserId());
+              continue;
+            }
+            if (isDestroyed()) {
+              resolveOps(slot2.ops.splice(0));
+              break;
+            }
+            if (authCert) clock2.observe(authCert.iat);
+            let remainingOps = slot2.ops.splice(0);
+            if (!remainingOps.length) continue;
+            stepState.activeOps.push(...remainingOps);
+            const uid = readyUser.userId;
+            const entryKey = slot2.kind === "s" ? "" : uid;
+            for (let attempt = 0; attempt < maxFlushRetries && remainingOps.length > 0; attempt++) {
+              if (isDestroyed()) {
+                resolveOps(remainingOps);
+                remainingOps = [];
+                break;
+              }
+              const curRaw = slot2.entries.get(entryKey);
+              const curLive = curRaw && !curRaw.rec.del ? curRaw : void 0;
+              let simVal = curLive ? curLive.value : slot2.initialValue;
+              let finalMode = null;
+              let finalBytes = 0;
+              let finalCanonJson;
+              const accepted = [];
+              const minHlcVal = maxHlc(curRaw?.rec.hlc ?? zeroHlc, [authCert?.iat ?? 0, 0]);
+              const tentativeTs = Math.max(Date.now(), clock2.peek(), minHlcVal[0]);
+              for (const op of remainingOps) {
+                const baseUnchanged = curRaw?.rec.sig === op.baseSig;
+                if (op.optimisticGen !== void 0 && (baseUnchanged || !op.updater)) {
+                  if (op.del) {
+                    simVal = slot2.initialValue;
+                    finalMode = "del";
+                    finalBytes = op.prevalidatedBytes ?? tombstoneBytes;
+                    finalCanonJson = void 0;
+                  } else {
+                    simVal = op.next;
+                    finalMode = "set";
+                    finalBytes = op.prevalidatedBytes ?? 0;
+                    finalCanonJson = op.prevalidatedJson;
+                  }
+                  accepted.push(op);
+                  continue;
+                }
+                if (op.del) {
+                  if (!withinUserQuota(uid, slot2, tombstoneBytes)) {
+                    op.reject(quotaErr(slot2.namespace));
+                    continue;
+                  }
+                  simVal = slot2.initialValue;
+                  finalMode = "del";
+                  finalBytes = tombstoneBytes;
+                  finalCanonJson = void 0;
+                  accepted.push(op);
+                  continue;
+                }
+                const fnOrVal = op.updater ?? op.next;
+                let cand;
+                try {
+                  cand = typeof fnOrVal === "function" ? fnOrVal(simVal) : fnOrVal;
+                } catch (err) {
+                  op.reject(err);
+                  continue;
+                }
+                const measured = canonicalizeAndMeasureJson(cand, slot2.maxBytes);
+                if (typeof measured === "number") {
+                  op.reject(measureErr(slot2, cand, measured));
+                  continue;
+                }
+                const [json, bytes] = measured;
+                cand = fromJson(json);
+                if (slot2.kind === "u" && !withinUserQuota(uid, slot2, bytes)) {
+                  op.reject(quotaErr(slot2.namespace));
+                  continue;
+                }
+                if (slot2.validate) {
+                  const baseCtx = mkCtxBase(simVal, readySelfId, uid, authRoles, tentativeTs);
+                  let isValid = false;
+                  try {
+                    isValid = slot2.kind === "s" ? slot2.validate(cand, baseCtx) : slot2.validate(cand, {
+                      ...baseCtx,
+                      self: true,
+                      online: true,
+                      removed: false
+                    });
+                  } catch (err) {
+                    op.reject(err);
+                    continue;
+                  }
+                  if (!isValid) {
+                    op.reject(mkErr(`state validation failed for "${slot2.namespace}"`));
+                    continue;
+                  }
+                }
+                simVal = cand;
+                finalMode = "set";
+                finalBytes = bytes;
+                finalCanonJson = json;
+                accepted.push(op);
+              }
+              if (!accepted.length || !finalMode) {
+                remainingOps = [];
+                break;
+              }
+              const allowedSkewMs = Math.min(defaultMaxClockSkewMs, Math.max(stateMaxFutureSkewMs, authCert ? authCert.iat - Date.now() + 1e3 : 0, curRaw ? curRaw.rec.hlc[0] - Date.now() + 1e3 : 0));
+              let rec;
+              try {
+                const nextHlcVal = clock2.nextHlc(slot2.namespace, minHlcVal, allowedSkewMs);
+                stepState.signingHlc = nextHlcVal;
+                rec = await signStateRecord(readyUser.sign, readyUser.signPubJwk, {
+                  kind: slot2.kind,
+                  appId,
+                  roomId: readyRoomId,
+                  ns: slot2.namespace,
+                  hlc: nextHlcVal,
+                  peerId: readySelfId,
+                  userId: uid,
+                  ...finalMode === "del" ? { del: true } : { val: simVal },
+                  cert: authCert
+                }, finalCanonJson);
+              } catch (err) {
+                settleAbortedOrFailedBatch(slot2, accepted, err, uid);
+                remainingOps = [];
+                break;
+              } finally {
+                stepState.signingHlc = null;
+              }
+              if (isDestroyed()) {
+                clearSlotOptimistic(slot2);
+                resolveOps(accepted);
+                remainingOps = [];
+                break;
+              }
+              if (!isRecordAuthorizedNow(rec, slot2.requiredRoles)) {
+                rollbackOptimisticIfIdle(slot2, uid);
+                rejectOps(accepted, mkErr(`${insufficientAuthPrefix} to update state "${slot2.namespace}"`));
+                remainingOps = [];
+                break;
+              }
+              const latestRaw = slot2.entries.get(entryKey);
+              if (latestRaw && compareStateRecords(rec, latestRaw.rec) <= 0) {
+                clock2.observe(latestRaw.rec.hlc[0]);
+                if (accepted.some((op) => Boolean(op.updater))) {
+                  remainingOps = accepted;
+                  continue;
+                }
+                rollbackOptimisticIfIdle(slot2, uid);
+                resolveOps(accepted);
+                remainingOps = [];
+                break;
+              }
+              const lastGen = accepted[accepted.length - 1]?.optimisticGen;
+              const wasCurrentOptimistic = lastGen !== void 0 && slot2.optimistic?.gen === lastGen;
+              const wasStaleOptimistic = lastGen !== void 0 && slot2.optimistic !== null && slot2.optimistic.gen > lastGen;
+              if (wasCurrentOptimistic) clearSlotOptimistic(slot2);
+              if (commitEntry(slot2, rec, authRoles, finalBytes, true, false, wasCurrentOptimistic || wasStaleOptimistic)) {
+                slot2.lastBroadcastAt = performance.now();
+                broadcastLiveRecord(rec);
+              }
+              resolveOps(accepted);
+              remainingOps = [];
+              break;
+            }
+            if (remainingOps.length > 0) settleAbortedOrFailedBatch(slot2, remainingOps, mkErr(`concurrent state contention exceeded for "${slot2.namespace}"`), uid);
+          } finally {
+            stepState.activeOps.length = 0;
+            doneStep();
+          }
+        }
+      } finally {
+        slot2.flushState = { phase: "idle" };
+        doneFlush();
+      }
+    })();
+    return flushPromise;
+  };
+  const getEffectiveLocalValue = (slot2) => {
+    if (slot2.optimistic) return slot2.optimistic.del ? slot2.initialValue : slot2.optimistic.value;
+    if (slot2.kind === "s") return slot2.entries.get("")?.value ?? slot2.initialValue;
+    const uid = getLocalUserId();
+    return uid ? getLiveEntry(slot2, uid)?.value ?? slot2.initialValue : slot2.initialValue;
+  };
+  const resolveOptimisticMode = (slot2) => {
+    if (isDestroyed()) return "noop";
+    const localUid = getLocalUserId();
+    if (!localUid) return "defer";
+    if (isPeerBanned(localUid)) return mkErr(`${insufficientAuthPrefix} to update state "${slot2.namespace}"`);
+    if (slot2.requiredRoles === null || slot2.requiredRoles.length === 0) return "sync";
+    const rp = getRolesProvider();
+    if (!rp) return hasRolesPlugin() ? "defer" : mkErr(`${insufficientAuthPrefix} to update state "${slot2.namespace}": requires [${slot2.requiredRoles.join(", ")}]`);
+    if (!rp.isAuthorityResolved()) return "defer";
+    const held = rp.getPeerRoles(localUid);
+    if (!slot2.requiredRoles.some((r) => held.includes(r))) return mkErr(`${insufficientAuthPrefix} to update state "${slot2.namespace}": requires [${slot2.requiredRoles.join(", ")}]`);
+    return "sync";
+  };
+  const enqueueSlotOp = (slot2, del2, next2) => {
+    const mode = resolveOptimisticMode(slot2);
+    if (mode === "noop") return Promise.resolve();
+    if (mode instanceof Error) return Promise.reject(mode);
+    if (mode === "defer") return enqueuePendingOp(slot2, {
+      del: del2,
+      next: next2
+    });
+    const localUid = getLocalUserId();
+    const selfId = getSelfId();
+    const roles2 = localUid ? [...getPeerRoles(localUid)] : [];
+    const prevVal = getEffectiveLocalValue(slot2);
+    const now2 = Math.max(Date.now(), clock2.peek());
+    if (del2) {
+      if (!withinUserQuota(localUid, slot2, tombstoneBytes)) return Promise.reject(quotaErr(slot2.namespace));
+      const wasLive = slot2.optimistic ? !slot2.optimistic.del : Boolean(localUid && getLiveEntry(slot2, localUid));
+      const gen2 = ++slot2.optGen;
+      setSlotOptimistic(slot2, {
+        gen: gen2,
+        del: true,
+        value: slot2.initialValue,
+        prev: prevVal,
+        bytes: tombstoneBytes,
+        timestamp: now2
+      });
+      if (wasLive && slot2.kind === "u") slot2.emit(void 0, {
+        ...mkCtxBase(prevVal, selfId, localUid, roles2, now2),
+        self: true,
+        online: true,
+        removed: true
+      });
+      return enqueuePendingOp(slot2, {
+        del: true,
+        next: void 0,
+        optimisticGen: gen2,
+        prevalidatedBytes: tombstoneBytes
+      });
+    }
+    let cand;
+    try {
+      cand = typeof next2 === "function" ? next2(prevVal) : next2;
+    } catch (err) {
+      return Promise.reject(err);
+    }
+    const measured = canonicalizeAndMeasureJson(cand, slot2.maxBytes);
+    if (typeof measured === "number") return Promise.reject(measureErr(slot2, cand, measured));
+    const [json, bytes] = measured;
+    cand = fromJson(json);
+    if (slot2.kind === "u" && !withinUserQuota(localUid, slot2, bytes)) return Promise.reject(quotaErr(slot2.namespace));
+    const baseCtx = mkCtxBase(prevVal, selfId, localUid, roles2, now2);
+    if (slot2.validate) {
+      let isValid = false;
+      try {
+        isValid = slot2.kind === "s" ? slot2.validate(cand, baseCtx) : slot2.validate(cand, {
+          ...baseCtx,
+          self: true,
+          online: true,
+          removed: false
+        });
+      } catch (err) {
+        return Promise.reject(err);
+      }
+      if (!isValid) return Promise.reject(mkErr(`state validation failed for "${slot2.namespace}"`));
+    }
+    const gen = ++slot2.optGen;
+    setSlotOptimistic(slot2, {
+      gen,
+      del: false,
+      value: cand,
+      prev: prevVal,
+      bytes,
+      timestamp: now2
+    });
+    if (slot2.kind === "s") slot2.emit(cand, baseCtx);
+    else slot2.emit(cand, {
+      ...baseCtx,
+      self: true,
+      online: true,
+      removed: false
+    });
+    const curEntryKey = slot2.kind === "s" ? "" : localUid;
+    const baseSig = slot2.entries.get(curEntryKey)?.rec.sig;
+    return enqueuePendingOp(slot2, {
+      del: false,
+      next: cand,
+      ...typeof next2 === "function" ? { updater: next2 } : {},
+      ...baseSig !== void 0 ? { baseSig } : {},
+      optimisticGen: gen,
+      prevalidatedJson: json,
+      prevalidatedBytes: bytes
+    });
+  };
+  const createSlotBase = (namespace, initialValue, requiredRoles, maxBytes, clearListeners) => ({
+    namespace,
+    initialValue,
+    requiredRoles,
+    maxBytes,
+    entries: /* @__PURE__ */ new Map(),
+    optimistic: null,
+    optGen: 0,
+    snapshot: null,
+    clearListeners,
+    api: null,
+    ops: [],
+    flushState: { phase: "idle" },
+    lastBroadcastAt: -Infinity
+  });
+  const registerSlot = (mapKey, slot2, api) => {
+    slot2.api = api;
+    if (!isDestroyed()) {
+      slots2.set(mapKey, slot2);
+      antiEntropy.scheduleRepull();
+    }
+    return api;
+  };
+  const makeState = ((namespace, initialValue, config) => {
+    const mapKey = `s:${namespace}`;
+    const existing = slots2.get(mapKey);
+    if (existing) return existing.api;
+    const [initVal, maxBytes, reqRoles] = validateSlotArgs(namespace, initialValue, config?.maxBytes, config?.roles, hasRolesPlugin() || Boolean(getRolesProvider()), true, "makeState", "state role gating");
+    const [subEmitter, emitEmitter, clearEmitter] = createEventEmitter("state handler");
+    const validate = config?.validate;
+    const slot2 = {
+      ...createSlotBase(namespace, initVal, reqRoles, maxBytes, clearEmitter),
+      kind: "s",
+      ...validate ? { validate } : {},
+      emit: emitEmitter
+    };
+    const currentMeta = () => {
+      if (slot2.optimistic) {
+        const uid = getLocalUserId();
+        return mkCtxBase(slot2.optimistic.prev, getSelfId(), uid, uid ? [...getPeerRoles(uid)] : [], slot2.optimistic.timestamp);
+      }
+      const entry = slot2.entries.get("");
+      return entry ? toSharedCtx(entry.rec, entry.prev, entry.roles) : null;
+    };
+    return registerSlot(mapKey, slot2, lockMethods({
+      get: () => getEffectiveLocalValue(slot2),
+      set: (next2) => enqueueSlotOp(slot2, false, next2),
+      getMeta: currentMeta,
+      onChange: (handler, options) => subEmitter(handler, options, () => {
+        const meta = currentMeta();
+        return meta ? [[getEffectiveLocalValue(slot2), meta]] : [];
+      })
+    }, ["onChange"]));
+  });
+  const makeUserState = ((namespace, initialValue, config) => {
+    const mapKey = `u:${namespace}`;
+    const existing = slots2.get(mapKey);
+    if (existing) return existing.api;
+    const [initVal, maxBytes, reqRoles] = validateSlotArgs(namespace, initialValue, config?.maxBytes, config?.roles, hasRolesPlugin() || Boolean(getRolesProvider()), false, "makeUserState", "user state role gating");
+    const [subEmitter, emitEmitter, clearEmitter] = createEventEmitter("user state handler");
+    const validate = config?.validate;
+    const slot2 = {
+      ...createSlotBase(namespace, initVal, reqRoles, maxBytes, clearEmitter),
+      kind: "u",
+      ...validate ? { validate } : {},
+      emit: emitEmitter
+    };
+    const resolveTarget = (args) => {
+      const localUid = getLocalUserId();
+      if (args.length === 0) return [true, localUid || void 0];
+      const id = args[0];
+      if (!id) return [false, void 0];
+      const selfId = getSelfId();
+      if (selfId !== "" && id === selfId || localUid !== "" && id === localUid) return [true, localUid || void 0];
+      const mapped = getLiveEntry(slot2, id) ? id : getKnownPeerUserId(id) ?? id;
+      return [localUid !== "" && mapped === localUid, mapped];
+    };
+    const localOptMeta = () => {
+      if (!slot2.optimistic || slot2.optimistic.del) return null;
+      const uid = getLocalUserId();
+      return {
+        ...mkCtxBase(slot2.optimistic.prev, getSelfId(), uid, uid ? [...getPeerRoles(uid)] : [], slot2.optimistic.timestamp),
+        self: true,
+        online: true,
+        removed: false
+      };
+    };
+    return registerSlot(mapKey, slot2, lockMethods({
+      get: (...args) => {
+        const [isSelf, uid] = resolveTarget(args);
+        if (isSelf && slot2.optimistic) return slot2.optimistic.del ? slot2.initialValue : slot2.optimistic.value;
+        return uid !== void 0 ? getLiveEntry(slot2, uid)?.value ?? slot2.initialValue : slot2.initialValue;
+      },
+      getAll: () => {
+        if (!slot2.snapshot) {
+          const out = {};
+          for (const [uid, entry] of slot2.entries) if (!entry.rec.del) out[uid] = entry.value;
+          const localUid = getLocalUserId();
+          if (slot2.optimistic && localUid) {
+            if (slot2.optimistic.del) delete out[localUid];
+            else out[localUid] = slot2.optimistic.value;
+          }
+          slot2.snapshot = Object.freeze(out);
+        }
+        return slot2.snapshot;
+      },
+      has: (...args) => {
+        const [isSelf, uid] = resolveTarget(args);
+        if (isSelf && slot2.optimistic) return !slot2.optimistic.del;
+        return Boolean(uid !== void 0 && getLiveEntry(slot2, uid));
+      },
+      set: (next2) => enqueueSlotOp(slot2, false, next2),
+      clear: () => enqueueSlotOp(slot2, true),
+      getMeta: (...args) => {
+        const [isSelf, uid] = resolveTarget(args);
+        if (isSelf && slot2.optimistic) return localOptMeta();
+        const entry = uid ? getLiveEntry(slot2, uid) : void 0;
+        return entry ? toUserCtx(entry.rec, entry.prev, entry.roles, false) : null;
+      },
+      onChange: (handler, options) => subEmitter(handler, options, () => {
+        const items = [];
+        const localUid = getLocalUserId();
+        let includedLocalOpt = false;
+        for (const [uid, entry] of slot2.entries) {
+          if (slot2.optimistic && localUid && uid === localUid) {
+            includedLocalOpt = true;
+            const optMeta = localOptMeta();
+            if (optMeta) items.push([slot2.optimistic.value, optMeta]);
+            continue;
+          }
+          if (!entry.rec.del) items.push([entry.value, toUserCtx(entry.rec, entry.prev, entry.roles, false)]);
+        }
+        if (slot2.optimistic && !includedLocalOpt) {
+          const optMeta = localOptMeta();
+          if (optMeta) items.push([slot2.optimistic.value, optMeta]);
+        }
+        return items;
+      })
+    }, ["onChange"]));
+  });
+  const prepareHandshakeReady = (peerId) => {
+    if (isDestroyed() || !isPeerLiveOrPending(peerId) || isPeerBanned(peerId)) return;
+    const localUid = getLocalUserId();
+    let hasUserWork = false;
+    for (const slot2 of slots2.values()) if (slot2.kind === "u" && (slot2.flushState.phase !== "idle" || slot2.ops.length > 0 || Boolean(localUid && getLiveEntry(slot2, localUid)))) {
+      hasUserWork = true;
+      break;
+    }
+    if (!hasUserWork) return;
+    return (async () => {
+      try {
+        const steps = [];
+        for (const slot2 of slots2.values()) {
+          if (slot2.kind !== "u") continue;
+          const hasQueuedOps = slot2.ops.length > 0;
+          if (hasQueuedOps) for (const op of slot2.ops) {
+            op.urgent = true;
+            steps.push(op.promise.then(noOp2, noOp2));
+          }
+          switch (slot2.flushState.phase) {
+            case "pacing":
+              if (hasQueuedOps) slot2.flushState.wake();
+              break;
+            case "idle":
+              if (hasQueuedOps) flushSlot(slot2);
+              break;
+            case "stepping":
+              if (!hasQueuedOps) steps.push(slot2.flushState.stepPromise);
+              break;
+            default:
+              unreachable(slot2.flushState);
+          }
+        }
+        if (steps.length > 0) {
+          let timer;
+          await Promise.race([Promise.allSettled(steps), new Promise((r2) => {
+            timer = setTimeout(r2, handshakeStateDeadlineMs);
+            unrefTimer(timer);
+          })]);
+          if (timer !== void 0) clearTimeout(timer);
+        }
+        const uid = getLocalUserId();
+        if (!uid || isDestroyed() || !isPeerLiveOrPending(peerId) || isPeerBanned(peerId)) return;
+        const p = {};
+        const r = [];
+        const sentSigs = /* @__PURE__ */ new Set();
+        let usedBytes = 0;
+        for (const slot2 of slots2.values()) {
+          if (slot2.kind !== "u") continue;
+          const entry = getLiveEntry(slot2, uid);
+          if (!entry) continue;
+          const wire = toWireRecord(entry.rec, false);
+          const est = estimateWireRecordBytes(wire);
+          if (usedBytes + est > maxHandshakeStateBytes) continue;
+          p[entry.rec.userId] = entry.rec.pub;
+          r.push(wire);
+          sentSigs.add(entry.rec.sig);
+          usedBytes += est;
+        }
+        if (sentSigs.size > 0) sentHandshakeSigs.set(peerId, sentSigs);
+        return r.length > 0 ? {
+          ok: true,
+          p,
+          r
+        } : void 0;
+      } catch {
+        return;
+      }
+    })();
+  };
+  const shouldAbortStaging = (peerId) => isDestroyed() || !isPeerLiveOrPending(peerId) || isPeerBanned(peerId);
+  const stageHandshakeUserState = async (fromPeerId, payload, onReady) => {
+    try {
+      const badShape = !isObj(payload.p) || !Array.isArray(payload.r) || payload.r.length > 32;
+      if (shouldAbortStaging(fromPeerId) || badShape) {
+        if (!isDestroyed() && badShape) onInvalidRecord?.(fromPeerId);
+        return;
+      }
+      let roomId;
+      try {
+        ({ roomId } = await ensureReady());
+      } catch {
+        return;
+      }
+      if (shouldAbortStaging(fromPeerId)) return;
+      const pubMap = payload.p;
+      const knownUid = getKnownPeerUserId(fromPeerId);
+      const staged = [];
+      let totalBytes = 0;
+      const now2 = Date.now();
+      for (const wireRec of payload.r) {
+        if (shouldAbortStaging(fromPeerId)) return;
+        const rec = fromWireRecord(wireRec, appId, roomId, pubMap);
+        const parsed = rec && rec.k === "u" ? validateAndMeasureRecord(rec, maxAllowedStateBytes) : null;
+        if (!parsed || knownUid && parsed.rec.userId !== knownUid) {
+          onInvalidRecord?.(fromPeerId);
+          return;
+        }
+        const slot2 = slots2.get(`u:${parsed.rec.ns}`);
+        if (!slot2 || slot2.kind !== "u") continue;
+        if (parsed.bytes > slot2.maxBytes) continue;
+        const res = await verifyParsedRecord(parsed, slot2.requiredRoles, fromPeerId);
+        if (shouldAbortStaging(fromPeerId)) return;
+        if (res === "invalid") {
+          onInvalidRecord?.(fromPeerId);
+          return;
+        }
+        if (res === "drop") continue;
+        totalBytes += res.bytes;
+        if (totalBytes > maxUserStateBytesPerUser) return;
+        staged.push({
+          slot: slot2,
+          rec: res.rec,
+          roles: res.roles,
+          bytes: res.bytes,
+          seenAt: now2
+        });
+      }
+      if (!shouldAbortStaging(fromPeerId) && staged.length > 0) stagedHandshake.set(fromPeerId, staged);
+    } finally {
+      onReady?.();
+    }
+  };
+  const sendLocalRecordsToPeer = (peerId, alreadySent) => {
+    const localUid = getLocalUserId();
+    if (!localUid || !stateAction || isDestroyed()) return;
+    const localRecords = [];
+    for (const slot2 of slots2.values()) {
+      const entry = slot2.entries.get(slot2.kind === "s" ? "" : localUid);
+      if (entry && entry.rec.userId === localUid && !alreadySent?.has(entry.rec.sig) && isRecordAuthorizedNow(entry.rec, slot2.requiredRoles)) localRecords.push(entry.rec);
+    }
+    if (localRecords.length === 0) return;
+    if (isScaleActive()) sendSyncBatches(peerId, localRecords, void 0, true);
+    else for (const rec of localRecords) sendState({
+      t: "rec",
+      r: toWireRecord(rec, true)
+    }, peerId);
+  };
+  const onPeerJoined = (peerId, userId, isDirect) => {
+    if (isDestroyed()) return;
+    const alreadySent = sentHandshakeSigs.get(peerId);
+    sentHandshakeSigs.delete(peerId);
+    const staged = stagedHandshake.get(peerId);
+    if (staged) {
+      stagedHandshake.delete(peerId);
+      const appliedHandshake = [];
+      for (const item2 of staged) if (item2.rec.userId === userId) {
+        const entry = commitEntry(item2.slot, item2.rec, item2.roles, item2.bytes);
+        if (entry) appliedHandshake.push(entry.rec);
+      } else onInvalidRecord?.(peerId);
+      forwardAppliedToDirectOthers(appliedHandshake, peerId);
+    }
+    const stagedOffline = pendingOfflineUserRecs.get(userId);
+    if (stagedOffline) {
+      pendingOfflineUserRecs.delete(userId);
+      const now2 = Date.now();
+      const appliedOffline = [];
+      for (const item2 of stagedOffline.values()) if (now2 - item2.seenAt < offlineStagingTtlMs && slots2.get(`u:${item2.slot.namespace}`) === item2.slot && isRecordAuthorizedNow(item2.rec, item2.slot.requiredRoles)) {
+        const entry = commitEntry(item2.slot, item2.rec, item2.roles, item2.bytes);
+        if (entry) appliedOffline.push(entry.rec);
+      }
+      forwardAppliedToDirectOthers(appliedOffline, peerId);
+    }
+    resolvePendingJoin(peerId, true);
+    if (isDirect && stateAction && slots2.size > 0) {
+      sendLocalRecordsToPeer(peerId, alreadySent);
+      antiEntropy.onPeerJoined(peerId, isScaleActive());
+    }
+  };
+  const clearPeer = (peerId) => {
+    stagedHandshake.delete(peerId);
+    sentHandshakeSigs.delete(peerId);
+    liveRateLimiter.delete(peerId);
+    resolvePendingJoin(peerId, false);
+    antiEntropy.onPeerDisconnected(peerId);
+  };
+  const onPeerDisconnected = (peerId) => {
+    clearPeer(peerId);
+  };
+  const onUserLeft = (userId) => {
+    if (isDestroyed() || isUserOnline(userId)) return;
+    pendingOfflineUserRecs.delete(userId);
+    const now2 = Date.now();
+    for (const slot2 of slots2.values()) if (slot2.kind === "u") {
+      const entry = slot2.entries.get(userId);
+      if (entry) evictEntry(slot2, userId, entry, now2, [...entry.roles]);
+    }
+  };
+  const purgeBannedUser = (bannedUid) => {
+    if (isDestroyed()) return;
+    setUserPresence(bannedUid, false);
+    pendingOfflineUserRecs.delete(bannedUid);
+    const localUid = getLocalUserId();
+    const now2 = Date.now();
+    let evictedShared = false;
+    for (const slot2 of slots2.values()) {
+      if (localUid && bannedUid === localUid) clearSlotOptimistic(slot2);
+      const key = slot2.kind === "s" ? "" : bannedUid;
+      const entry = slot2.entries.get(key);
+      if (entry && (slot2.kind === "u" || entry.rec.userId === bannedUid)) {
+        evictEntry(slot2, key, entry, now2, []);
+        if (slot2.kind === "s") evictedShared = true;
+      }
+    }
+    if (evictedShared) antiEntropy.scheduleRepull();
+  };
+  const destroy = () => {
+    if (destroyed) return;
+    destroyed = true;
+    antiEntropy.destroy();
+    stagedHandshake.clear();
+    sentHandshakeSigs.clear();
+    pendingOfflineUserRecs.clear();
+    activeOnlineUsers.clear();
+    onlineEpoch.clear();
+    liveRateLimiter.clear();
+    pendingJoinWaiters.forEach((waiter) => waiter.resolve(false));
+    pendingJoinWaiters.clear();
+    slots2.forEach((slot2) => {
+      clearSlotOptimistic(slot2);
+      const queuedOps = slot2.ops.splice(0);
+      let inFlightOps = [];
+      switch (slot2.flushState.phase) {
+        case "pacing":
+          slot2.flushState.wake();
+          slot2.flushState = { phase: "idle" };
+          break;
+        case "stepping":
+          inFlightOps = slot2.flushState.activeOps.splice(0);
+          break;
+        case "idle":
+          break;
+        default:
+          unreachable(slot2.flushState);
+      }
+      resolveOps(inFlightOps);
+      resolveOps(queuedOps);
+      slot2.clearListeners();
+    });
+  };
+  return {
+    makeState,
+    makeUserState,
+    verifyAndApplyStateRecord: async (rec, fromPeerId) => Boolean(await applyIncoming(rec, fromPeerId)),
+    prepareHandshakeReady,
+    stageHandshakeUserState,
+    setUserPresence,
+    onPeerJoined,
+    onPeerDisconnected,
+    onUserLeft,
+    purgeBannedUser,
+    clearPeer,
+    destroy
+  };
+};
+
+// node_modules/@trystero-p2p/core/dist/room.mjs
+var leaveFlushGraceMs = 50;
+var unloadEvent = "beforeunload";
+var beforeUnloadRoomCleanups = /* @__PURE__ */ new Set();
+var frozenEmptyRoles = Object.freeze([]);
+var cleanupActiveRoomsOnBeforeUnload = () => beforeUnloadRoomCleanups.forEach((cleanup) => cleanup());
+var registerBeforeUnloadCleanup = (cleanup) => {
+  beforeUnloadRoomCleanups.add(cleanup);
+  if (beforeUnloadRoomCleanups.size === 1) addEventListener(unloadEvent, cleanupActiveRoomsOnBeforeUnload);
+  return () => {
+    beforeUnloadRoomCleanups.delete(cleanup);
+    if (!beforeUnloadRoomCleanups.size) removeEventListener(unloadEvent, cleanupActiveRoomsOnBeforeUnload);
+  };
+};
+var isPromiseLike = (val) => Boolean(val && typeof val === "object" && typeof val.then === "function");
+var extractPluginSlots = (use, initialRoomId, identity) => {
+  if (use !== void 0 && !Array.isArray(use)) throw mkErr("use must be an array of room plugins");
+  let rolesSlot = null;
+  let scaleSlot = null;
+  for (const item2 of use ?? []) {
+    const slot2 = item2 && typeof item2 === "object" ? item2[pluginSlotSymbol] : void 0;
+    if (!slot2) throw mkErr("invalid plugin in use[]; expected roles() or scale()");
+    if (slot2.kind === "roles") {
+      if (rolesSlot) throw mkErr('duplicate plugin "roles" in use[]');
+      rolesSlot = slot2;
+    } else {
+      if (scaleSlot) throw mkErr('duplicate plugin "scale" in use[]');
+      scaleSlot = slot2;
+    }
+  }
+  if (!rolesSlot && selfCertifyingRoomRegex.test(initialRoomId)) throw selfCertRoomRolesErr;
+  if (rolesSlot?.selfAsAdmin && isEphemeralIdentityConfig(identity)) warnEphemeralAdmin();
+  return [rolesSlot, scaleSlot];
+};
+var isRoomLeavingOrLeft = (state) => state.phase === "leaving" || state.phase === "left";
+var isPendingDirectSession = (session) => session.phase === "direct-pending" || session.phase === "virtual-upgrading";
+var hasVirtualSession = (session) => session.phase === "virtual-only" || session.phase === "virtual-upgrading";
+var createRoomWithBridge = (onPeer, onPeerLeave, onSelfLeave, roomOptions = {}) => {
+  const { endpointIdentity, clientId, appId = "", roomId: initialRoomId = "", password = "", maxUsers, identity, maxReceiveBytes, onBeforeLeave } = roomOptions;
+  if (maxUsers !== void 0 && !isPosSafeInt(maxUsers)) throw posSafeIntErr("maxUsers");
+  if (identity !== void 0) validateIdentityConfig({ identity });
+  const [rolesSlot, scaleSlot] = extractPluginSlots(roomOptions.use, initialRoomId, identity);
+  const hasRolesPlugin = Boolean(rolesSlot);
+  const syncEndpoint = endpointIdentity && !isPromiseLike(endpointIdentity) ? endpointIdentity : void 0;
+  const effectiveClientId = clientId ?? (syncEndpoint ? syncEndpoint.peerId : createIdentityClientId());
+  let localSelfId = syncEndpoint ? syncEndpoint.peerId : "";
+  let localUserId = "";
+  let roomLifecycle = { phase: "active" };
+  let didReportSetupError = false;
+  let effectiveRoomId = initialRoomId;
+  let rolesProvider = null;
+  let scaleProvider = null;
+  let cachedUsersSnapshot = null;
+  const getLocalSelfId = () => localSelfId;
+  const getLocalUserId = () => localUserId;
+  const isLeavingOrLeft = () => isRoomLeavingOrLeft(roomLifecycle);
+  const canAcceptPeers = () => roomLifecycle.phase === "active";
+  const invalidateUsersSnapshot = () => {
+    cachedUsersSnapshot = null;
+  };
+  const pendingFlushDestroys = /* @__PURE__ */ new Set();
+  const cleanups = [];
+  const mkEv = (name2) => {
+    const [sub, emit, clear] = createEventEmitter(name2);
+    cleanups.push(clear);
+    return [sub, emit];
+  };
+  const [subPeerActivated, emitPeerActivated] = mkEv("onPeerActivated");
+  const [subPeerDeactivated, emitPeerDeactivated] = mkEv("onPeerDeactivated");
+  const [subRoomIdChanged, emitRoomIdChanged] = mkEv("onRoomIdChanged");
+  const [subLeave, emitLeave] = mkEv("onLeave");
+  const [subPeerJoin, emitPeerJoin] = mkEv("onPeerJoin");
+  const [subPeerLeave, emitPeerLeave] = mkEv("onPeerLeave");
+  const [subUserJoin, emitUserJoin] = mkEv("onUserJoin");
+  const [subUserLeave, emitUserLeave] = mkEv("onUserLeave");
+  const [subError, emitError] = mkEv("onError");
+  const emitRoomError = (error) => {
+    if (!isLeavingOrLeft()) emitError({
+      ...error,
+      appId,
+      roomId: effectiveRoomId
+    });
+  };
+  const failSetup = (error) => {
+    if (didReportSetupError || roomLifecycle.phase !== "active") return;
+    didReportSetupError = true;
+    roomLifecycle = { phase: "setup-failed" };
+    queueMicrotask(() => {
+      emitRoomError(error);
+      leave();
+    });
+  };
+  const localEndpointP = (endpointIdentity ? Promise.resolve(endpointIdentity) : getDefaultEndpointIdentity(appId, effectiveClientId)).then((ep) => {
+    localSelfId = ep.peerId;
+    return ep;
+  }, (err) => {
+    failSetup({
+      code: "identity-failed",
+      message: toErrorMessage(err, "endpoint identity resolution failed"),
+      cause: err
+    });
+    throw err;
+  });
+  localEndpointP.catch(noOp2);
+  const localSelfIdP = localSelfId ? Promise.resolve(localSelfId) : localEndpointP.then((ep) => ep.peerId);
+  localSelfIdP.catch(noOp2);
+  const setEffectiveRoomId = (rid2) => {
+    if (rid2 && rid2 !== effectiveRoomId) {
+      effectiveRoomId = rid2;
+      emitRoomIdChanged(rid2);
+    }
+  };
+  const peerEntries = /* @__PURE__ */ new Map();
+  const resolvedUserIdentityP = resolveUserIdentity(appId, initialRoomId, identity === void 0 ? void 0 : { identity }, effectiveClientId).then((resolvedId) => {
+    localUserId = resolvedId.userId;
+    if (!isLeavingOrLeft()) stateMgr?.setUserPresence(localUserId, true);
+    invalidateUsersSnapshot();
+    return resolvedId;
+  }, (err) => {
+    failSetup({
+      code: "identity-failed",
+      message: toErrorMessage(err, "identity resolution failed"),
+      cause: err
+    });
+    throw err;
+  });
+  resolvedUserIdentityP.catch(noOp2);
+  const effectiveRoomIdP = rolesSlot?.selfAsAdmin && !selfCertifyingRoomRegex.test(initialRoomId) ? resolvedUserIdentityP.then((u) => {
+    const rid2 = formatSelfCertifyingRoomId(initialRoomId, u.userId);
+    if (!isLeavingOrLeft()) setEffectiveRoomId(rid2);
+    return rid2;
+  }) : void 0;
+  effectiveRoomIdP?.catch(noOp2);
+  const isActiveEntry = (entry) => Boolean(entry && entry.session.phase !== "direct-pending");
+  const hasSessionEntry = (entry, includePending) => includePending ? Boolean(entry) : isActiveEntry(entry);
+  const isEntryVerified = (entry) => entry.session.phase === "direct-active" || isPendingDirectSession(entry.session) && entry.session.verified;
+  const getPeerUserId = (id) => {
+    const selfId = getLocalSelfId();
+    return selfId && id === selfId ? getLocalUserId() : peerEntries.get(id)?.userId ?? scaleProvider?.getPeerUserId(id) ?? id;
+  };
+  const getKnownPeerUserId = (id) => {
+    const selfId = getLocalSelfId();
+    return selfId && id === selfId ? getLocalUserId() || void 0 : peerEntries.get(id)?.userId ?? scaleProvider?.getPeerUserId(id);
+  };
+  const countActivePeersForUser = (uid, excludePeerId) => {
+    let count = 0;
+    for (const [pid, entry] of peerEntries) if (pid !== excludePeerId && isActiveEntry(entry) && getPeerUserId(pid) === uid) count++;
+    return count;
+  };
+  const reconcileUserChangeOnActiveEntry = (peerId, entry, nextUid) => {
+    const prevEmitted = entry.emittedUserId;
+    if (!prevEmitted || prevEmitted === nextUid) {
+      entry.emittedUserId = nextUid;
+      if (!prevEmitted && !isLeavingOrLeft()) stateMgr?.setUserPresence(nextUid, true);
+      return;
+    }
+    const localUid = getLocalUserId();
+    const wasLastForPrev = countActivePeersForUser(prevEmitted, peerId) === 0;
+    const isFirstForNext = countActivePeersForUser(nextUid, peerId) === 0;
+    entry.emittedUserId = nextUid;
+    if (!isLeavingOrLeft()) {
+      if (wasLastForPrev && (!localUid || prevEmitted !== localUid)) {
+        emitUserLeave({
+          userId: prevEmitted,
+          peerId
+        });
+        stateMgr?.setUserPresence(prevEmitted, false);
+        stateMgr?.onUserLeft(prevEmitted);
+      }
+      if (isFirstForNext && (!localUid || nextUid !== localUid)) {
+        stateMgr?.setUserPresence(nextUid, true);
+        stateMgr?.onPeerJoined(peerId, nextUid, isDirectPeer(peerId));
+        emitUserJoin({
+          userId: nextUid,
+          peerId,
+          roles: getPeerRoles(peerId)
+        });
+      }
+    }
+  };
+  const setPeerUserId = (id, uid) => {
+    if (!uid) return;
+    const entry = peerEntries.get(id);
+    if (!entry || isEntryVerified(entry)) return;
+    if (entry.userId !== uid) {
+      entry.userId = uid;
+      invalidateUsersSnapshot();
+      if (isActiveEntry(entry)) reconcileUserChangeOnActiveEntry(id, entry, uid);
+    }
+  };
+  const isDirectPeer = (id) => peerEntries.get(id)?.session.phase === "direct-active";
+  const isPeerActive = (id) => isActiveEntry(peerEntries.get(id));
+  const hasAnyPeer = (id) => peerEntries.has(id);
+  const getDirectPeer = (id, includePending = false) => {
+    const session = peerEntries.get(id)?.session;
+    if (!session || session.phase === "virtual-only") return;
+    if (session.phase === "direct-active") return session.peer;
+    return includePending ? session.peer : void 0;
+  };
+  const getPeerIds = (includePending = false) => {
+    const ids = [];
+    for (const [id, entry] of peerEntries) if (hasSessionEntry(entry, includePending)) ids.push(id);
+    return ids;
+  };
+  const getDirectPeerEntries = (activeOnly = true) => {
+    const list2 = [];
+    for (const id of peerEntries.keys()) {
+      const peer = getDirectPeer(id, !activeOnly);
+      if (peer) list2.push([id, peer]);
+    }
+    return list2;
+  };
+  const getDirectPeerIds = (activeOnly = true) => getDirectPeerEntries(activeOnly).map((pair) => pair[0]);
+  const resetDirectSessionOnEntry = (id, entry) => {
+    delete entry.deferredReady;
+    switch (entry.session.phase) {
+      case "virtual-upgrading":
+        entry.session = {
+          phase: "virtual-only",
+          virtual: entry.session.virtual
+        };
+        invalidateUsersSnapshot();
+        return;
+      case "direct-pending":
+      case "direct-active":
+        peerEntries.delete(id);
+        invalidateUsersSnapshot();
+        return;
+      case "virtual-only":
+        return;
+      default:
+        unreachable(entry.session);
+    }
+  };
+  const findPeersForUser = (uid, includePending) => {
+    const matching = [];
+    for (const [pid, entry] of peerEntries) if (hasSessionEntry(entry, includePending) && getPeerUserId(pid) === uid) matching.push(pid);
+    return matching;
+  };
+  const getUserPeerIds = (uid) => {
+    const active = findPeersForUser(uid, false);
+    return active.length ? active : findPeersForUser(uid, true);
+  };
+  const resolveSendTarget = (targets, includePending = false) => {
+    if (!targets) return;
+    const resolved = [];
+    const seen3 = /* @__PURE__ */ new Set();
+    const addPeer = (pid) => {
+      if (!seen3.has(pid)) {
+        seen3.add(pid);
+        resolved.push(pid);
+      }
+    };
+    for (const id of Array.isArray(targets) ? targets : [targets]) if (hasSessionEntry(peerEntries.get(id), includePending)) addPeer(id);
+    else {
+      const matched = findPeersForUser(id, includePending);
+      if (matched.length) matched.forEach(addPeer);
+      else addPeer(id);
+    }
+    return resolved;
+  };
+  const resolveRequestTarget = (target, includePending = false) => hasSessionEntry(peerEntries.get(target), includePending) ? target : findPeersForUser(target, includePending).sort((a, b) => {
+    const aDirect = isDirectPeer(a);
+    return aDirect !== isDirectPeer(b) ? aDirect ? -1 : 1 : cmpStr(a, b);
+  })[0];
+  const isPeerBanned = (id) => Boolean(id && rolesProvider?.isPeerBanned(id));
+  const getPeerRoles = (id = getLocalSelfId()) => rolesProvider?.getPeerRoles(id) ?? frozenEmptyRoles;
+  let stateMgr = null;
+  const emitActivatedEvents = (peerId, uid, isFirstForUser) => {
+    if (isLeavingOrLeft()) return;
+    const localUid = getLocalUserId();
+    if (isFirstForUser && (!localUid || uid !== localUid)) stateMgr?.setUserPresence(uid, true);
+    stateMgr?.onPeerJoined(peerId, uid, isDirectPeer(peerId));
+    const roles2 = getPeerRoles(peerId);
+    emitPeerJoin({
+      peerId,
+      userId: uid,
+      roles: roles2
+    });
+    if (isFirstForUser && (!localUid || uid !== localUid)) emitUserJoin({
+      userId: uid,
+      peerId,
+      roles: roles2
+    });
+  };
+  const emitDeactivatedEvents = (peerId, wasActive, isLastForUser, uid) => {
+    if (!wasActive) return;
+    const localUid = getLocalUserId();
+    stateMgr?.onPeerDisconnected(peerId);
+    emitPeerDeactivated(peerId);
+    if (!isLeavingOrLeft()) {
+      emitPeerLeave({
+        peerId,
+        userId: uid
+      });
+      if (isLastForUser && (!localUid || uid !== localUid)) {
+        emitUserLeave({
+          userId: uid,
+          peerId
+        });
+        stateMgr?.setUserPresence(uid, false);
+        stateMgr?.onUserLeft(uid);
+      }
+    }
+  };
+  let unregisterBeforeUnloadCleanup = noOp2;
+  const iterate = (targets, f) => {
+    const resolvedTargets = resolveSendTarget(targets);
+    return (resolvedTargets ? Array.isArray(resolvedTargets) ? resolvedTargets : [resolvedTargets] : getPeerIds(false)).flatMap((id) => {
+      if (!isPeerActive(id)) {
+        warnNoPeer(id);
+        return [];
+      }
+      return [Promise.resolve(f(id, getDirectPeer(id, false)))];
+    });
+  };
+  const scheduleFlushDestroy = (peer) => {
+    let completed = false;
+    const finishNow = () => {
+      cancel();
+    };
+    const cancel = destroyAfterFlush(peer, 40, 150, () => {
+      completed = true;
+      pendingFlushDestroys.delete(finishNow);
+    });
+    if (!completed) pendingFlushDestroys.add(finishNow);
+  };
+  const kickPeer = (id, peer, reason) => {
+    const cur = getDirectPeer(id, true);
+    if (cur && (!peer || cur === peer || reason === peerBannedErr)) leaveAction.send("", { target: id }).catch(noOp2);
+    exitPeer(id, peer, reason);
+  };
+  const reportPeerError = (id, error) => {
+    if (error !== peerBannedErr) emitRoomError({
+      code: "peer-error",
+      peerId: id,
+      message: toErrorMessage(error, "peer error"),
+      cause: error
+    });
+  };
+  const onPeerError = (id, error) => {
+    if (hasAnyPeer(id)) reportPeerError(id, error);
+    kickPeer(id, void 0, error);
+  };
+  const mediaManager = createMediaManager({
+    iterate,
+    isActive: isPeerActive,
+    onPeerError,
+    preparePeer: (id) => {
+      const direct = getDirectPeer(id, false);
+      return direct ? Promise.resolve(direct) : scaleProvider ? scaleProvider.prepareMediaPeer(id) : Promise.reject(peerDisconnectedErr);
+    },
+    getPeerUserId,
+    onPeerMediaPinChange: (id, pinned) => {
+      scaleProvider?.setPeerMediaPinned(id, pinned);
+    }
+  });
+  const getEntryTransport = (id, includePending) => {
+    const session = peerEntries.get(id)?.session;
+    if (!session) return;
+    switch (session.phase) {
+      case "direct-active":
+        return session.transport;
+      case "direct-pending":
+        return includePending ? session.transport : void 0;
+      case "virtual-upgrading":
+        return includePending ? session.transport : session.virtual;
+      case "virtual-only":
+        return session.virtual;
+      default:
+        return unreachable(session);
+    }
+  };
+  const { makeAction, makeInternalAction, makeInternalRequestAction, handleData, clearPeer: clearActionPeer, clearListeners: clearActionListeners } = createActionManager({
+    getPeerIds,
+    canReceiveFromPeer: (id, receiveWhilePending) => !isPeerBanned(id) && (isPeerActive(id) || hs.canReceiveFromPeer(id, receiveWhilePending)),
+    onPeerError,
+    getTransport: getEntryTransport,
+    broadcastInline: (frame2, onProgress, signal) => scaleProvider ? scaleProvider.broadcastInline(frame2, onProgress, signal) : false,
+    registerActionAuthority: (namespace, roles2) => {
+      if (!rolesProvider) throw requiresRolesErr("action role gating");
+      scaleProvider?.registerActionAuthority(namespace, roles2);
+    },
+    getLocalActionCert: (requiredRoles, namespace) => rolesProvider ? rolesProvider.getLocalActionCert(requiredRoles, namespace) : Promise.resolve(null),
+    authorizePeerAction: (peerId, requiredRoles, inlineCert) => rolesProvider ? rolesProvider.authorizePeerAction(peerId, requiredRoles, inlineCert) : false,
+    getPeerRoles: (peerId) => getPeerRoles(peerId),
+    getPeerUserId,
+    resolveSendTarget,
+    resolveRequestTarget,
+    onUnknownType: (type) => {
+      if (type === "@_state" && !isLeavingOrLeft()) ensureStateManager();
+    },
+    ...maxReceiveBytes === void 0 ? {} : { maxReceiveBytes }
+  });
+  const awaitSelfState = async () => {
+    await roomReadyP;
+    return [await resolvedUserIdentityP, await rolesProvider?.getAuthorityInfo()];
+  };
+  const [hitStatePenalty, resetStatePenalty] = createWindowCounter(512, 8);
+  const ensureStateManager = () => {
+    if (!stateMgr) {
+      const created = createStateManager({
+        appId,
+        getRoomId: () => effectiveRoomId,
+        getSelfId: getLocalSelfId,
+        getLocalUserId,
+        ensureReady: async () => {
+          const [user, info] = await awaitSelfState();
+          return {
+            selfId: getLocalSelfId(),
+            user,
+            roomId: info?.roomId ?? effectiveRoomId
+          };
+        },
+        hasRolesPlugin: () => hasRolesPlugin,
+        getRolesProvider: () => rolesProvider,
+        getScaleProvider: () => scaleProvider,
+        isPeerActive,
+        isPeerPendingHandshake: (peerId) => Boolean(hs.getPeer(peerId) && !isDirectPeer(peerId)),
+        isDirectPeer,
+        getDirectPeerIds: () => getDirectPeerIds(true),
+        isUserOnline: (uid) => {
+          const localUid = getLocalUserId();
+          return Boolean(localUid && uid === localUid || countActivePeersForUser(uid) > 0);
+        },
+        getKnownPeerUserId,
+        isPeerBanned: (peerOrUserId) => Boolean(peerOrUserId && isPeerBanned(peerOrUserId)),
+        getPeerRoles: (peerOrUserId) => getPeerRoles(peerOrUserId),
+        makeInternalAction,
+        onInvalidRecord: (fromPeerId) => {
+          const selfId = getLocalSelfId();
+          if (!fromPeerId || fromPeerId === selfId) return;
+          if (hitStatePenalty(fromPeerId)) {
+            resetStatePenalty(fromPeerId);
+            onPeerError(fromPeerId, mkViolationErr("excessive invalid state records"));
+          }
+        }
+      });
+      if (isLeavingOrLeft()) created.destroy();
+      else {
+        if (localUserId) created.setUserPresence(localUserId, true);
+        for (const [pid, entry] of peerEntries) if (isActiveEntry(entry)) created.setUserPresence(getPeerUserId(pid), true);
+      }
+      stateMgr = created;
+    }
+    return stateMgr;
+  };
+  const removePeerEntry = (id) => {
+    const entry = peerEntries.get(id);
+    if (!entry) return [
+      false,
+      false,
+      getPeerUserId(id),
+      void 0
+    ];
+    const wasActive = isActiveEntry(entry);
+    const uid = entry.emittedUserId ?? entry.userId ?? scaleProvider?.getPeerUserId(id) ?? id;
+    const directPeer = entry.session.phase === "virtual-only" ? void 0 : entry.session.peer;
+    const virtualTransport = hasVirtualSession(entry.session) ? entry.session.virtual : null;
+    peerEntries.delete(id);
+    virtualTransport?.close?.();
+    const isLast = wasActive && countActivePeersForUser(uid, id) === 0;
+    if (wasActive) invalidateUsersSnapshot();
+    return [
+      wasActive,
+      isLast,
+      uid,
+      directPeer
+    ];
+  };
+  const clearSubsystems = (id, err) => {
+    stateMgr?.clearPeer(id);
+    clearActionPeer(id, err);
+    mediaManager.clearPeer(id);
+  };
+  const exitPeer = (id, peer, reason) => {
+    const err = reason === void 0 ? peerDisconnectedErr : toError(reason, peerDisconnectedMsg);
+    const banned = err === peerBannedErr;
+    const currentDirect = getDirectPeer(id, true);
+    if (peer) {
+      if (currentDirect !== peer) {
+        if (banned) {
+          scaleProvider?.markPeerBanned(id);
+          if (!hasAnyPeer(id)) return;
+        } else return;
+      }
+    } else if (!hasAnyPeer(id)) {
+      if (banned) scaleProvider?.markPeerBanned(id);
+      return;
+    }
+    const existingEntry = peerEntries.get(id);
+    if (!banned && currentDirect && existingEntry?.session.phase === "virtual-upgrading") {
+      clearPendingPeer(id, err);
+      stateMgr?.clearPeer(id);
+      resetDirectSessionOnEntry(id, existingEntry);
+      currentDirect.destroy();
+      scaleProvider?.removeDirectPeer(id, currentDirect, err);
+      onPeerLeave(id, false);
+      return;
+    }
+    if (banned) scaleProvider?.markPeerBanned(id);
+    clearPendingPeer(id, err);
+    clearSubsystems(id, err);
+    const [wasActive, isLast, uid, directPeer] = removePeerEntry(id);
+    emitDeactivatedEvents(id, wasActive, isLast, uid);
+    if (directPeer) {
+      if ((banned || reason === roomFullErr) && !isLeavingOrLeft()) scheduleFlushDestroy(directPeer);
+      else directPeer.destroy();
+      scaleProvider?.removeDirectPeer(id, directPeer, err);
+      onPeerLeave(id, !banned && reason !== roomFullErr);
+    } else if (wasActive) scaleProvider?.removeDirectPeer(id, void 0, err);
+  };
+  const leave = () => {
+    if (isRoomLeavingOrLeft(roomLifecycle)) return roomLifecycle.promise;
+    const { promise, resolve: resolve3, reject } = Promise.withResolvers();
+    roomLifecycle = {
+      phase: "leaving",
+      promise
+    };
+    (async () => {
+      onBeforeLeave?.();
+      reservedAdmissionUsers.clear();
+      for (const id of getPeerIds(true)) hs.clearPeer(id, roomLeftErr);
+      emitLeave();
+      const leaveTargets = scaleProvider ? getDirectPeerIds(false).filter((id) => {
+        const session = peerEntries.get(id)?.session;
+        return session && session.phase !== "virtual-only" && session.transport.isOpen;
+      }) : void 0;
+      const hasOpenPeers = peerEntries.size > 0 && (!leaveTargets || leaveTargets.length > 0);
+      const controller = new AbortController();
+      if (hasOpenPeers) leaveAction.send("", {
+        ...leaveTargets ? { target: leaveTargets } : {},
+        signal: controller.signal
+      }).catch(noOp2);
+      if (scaleProvider) await scaleProvider.announceLeave();
+      if (hasOpenPeers) await new Promise((res) => {
+        setTimeout(res, leaveFlushGraceMs);
+      });
+      controller.abort();
+      try {
+        scaleProvider?.destroy();
+        for (const flushNow of pendingFlushDestroys) flushNow();
+        pendingFlushDestroys.clear();
+        const allPeerIds = getPeerIds(true);
+        for (const id of allPeerIds) {
+          const cur = peerEntries.get(id);
+          if (!cur) continue;
+          const direct = cur.session.phase === "virtual-only" ? null : cur.session.peer;
+          const virtual = hasVirtualSession(cur.session) ? cur.session.virtual : null;
+          peerEntries.delete(id);
+          direct?.destroy();
+          virtual?.close?.();
+        }
+        peerEntries.clear();
+        invalidateUsersSnapshot();
+        for (const id of allPeerIds) clearSubsystems(id, roomLeftErr);
+      } finally {
+        roomLifecycle = {
+          phase: "left",
+          promise
+        };
+        for (const fn of [
+          ...cleanups,
+          mediaManager.clearListeners,
+          clearActionListeners,
+          () => stateMgr?.destroy()
+        ]) fn();
+        try {
+          unregisterBeforeUnloadCleanup();
+        } finally {
+          onSelfLeave();
+        }
+      }
+    })().then(resolve3, reject);
+    return promise;
+  };
+  const pingAction = makeInternalRequestAction("ping");
+  pingAction.onRequest(() => "");
+  const signalAction = makeInternalAction("signal");
+  const streamMetaAction = makeInternalAction("stream", { maxPayloadBytes: 65536 });
+  const leaveAction = makeInternalAction("leave", {
+    sendToPending: true,
+    receiveWhilePending: true
+  });
+  const handshakeDataAction = makeInternalAction("hsdata", {
+    sendToPending: true,
+    receiveWhilePending: true,
+    maxPayloadBytes: 65536
+  });
+  const handshakeReadyAction = makeInternalAction("hsready", {
+    sendToPending: true,
+    receiveWhilePending: true,
+    maxPayloadBytes: 131072
+  });
+  const reservedAdmissionUsers = /* @__PURE__ */ new Map();
+  const rejectedFullPeerUsers = createBoundedCache(256);
+  const getUsersSet = (includeReserved = false, excludePeerId) => {
+    const users = /* @__PURE__ */ new Set([getLocalUserId()]);
+    for (const [pid, entry] of peerEntries) if (isActiveEntry(entry)) users.add(getPeerUserId(pid));
+    if (includeReserved) {
+      for (const [pid, uid] of reservedAdmissionUsers) if (pid !== excludePeerId) users.add(uid);
+    }
+    return users;
+  };
+  const isFullForPeer = (id, includeReserved = false) => {
+    if (maxUsers === void 0 || isPeerActive(id)) return false;
+    const users = getUsersSet(includeReserved, id);
+    const candidateUid = peerEntries.get(id)?.userId ?? scaleProvider?.getPeerUserId(id) ?? rejectedFullPeerUsers.get(id) ?? id;
+    return !users.has(candidateUid) && users.size >= maxUsers;
+  };
+  const canConnectPeer = (peerId) => {
+    const knownUid = peerEntries.get(peerId)?.userId ?? scaleProvider?.getPeerUserId(peerId) ?? rejectedFullPeerUsers.get(peerId);
+    return !isPeerBanned(getLocalSelfId()) && !isPeerBanned(peerId) && !(knownUid !== void 0 && isFullForPeer(peerId, true));
+  };
+  const rejectPeer = (id, peer, err) => {
+    if (getDirectPeer(id, true) !== peer) return;
+    const isBan = err === peerBannedMsg;
+    const errObj = isBan ? peerBannedErr : roomFullErr;
+    if (isBan) scaleProvider?.markPeerBanned(id);
+    else {
+      const knownUid = peerEntries.get(id)?.userId ?? scaleProvider?.getPeerUserId(id);
+      if (knownUid) rejectedFullPeerUsers.set(id, knownUid);
+    }
+    const banReason = isBan ? rolesProvider?.getBanReason(getPeerUserId(id)) ?? rolesProvider?.getBanReason(id) : void 0;
+    hs.clearPeer(id, errObj);
+    stateMgr?.clearPeer(id);
+    reservedAdmissionUsers.delete(id);
+    handshakeReadyAction.send({
+      ok: false,
+      err,
+      ...banReason !== void 0 ? { reason: banReason } : {}
+    }, { target: id }).catch(noOp2).finally(() => {
+      if (getDirectPeer(id, true) !== peer) return;
+      exitPeer(id, peer, errObj);
+    });
+  };
+  const tryAdmitPeer = (id, peer) => {
+    if (isPeerBanned(id)) {
+      rejectPeer(id, peer, peerBannedMsg);
+      return false;
+    }
+    if (maxUsers === void 0 || isPeerActive(id)) return true;
+    if (isFullForPeer(id, true)) {
+      rejectPeer(id, peer, roomFullMsg);
+      return false;
+    }
+    reservedAdmissionUsers.set(id, getPeerUserId(id));
+    return true;
+  };
+  const clearPendingPeer = (id, reason) => {
+    hs.clearPeer(id, reason);
+    reservedAdmissionUsers.delete(id);
+  };
+  const deliverHandshakeReady = (data, id) => {
+    if (data && typeof data === "object" && data.ok === true) {
+      if (hs.getPeer(id) && !isDirectPeer(id) && !isPeerBanned(id) && !isFullForPeer(id)) {
+        ensureStateManager().stageHandshakeUserState(id, data, () => {
+          if (!isLeavingOrLeft() && hs.getPeer(id)) processHandshakeReady("", id);
+        });
+        return;
+      }
+      processHandshakeReady("", id);
+      return;
+    }
+    processHandshakeReady(data, id);
+  };
+  const onPeerIdentityVerified = (peerId, verified, peer) => {
+    if (peer && getDirectPeer(peerId, true) !== peer) return;
+    const entry = peerEntries.get(peerId);
+    if (!entry || !isPendingDirectSession(entry.session)) return;
+    entry.userId = verified.userId;
+    invalidateUsersSnapshot();
+    if (isPeerBanned(peerId) || isPeerBanned(verified.userId)) {
+      scaleProvider?.markPeerBanned(peerId);
+      throw peerBannedErr;
+    }
+    const deferredReady = entry.deferredReady;
+    delete entry.deferredReady;
+    entry.session = {
+      ...entry.session,
+      verified: true
+    };
+    scaleProvider?.setPeerSignPublicKey(peerId, verified.peerPubKey);
+    if (deferredReady !== void 0) queueMicrotask(() => {
+      const cur = peerEntries.get(peerId);
+      if (cur && isEntryVerified(cur) && (!peer || getDirectPeer(peerId, true) === peer)) deliverHandshakeReady(deferredReady, peerId);
+    });
+  };
+  const internalKernel = {
+    get selfId() {
+      return getLocalSelfId();
+    },
+    appId,
+    initialRoomId,
+    password,
+    ...maxUsers === void 0 ? {} : { maxUsers },
+    getRoomId: () => effectiveRoomId,
+    setEffectiveRoomId,
+    getLocalEndpointIdentity: () => localEndpointP,
+    getLocalUserIdentity: () => resolvedUserIdentityP,
+    getPeerUserId,
+    getKnownPeerUserId,
+    getUserPeerIds,
+    setPeerUserId,
+    getActivePeerIds: () => getPeerIds(false),
+    getDirectActivePeerIds: () => getDirectPeerIds(true),
+    getAllPeerIds: () => getPeerIds(true),
+    isPeerActive,
+    getPeerHandle: getDirectPeer,
+    kickPeer: (peerId, reason) => kickPeer(peerId, void 0, reason),
+    emitError: emitRoomError,
+    makeInternalAction,
+    deliverRawData: (originPeerId, data) => {
+      if (isPeerBanned(originPeerId)) return;
+      handleData(originPeerId, data);
+    },
+    getRolesProvider: () => rolesProvider,
+    getScaleProvider: () => scaleProvider,
+    activateVirtualPeer: (peerId, transport) => {
+      if (!canAcceptPeers() || isPeerBanned(peerId) || isFullForPeer(peerId, true)) {
+        transport.close?.();
+        return false;
+      }
+      if (isDirectPeer(peerId)) {
+        transport.close?.();
+        return true;
+      }
+      const existing = peerEntries.get(peerId);
+      const wasActive = isActiveEntry(existing);
+      const uid = existing?.userId ?? scaleProvider?.getPeerUserId(peerId) ?? peerId;
+      const isFirst = !wasActive && countActivePeersForUser(uid, peerId) === 0;
+      if (!existing) peerEntries.set(peerId, {
+        session: {
+          phase: "virtual-only",
+          virtual: transport
+        },
+        userId: uid,
+        emittedUserId: uid
+      });
+      else {
+        existing.userId = uid;
+        switch (existing.session.phase) {
+          case "virtual-only":
+            if (existing.session.virtual !== transport) existing.session.virtual.close?.();
+            existing.session = {
+              phase: "virtual-only",
+              virtual: transport
+            };
+            break;
+          case "virtual-upgrading":
+            if (existing.session.virtual !== transport) existing.session.virtual.close?.();
+            existing.session = {
+              ...existing.session,
+              virtual: transport
+            };
+            break;
+          case "direct-pending":
+            existing.session = {
+              phase: "virtual-upgrading",
+              virtual: transport,
+              peer: existing.session.peer,
+              transport: existing.session.transport,
+              verified: existing.session.verified
+            };
+            existing.emittedUserId = uid;
+            break;
+          case "direct-active":
+            break;
+          default:
+            unreachable(existing.session);
+        }
+      }
+      invalidateUsersSnapshot();
+      if (!wasActive) emitActivatedEvents(peerId, uid, isFirst);
+      return true;
+    },
+    deactivateVirtualPeer: (peerId, reason) => {
+      if (isDirectPeer(peerId)) return;
+      const entry = peerEntries.get(peerId);
+      if (!entry || !hasVirtualSession(entry.session)) return;
+      const err = toError(reason, peerDisconnectedMsg);
+      const uid = entry.emittedUserId ?? entry.userId ?? scaleProvider?.getPeerUserId(peerId) ?? peerId;
+      const vt = entry.session.virtual;
+      if (entry.session.phase === "virtual-upgrading") {
+        entry.session = {
+          phase: "direct-pending",
+          peer: entry.session.peer,
+          transport: entry.session.transport,
+          verified: entry.session.verified
+        };
+        delete entry.emittedUserId;
+      } else peerEntries.delete(peerId);
+      vt.close?.();
+      const isLast = countActivePeersForUser(uid, peerId) === 0;
+      invalidateUsersSnapshot();
+      if (!hasAnyPeer(peerId)) clearSubsystems(peerId, err);
+      emitDeactivatedEvents(peerId, true, isLast, uid);
+    },
+    purgeBannedUserState: (userId) => {
+      stateMgr?.purgeBannedUser(userId);
+    },
+    onRolesChanged: invalidateUsersSnapshot,
+    onPeerActivated: (cb, options) => subPeerActivated(cb, options, () => getDirectPeerEntries(true)),
+    onPeerDeactivated: subPeerDeactivated,
+    onRoomIdChanged: subRoomIdChanged,
+    onLeave: subLeave
+  };
+  const identityHandshake = createIdentityHandshake({
+    endpointIdentityP: localEndpointP,
+    appId,
+    roomId: effectiveRoomIdP ?? initialRoomId,
+    getUserIdentity: () => resolvedUserIdentityP,
+    onVerified: onPeerIdentityVerified
+  });
+  const hs = createHandshakeManager({
+    selfIdP: localSelfIdP,
+    onPeerHandshake: identityHandshake.run,
+    onHandshakeError: (peerId, reason) => {
+      if (reason === peerBannedErr || isPeerBanned(peerId)) return;
+      emitRoomError({
+        code: "handshake-failed",
+        peerId,
+        message: toErrorMessage(reason, "handshake failed"),
+        cause: reason
+      });
+    },
+    deferResponderReady: maxUsers !== void 0,
+    sendHandshakeData: (data, peerId, metadata) => handshakeDataAction.send(data, {
+      target: peerId,
+      ...metadata === void 0 ? {} : { metadata }
+    }),
+    sendHandshakeReady: (data, peerId) => handshakeReadyAction.send(data, { target: peerId }),
+    onLocalHandshakePassed: (id, peer) => {
+      if (isPeerBanned(id)) {
+        rejectPeer(id, peer, peerBannedMsg);
+        return false;
+      }
+      if (isFullForPeer(id)) {
+        rejectPeer(id, peer, roomFullMsg);
+        return false;
+      }
+      return true;
+    },
+    acquireAdmissionSlot: (id, peer) => {
+      if (getDirectPeer(id, true) !== peer || isLeavingOrLeft()) return false;
+      return tryAdmitPeer(id, peer);
+    },
+    beforeSendHandshakeReady: (id, peer) => getDirectPeer(id, true) === peer && !isPeerBanned(id) && stateMgr ? stateMgr.prepareHandshakeReady(id) : void 0,
+    onActivate: (id, peer) => {
+      if (isPeerBanned(id)) {
+        reservedAdmissionUsers.delete(id);
+        kickPeer(id, peer, peerBannedErr);
+        return;
+      }
+      if (isFullForPeer(id)) {
+        rejectPeer(id, peer, roomFullMsg);
+        return;
+      }
+      const entry = peerEntries.get(id);
+      reservedAdmissionUsers.delete(id);
+      if (!entry || !isPendingDirectSession(entry.session) || entry.session.peer !== peer) return;
+      const wasActive = entry.session.phase === "virtual-upgrading";
+      const prevVirtual = entry.session.phase === "virtual-upgrading" ? entry.session.virtual : null;
+      const uid = entry.userId ?? id;
+      entry.userId = uid;
+      delete entry.deferredReady;
+      const isFirst = !wasActive && countActivePeersForUser(uid, id) === 0;
+      entry.session = {
+        phase: "direct-active",
+        peer,
+        transport: entry.session.transport
+      };
+      prevVirtual?.close?.();
+      invalidateUsersSnapshot();
+      scaleProvider?.addDirectPeer(id, peer);
+      emitPeerActivated(id, peer);
+      peer.setHandlers({ signal: (sdp) => {
+        if (getDirectPeer(id, false) === peer) signalAction.send(sdp, { target: id }).catch(noOp2);
+      } });
+      if (!wasActive) {
+        entry.emittedUserId = uid;
+        emitActivatedEvents(id, uid, isFirst);
+      } else {
+        reconcileUserChangeOnActiveEntry(id, entry, uid);
+        stateMgr?.onPeerJoined(id, uid, true);
+      }
+    },
+    onFailure: (id, peer, reason) => {
+      reservedAdmissionUsers.delete(id);
+      if (reason === peerBannedErr) {
+        rejectPeer(id, peer, peerBannedMsg);
+        return;
+      }
+      kickPeer(id, peer, reason);
+    }
+  });
+  let rolesApi;
+  let scaleApi;
+  let pluginSetupFailure = null;
+  if (rolesSlot) try {
+    const res = rolesSlot.setup(internalKernel, effectiveRoomIdP);
+    rolesProvider = res.provider;
+    rolesApi = res.api;
+  } catch (err) {
+    pluginSetupFailure = { error: err };
+    failSetup({
+      code: "plugin-failed",
+      plugin: "roles",
+      message: toErrorMessage(err, "roles setup failed"),
+      cause: err
+    });
+  }
+  if (scaleSlot && !pluginSetupFailure) try {
+    const res = scaleSlot.setup(internalKernel);
+    scaleProvider = res.provider;
+    scaleApi = res.api;
+  } catch (err) {
+    pluginSetupFailure = { error: err };
+    failSetup({
+      code: "plugin-failed",
+      plugin: "scale",
+      message: toErrorMessage(err, "scale setup failed"),
+      cause: err
+    });
+  }
+  const roomReadyP = pluginSetupFailure ? Promise.reject(pluginSetupFailure.error) : all([
+    localEndpointP,
+    resolvedUserIdentityP,
+    ...effectiveRoomIdP ? [effectiveRoomIdP] : []
+  ]).then(noOp2);
+  roomReadyP.catch(noOp2);
+  if (scaleProvider && !pluginSetupFailure) ensureStateManager();
+  const processHandshakeReady = (data, id) => {
+    if (isLeavingOrLeft()) return;
+    if (data && typeof data === "object" && data.ok === false) {
+      if (!hs.getPeer(id) || isDirectPeer(id)) return;
+      if (data.err === "room full") {
+        hs.clearPeer(id, roomFullErr);
+        emitRoomError({
+          code: "room-full",
+          peerId: id,
+          message: roomFullMsg
+        });
+        exitPeer(id, getDirectPeer(id, true), roomFullErr);
+        return;
+      }
+      if (data.err === "peer banned") {
+        const reason = typeof data.reason === "string" && data.reason.length <= 512 ? data.reason : void 0;
+        hs.clearPeer(id, peerBannedErr);
+        emitRoomError(mkBannedErr(reason, id));
+        kickPeer(id, getDirectPeer(id, true), peerBannedErr);
+        return;
+      }
+    }
+    hs.receiveReady(id);
+  };
+  signalAction.onMessage((sdp, { peerId: id }) => {
+    getDirectPeer(id, false)?.signal(sdp);
+  });
+  streamMetaAction.onMessage((meta, { peerId: id }) => {
+    mediaManager.receiveStreamMeta(meta, id);
+  });
+  leaveAction.onMessage((_, { peerId: id }) => exitPeer(id, void 0, peerLeftRoomErr));
+  handshakeDataAction.onMessage((data, { peerId: id, metadata }) => {
+    if (!isLeavingOrLeft()) hs.receiveData(data, id, metadata);
+  });
+  handshakeReadyAction.onMessage((data, { peerId: id }) => {
+    if (isLeavingOrLeft()) return;
+    const entry = peerEntries.get(id);
+    if (!entry || !isEntryVerified(entry)) {
+      if (entry && isPendingDirectSession(entry.session) && !entry.session.verified && hs.getPeer(id)) entry.deferredReady = data;
+      return;
+    }
+    deliverHandshakeReady(data, id);
+  });
+  onPeer((peer, id) => {
+    if (!canAcceptPeers()) {
+      peer.destroy();
+      return;
+    }
+    if (!canConnectPeer(id)) {
+      peer.destroy();
+      return;
+    }
+    const existing = peerEntries.get(id);
+    if (existing) switch (existing.session.phase) {
+      case "virtual-only":
+        stateMgr?.clearPeer(id);
+        break;
+      case "direct-pending":
+      case "virtual-upgrading": {
+        const existingDirect = existing.session.peer;
+        if (existingDirect === peer) return;
+        const replacedErr = mkErr("peer replaced");
+        existingDirect.destroy();
+        clearPendingPeer(id, replacedErr);
+        stateMgr?.clearPeer(id);
+        const ex = peerEntries.get(id);
+        if (ex && getDirectPeer(id, true) === existingDirect) resetDirectSessionOnEntry(id, ex);
+        break;
+      }
+      case "direct-active": {
+        const existingDirect = existing.session.peer;
+        if (existingDirect === peer) return;
+        const replacedErr = mkErr("peer replaced");
+        existingDirect.destroy();
+        clearPendingPeer(id, replacedErr);
+        const [wasActive, isLast, uid] = removePeerEntry(id);
+        clearSubsystems(id, replacedErr);
+        emitDeactivatedEvents(id, wasActive, isLast, uid);
+        scaleProvider?.removeDirectPeer(id, existingDirect, replacedErr);
+        break;
+      }
+      default:
+        unreachable(existing.session);
+    }
+    const transport = createDirectPeerTransport(peer, () => {
+      const curSession = peerEntries.get(id)?.session;
+      return Boolean(curSession && curSession.phase !== "virtual-only" && curSession.transport === transport);
+    });
+    const existingEntry = peerEntries.get(id);
+    if (existingEntry?.session.phase === "virtual-only") {
+      delete existingEntry.deferredReady;
+      existingEntry.session = {
+        phase: "virtual-upgrading",
+        virtual: existingEntry.session.virtual,
+        peer,
+        transport,
+        verified: false
+      };
+    } else peerEntries.set(id, { session: {
+      phase: "direct-pending",
+      peer,
+      transport,
+      verified: false
+    } });
+    hs.addPeer(id, peer);
+    peer.setHandlers({
+      data: (d) => {
+        if (getDirectPeer(id, true) === peer && !isPeerBanned(id)) {
+          if (!scaleProvider?.handleFrame(id, d)) handleData(id, d);
+        }
+      },
+      stream: (stream) => {
+        if (!isPeerBanned(id)) mediaManager.receiveRemoteStream(id, stream);
+      },
+      close: () => exitPeer(id, peer, peerDisconnectedErr),
+      error: (err) => {
+        logErr("peer", err);
+        if (getDirectPeer(id, true) === peer) reportPeerError(id, err);
+        exitPeer(id, peer, err);
+      }
+    });
+    hs.start(id, peer);
+  });
+  if (isBrowser) unregisterBeforeUnloadCleanup = registerBeforeUnloadCleanup(() => {
+    leave().catch(noOp2);
+  });
+  const roomInstance = {
+    ready: roomReadyP,
+    makeAction,
+    makeState: ((namespace, initialValue, config) => ensureStateManager().makeState(namespace, initialValue, config)),
+    makeUserState: ((namespace, initialValue, config) => ensureStateManager().makeUserState(namespace, initialValue, config)),
+    leave,
+    ping: async (target) => {
+      const start = Date.now();
+      await pingAction.request("", { target });
+      return Date.now() - start;
+    },
+    getSelf: async () => {
+      const [user, info] = await awaitSelfState();
+      return {
+        peerId: getLocalSelfId(),
+        userId: user.userId,
+        identityPersistence: user.persistence ?? "none",
+        roomId: info?.roomId ?? effectiveRoomId,
+        baseRoomId: info?.baseRoomId ?? initialRoomId,
+        isAdmin: info?.isAdmin ?? false,
+        roles: info?.roles ?? []
+      };
+    },
+    getPeers: () => fromEntries(getPeerIds(false).map((id) => {
+      const directPeer = getDirectPeer(id, false);
+      const direct = Boolean(directPeer);
+      return [id, {
+        userId: getPeerUserId(id),
+        connection: directPeer ? directPeer.connection : null,
+        direct,
+        hops: direct ? 1 : scaleProvider?.getRoute(id)?.hops ?? 2,
+        roles: [...getPeerRoles(id)]
+      }];
+    })),
+    getUsers: () => {
+      if (cachedUsersSnapshot) return cachedUsersSnapshot;
+      const localUid = getLocalUserId();
+      const raw = {};
+      for (const peerId of getPeerIds(false)) {
+        const userId = getPeerUserId(peerId);
+        if (localUid && userId === localUid) continue;
+        (raw[userId] ??= {
+          peerIds: [],
+          roles: getPeerRoles(userId)
+        }).peerIds.push(peerId);
+      }
+      const frozen = {};
+      for (const [uid, info] of entries3(raw)) frozen[uid] = Object.freeze({
+        peerIds: Object.freeze(info.peerIds),
+        roles: Object.isFrozen(info.roles) ? info.roles : Object.freeze([...info.roles])
+      });
+      cachedUsersSnapshot = Object.freeze(frozen);
+      return cachedUsersSnapshot;
+    },
+    addStream: (stream, options = {}) => mediaManager.addStream(stream, options, streamMetaAction.send),
+    removeStream: (stream, options = {}) => {
+      mediaManager.removeStream(stream, options.target);
+    },
+    replaceTrack: (oldTrack, newTrack, options = {}) => mediaManager.replaceTrack(oldTrack, newTrack, options.target),
+    ...rolesApi,
+    ...scaleApi,
+    onPeerJoin: (handler, options) => subPeerJoin(handler, options, () => getPeerIds(false).map((peerId) => [{
+      peerId,
+      userId: getPeerUserId(peerId),
+      roles: [...getPeerRoles(peerId)]
+    }])),
+    onPeerLeave: subPeerLeave,
+    onUserJoin: (handler, options) => subUserJoin(handler, options, () => {
+      const localUid = getLocalUserId();
+      const items = [];
+      const seenUsers = /* @__PURE__ */ new Set();
+      for (const peerId of getPeerIds(false)) {
+        const userId = getPeerUserId(peerId);
+        if ((!localUid || userId !== localUid) && !seenUsers.has(userId)) {
+          seenUsers.add(userId);
+          items.push([{
+            userId,
+            peerId,
+            roles: [...getPeerRoles(peerId)]
+          }]);
+        }
+      }
+      return items;
+    }),
+    onUserLeave: subUserLeave,
+    onPeerStream: mediaManager.onPeerStream,
+    onError: subError
+  };
+  lockMethods(roomInstance, [
+    "onPeerJoin",
+    "onPeerLeave",
+    "onUserJoin",
+    "onUserLeave",
+    "onPeerStream",
+    "onError",
+    ...rolesApi ? ["onRoleChange"] : []
+  ]);
+  return [roomInstance, {
+    localEndpointP,
+    effectiveRoomIdP,
+    hasSetupFailed: () => didReportSetupError,
+    getScaleProvider: () => scaleProvider,
+    setOnScaleTargetsChanged: (cb) => {
+      scaleProvider?.setOnTargetsChanged(cb);
+    },
+    canConnectPeer,
+    emitError: (err) => {
+      if (!isLeavingOrLeft()) emitError(err);
+    }
+  }];
+};
+
+// node_modules/@trystero-p2p/core/dist/strategy.mjs
+var announceIntervalMs = 5333;
+var announceWarmupIntervalsMs = [
+  233,
+  533,
+  1333
+];
+var mergeDefaultConfig = (defaults, overrides) => {
+  const merged = { ...defaults };
+  for (const [k, v] of entries3(overrides)) if (v !== void 0) merged[k] = v;
+  return merged;
+};
+var getOrCreateAppMap = (map, appId) => {
+  let appMap = map.get(appId);
+  if (!appMap) {
+    appMap = /* @__PURE__ */ new Map();
+    map.set(appId, appMap);
+  }
+  return appMap;
+};
+var strategy_default = ({ defaultConfig, init, subscribe, announce }) => {
+  const clientId = createIdentityClientId();
+  const roomRegistry = /* @__PURE__ */ new Map();
+  return ((config, roomId, ...extra) => {
+    if (!config) throw mkErr("config map required");
+    if (extra.length > 0 && extra[0] !== void 0) throw mkErr("joinRoom takes 2 arguments; register error listeners via room.onError(fn)");
+    const effectiveConfig = defaultConfig ? mergeDefaultConfig(defaultConfig, config) : config;
+    const { appId } = effectiveConfig;
+    if (!appId) throw requiredErr("appId");
+    if (!roomId) throw requiredErr("roomId");
+    if (effectiveConfig.maxReceiveBytes !== void 0 && !isPosSafeInt(effectiveConfig.maxReceiveBytes)) throw posSafeIntErr("maxReceiveBytes");
+    if (effectiveConfig.maxUsers !== void 0 && !isPosSafeInt(effectiveConfig.maxUsers)) throw posSafeIntErr("maxUsers");
+    validateIdentityConfig(effectiveConfig);
+    const existingSlot = roomRegistry.get(appId)?.get(roomId);
+    if (existingSlot?.phase === "occupied") throw mkErr(`already joined room "${roomId}" for appId "${appId}"`);
+    if (existingSlot?.phase === "leaving") existingSlot.finalizeCleanup();
+    let roomState = { phase: "active" };
+    let relayHealthState = "unconfirmed";
+    let effectiveRoomId = roomId;
+    let resolvedSelfId;
+    let onPeerConnect = noOp2;
+    let reannounceAfterDisconnect = noOp2;
+    let stopRelays = noOp2;
+    const isRoomInactive = () => roomState.phase !== "active";
+    const peerStates = /* @__PURE__ */ new Map();
+    const announceIntervals = [];
+    const topicFor = (rid2) => topicPath(libName, appId, rid2);
+    const deleteRegistrySlotMatching = (predicate) => {
+      const appMap = roomRegistry.get(appId);
+      if (!appMap) return;
+      const initialSlot = appMap.get(roomId);
+      if (initialSlot && predicate(initialSlot)) appMap.delete(roomId);
+      if (effectiveRoomId !== roomId) {
+        const effectiveSlot = appMap.get(effectiveRoomId);
+        if (effectiveSlot && predicate(effectiveSlot)) appMap.delete(effectiveRoomId);
+      }
+      if (appMap.size === 0) roomRegistry.delete(appId);
+    };
+    const cleanupRoom = () => {
+      if (roomState.phase === "left") return;
+      roomState = {
+        phase: "left",
+        relaysStopped: false
+      };
+      onPeerConnect = noOp2;
+      deleteRegistrySlotMatching((slot2) => slot2.phase === "occupied" && slot2.room === joinedRoom || slot2.phase === "leaving" && slot2.finalizeCleanup === cleanupRoom);
+      for (const state of peerStates.values()) {
+        if (state.connectedPeer && !state.connectedPeer.isDead) state.connectedPeer.destroy();
+        if (state.answeringPeer && !state.answeringPeer.isDead) state.answeringPeer.destroy();
+        resetOfferState(state);
+        resetAnsweringState(state);
+        state.connection = { phase: "disconnected" };
+      }
+      peerStates.clear();
+      stopRelays();
+    };
+    const cancelAllAnnounceTimers = (slots2) => {
+      for (const slot2 of slots2) if (slot2.announce.phase === "active") slot2.announce.timer = resetTimer(slot2.announce.timer);
+    };
+    let relaySlots = [];
+    const [joinedRoom, bridge] = createRoomWithBridge((f) => {
+      onPeerConnect = f;
+    }, (id, shouldReannounce = true) => {
+      if (roomState.phase === "left") return;
+      const state = peerStates.get(id);
+      if (state?.connectedPeer) detachConnectedPeer(state, state.connectedPeer);
+      prunePeerStates(peerStates);
+      if (shouldReannounce) reannounceAfterDisconnect();
+    }, cleanupRoom, {
+      clientId,
+      appId,
+      roomId,
+      ...effectiveConfig.password === void 0 ? {} : { password: effectiveConfig.password },
+      ...effectiveConfig.maxUsers === void 0 ? {} : { maxUsers: effectiveConfig.maxUsers },
+      ...effectiveConfig.use === void 0 ? {} : { use: effectiveConfig.use },
+      ...effectiveConfig.identity === void 0 ? {} : { identity: effectiveConfig.identity },
+      ...effectiveConfig.maxReceiveBytes === void 0 ? {} : { maxReceiveBytes: effectiveConfig.maxReceiveBytes },
+      onBeforeLeave: () => {
+        if (roomState.phase === "active") roomState = { phase: "leaving-flush" };
+        cancelAllAnnounceTimers(relaySlots);
+        const appSlots = getOrCreateAppMap(roomRegistry, appId);
+        const leavingSlot = {
+          phase: "leaving",
+          finalizeCleanup: cleanupRoom
+        };
+        const curInitial = appSlots.get(roomId);
+        if (!curInitial || curInitial.phase !== "occupied" || curInitial.room === joinedRoom) appSlots.set(roomId, leavingSlot);
+        if (effectiveRoomId !== roomId) {
+          const curEffective = appSlots.get(effectiveRoomId);
+          if (!curEffective || curEffective.phase !== "occupied" || curEffective.room === joinedRoom) appSlots.set(effectiveRoomId, leavingSlot);
+        }
+      }
+    });
+    try {
+      const selfIdP = bridge.localEndpointP.then((ep) => ep.peerId);
+      selfIdP.catch(noOp2);
+      const emitError = (error) => {
+        if (roomState.phase !== "left") bridge.emitError(error);
+      };
+      const strategyContext = {
+        config: effectiveConfig,
+        appId,
+        roomId,
+        peerId: ""
+      };
+      const effectiveRoomIdP = bridge.effectiveRoomIdP?.then((rid2) => {
+        effectiveRoomId = rid2;
+        strategyContext.roomId = rid2;
+        if (rid2 !== roomId && roomState.phase === "active") {
+          const appSlots = getOrCreateAppMap(roomRegistry, appId);
+          const existingEffective = appSlots.get(rid2);
+          if (existingEffective?.phase === "leaving") existingEffective.finalizeCleanup();
+          if (!appSlots.has(rid2)) appSlots.set(rid2, {
+            phase: "occupied",
+            room: joinedRoom
+          });
+        }
+        return rid2;
+      });
+      effectiveRoomIdP?.catch(noOp2);
+      const whenRoomId = (fn) => {
+        const p = effectiveRoomIdP ? effectiveRoomIdP.then(fn) : fn(roomId);
+        p.catch(noOp2);
+        return p;
+      };
+      const rootTopicP = whenRoomId((rid2) => hashTopic(topicFor(rid2)));
+      const selfTopicP = all([effectiveRoomIdP ?? Promise.resolve(roomId), selfIdP]).then(([rid2, peerId]) => {
+        resolvedSelfId = peerId;
+        strategyContext.peerId = peerId;
+        return hashTopic(topicPath(topicFor(rid2), peerId));
+      });
+      selfTopicP.catch(noOp2);
+      const key = whenRoomId((rid2) => genKey(effectiveConfig.password ?? "", appId, rid2));
+      const withKey = (f) => async (signal, peerId, offerId) => ({
+        type: signal.type,
+        sdp: await f(key, signal.sdp, buildSignalAad(signal.type, peerId, offerId))
+      });
+      const toPlain = withKey(decrypt);
+      const toCipher = withKey(encrypt);
+      let disconnectReannounceEnabled = false;
+      let disconnectReannounceQueued = false;
+      const { checkout: checkoutOffers, getOffers, claimLeased: claimLeasedOffer, reclaimLeased: reclaimLeasedOffer, destroy: destroyOffers } = createOfferManager(() => peer_default(true, effectiveConfig));
+      const encryptOffer = async (peer, peerId, offerId) => {
+        const plainOffer = await peer.getOffer();
+        if (!plainOffer || plainOffer.type !== "offer") throw mkErr("failed to get offer for peer");
+        return (await toCipher(plainOffer, peerId, offerId)).sdp;
+      };
+      const connectPeer = (peer, peerId) => {
+        if (isRoomInactive()) {
+          peer.destroy();
+          return;
+        }
+        const state = getState(peerStates, peerId);
+        if (state.connectedPeer && state.connectedPeer !== peer) {
+          if (getConnectedPeerHealth(state.connectedPeer) !== "stale") {
+            peer.destroy();
+            return;
+          }
+          clearConnectedPeer(state);
+        }
+        markPeerConnected(state, peer);
+        onPeerConnect(peer, peerId);
+        resetOfferState(state);
+        if (peer.isDead && state.connectedPeer === peer) {
+          detachConnectedPeer(state, peer);
+          prunePeerStates(peerStates);
+        }
+      };
+      const isPassive = Boolean(effectiveConfig.passive);
+      let syncOverlayNeighbors = noOp2;
+      let requeueAnnounce = noOp2;
+      reannounceAfterDisconnect = () => {
+        syncOverlayNeighbors();
+        if (isPassive || !disconnectReannounceEnabled || disconnectReannounceQueued) return;
+        disconnectReannounceQueued = true;
+        queueMicrotask(() => {
+          disconnectReannounceQueued = false;
+          if (roomState.phase === "active") requeueAnnounce();
+        });
+      };
+      const disconnectPeer = (peer, peerId) => {
+        if (roomState.phase === "left") return;
+        const state = peerStates.get(peerId);
+        if (state?.connectedPeer === peer) {
+          clearConnectedPeer(state);
+          prunePeerStates(peerStates);
+          reannounceAfterDisconnect();
+        }
+      };
+      const { handleMessage, dialPeer } = createSignalHandler({
+        appId,
+        getRoomId: () => effectiveRoomId,
+        config: effectiveConfig,
+        peerStates,
+        getRootTopicPlaintext: () => topicFor(effectiveRoomId),
+        rootTopicP,
+        selfTopicP,
+        toPlain,
+        toCipher,
+        isLeaving: isRoomInactive,
+        onError: emitError,
+        checkoutOffers,
+        claimLeasedOffer,
+        reclaimLeasedOffer,
+        encryptOffer,
+        initPeer: peer_default,
+        connectPeer,
+        disconnectPeer,
+        announceIntervals,
+        announceIntervalMs,
+        getSelfIdNow: () => resolvedSelfId,
+        selfIdP,
+        onPeerDiscovered: (peerId) => {
+          if (bridge.canConnectPeer(peerId) && bridge.getScaleProvider()?.notePeerDiscovered(peerId)) syncOverlayNeighbors();
+        },
+        shouldConnectPeer: (peerId, direction) => bridge.canConnectPeer(peerId) && (bridge.getScaleProvider()?.shouldConnectPeer(peerId, direction) ?? true)
+      });
+      syncOverlayNeighbors = () => {
+        const scaleProvider = bridge.getScaleProvider();
+        if (isRoomInactive() || isPassive || !scaleProvider) return;
+        for (const targetId of scaleProvider.getTargetNeighbors()) dialPeer(targetId);
+      };
+      const initRes = init(effectiveConfig);
+      relaySlots = (Array.isArray(initRes) ? initRes : [initRes]).map((rawItem) => {
+        const relayP = Promise.resolve(rawItem);
+        relayP.catch(noOp2);
+        return {
+          rawItem,
+          relayP,
+          leaseReleased: false,
+          subscription: { phase: "booting" },
+          announce: { phase: "waiting" },
+          gen: 0,
+          intervalMs: announceIntervalMs,
+          attempts: 0,
+          errors: 0,
+          initial: "pending"
+        };
+      });
+      const releaseSlotLease = (slot2) => {
+        if (!slot2.leaseReleased) {
+          slot2.leaseReleased = true;
+          releaseRelayLease(slot2.rawItem);
+        }
+      };
+      stopRelays = () => {
+        if (roomState.phase === "left" && roomState.relaysStopped) return;
+        roomState = {
+          phase: "left",
+          relaysStopped: true
+        };
+        cancelAllAnnounceTimers(relaySlots);
+        for (const slot2 of relaySlots) {
+          const prevSub = slot2.subscription;
+          slot2.subscription = { phase: "closed" };
+          slot2.gen += 1;
+          slot2.announce = { phase: "closed" };
+          if (prevSub.phase === "subscribed") prevSub.unsub();
+          if (prevSub.phase !== "subscribing") releaseSlotLease(slot2);
+        }
+        destroyOffers();
+      };
+      const totalRelays = relaySlots.length;
+      const reportAllRelaysFailed = (cause) => {
+        if (relayHealthState === "error-reported" || bridge.hasSetupFailed() || isRoomInactive()) return;
+        relayHealthState = "error-reported";
+        queueMicrotask(() => {
+          if (!isRoomInactive() && !bridge.hasSetupFailed()) emitError({
+            code: "relay-failed",
+            message: toErrorMessage(cause, "all signaling relays failed"),
+            appId,
+            roomId: effectiveRoomId,
+            ...cause !== void 0 ? { cause } : {}
+          });
+        });
+      };
+      const maybeReportAllBootFailed = (err) => {
+        if (relayHealthState === "unconfirmed" && totalRelays > 0 && relaySlots.every((s) => s.subscription.phase === "boot-failed")) reportAllRelaysFailed(err);
+      };
+      const markRelayBootFailed = (slot2, err) => {
+        switch (slot2.subscription.phase) {
+          case "booting":
+          case "subscribing":
+            slot2.subscription = { phase: "boot-failed" };
+            maybeReportAllBootFailed(err);
+            return;
+          case "subscribed":
+          case "closed":
+          case "boot-failed":
+            return;
+          default:
+            unreachable(slot2.subscription);
+        }
+      };
+      relaySlots.forEach((slot2) => {
+        const getInitialFailure = slot2.relayP[socketInitialFailureSymbol];
+        if (typeof getInitialFailure === "function") getInitialFailure().then((err) => {
+          if (err) markRelayBootFailed(slot2, err);
+        });
+      });
+      const unsubFns = relaySlots.map(async (slot2, i) => {
+        let rootTopic;
+        let selfTopic;
+        try {
+          [rootTopic, selfTopic] = await all([rootTopicP, selfTopicP]);
+        } catch {
+          slot2.subscription = { phase: "closed" };
+          releaseSlotLease(slot2);
+          return noOp2;
+        }
+        if (isRoomInactive()) {
+          slot2.subscription = { phase: "closed" };
+          releaseSlotLease(slot2);
+          return noOp2;
+        }
+        let relay;
+        try {
+          relay = await slot2.relayP;
+        } catch (err) {
+          markRelayBootFailed(slot2, err);
+          releaseSlotLease(slot2);
+          return noOp2;
+        }
+        if (isRoomInactive()) {
+          slot2.subscription = { phase: "closed" };
+          releaseSlotLease(slot2);
+          return noOp2;
+        }
+        slot2.subscription = { phase: "subscribing" };
+        try {
+          const unsub = await subscribe(relay, rootTopic, selfTopic, handleMessage(i), (n) => selfIdP.then((sid) => getOffers(n, (peer, offerId) => encryptOffer(peer, sid, offerId))), strategyContext);
+          const isClosedAfterAwait = (s) => s.subscription.phase === "closed";
+          if (isRoomInactive() || isClosedAfterAwait(slot2)) {
+            unsub();
+            slot2.subscription = { phase: "closed" };
+            releaseSlotLease(slot2);
+            return noOp2;
+          }
+          slot2.subscription = {
+            phase: "subscribed",
+            unsub
+          };
+          if (relayHealthState === "unconfirmed") relayHealthState = "healthy";
+          return unsub;
+        } catch (err) {
+          slot2.subscription = { phase: "boot-failed" };
+          releaseSlotLease(slot2);
+          maybeReportAllBootFailed(err);
+          return noOp2;
+        }
+      });
+      if (!isPassive) all([rootTopicP, selfTopicP]).then(([rootTopic, selfTopic]) => {
+        if (isRoomInactive()) return;
+        const isSlotActive = (slot2, gen) => !isRoomInactive() && slot2.announce.phase === "active" && slot2.gen === gen;
+        const queueAnnounce = async (relay, slot2, i, gen) => {
+          if (!isSlotActive(slot2, gen)) return;
+          let announceResult = void 0;
+          const isInitial = slot2.initial === "pending";
+          try {
+            announceResult = await announce(relay, rootTopic, selfTopic, strategyContext);
+            slot2.errors = 0;
+            if (isInitial) slot2.initial = "succeeded";
+          } catch (error) {
+            if (isRoomInactive() || slot2.announce.phase === "closed") return;
+            if (slot2.errors === 0 && effectiveConfig.relayConfig?.warnOnRelayFailure !== false) warn(`announce failed - ${toErrorMessage(error, "")}`);
+            slot2.errors += 1;
+            if (isInitial) {
+              slot2.initial = "failed";
+              const anyInitialSucceeded = relaySlots.some((s) => s.initial === "succeeded");
+              const allSettledOrBootFailed = totalRelays > 0 && relaySlots.every((s) => s.subscription.phase === "boot-failed" || s.announce.phase !== "waiting" && s.initial !== "pending");
+              if (!anyInitialSucceeded && allSettledOrBootFailed) reportAllRelaysFailed(error);
+            }
+          }
+          if (!isSlotActive(slot2, gen)) return;
+          if (typeof announceResult === "number") {
+            announceIntervals[i] = announceResult;
+            slot2.intervalMs = announceResult;
+          } else if (typeof announceResult === "object" && announceResult !== null) {
+            if ("stopAnnouncing" in announceResult) {
+              slot2.announce = { phase: "closed" };
+              return;
+            }
+            slot2.intervalMs = announceResult.nextAnnounceMs;
+            disconnectReannounceEnabled ||= announceResult.reannounceOnDisconnect === true;
+          }
+          const attempt = slot2.attempts++;
+          const warmupDelay = announceWarmupIntervalsMs[attempt] ?? (attempt === 3 && typeof announceResult === "object" ? announceIntervalMs : void 0);
+          const delayMs = typeof warmupDelay === "number" ? Math.min(slot2.intervalMs, warmupDelay) : slot2.intervalMs;
+          const timer = setTimeout(() => {
+            if (slot2.announce.phase === "active" && slot2.announce.timer === timer) slot2.announce.timer = null;
+            queueAnnounce(relay, slot2, i, gen);
+          }, delayMs);
+          unrefTimer(timer);
+          if (slot2.announce.phase === "active") slot2.announce.timer = timer;
+          else clearTimeout(timer);
+        };
+        requeueAnnounce = () => {
+          cancelAllAnnounceTimers(relaySlots);
+          relaySlots.forEach((slot2, i) => {
+            if (slot2.subscription.phase !== "subscribed" || slot2.announce.phase === "closed") return;
+            const nextGen = ++slot2.gen;
+            slot2.attempts = 0;
+            slot2.announce = {
+              phase: "active",
+              timer: null
+            };
+            slot2.relayP.then((relay) => {
+              if (relay && isSlotActive(slot2, nextGen)) queueAnnounce(relay, slot2, i, nextGen);
+            }, noOp2);
+          });
+        };
+        unsubFns.forEach((didSub, i) => {
+          const slot2 = relaySlots[i];
+          if (!slot2) return;
+          didSub.then((cleanup) => {
+            if (isRoomInactive() || cleanup === noOp2 || slot2.announce.phase !== "waiting") return;
+            const { gen } = slot2;
+            slot2.announce = {
+              phase: "active",
+              timer: null
+            };
+            slot2.relayP.then((relay) => {
+              if (relay && isSlotActive(slot2, gen)) queueAnnounce(relay, slot2, i, gen);
+            }, noOp2);
+          }, noOp2);
+        });
+      }, noOp2);
+      bridge.setOnScaleTargetsChanged((targetIds) => {
+        if (!isRoomInactive() && !isPassive) for (const targetId of targetIds) dialPeer(targetId);
+      });
+      getOrCreateAppMap(roomRegistry, appId).set(roomId, {
+        phase: "occupied",
+        room: joinedRoom
+      });
+      return joinedRoom;
+    } catch (err) {
+      roomState = {
+        phase: "left",
+        relaysStopped: false
+      };
+      stopRelays();
+      joinedRoom.leave().catch(noOp2);
+      throw err;
+    }
+  });
+};
+
+// node_modules/@trystero-p2p/core/dist/topic-strategy.mjs
+var defaultSteadyAnnounceIntervalMs = 6e4;
+var makeTopicContext = (context, kind, rootTopic, selfTopic) => ({
+  kind,
+  appId: context.appId,
+  roomId: context.roomId,
+  rootTopic,
+  selfTopic,
+  peerId: context.peerId
+});
+var topic_strategy_default = ({ defaultConfig, steadyAnnounceIntervalMs: steadyAnnounceIntervalMs2 = defaultSteadyAnnounceIntervalMs, reannounceOnDisconnect = true, init, subscribeTopic, publishTopic }) => strategy_default({
+  ...defaultConfig === void 0 ? {} : { defaultConfig },
+  init,
+  subscribe: async (relay, rootTopic, selfTopic, onMessage, _getOffers, context) => {
+    let closed = false;
+    const signalPeer = (peerTopic, signal) => {
+      if (closed) return;
+      try {
+        Promise.resolve(publishTopic(relay, peerTopic, signal, makeTopicContext(context, "signal", rootTopic, selfTopic))).catch(noOp2);
+      } catch {
+      }
+    };
+    const forwardMessage = (topic, msg) => {
+      if (!closed) return onMessage(topic, msg, signalPeer);
+    };
+    const selfCleanup = await subscribeTopic(relay, selfTopic, forwardMessage, makeTopicContext(context, "self", rootTopic, selfTopic));
+    let rootCleanup;
+    try {
+      rootCleanup = await subscribeTopic(relay, rootTopic, forwardMessage, makeTopicContext(context, "root", rootTopic, selfTopic));
+    } catch (err) {
+      closed = true;
+      selfCleanup();
+      throw err;
+    }
+    return () => {
+      if (closed) return;
+      closed = true;
+      selfCleanup();
+      rootCleanup();
+    };
+  },
+  announce: async (relay, rootTopic, selfTopic, context) => {
+    const result = await publishTopic(relay, rootTopic, { peerId: context.peerId }, makeTopicContext(context, "announce", rootTopic, selfTopic));
+    if (typeof result === "number") return result;
+    if (typeof result === "object" && result !== null) {
+      if ("stopAnnouncing" in result) return result;
+      return {
+        nextAnnounceMs: result.nextAnnounceMs ?? steadyAnnounceIntervalMs2,
+        reannounceOnDisconnect: result.reannounceOnDisconnect ?? reannounceOnDisconnect
+      };
+    }
+    return {
+      nextAnnounceMs: steadyAnnounceIntervalMs2,
+      reannounceOnDisconnect
+    };
+  }
+});
 
 // node_modules/@noble/secp256k1/index.js
 var freeze = Object.freeze;
@@ -5111,8 +13870,8 @@ var doubleScalarMulUns = (R, u1, u2) => {
 var bytesToNumBE = (b) => big("0x" + (bytesToHex(b) || "0"));
 var sliceBytesNumBE = (b, from, to) => bytesToNumBE(b.subarray(from, to));
 var numTo32b = (num2) => hexToBytes(padh(arange(num2, 0n, 2n ** 256n), L * 2));
-var secretKeyToScalar = (secretKey2) => {
-  const num2 = bytesToNumBE(abytes(secretKey2, L, "secret key"));
+var secretKeyToScalar = (secretKey) => {
+  const num2 = bytesToNumBE(abytes(secretKey, L, "secret key"));
   return arange(num2, 1n, N2, "invalid secret key: outside of range");
 };
 var _sha = "SHA-256";
@@ -5135,15 +13894,15 @@ var randomSecretKey = (seed2) => {
   return numTo32b(num2 + 1n);
 };
 var createKeygen = (getPublicKey) => (seed2) => {
-  const secretKey2 = randomSecretKey(seed2);
-  return { secretKey: secretKey2, publicKey: getPublicKey(secretKey2) };
+  const secretKey = randomSecretKey(seed2);
+  return { secretKey, publicKey: getPublicKey(secretKey) };
 };
-var getTag = (tag2) => Uint8Array.from("BIP0340/" + tag2, (c) => c.charCodeAt(0));
-var taggedHash = (tag2, ...messages) => {
-  const tagH = callHash("sha256", getTag(tag2));
+var getTag = (tag) => Uint8Array.from("BIP0340/" + tag, (c) => c.charCodeAt(0));
+var taggedHash = (tag, ...messages) => {
+  const tagH = callHash("sha256", getTag(tag));
   return callHash("sha256", concatBytes(tagH, tagH, ...messages));
 };
-var taggedHashAsync = (tag2, ...messages) => callHashAsync("sha256Async", getTag(tag2)).then((tagH) => callHashAsync("sha256Async", concatBytes(tagH, tagH, ...messages)));
+var taggedHashAsync = (tag, ...messages) => callHashAsync("sha256Async", getTag(tag)).then((tagH) => callHashAsync("sha256Async", concatBytes(tagH, tagH, ...messages)));
 var extpubSchnorr = (priv) => {
   const d_ = secretKeyToScalar(priv);
   const p = G.multiply(d_);
@@ -5155,13 +13914,13 @@ var extpubSchnorr = (priv) => {
 var bytesModN = (bytes) => modN(bytesToNumBE(bytes));
 var challenge = (...args) => bytesModN(taggedHash("challenge", ...args));
 var challengeAsync = async (...args) => bytesModN(await taggedHashAsync("challenge", ...args));
-var pubSchnorr = (secretKey2) => {
-  return extpubSchnorr(secretKey2).px;
+var pubSchnorr = (secretKey) => {
+  return extpubSchnorr(secretKey).px;
 };
 var keygenSchnorr = /* @__PURE__ */ createKeygen(pubSchnorr);
-var prepSigSchnorr = (message, secretKey2, auxRand) => {
+var prepSigSchnorr = (message, secretKey, auxRand) => {
   const m = snapshotBytes(message, "message");
-  const { px, d } = extpubSchnorr(secretKey2);
+  const { px, d } = extpubSchnorr(secretKey);
   return { m, px, d, a: abytes(auxRand, L) };
 };
 var extractK = (rand) => {
@@ -5175,8 +13934,8 @@ var createSigSchnorr = (k, px, e, d) => {
   return concatBytes(px, numTo32b(modN(k + e * d)));
 };
 var E_INVSIG = "invalid signature produced";
-var signSchnorr = (message, secretKey2, auxRand = randomBytes(L)) => {
-  const { m, px, d, a } = prepSigSchnorr(message, secretKey2, auxRand);
+var signSchnorr = (message, secretKey, auxRand = randomBytes(L)) => {
+  const { m, px, d, a } = prepSigSchnorr(message, secretKey, auxRand);
   const t = numTo32b(d ^ bytesToNumBE(taggedHash("aux", a)));
   const { rx, k } = extractK(taggedHash("nonce", t, px, m));
   const sig = createSigSchnorr(k, rx, challenge(rx, px, m), d);
@@ -5184,8 +13943,8 @@ var signSchnorr = (message, secretKey2, auxRand = randomBytes(L)) => {
     throw new Error(E_INVSIG);
   return sig;
 };
-var signSchnorrAsync = async (message, secretKey2, auxRand = randomBytes(L)) => {
-  const { m, px, d, a } = prepSigSchnorr(message, secretKey2, auxRand);
+var signSchnorrAsync = async (message, secretKey, auxRand = randomBytes(L)) => {
+  const { m, px, d, a } = prepSigSchnorr(message, secretKey, auxRand);
   const t = numTo32b(d ^ bytesToNumBE(await taggedHashAsync("aux", a)));
   const { rx, k } = extractK(await taggedHashAsync("nonce", t, px, m));
   const sig = createSigSchnorr(k, rx, await challengeAsync(rx, px, m), d);
@@ -5196,10 +13955,10 @@ var signSchnorrAsync = async (message, secretKey2, auxRand = randomBytes(L)) => 
 var callSyncAsyncFn = (res, later) => {
   return res instanceof Promise ? res.then(later) : later(res);
 };
-var _verifSchnorr = (signature, message, publicKey2, challengeFn) => {
+var _verifSchnorr = (signature, message, publicKey, challengeFn) => {
   const sig = abytes(signature, 64, "signature");
   const msg = abytes(message, void 0, "message");
-  const pub = abytes(publicKey2, L, "publicKey");
+  const pub = abytes(publicKey, L, "publicKey");
   let P_;
   let r;
   let s;
@@ -5280,3687 +14039,190 @@ var wNAF = (n) => {
   return { p, f };
 };
 
-// node_modules/@trystero-p2p/core/dist/utils.mjs
-var { floor, min, sin } = Math;
-var libName = "Trystero";
-var alloc = (n, f) => Array(n).fill(void 0).map(f);
-var charSet = "0123456789AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz";
-var genId = (n) => alloc(n, () => charSet[floor(Math.random() * 62)] ?? "").join("");
-var selfId = genId(20);
-var all = Promise.all.bind(Promise);
-var isBrowser = typeof window !== "undefined";
-var { entries: entries3, fromEntries, keys, values } = Object;
-var noOp = () => {
-};
-var candidateType = "candidate";
-var resetTimer = (timer) => {
-  if (timer !== null) clearTimeout(timer);
-  return null;
-};
-var mkErr = (msg) => /* @__PURE__ */ new Error(`${libName}: ${msg}`);
-var toErrorMessage = (reason, fallback) => {
-  if (reason instanceof Error && reason.message) return reason.message;
-  if (typeof reason === "string" && reason) return reason;
-  return toJson(reason ?? fallback);
-};
-var toError = (reason, fallback) => reason instanceof Error ? reason : mkErr(toErrorMessage(reason, fallback));
-var encoder = new TextEncoder();
-var decoder = new TextDecoder();
-var encodeBytes = (txt) => encoder.encode(txt);
-var decodeBytes = (buffer) => decoder.decode(buffer);
-var toHex = (buffer) => buffer.reduce((a, c) => a + c.toString(16).padStart(2, "0"), "");
-var topicPath = (...parts2) => parts2.join("@");
-var shuffle = (xs, seed2) => {
-  const a = [...xs];
-  const rand = () => {
-    const x = sin(seed2++) * 1e4;
-    return x - floor(x);
-  };
-  let i = a.length;
-  while (i) {
-    const j = floor(rand() * i--);
-    const tmp = a[i];
-    a[i] = a[j];
-    a[j] = tmp;
-  }
-  return a;
-};
-var getRelays = (config, defaults, defaultN, deriveFromAppId = false) => config.relayConfig?.urls || (deriveFromAppId ? shuffle(defaults, strToNum(config.appId)) : defaults).slice(0, config.relayConfig?.redundancy ?? defaultN);
-var toJson = JSON.stringify;
-var fromJson = (s) => {
-  try {
-    return JSON.parse(s);
-  } catch {
-    throw mkErr(`failed to parse JSON: ${s}`);
-  }
-};
-var strToNum = (str2, limit = Number.MAX_SAFE_INTEGER) => str2.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % limit;
-var defaultRetryMs = 3333;
-var maxRetryMs = 6e4;
-var socketRetryPeriods = {};
-var reconnectionLockingPromise = null;
-var resolver = null;
-var pauseRelayReconnection = () => {
-  if (!reconnectionLockingPromise) reconnectionLockingPromise = new Promise((resolve3) => {
-    resolver = resolve3;
-  }).finally(() => {
-    resolver = null;
-    reconnectionLockingPromise = null;
-  });
-};
-var resumeRelayReconnection = () => {
-  resolver?.();
-};
-var makeSocket = (url, onMessage, onReconnect) => {
-  const client = {};
-  let didOpen = false;
-  let isReconnectPending = false;
-  let retryTimer;
-  let resolveReady = noOp;
-  client.isClosed = false;
-  client.ready = new Promise((res) => resolveReady = res);
-  const init = () => {
-    if (client.isClosed) return;
-    retryTimer = void 0;
-    isReconnectPending = false;
-    const socket = new WebSocket(url);
-    socket.onclose = () => {
-      if (client.isClosed || isReconnectPending) return;
-      isReconnectPending = true;
-      if (reconnectionLockingPromise) {
-        reconnectionLockingPromise.then(init);
-        return;
-      }
-      const period = socketRetryPeriods[url] ??= defaultRetryMs;
-      retryTimer = setTimeout(init, Math.random() * period);
-      socketRetryPeriods[url] = min(period * 2, maxRetryMs);
-    };
-    socket.onmessage = (e) => onMessage(String(e.data));
-    client.socket = socket;
-    client.url = socket.url;
-    socket.onopen = () => {
-      const isReconnect = didOpen;
-      didOpen = true;
-      resolveReady(client);
-      socketRetryPeriods[url] = defaultRetryMs;
-      if (isReconnect) onReconnect?.();
-    };
-    client.send = (data) => {
-      if (socket.readyState === 1) socket.send(data);
-    };
-  };
-  client.close = () => {
-    client.isClosed = true;
-    if (retryTimer !== void 0) {
-      clearTimeout(retryTimer);
-      retryTimer = void 0;
-    }
-    client.socket.close();
-  };
-  init();
-  return client;
-};
-var createRelayManager = (getSocket) => {
-  const relays = {};
-  const keysByRelay = /* @__PURE__ */ new WeakMap();
-  const keyOf = (relay) => {
-    const key = keysByRelay.get(relay);
-    if (!key) throw mkErr("relay bookkeeping missing registration for relay client");
-    return key;
-  };
-  const scoped = () => {
-    const store2 = {};
-    const forKey = (key) => store2[key] ??= {};
-    return {
-      forKey,
-      forRelay: (relay) => forKey(keyOf(relay))
-    };
-  };
-  const store = (key, relay) => {
-    relays[key] = relay;
-    keysByRelay.set(relay, key);
-    return relay;
-  };
-  return {
-    register: (key, createRelay) => {
-      const relay = relays[key];
-      if (relay) return relay;
-      return store(key, createRelay());
-    },
-    keyOf,
-    scoped,
-    getSockets: () => fromEntries(entries3(relays).flatMap(([key, relay]) => {
-      const socket = getSocket(relay);
-      return socket ? [[key, socket]] : [];
-    }))
-  };
-};
-var watchOnline = () => {
-  if (isBrowser) {
-    const controller = new AbortController();
-    addEventListener("online", resumeRelayReconnection, { signal: controller.signal });
-    addEventListener("offline", pauseRelayReconnection, { signal: controller.signal });
-    return () => controller.abort();
-  }
-  return noOp;
-};
-
-// node_modules/@trystero-p2p/core/dist/crypto.mjs
-var algo = "AES-GCM";
-var strToSha1 = {};
-var pack = (buff) => btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(buff))));
-var unpack = (packed) => {
-  const str2 = atob(packed);
-  return new Uint8Array(str2.length).map((_, i) => str2.charCodeAt(i)).buffer;
-};
-var hashWith = async (algorithm, str2) => new Uint8Array(await crypto.subtle.digest(algorithm, encodeBytes(str2)));
-var sha1 = async (str2) => strToSha1[str2] ??= Array.from(await hashWith("SHA-1", str2)).map((b) => b.toString(36)).join("");
-var genKey = async (secret, appId, roomId) => crypto.subtle.importKey("raw", await crypto.subtle.digest({ name: "SHA-256" }, encodeBytes(`${secret}:${appId}:${roomId}`)), { name: algo }, false, ["encrypt", "decrypt"]);
-var deriveRoomNamespace = async (appId, roomId) => toHex(await hashWith("SHA-256", `${libName}:${appId}:${roomId}`));
-var joinChar = "$";
-var ivJoinChar = ",";
-var encrypt = async (keyP, plaintext) => {
-  const iv = crypto.getRandomValues(/* @__PURE__ */ new Uint8Array(16));
-  return iv.join(ivJoinChar) + joinChar + pack(await crypto.subtle.encrypt({
-    name: algo,
-    iv
-  }, await keyP, encodeBytes(plaintext)));
-};
-var decrypt = async (keyP, raw) => {
-  const [iv, c] = raw.split(joinChar);
-  return decodeBytes(await crypto.subtle.decrypt({
-    name: algo,
-    iv: new Uint8Array(iv?.split(ivJoinChar).map(Number) ?? [])
-  }, await keyP, unpack(c ?? "")));
-};
-
-// node_modules/@trystero-p2p/core/dist/offer-manager.mjs
-var offerLeaseTtlMs = 18e4;
-var OfferManager = class {
-  makeOffer;
-  leased = /* @__PURE__ */ new Map();
-  destroyed = false;
-  constructor(makeOffer) {
-    this.makeOffer = makeOffer;
-  }
-  claimLeased(peer) {
-    const timer = this.leased.get(peer);
-    if (timer) {
-      resetTimer(timer);
-      this.leased.delete(peer);
-    }
-  }
-  reclaimLeased(peer) {
-    if (this.leased.has(peer)) {
-      this.claimLeased(peer);
-      peer.destroy();
-    }
-  }
-  checkout(n, leaseOffers, encryptOffer) {
-    const toRecord = async (didRetry = false) => {
-      if (this.destroyed) throw mkErr("room left while preparing offer");
-      const peer = this.makeOffer();
-      try {
-        const offer4 = await encryptOffer(peer);
-        if (this.destroyed) throw mkErr("room left while preparing offer");
-        if (leaseOffers) {
-          this.leased.set(peer, setTimeout(() => {
-            this.leased.delete(peer);
-            peer.destroy();
-          }, offerLeaseTtlMs));
-          return {
-            peer,
-            offer: offer4,
-            claim: () => this.claimLeased(peer),
-            reclaim: () => this.reclaimLeased(peer)
-          };
-        }
-        return {
-          peer,
-          offer: offer4
-        };
-      } catch (error) {
-        peer.destroy();
-        if (!didRetry && !this.destroyed) return toRecord(true);
-        throw error;
-      }
-    };
-    return all(alloc(n, () => toRecord()));
-  }
-  getOffers(n, encryptOffer) {
-    return this.checkout(n, true, encryptOffer);
-  }
-  destroy() {
-    this.destroyed = true;
-    this.leased.forEach((timer, peer) => {
-      resetTimer(timer);
-      peer.destroy();
-    });
-    this.leased.clear();
-  }
-};
-
-// node_modules/@trystero-p2p/core/dist/handshake.mjs
-var overlapRoomPasswordErr = mkErr("incorrect password for overlapping room");
-var createPasswordHandshake = (password, appId, roomId) => {
-  const hashChallenge = (challenge2) => hashWith("SHA-256", `${challenge2}:${password}:${appId}:${roomId}`).then(toHex);
-  const run2 = async (send, receive, isInitiator) => {
-    if (!password) return;
-    if (isInitiator) {
-      const challenge2 = genId(36);
-      await send({
-        __trystero_pw: "challenge",
-        c: challenge2
-      });
-      const { data: data2 } = await receive();
-      if (!data2 || typeof data2 !== "object" || data2.__trystero_pw !== "response" || typeof data2.h !== "string") throw overlapRoomPasswordErr;
-      const expected = await hashChallenge(challenge2);
-      if (data2.h !== expected) throw overlapRoomPasswordErr;
-      return;
-    }
-    const { data } = await receive();
-    if (!data || typeof data !== "object" || data.__trystero_pw !== "challenge" || typeof data.c !== "string") throw overlapRoomPasswordErr;
-    await send({
-      __trystero_pw: "response",
-      h: await hashChallenge(data.c)
-    });
-  };
-  const compose = (userHandshake) => password || userHandshake ? async (peerId, send, receive, isInitiator) => {
-    await run2(send, receive, isInitiator);
-    await userHandshake?.(peerId, send, receive, isInitiator);
-  } : void 0;
-  return {
-    run: run2,
-    compose
-  };
-};
-var toHandshakeErrorMessage = (error) => {
-  const message = toErrorMessage(error, "unknown error");
-  return message.startsWith("handshake ") ? message : `handshake failed: ${message}`;
-};
-var createHandshakeManager = ({ onPeerHandshake, onHandshakeError, handshakeTimeoutMs, sendHandshakeData, sendHandshakeReady, onActivate, onFailure }) => {
-  const peerStates = {};
-  const maybeActivatePeer = (id, peer) => {
-    const state = peerStates[id];
-    if (!state || peer && state.peer !== peer || state.isActive) return;
-    if (!state.didLocalHandshakePass || !state.didReceiveRemoteReady) return;
-    state.isActive = true;
-    state.handshakeTimer = resetTimer(state.handshakeTimer);
-    onActivate(id, state.peer);
-  };
-  const failPeerHandshake = (id, peer, reason) => {
-    const state = peerStates[id];
-    if (!state || state.peer !== peer) return;
-    const error = toHandshakeErrorMessage(reason);
-    onHandshakeError?.(id, error);
-    onFailure(id, peer, mkErr(error));
-  };
-  const markLocalHandshakePassed = (id, peer) => {
-    const state = peerStates[id];
-    if (!state || state.peer !== peer || state.isActive) return;
-    state.didLocalHandshakePass = true;
-    sendHandshakeReady("", id).catch((err) => failPeerHandshake(id, peer, mkErr(`failed sending handshake readiness: ${toErrorMessage(err, "unknown send failure")}`)));
-    maybeActivatePeer(id, peer);
-  };
-  return {
-    addPeer: (id, peer) => {
-      peerStates[id] = {
-        peer,
-        isActive: false,
-        didLocalHandshakePass: false,
-        didReceiveRemoteReady: false,
-        handshakeTimer: null,
-        pendingHandshakePayloads: [],
-        handshakeWaiters: []
-      };
-    },
-    clearPeer: (id, error) => {
-      const state = peerStates[id];
-      if (!state) return;
-      state.handshakeTimer = resetTimer(state.handshakeTimer);
-      state.pendingHandshakePayloads.length = 0;
-      state.handshakeWaiters.splice(0).forEach((waiter) => waiter.reject(error));
-      delete peerStates[id];
-    },
-    canReceiveFromPeer: (id, receiveWhilePending) => {
-      const state = peerStates[id];
-      return Boolean(state && (state.isActive || receiveWhilePending));
-    },
-    start: (id, peer) => {
-      const state = peerStates[id];
-      if (!state || state.peer !== peer) return;
-      state.handshakeTimer = setTimeout(() => failPeerHandshake(id, peer, mkErr(`handshake timed out after ${handshakeTimeoutMs}ms`)), handshakeTimeoutMs);
-      const sendHandshake = async (data, metadata) => {
-        await sendHandshakeData(data, id, metadata);
-      };
-      const receiveHandshake = () => new Promise((resolve3, reject) => {
-        const current = peerStates[id];
-        if (!current || current.peer !== peer) {
-          reject(mkErr("peer disconnected during handshake"));
-          return;
-        }
-        const payload = current.pendingHandshakePayloads.shift();
-        if (payload) {
-          resolve3(payload);
-          return;
-        }
-        current.handshakeWaiters.push({
-          resolve: resolve3,
-          reject: (error) => reject(error)
-        });
-      });
-      const isInitiator = selfId < id;
-      Promise.resolve(onPeerHandshake?.(id, sendHandshake, receiveHandshake, isInitiator)).then(() => markLocalHandshakePassed(id, peer)).catch((err) => failPeerHandshake(id, peer, toError(err, "handshake failed")));
-    },
-    receiveHandshakeData: (data, id, metadata) => {
-      const state = peerStates[id];
-      if (!state || state.isActive) return;
-      const payload = metadata === void 0 ? { data } : {
-        data,
-        metadata
-      };
-      const pending = state.handshakeWaiters.shift();
-      if (pending) {
-        pending.resolve(payload);
-        return;
-      }
-      if (state.pendingHandshakePayloads.length >= 16) {
-        failPeerHandshake(id, state.peer, mkErr("too many pending handshake messages"));
-        return;
-      }
-      state.pendingHandshakePayloads.push(payload);
-    },
-    receiveHandshakeReady: (id) => {
-      const state = peerStates[id];
-      if (!state || state.isActive) return;
-      state.didReceiveRemoteReady = true;
-      maybeActivatePeer(id);
-    }
-  };
-};
-
-// node_modules/@trystero-p2p/core/dist/data-limits.mjs
-var maxActionFrameBytes = 16384;
-var pendingDataTimeoutMs = 1e4;
-var transferTimeoutMs = 12e4;
-
-// node_modules/@trystero-p2p/core/dist/peer.mjs
-var iceTimeout = 15e3;
-var iceCandidateSettleMs = 150;
-var disconnectedCloseDelayMs = 5e3;
-var iceCandidateEvent = "icecandidate";
-var iceStateEvent = "icegatheringstatechange";
-var iceConnectionStateEvent = "iceconnectionstatechange";
-var offerType = "offer";
-var answerType = "answer";
-var outOfRangePattern = /out of range/i;
-var maxPendingRemoteCandidates = 128;
-var maxRemoteCandidateSdpLength = 8192;
-var rewriteMdnsCandidatesToLoopback = (sdp) => sdp.replace(/ (\S+\.local) (\d+) typ host/g, " 127.0.0.1 $2 typ host");
-var peer_default = (initiator, { trickleIce, rtcConfig, rtcPolyfill, turnConfig, _test_only_mdnsHostFallbackToLoopback }) => {
-  const pc = new (rtcPolyfill ?? RTCPeerConnection)({
-    iceServers: defaultIceServers.concat(turnConfig ?? []),
-    ...rtcConfig
-  });
-  const handlers = {};
-  const pendingIceGathering = /* @__PURE__ */ new Set();
-  const pendingSignals = [];
-  const pendingData = [];
-  let pendingDataTimer = null;
-  const shouldTrickleIce = trickleIce !== false;
-  const pendingRemoteCandidates = [];
-  const pendingTracks = [];
-  let resolveInitialOffer;
-  let makingOffer = false;
-  let isSettingRemoteAnswerPending = false;
-  let dataChannel = null;
-  let disconnectedCloseTimer = null;
-  let didEmitClose = false;
-  const settleInitialOffer = (signal) => {
-    if (resolveInitialOffer) {
-      resolveInitialOffer(signal);
-      resolveInitialOffer = void 0;
-    }
-  };
-  const clearDisconnectedCloseTimer = () => disconnectedCloseTimer = resetTimer(disconnectedCloseTimer);
-  const emitClose = () => {
-    if (didEmitClose) return;
-    didEmitClose = true;
-    pendingIceGathering.forEach((finish) => finish());
-    pendingDataTimer = resetTimer(pendingDataTimer);
-    pendingData.length = 0;
-    clearDisconnectedCloseTimer();
-    handlers.close?.();
-  };
-  const emitSignal = (signal) => {
-    if (signal.type === offerType) {
-      settleInitialOffer(signal);
-      if (!handlers.signal && !pc.remoteDescription) return;
-    }
-    if (handlers.signal) handlers.signal(signal);
-    else pendingSignals.push(signal);
-  };
-  const appendSignalHandler = (handler) => {
-    const previousSignalHandler = handlers.signal;
-    handlers.signal = (signal) => {
-      previousSignalHandler?.(signal);
-      handler(signal);
-    };
-    if (pendingSignals.length > 0) pendingSignals.splice(0).forEach((signal) => handlers.signal?.(signal));
-  };
-  const normalizeSdp = (sdp) => _test_only_mdnsHostFallbackToLoopback ? rewriteMdnsCandidatesToLoopback(sdp) : sdp;
-  const normalizeCandidate = (candidate) => {
-    if (!_test_only_mdnsHostFallbackToLoopback || typeof candidate.candidate !== "string") return candidate;
-    const normalizedCandidate = rewriteMdnsCandidatesToLoopback(candidate.candidate);
-    return normalizedCandidate === candidate.candidate ? candidate : {
-      ...candidate,
-      candidate: normalizedCandidate
-    };
-  };
-  const localDescriptionSignal = (peerConnection) => ({
-    type: peerConnection.localDescription?.type ?? offerType,
-    sdp: normalizeSdp(peerConnection.localDescription?.sdp ?? "")
-  });
-  const getRemoteUfrag = () => {
-    const sdp = pc.remoteDescription?.sdp;
-    if (!sdp) return null;
-    return sdp.match(/a=ice-ufrag:([^\s]+)/)?.[1] ?? null;
-  };
-  const getRemoteMediaSectionCount = () => (pc.remoteDescription?.sdp?.match(/^m=/gm) ?? []).length;
-  const canApplyRemoteCandidate = (candidate) => {
-    if (!pc.remoteDescription) return false;
-    const remoteMLineCount = getRemoteMediaSectionCount();
-    if (typeof candidate.sdpMLineIndex === "number" && remoteMLineCount > 0 && candidate.sdpMLineIndex >= remoteMLineCount) return false;
-    const remoteUfrag = getRemoteUfrag();
-    if (remoteUfrag && candidate.usernameFragment && candidate.usernameFragment !== remoteUfrag) return false;
-    return true;
-  };
-  const addIceCandidateSafe = async (candidate) => {
-    try {
-      await pc.addIceCandidate(candidate);
-      return true;
-    } catch (err) {
-      if (err instanceof Error && outOfRangePattern.test(err.message) && typeof candidate.sdpMLineIndex === "number") return false;
-      throw err;
-    }
-  };
-  const queueRemoteCandidate = (candidate) => {
-    if (pendingRemoteCandidates.length >= maxPendingRemoteCandidates) pendingRemoteCandidates.shift();
-    pendingRemoteCandidates.push(candidate);
-  };
-  const flushPendingRemoteCandidates = async () => {
-    if (!pc.remoteDescription || pendingRemoteCandidates.length === 0) return;
-    const remoteUfrag = getRemoteUfrag();
-    const queuedCandidates = pendingRemoteCandidates.splice(0);
-    const stillPending = [];
-    for (const candidate of queuedCandidates) {
-      if (remoteUfrag && candidate.usernameFragment && candidate.usernameFragment !== remoteUfrag) continue;
-      if (!canApplyRemoteCandidate(candidate)) {
-        stillPending.push(candidate);
-        continue;
-      }
-      if (!await addIceCandidateSafe(candidate)) stillPending.push(candidate);
-    }
-    stillPending.forEach(queueRemoteCandidate);
-  };
-  const addRemoteCandidate = async (candidate) => {
-    if (canApplyRemoteCandidate(candidate)) {
-      if (!await addIceCandidateSafe(candidate)) queueRemoteCandidate(candidate);
-      return;
-    }
-    queueRemoteCandidate(candidate);
-  };
-  const setupDataChannel = (channel) => {
-    channel.binaryType = "arraybuffer";
-    channel.bufferedAmountLowThreshold = 65535;
-    const failData = () => {
-      console.warn(`${libName}: invalid or excessive data before handler registration; disconnecting peer`);
-      channel.close();
-      pc.close();
-      emitClose();
-    };
-    channel.onmessage = (e) => {
-      const data = e.data;
-      if (didEmitClose) return;
-      if (!(data instanceof ArrayBuffer) && !ArrayBuffer.isView(data) || data.byteLength > 16515) {
-        failData();
-        return;
-      }
-      if (handlers.data) handlers.data(data);
-      else {
-        if (pendingData.length >= 64) {
-          failData();
-          return;
-        }
-        if (!pendingDataTimer) pendingDataTimer = setTimeout(failData, pendingDataTimeoutMs);
-        pendingData.push(data);
-      }
-    };
-    channel.onopen = () => handlers.connect?.();
-    channel.onclose = emitClose;
-    channel.onerror = ({ error }) => {
-      if (didEmitClose || error?.errorDetail === "sctp-failure" && (error.sctpCauseCode === 12 || /^User-Initiated Abort\b/.test(error.message))) return;
-      handlers.error?.(toError(error, "data channel error"));
-    };
-  };
-  const configuredIceServers = rtcConfig?.iceServers ?? defaultIceServers.concat(turnConfig ?? []);
-  const hasServerUrlPattern = (pattern) => configuredIceServers.some(({ urls }) => (Array.isArray(urls) ? urls : [urls]).some((url) => pattern.test(url)));
-  const expectsTurnCandidate = hasServerUrlPattern(/^turns?:/i);
-  const expectsStunCandidate = !expectsTurnCandidate && hasServerUrlPattern(/^stuns?:/i);
-  const targetCandidatePattern = expectsTurnCandidate ? /\btyp relay\b/ : expectsStunCandidate ? /\btyp (?:srflx|relay|prflx)\b/ : /\btyp (?:host|srflx|relay|prflx)\b/;
-  const waitForIceGathering = async (peerConnection) => {
-    await new Promise((resolve3) => {
-      let timeout = null;
-      let settleTimeout = null;
-      const finish = () => {
-        resetTimer(timeout);
-        resetTimer(settleTimeout);
-        peerConnection.removeEventListener(iceStateEvent, checkState);
-        peerConnection.removeEventListener(iceCandidateEvent, onCandidate);
-        pendingIceGathering.delete(finish);
-        resolve3();
-      };
-      const scheduleSettle = (candidateLine = "") => {
-        const sdp = `${peerConnection.localDescription?.sdp ?? ""}
-${candidateLine}`;
-        if (targetCandidatePattern.test(sdp)) {
-          resetTimer(settleTimeout);
-          settleTimeout = setTimeout(finish, iceCandidateSettleMs);
-        }
-      };
-      const checkState = () => {
-        if (peerConnection.iceGatheringState === "complete" || didEmitClose) finish();
-        else scheduleSettle();
-      };
-      const onCandidate = (event) => {
-        const { candidate } = event;
-        if (candidate) scheduleSettle(candidate.candidate);
-        else finish();
-      };
-      pendingIceGathering.add(finish);
-      timeout = setTimeout(finish, iceTimeout);
-      peerConnection.addEventListener(iceStateEvent, checkState);
-      peerConnection.addEventListener(iceCandidateEvent, onCandidate);
-      checkState();
-    });
-    return localDescriptionSignal(peerConnection);
-  };
-  const emitLocalDescriptionSignal = async () => {
-    const signal = shouldTrickleIce ? localDescriptionSignal(pc) : await waitForIceGathering(pc);
-    if (!didEmitClose) emitSignal(signal);
-    return signal;
-  };
-  if (initiator) {
-    dataChannel = pc.createDataChannel("data");
-    setupDataChannel(dataChannel);
-  } else pc.ondatachannel = ({ channel }) => {
-    dataChannel = channel;
-    setupDataChannel(channel);
-  };
-  const createOffer = async (restartIce = false) => {
-    if (pc.connectionState === "closed" || !restartIce && (makingOffer || pc.signalingState !== "stable")) {
-      if (pc.connectionState === "closed") settleInitialOffer();
-      return;
-    }
-    try {
-      makingOffer = true;
-      if (restartIce) {
-        if (pc.remoteDescription && pc.signalingState !== "stable" && pc.signalingState !== "closed" && pc.localDescription?.type === offerType) await pc.setLocalDescription({ type: "rollback" });
-        if (typeof pc.restartIce === "function") pc.restartIce();
-      }
-      await pc.setLocalDescription(restartIce ? await pc.createOffer({ iceRestart: true }) : void 0);
-      return await emitLocalDescriptionSignal();
-    } catch (err) {
-      if (!restartIce) settleInitialOffer();
-      handlers.error?.(toError(err, "failed to create local offer"));
-    } finally {
-      makingOffer = false;
-    }
-  };
-  pc.onnegotiationneeded = async () => createOffer(false);
-  pc.onicecandidate = ({ candidate }) => {
-    if (!shouldTrickleIce || !candidate) return;
-    const candidatePayload = normalizeCandidate(typeof candidate.toJSON === "function" ? candidate.toJSON() : {
-      candidate: candidate.candidate,
-      sdpMid: candidate.sdpMid,
-      sdpMLineIndex: candidate.sdpMLineIndex,
-      usernameFragment: candidate.usernameFragment
-    });
-    emitSignal({
-      type: candidateType,
-      sdp: JSON.stringify(candidatePayload)
-    });
-  };
-  const handleConnectionStateChange = () => {
-    if (pc.connectionState === "failed" || pc.connectionState === "closed" || pc.iceConnectionState === "failed" || pc.iceConnectionState === "closed") {
-      emitClose();
-      return;
-    }
-    if (pc.connectionState === "connected" || pc.connectionState === "connecting" || pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed" || pc.iceConnectionState === "checking") {
-      clearDisconnectedCloseTimer();
-      return;
-    }
-    if (pc.connectionState === "disconnected" || pc.iceConnectionState === "disconnected") {
-      if (!disconnectedCloseTimer) disconnectedCloseTimer = setTimeout(() => {
-        disconnectedCloseTimer = null;
-        if (pc.connectionState === "disconnected" || pc.iceConnectionState === "disconnected") emitClose();
-      }, disconnectedCloseDelayMs);
-      return;
-    }
-  };
-  pc.onconnectionstatechange = handleConnectionStateChange;
-  pc.addEventListener(iceConnectionStateEvent, handleConnectionStateChange);
-  pc.ontrack = (e) => {
-    const stream = e.streams[0];
-    if (stream) {
-      if (!handlers.track && !handlers.stream) {
-        pendingTracks.push({
-          track: e.track,
-          stream
-        });
-        return;
-      }
-      handlers.track?.(e.track, stream);
-      handlers.stream?.(stream);
-    }
-  };
-  const offerPromise = initiator ? new Promise((res) => {
-    resolveInitialOffer = res;
-  }) : Promise.resolve();
-  if (initiator) queueMicrotask(() => {
-    if (!makingOffer && pc.signalingState === "stable" && !pc.localDescription && pc.connectionState !== "closed") pc.onnegotiationneeded?.(new Event("negotiationneeded"));
-  });
-  return {
-    connection: pc,
-    get channel() {
-      return dataChannel;
-    },
-    get isDead() {
-      return pc.connectionState === "closed";
-    },
-    getOffer: async (restartIce = false) => {
-      if (!initiator) return;
-      if (restartIce) return createOffer(true);
-      if (resolveInitialOffer) return offerPromise;
-      if (pc.localDescription?.type === offerType) return shouldTrickleIce ? localDescriptionSignal(pc) : waitForIceGathering(pc);
-      return offerPromise;
-    },
-    async signal(sdp) {
-      if (sdp.type === "candidate") {
-        if (sdp.sdp.length > maxRemoteCandidateSdpLength) return;
-        try {
-          const candidate = JSON.parse(sdp.sdp);
-          if (candidate && typeof candidate === "object") await addRemoteCandidate(normalizeCandidate(candidate));
-        } catch (err) {
-          handlers.error?.(toError(err, "failed to parse remote candidate"));
-        }
-        return;
-      }
-      if (dataChannel?.readyState === "open" && !sdp.sdp?.includes("a=rtpmap")) return;
-      try {
-        const rtcSdp = {
-          ...sdp,
-          sdp: normalizeSdp(sdp.sdp)
-        };
-        if (sdp.type === offerType) {
-          const isCollision = makingOffer || pc.signalingState !== "stable" && !isSettingRemoteAnswerPending;
-          if (isCollision && initiator) return;
-          if (isCollision && pc.signalingState !== "stable") await all([pc.setLocalDescription({ type: "rollback" }), pc.setRemoteDescription(rtcSdp)]);
-          else await pc.setRemoteDescription(rtcSdp);
-          await flushPendingRemoteCandidates();
-          await pc.setLocalDescription();
-          return await emitLocalDescriptionSignal();
-        }
-        if (sdp.type === answerType) {
-          isSettingRemoteAnswerPending = true;
-          try {
-            await pc.setRemoteDescription(rtcSdp);
-            await flushPendingRemoteCandidates();
-          } finally {
-            isSettingRemoteAnswerPending = false;
-          }
-        }
-      } catch (err) {
-        handlers.error?.(toError(err, "failed to apply remote signal"));
-      }
-    },
-    sendData: (data) => dataChannel?.send(data),
-    destroy: () => {
-      clearDisconnectedCloseTimer();
-      settleInitialOffer();
-      dataChannel?.close();
-      pc.close();
-      makingOffer = false;
-      isSettingRemoteAnswerPending = false;
-      emitClose();
-    },
-    setHandlers: (newHandlers) => {
-      const { signal, ...restHandlers } = newHandlers;
-      Object.assign(handlers, restHandlers);
-      if (handlers.data && pendingData.length > 0) {
-        pendingDataTimer = resetTimer(pendingDataTimer);
-        pendingData.splice(0).forEach((data) => handlers.data?.(data));
-      }
-      if (signal) appendSignalHandler(signal);
-      if ((handlers.track || handlers.stream) && pendingTracks.length > 0) pendingTracks.splice(0).forEach(({ track, stream }) => {
-        handlers.track?.(track, stream);
-        handlers.stream?.(stream);
-      });
-    },
-    addStream: (stream) => stream.getTracks().forEach((track) => pc.addTrack(track, stream)),
-    removeStream: (stream) => pc.getSenders().filter((sender) => sender.track && stream.getTracks().includes(sender.track)).forEach((sender) => pc.removeTrack(sender)),
-    addTrack: (track, stream) => pc.addTrack(track, stream),
-    removeTrack: (track) => {
-      const sender = pc.getSenders().find((s) => s.track === track);
-      if (sender) pc.removeTrack(sender);
-    },
-    replaceTrack: (oldTrack, newTrack) => {
-      const sender = pc.getSenders().find((s) => s.track === oldTrack);
-      if (sender) return sender.replaceTrack(newTrack);
-    }
-  };
-};
-var defaultIceServers = [...alloc(3, (_, i) => `stun:stun${i || ""}.l.google.com:19302`), "stun:stun.cloudflare.com:3478"].map((url) => ({ urls: url }));
-
-// node_modules/@trystero-p2p/core/dist/action-receiver.mjs
-var maxPendingTransfers = 1024;
-var maxPendingPerPeer = 64;
-var maxDecisions = 128;
-var maxDecisionsPerPeer = 8;
-var emptyBytes = /* @__PURE__ */ new Uint8Array();
-var decideReceive = (decide, settle) => {
-  let result;
-  try {
-    result = decide();
-  } catch {
-    return settle(false);
-  }
-  return typeof result === "boolean" ? settle(result) : Promise.resolve(result).then((value2) => settle(value2 === true), () => settle(false));
-};
-var decodePayload = (bytes, format, copy) => format === 2 ? copy ? bytes.slice() : bytes : format === 1 ? fromJson(decodeBytes(bytes)) : decodeBytes(bytes);
-var progress = (action2, value2, peerId, metadata) => {
-  try {
-    action2.progress(value2, peerId, metadata);
-  } catch (error) {
-    console.error(`${libName} progress handler error:`, error);
-  }
-};
-var deliverPayload = (action2, data, peerId, metadata) => {
-  progress(action2, 1, peerId, metadata);
-  try {
-    action2.receiver?.(data, peerId, metadata);
-  } catch (error) {
-    console.error(`${libName} action handler error:`, error);
-  }
-};
-var createActionReceiver = ({ fail, accept, refuse, maxReceiveBytes, chunkSize: chunkSize2 }) => {
-  const actions = /* @__PURE__ */ new Map();
-  const peers = /* @__PURE__ */ new Map();
-  const waiting = /* @__PURE__ */ new Set();
-  const decisions = /* @__PURE__ */ new Map();
-  let pendingCount = 0;
-  let decisionCount = 0;
-  let reservedBytes = 0;
-  let draining = false;
-  let drainAgain = false;
-  const current = (state) => state.phase !== "released";
-  const payloadLimit = (action2) => Math.min(maxReceiveBytes, action2?.maxPayloadBytes ?? maxReceiveBytes);
-  const notifyRejected = (message, reason, scope, bulkId) => {
-    scope?.reject(reason);
-    actions.get(message.type)?.reject?.(message.peerId, message.metadata, reason);
-    if (bulkId !== void 0) refuse(message.peerId, bulkId, reason);
-  };
-  const rotateWaitingForPeer = (peerId) => {
-    for (const queued of Array.from(waiting)) if (queued.peerId === peerId) {
-      waiting.delete(queued);
-      waiting.add(queued);
-    }
-  };
-  const release = (state) => {
-    if (!current(state)) return;
-    state.phase = "released";
-    state.removeAbortListener?.();
-    state.timer = resetTimer(state.timer);
-    const peer = peers.get(state.peerId);
-    if (state.kind === "inline") {
-      const queue = peer.inline.get(state.key);
-      queue.splice(queue.indexOf(state), 1);
-      if (!queue.length) peer.inline.delete(state.key);
-      state.data = emptyBytes;
-    } else {
-      peer.bulk.delete(state.id);
-      waiting.delete(state);
-      state.data = null;
-      if (state.transfer === "receiving") {
-        reservedBytes -= state.size;
-        if (peer.active === state) {
-          peer.active = null;
-          rotateWaitingForPeer(state.peerId);
-        }
-        drainAgain = true;
-      }
-    }
-    peer.count--;
-    pendingCount--;
-    if (!peer.count) peers.delete(state.peerId);
-    state.controller?.abort();
-  };
-  const reject = (state, reason) => {
-    if (!current(state)) return;
-    release(state);
-    notifyRejected(state, reason, state.scope, state.kind === "bulk" ? state.id : void 0);
-  };
-  const admit = (state, action2) => {
-    if (state.phase !== "pending") return state.phase === "ready";
-    if (state.size > payloadLimit(action2)) {
-      reject(state, "payload exceeds receiver size limit");
-      return false;
-    }
-    const receive = state.scope ? state.scope.receive : action2.receive;
-    if (!receive) {
-      if (!action2.receiver) return false;
-      state.phase = "ready";
-      return true;
-    }
-    if (decisionCount >= maxDecisions || (decisions.get(state.peerId) ?? 0) >= maxDecisionsPerPeer) {
-      reject(state, "too many pending receive decisions");
-      return false;
-    }
-    state.phase = "deciding";
-    const controller = new AbortController();
-    state.controller = controller;
-    decisionCount++;
-    decisions.set(state.peerId, (decisions.get(state.peerId) ?? 0) + 1);
-    const result = decideReceive(() => receive({
-      byteLength: state.size,
-      peerId: state.peerId,
-      signal: controller.signal,
-      ...state.metadata === void 0 ? {} : { metadata: state.metadata }
-    }), (allow) => {
-      decisionCount--;
-      const count = decisions.get(state.peerId) - 1;
-      if (count) decisions.set(state.peerId, count);
-      else decisions.delete(state.peerId);
-      if (!current(state)) return false;
-      if (allow) state.phase = "ready";
-      else reject(state, "payload rejected by receiver");
-      return allow;
-    });
-    if (typeof result === "boolean") return result;
-    result.then(() => drain());
-    return false;
-  };
-  const complete = (state, action2, bytes) => {
-    let payload;
-    try {
-      payload = decodePayload(bytes, state.format, state.kind === "inline");
-    } catch {
-      release(state);
-      fail(state.peerId, "invalid action payload");
-      return;
-    }
-    release(state);
-    deliverPayload(action2, payload, state.peerId, state.metadata);
-  };
-  const tryInline = (state) => {
-    const action2 = actions.get(state.type);
-    if (current(state) && action2 && admit(state, action2) && action2.receiver) complete(state, action2, state.data);
-  };
-  const tryBulk = (state) => {
-    const action2 = actions.get(state.type);
-    if (!current(state) || !action2 || !admit(state, action2) || !action2.receiver) return;
-    if (state.transfer === "receiving") {
-      if (state.offset === state.size) complete(state, action2, state.data);
-      return;
-    }
-    const peer = peers.get(state.peerId);
-    if (!peer.active && reservedBytes + state.size <= maxReceiveBytes) {
-      peer.active = state;
-      state.transfer = "receiving";
-      reservedBytes += state.size;
-      state.lastSeen = Date.now();
-      waiting.delete(state);
-      accept(state.peerId, state.id);
-    }
-  };
-  const drainInline = (peerId, key) => {
-    const queue = peers.get(peerId)?.inline.get(key);
-    while (queue?.[0]) {
-      const state = queue[0];
-      tryInline(state);
-      if (current(state)) break;
-    }
-  };
-  const drain = () => {
-    if (draining) {
-      drainAgain = true;
-      return;
-    }
-    draining = true;
-    try {
-      do {
-        drainAgain = false;
-        for (const state of waiting) tryBulk(state);
-        for (const [id, peer] of peers) {
-          for (const state of peer.bulk.values()) if (state.offset === state.size) tryBulk(state);
-          for (const key of peer.inline.keys()) drainInline(id, key);
-        }
-      } while (drainAgain);
-    } finally {
-      draining = false;
-    }
-  };
-  const enqueue = (state) => {
-    let peer = peers.get(state.peerId);
-    if (pendingCount >= maxPendingTransfers || (peer?.count ?? 0) >= maxPendingPerPeer) {
-      notifyRejected(state, "too many pending transfers", state.scope, state.kind === "bulk" ? state.id : void 0);
-      return false;
-    }
-    if (!peer) {
-      peer = {
-        bulk: /* @__PURE__ */ new Map(),
-        inline: /* @__PURE__ */ new Map(),
-        active: null,
-        count: 0
-      };
-      peers.set(state.peerId, peer);
-    }
-    peer.count++;
-    pendingCount++;
-    if (state.kind === "inline") {
-      const queue = peer.inline.get(state.key) ?? [];
-      queue.push(state);
-      peer.inline.set(state.key, queue);
-    } else {
-      peer.bulk.set(state.id, state);
-      waiting.add(state);
-    }
-    const expire = () => {
-      const remaining = transferTimeoutMs - (Date.now() - state.lastSeen);
-      if (remaining > 0) state.timer = setTimeout(expire, remaining);
-      else {
-        reject(state, "action transfer timed out");
-        drain();
-      }
-    };
-    state.timer = setTimeout(expire, transferTimeoutMs);
-    if (state.scope) {
-      const { signal } = state.scope;
-      const cancel = () => {
-        reject(state, "receive cancelled");
-        drain();
-      };
-      signal.addEventListener("abort", cancel, { once: true });
-      state.removeAbortListener = () => signal.removeEventListener("abort", cancel);
-      if (signal.aborted) {
-        cancel();
-        return false;
-      }
-    }
-    return true;
-  };
-  const resolveAdmission = (message, bulkId) => {
-    const action2 = actions.get(message.type);
-    const scope = action2?.receiveScope?.(message.peerId, message.metadata);
-    if (scope === null || scope?.signal.aborted) {
-      if (bulkId !== void 0) refuse(message.peerId, bulkId, "unexpected response");
-      return null;
-    }
-    if (message.size > payloadLimit(action2)) {
-      notifyRejected(message, "payload exceeds receiver size limit", scope, bulkId);
-      return null;
-    }
-    return {
-      action: action2,
-      scope
-    };
-  };
-  const admission = (message, scope) => ({
-    ...message,
-    ...scope ? { scope } : {},
-    phase: "pending",
-    controller: null,
-    lastSeen: Date.now(),
-    timer: null
-  });
-  return {
-    register: (type, options = {}) => {
-      const action2 = {
-        ...options,
-        receiver: null,
-        receive: null,
-        reject: null,
-        progress: noOp
-      };
-      actions.set(type, action2);
-      return {
-        onMessage: (handler) => {
-          action2.receiver = handler;
-          drain();
-        },
-        onReceive: (handler) => {
-          action2.receive = handler;
-          drain();
-        },
-        onReject: (handler) => {
-          action2.reject = handler;
-        },
-        onProgress: (handler) => {
-          action2.progress = handler;
-        }
-      };
-    },
-    receiveInline: (message, data) => {
-      const resolved = resolveAdmission(message);
-      if (!resolved) return;
-      const { action: action2, scope } = resolved;
-      const key = scope ? `${message.type}\0${scope.key}` : message.type;
-      if (action2?.receiver && !(scope ? scope.receive : action2.receive) && !peers.get(message.peerId)?.inline.has(key)) {
-        let payload;
-        try {
-          payload = decodePayload(data, message.format, true);
-        } catch {
-          fail(message.peerId, "invalid action payload");
-          return;
-        }
-        deliverPayload(action2, payload, message.peerId, message.metadata);
-        return;
-      }
-      const state = {
-        ...admission(message, scope),
-        kind: "inline",
-        key,
-        data
-      };
-      if (enqueue(state)) drainInline(message.peerId, key);
-    },
-    receiveOffer: (message, id) => {
-      if (peers.get(message.peerId)?.bulk.has(id)) {
-        fail(message.peerId, "duplicate action offer");
-        return;
-      }
-      const resolved = resolveAdmission(message, id);
-      if (!resolved) return;
-      const state = {
-        ...admission(message, resolved.scope),
-        kind: "bulk",
-        id,
-        transfer: "waiting",
-        offset: 0,
-        data: null
-      };
-      if (enqueue(state)) drain();
-    },
-    receiveChunk: (peerId, id, offset, data) => {
-      const peer = peers.get(peerId);
-      const state = peer?.bulk.get(id);
-      if (!state) return;
-      if (state.transfer !== "receiving" || offset !== state.offset || !data.length || data.length !== Math.min(chunkSize2, state.size - state.offset)) {
-        fail(peerId, "invalid action chunk offset or length");
-        return;
-      }
-      try {
-        state.data ??= new Uint8Array(state.size);
-      } catch {
-        reject(state, "unable to allocate receive buffer");
-        drain();
-        return;
-      }
-      state.data.set(data, state.offset);
-      state.offset += data.length;
-      const now2 = Date.now();
-      state.lastSeen = now2;
-      for (const queued of waiting) if (queued.phase === "ready" && actions.get(queued.type)?.receiver) queued.lastSeen = now2;
-      if (state.offset === state.size) {
-        tryBulk(state);
-        if (current(state) && peer?.active === state) {
-          peer.active = null;
-          rotateWaitingForPeer(peerId);
-        }
-        drain();
-      } else progress(actions.get(state.type), state.offset / state.size, peerId, state.metadata);
-    },
-    cancel: (peerId, id) => {
-      const state = peers.get(peerId)?.bulk.get(id);
-      if (state) {
-        release(state);
-        state.scope?.reject("response cancelled by sender");
-      }
-      drain();
-    },
-    clearPeer: (peerId) => {
-      const peer = peers.get(peerId);
-      if (peer) {
-        for (const state of peer.bulk.values()) release(state);
-        for (const queue of peer.inline.values()) {
-          const queuedMessages = [...queue];
-          for (const state of queuedMessages) release(state);
-        }
-      }
-      drain();
-    }
-  };
-};
-
-// node_modules/@trystero-p2p/core/dist/action-wire.mjs
-var version = 2;
-var inline = 0;
-var offer2 = 1;
-var chunk = 2;
-var accepted = 3;
-var rejected = 4;
-var cancelled = 5;
-var inlineHeaderSize = 36;
-var offerHeaderSize = 48;
-var controlHeaderSize = 6;
-var chunkHeaderSize = 14;
-var chunkSize = maxActionFrameBytes - chunkHeaderSize;
-var defaultMaxReceiveBytes = 256 * 1024 ** 2;
-var maxControlBufferedBytes = 1024 ** 2;
-var buffLowEvent = "bufferedamountlow";
-var channelCloseEvent = "close";
-var channelErrorEvent = "error";
-var backpressureWaitTimeoutMs = 1e4;
-var makeActionError = (kind, message) => {
-  const error = mkErr(message);
-  error.kind = kind;
-  error.name = kind === "aborted" ? "AbortError" : error.name;
-  return error;
-};
-var throwIfAborted = (signal) => {
-  if (signal?.aborted) throw makeActionError("aborted", "operation aborted");
-};
-var packet = (kind, id, size = controlHeaderSize) => {
-  const bytes = new Uint8Array(size);
-  bytes[0] = version;
-  bytes[1] = kind;
-  new DataView(bytes.buffer).setUint32(2, id);
-  return bytes;
-};
-var transferError = makeActionError;
-var waitForBufferedAmountLow = (channel, signal, timeoutMs = backpressureWaitTimeoutMs) => {
-  if (channel.readyState !== "open" || channel.bufferedAmount <= channel.bufferedAmountLowThreshold) return Promise.resolve(channel.readyState === "open");
-  return new Promise((res) => {
-    let settled = false;
-    let timeout = null;
-    const finish = (didDrain) => {
-      if (settled) return;
-      settled = true;
-      channel.removeEventListener(buffLowEvent, onBufferLow);
-      channel.removeEventListener(channelCloseEvent, onCloseOrError);
-      channel.removeEventListener(channelErrorEvent, onCloseOrError);
-      signal?.removeEventListener("abort", onCloseOrError);
-      resetTimer(timeout);
-      res(didDrain);
-    };
-    const onBufferLow = () => finish(true);
-    const onCloseOrError = () => finish(false);
-    channel.addEventListener(buffLowEvent, onBufferLow);
-    channel.addEventListener(channelCloseEvent, onCloseOrError);
-    channel.addEventListener(channelErrorEvent, onCloseOrError);
-    signal?.addEventListener("abort", onCloseOrError, { once: true });
-    timeout = setTimeout(() => finish(false), timeoutMs);
-    if (channel.readyState !== "open" || signal?.aborted) {
-      finish(false);
-      return;
-    }
-    if (channel.bufferedAmount <= channel.bufferedAmountLowThreshold) finish(true);
-  });
-};
-var createActionWireManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeerError, throwIfAborted: checkAborted = throwIfAborted, maxReceiveBytes = defaultMaxReceiveBytes }) => {
-  if (!Number.isSafeInteger(maxReceiveBytes) || maxReceiveBytes <= 0) throw mkErr("maxReceiveBytes must be a positive safe integer");
-  const actions = /* @__PURE__ */ new Map();
-  const outgoing = /* @__PURE__ */ new Map();
-  const failedPeers = /* @__PURE__ */ new WeakSet();
-  let nextId = 0;
-  const receiver = createActionReceiver({
-    fail: (peerId, reason) => failPeer(peerId, reason),
-    accept: (peerId, id) => control(peerId, id, accepted),
-    refuse: (peerId, id, reason) => control(peerId, id, rejected, reason),
-    maxReceiveBytes,
-    chunkSize
-  });
-  const clearPeer = (peerId) => {
-    for (const state of outgoing.get(peerId)?.values() ?? []) state.fail(transferError("disconnected", "peer disconnected"));
-    outgoing.delete(peerId);
-    receiver.clearPeer(peerId);
-  };
-  const failPeer = (peerId, reason) => {
-    const peer = getPeer(peerId, true);
-    if (peer && !failedPeers.has(peer)) {
-      failedPeers.add(peer);
-      console.warn(`${libName}: ${reason}; disconnecting peer ${peerId}`);
-      onPeerError(peerId, mkErr(reason));
-    }
-  };
-  const control = (peerId, id, kind, reason = "") => {
-    const peer = getPeer(peerId, true);
-    if (!peer) return;
-    const text = encodeBytes(reason).subarray(0, 200);
-    const bytes = packet(kind, id, controlHeaderSize + text.length);
-    bytes.set(text, controlHeaderSize);
-    try {
-      if ((peer.channel?.bufferedAmount ?? 0) > maxControlBufferedBytes) throw mkErr("control send buffer is full");
-      peer.sendData(bytes);
-    } catch {
-      failPeer(peerId, "unable to send action control");
-    }
-  };
-  const makeInternalAction = (type, options = {}) => {
-    const normalizedOptions = {
-      sendToPending: Boolean(options.sendToPending),
-      receiveWhilePending: Boolean(options.receiveWhilePending),
-      ...options.maxPayloadBytes === void 0 ? {} : { maxPayloadBytes: options.maxPayloadBytes },
-      ...options.receiveScope ? { receiveScope: options.receiveScope } : {}
-    };
-    const cached = actions.get(type);
-    if (cached) {
-      if (cached.options.sendToPending !== normalizedOptions.sendToPending || cached.options.receiveWhilePending !== normalizedOptions.receiveWhilePending || cached.options.receiveScope !== normalizedOptions.receiveScope || cached.options.maxPayloadBytes !== normalizedOptions.maxPayloadBytes) throw mkErr(`action type "${type}" cannot be redefined`);
-      return cached.action;
-    }
-    const typeBytes = encodeBytes(type);
-    if (!type || type.includes("\0") || typeBytes.length > 32) throw mkErr("action type must contain 1\u201332 UTF-8 bytes and no null characters");
-    const action2 = {
-      options: normalizedOptions,
-      action: {
-        ...receiver.register(type, normalizedOptions),
-        send: async (data, targets, metadata, onProgress, signal) => {
-          checkAborted(signal);
-          if (data === void 0) throw mkErr("action data cannot be undefined");
-          const isBlob = data instanceof Blob;
-          const binary = isBlob || data instanceof ArrayBuffer || ArrayBuffer.isView(data);
-          const format = binary ? 2 : typeof data === "string" ? 0 : 1;
-          let source2 = isBlob ? data : data instanceof ArrayBuffer ? new Uint8Array(data) : ArrayBuffer.isView(data) ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength) : encodeBytes(format === 0 ? data : toJson(data));
-          const size = source2 instanceof Blob ? source2.size : source2.byteLength;
-          const meta = metadata === void 0 ? /* @__PURE__ */ new Uint8Array() : encodeBytes(toJson(metadata));
-          if (meta.length > 16336) throw mkErr("action metadata is too large");
-          const small = inlineHeaderSize + meta.length + size <= maxActionFrameBytes;
-          if (!small && binary && !(source2 instanceof Blob)) source2 = source2.slice();
-          const id = small ? 0 : nextId++ >>> 0;
-          const headerSize = small ? inlineHeaderSize : offerHeaderSize;
-          const start = new Uint8Array(headerSize + meta.length + (small ? size : 0));
-          start[0] = version;
-          start[1] = (small ? inline : offer2) | format << 4;
-          start.set(typeBytes, 2);
-          const view = new DataView(start.buffer);
-          view.setUint16(34, meta.length);
-          if (!small) {
-            view.setUint32(36, id);
-            view.setFloat64(40, size);
-          }
-          start.set(meta, headerSize);
-          if (small) start.set(source2 instanceof Blob ? new Uint8Array(await source2.arrayBuffer()) : source2, headerSize + meta.length);
-          const ids = targets ? Array.isArray(targets) ? targets : [targets] : getPeerIds(normalizedOptions.sendToPending);
-          await all([...new Set(ids)].map(async (peerId) => {
-            const peer = getPeer(peerId, normalizedOptions.sendToPending);
-            if (!peer) {
-              console.warn(`${libName}: no peer with id ${peerId} found`);
-              return;
-            }
-            let failure = null;
-            const check3 = () => {
-              if (failure) throw failure;
-              checkAborted(signal);
-              if (getPeer(peerId, normalizedOptions.sendToPending) !== peer || peer.channel?.readyState === "closed") throw transferError("disconnected", "peer disconnected");
-            };
-            const sendFrame = async (bytes) => {
-              check3();
-              const channel = peer.channel;
-              if (channel && (channel.readyState !== "open" || channel.bufferedAmount > channel.bufferedAmountLowThreshold)) {
-                if (!await waitForBufferedAmountLow(channel, signal)) {
-                  checkAborted(signal);
-                  throw transferError("disconnected", "data channel stopped draining");
-                }
-                check3();
-              }
-              try {
-                peer.sendData(bytes);
-              } catch {
-                throw transferError("disconnected", "peer disconnected");
-              }
-            };
-            if (small) {
-              await sendFrame(start);
-              onProgress?.(1, peerId, metadata);
-              return;
-            }
-            let didSendOffer = false;
-            let settledByReceiver = false;
-            let lastSeen = Date.now();
-            let accept;
-            let rejectOffer;
-            const permission = new Promise((resolve3, rejectPromise) => {
-              accept = resolve3;
-              rejectOffer = rejectPromise;
-            });
-            permission.catch(noOp);
-            const transfers = outgoing.get(peerId) ?? /* @__PURE__ */ new Map();
-            if (transfers.has(id)) throw mkErr("action transmission id is still in use");
-            outgoing.set(peerId, transfers);
-            let timer = null;
-            const state = {
-              accept: () => {
-                if (!timer || failure) return false;
-                timer = resetTimer(timer);
-                accept();
-                return true;
-              },
-              fail: (error, fromReceiver = false) => {
-                if (fromReceiver) settledByReceiver = true;
-                failure = error;
-                rejectOffer(error);
-              },
-              touch: () => {
-                if (timer) lastSeen = Date.now();
-              }
-            };
-            transfers.set(id, state);
-            const expire = () => {
-              const remaining = transferTimeoutMs - (Date.now() - lastSeen);
-              if (remaining > 0) timer = setTimeout(expire, remaining);
-              else state.fail(transferError("timeout", "action offer timed out"));
-            };
-            timer = setTimeout(expire, transferTimeoutMs);
-            const abort = () => {
-              try {
-                checkAborted(signal);
-              } catch (error) {
-                state.fail(error);
-              }
-            };
-            signal?.addEventListener("abort", abort, { once: true });
-            try {
-              await sendFrame(start);
-              didSendOffer = true;
-              await permission;
-              for (let offset = 0; offset < size; offset += chunkSize) {
-                check3();
-                const length = Math.min(chunkSize, size - offset);
-                const bytes = packet(chunk, id, chunkHeaderSize + length);
-                new DataView(bytes.buffer).setFloat64(controlHeaderSize, offset);
-                bytes.set(source2 instanceof Blob ? new Uint8Array(await source2.slice(offset, offset + length).arrayBuffer()) : source2.subarray(offset, offset + length), chunkHeaderSize);
-                await sendFrame(bytes);
-                for (const pending of transfers.values()) pending.touch();
-                onProgress?.((offset + length) / size, peerId, metadata);
-              }
-              check3();
-            } catch (error) {
-              if (didSendOffer && !settledByReceiver && getPeer(peerId, true) === peer && (!peer.channel || peer.channel.readyState === "open" && (peer.channel.bufferedAmount ?? 0) <= maxControlBufferedBytes)) control(peerId, id, cancelled);
-              throw error;
-            } finally {
-              timer = resetTimer(timer);
-              signal?.removeEventListener("abort", abort);
-              transfers.delete(id);
-              if (!transfers.size && outgoing.get(peerId) === transfers) outgoing.delete(peerId);
-            }
-          }));
-        }
-      }
-    };
-    actions.set(type, action2);
-    return action2.action;
-  };
-  const handleData = (peerId, data) => {
-    if (data.byteLength < 2 || data.byteLength > 16384) {
-      failPeer(peerId, "invalid action frame");
-      return;
-    }
-    const bytes = new Uint8Array(data);
-    if (bytes[0] !== version) {
-      failPeer(peerId, "incompatible action protocol version");
-      return;
-    }
-    const kind = bytes[1] & 15;
-    const format = bytes[1] >>> 4;
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    if (kind > cancelled || format > 2 || kind > offer2 && format !== 0) {
-      failPeer(peerId, "invalid action frame");
-      return;
-    }
-    if (kind >= chunk) {
-      if (bytes.length < controlHeaderSize || (kind === accepted || kind === cancelled) && bytes.length !== controlHeaderSize || kind === rejected && bytes.length > 206) {
-        failPeer(peerId, "invalid action control");
-        return;
-      }
-      const id2 = view.getUint32(2);
-      if (kind === accepted) {
-        const transfers = outgoing.get(peerId);
-        if (transfers?.get(id2)?.accept()) for (const pending of transfers.values()) pending.touch();
-        return;
-      }
-      if (kind === rejected) {
-        outgoing.get(peerId)?.get(id2)?.fail(transferError("rejected", decodeBytes(bytes.subarray(controlHeaderSize))), true);
-        return;
-      }
-      if (kind === cancelled) receiver.cancel(peerId, id2);
-      else receiver.receiveChunk(peerId, id2, bytes.length >= chunkHeaderSize ? view.getFloat64(controlHeaderSize) : NaN, bytes.subarray(chunkHeaderSize));
-      return;
-    }
-    const headerSize = kind === inline ? inlineHeaderSize : offerHeaderSize;
-    if (bytes.length < headerSize) {
-      failPeer(peerId, "invalid action header");
-      return;
-    }
-    const type = decodeBytes(bytes.subarray(2, 34)).replaceAll("\0", "");
-    const action2 = actions.get(type);
-    if (!canReceiveFromPeer(peerId, Boolean(action2?.options.receiveWhilePending))) return;
-    const metaLength = view.getUint16(34);
-    const payloadIndex = headerSize + metaLength;
-    const size = kind === inline ? bytes.length - payloadIndex : view.getFloat64(40);
-    const id = kind === offer2 ? view.getUint32(36) : 0;
-    if (!type || payloadIndex > bytes.length || !Number.isSafeInteger(size) || size < 0 || kind === offer2 && (size === 0 || payloadIndex !== bytes.length)) {
-      failPeer(peerId, "invalid action proposal");
-      return;
-    }
-    let metadata;
-    try {
-      if (metaLength) metadata = fromJson(decodeBytes(bytes.subarray(headerSize, payloadIndex)));
-    } catch {
-      failPeer(peerId, "invalid action metadata");
-      return;
-    }
-    const message = {
-      peerId,
-      type,
-      format,
-      size,
-      ...metadata === void 0 ? {} : { metadata }
-    };
-    if (kind === inline) receiver.receiveInline(message, bytes.subarray(payloadIndex));
-    else receiver.receiveOffer(message, id);
-  };
-  return {
-    makeInternalAction,
-    handleData,
-    clearPeer
-  };
-};
-
-// node_modules/@trystero-p2p/core/dist/actions.mjs
-var getEnvelopeRecord = (metadata) => metadata && typeof metadata === "object" && !Array.isArray(metadata) && typeof metadata.r === "string" ? metadata : null;
-var getRequestMetadata = (metadata) => {
-  const record = getEnvelopeRecord(metadata);
-  return record ? {
-    r: record.r,
-    ...Object.hasOwn(record, "m") ? { m: record.m } : {}
-  } : null;
-};
-var getResponseMetadata = (metadata) => {
-  const record = getEnvelopeRecord(metadata);
-  return record ? {
-    r: record.r,
-    ...typeof record.e === "string" ? { e: record.e } : {}
-  } : null;
-};
-var withMetadata = (context, metadata) => metadata === void 0 ? context : {
-  ...context,
-  metadata
-};
-var createActionManager = ({ getPeer, getPeerIds, canReceiveFromPeer, onPeerError, maxReceiveBytes }) => {
-  const publicActions = /* @__PURE__ */ Object.create(null);
-  const pendingRequestWaiters = {};
-  const activeRequestControllers = /* @__PURE__ */ new Map();
-  const wire = createActionWireManager({
-    getPeer,
-    getPeerIds,
-    canReceiveFromPeer,
-    onPeerError,
-    ...maxReceiveBytes === void 0 ? {} : { maxReceiveBytes }
-  });
-  const makeInternalAction = wire.makeInternalAction;
-  const handleData = wire.handleData;
-  const clearPendingRequestWaiter = (requestId) => {
-    const waiter = pendingRequestWaiters[requestId];
-    if (!waiter) return;
-    resetTimer(waiter.timer);
-    if (waiter.signal && waiter.abortHandler) waiter.signal.removeEventListener("abort", waiter.abortHandler);
-    delete pendingRequestWaiters[requestId];
-    waiter.controller.abort();
-  };
-  const rejectPendingRequestsForPeer = (id, error) => {
-    entries3(pendingRequestWaiters).forEach(([requestId, waiter]) => {
-      if (waiter.peerId !== id) return;
-      clearPendingRequestWaiter(requestId);
-      waiter.reject(error);
-    });
-  };
-  const clearPeer = (id, error) => {
-    wire.clearPeer(id);
-    const controllers = activeRequestControllers.get(id);
-    if (controllers) {
-      activeRequestControllers.delete(id);
-      controllers.forEach((controller) => controller.abort());
-    }
-    rejectPendingRequestsForPeer(id, makeActionError("disconnected", toErrorMessage(error, "peer disconnected")));
-  };
-  const responseAction = makeInternalAction("@_response", { receiveScope: (peerId, metadata) => {
-    const parsed = getResponseMetadata(metadata);
-    const waiter = parsed && pendingRequestWaiters[parsed.r];
-    if (!parsed || !waiter || waiter.peerId !== peerId) return null;
-    const receive = parsed.e === void 0 ? waiter.getReceive() : null;
-    return {
-      key: parsed.r,
-      signal: waiter.controller.signal,
-      receive: receive ? (context) => receive({
-        byteLength: context.byteLength,
-        peerId: context.peerId,
-        kind: "response",
-        signal: context.signal
-      }) : null,
-      reject: (reason) => {
-        if (pendingRequestWaiters[parsed.r] === waiter) {
-          clearPendingRequestWaiter(parsed.r);
-          waiter.reject(makeActionError("rejected", reason));
-        }
-      }
-    };
-  } });
-  responseAction.onProgress((progress2, id, metadata) => {
-    const parsed = getResponseMetadata(metadata);
-    const waiter = parsed && pendingRequestWaiters[parsed.r];
-    if (waiter && waiter.peerId === id && parsed?.e === void 0) waiter.getReceiveProgress()?.(progress2, { peerId: id });
-  });
-  responseAction.onMessage((payload, id, metadata) => {
-    const parsed = getResponseMetadata(metadata);
-    if (!parsed) return;
-    const waiter = pendingRequestWaiters[parsed.r];
-    if (!waiter || waiter.peerId !== id) return;
-    clearPendingRequestWaiter(parsed.r);
-    if (parsed.e !== void 0) {
-      waiter.reject(makeActionError("rejected", parsed.e));
-      return;
-    }
-    waiter.resolve(payload);
-  });
-  const makeActionImpl = (type, config) => {
-    if (config && "onRequest" in config && config.kind !== "request") throw mkErr('request actions must use kind: "request"');
-    const kind = config?.kind ?? "message";
-    const rawAction = makeInternalAction(type);
-    const existingState = publicActions[type];
-    if (existingState) {
-      if (existingState.kind !== kind) throw mkErr(`action type "${type}" cannot be redefined`);
-      return existingState.action;
-    }
-    const state = {
-      kind,
-      action: null,
-      onReceive: config?.onReceive ?? null,
-      onReceiveProgress: config?.onReceiveProgress ?? null
-    };
-    const toProgressHandler = (handler, metadata) => handler ? (progress2, peerId) => handler(progress2, withMetadata({ peerId }, metadata)) : void 0;
-    const dispatchReceiveProgress = (progress2, peerId, metadata) => {
-      const requestMetadata = state.kind === "request" ? getRequestMetadata(metadata) : null;
-      state.onReceiveProgress?.(progress2, withMetadata({ peerId }, requestMetadata ? requestMetadata.m : metadata));
-    };
-    const setReceive = (handler) => {
-      state.onReceive = handler;
-      rawAction.onReceive(handler ? (context) => {
-        const requestMetadata = kind === "request" ? getRequestMetadata(context.metadata) : null;
-        return handler(withMetadata({
-          byteLength: context.byteLength,
-          peerId: context.peerId,
-          signal: context.signal,
-          kind
-        }, requestMetadata ? requestMetadata.m : context.metadata));
-      } : null);
-    };
-    setReceive(state.onReceive);
-    rawAction.onProgress(dispatchReceiveProgress);
-    if (kind === "message") {
-      let onMessage = config?.onMessage ?? null;
-      const receiveMessage = (payload, peerId, metadata) => {
-        const handler = onMessage;
-        Promise.resolve().then(() => handler(payload, withMetadata({ peerId }, metadata))).catch((err) => console.error(`${libName} action handler error:`, err));
-      };
-      const action3 = {
-        send: async (data, options = {}) => {
-          await rawAction.send(data, options.target, options.metadata, toProgressHandler(options.onProgress, options.metadata), options.signal);
-        },
-        get onMessage() {
-          return onMessage;
-        },
-        set onMessage(handler) {
-          onMessage = handler;
-          rawAction.onMessage(handler ? receiveMessage : null);
-        },
-        get onReceive() {
-          return state.onReceive;
-        },
-        set onReceive(handler) {
-          setReceive(handler);
-        },
-        get onReceiveProgress() {
-          return state.onReceiveProgress;
-        },
-        set onReceiveProgress(handler) {
-          state.onReceiveProgress = handler;
-        }
-      };
-      state.action = action3;
-      publicActions[type] = state;
-      rawAction.onMessage(onMessage ? receiveMessage : null);
-      return action3;
-    }
-    rawAction.onReject((peerId, metadata, reason) => {
-      const parsed = getRequestMetadata(metadata);
-      if (parsed) responseAction.send(null, peerId, {
-        r: parsed.r,
-        e: reason
-      }).catch(noOp);
-    });
-    let onRequest = config?.onRequest ?? null;
-    const receiveRequest = (payload, peerId, metadata) => {
-      const parsed = getRequestMetadata(metadata);
-      if (!parsed) return;
-      const handler = onRequest;
-      const controller = new AbortController();
-      let peerControllers = activeRequestControllers.get(peerId);
-      if (!peerControllers) {
-        peerControllers = /* @__PURE__ */ new Set();
-        activeRequestControllers.set(peerId, peerControllers);
-      }
-      peerControllers.add(controller);
-      Promise.resolve().then(async () => {
-        const response = await handler(payload, {
-          ...withMetadata({ peerId }, parsed.m),
-          signal: controller.signal
-        });
-        if (response === void 0) throw mkErr("request handler returned undefined");
-        return response;
-      }).then((response) => responseAction.send(response, peerId, { r: parsed.r }), (error) => responseAction.send(null, peerId, {
-        r: parsed.r,
-        e: toErrorMessage(error, "request failed").slice(0, 512)
-      })).catch(noOp).finally(() => {
-        const controllers = activeRequestControllers.get(peerId);
-        controllers?.delete(controller);
-        if (controllers && !controllers.size) activeRequestControllers.delete(peerId);
-        controller.abort();
-      });
-    };
-    const requestOne = async (data, options) => {
-      const { target, metadata, onProgress, signal, timeoutMs } = options;
-      throwIfAborted(signal);
-      if (!getPeer(target, false)) throw makeActionError("disconnected", `no active peer with id ${target}`);
-      const requestId = genId(20);
-      const controller = new AbortController();
-      const responsePromise = new Promise((resolve3, reject) => {
-        const waiter = {
-          controller,
-          getReceive: () => state.onReceive,
-          getReceiveProgress: () => state.onReceiveProgress,
-          peerId: target,
-          resolve: resolve3,
-          reject,
-          timer: null,
-          ...signal === void 0 ? {} : { signal }
-        };
-        const rejectAsAborted = () => {
-          clearPendingRequestWaiter(requestId);
-          reject(makeActionError("aborted", "operation aborted"));
-        };
-        if (signal) {
-          waiter.abortHandler = rejectAsAborted;
-          signal.addEventListener("abort", rejectAsAborted, { once: true });
-        }
-        pendingRequestWaiters[requestId] = waiter;
-        if (timeoutMs !== void 0) waiter.timer = setTimeout(() => {
-          clearPendingRequestWaiter(requestId);
-          waiter.reject(makeActionError("timeout", "request timed out"));
-        }, timeoutMs);
-      });
-      try {
-        const sending = rawAction.send(data, target, metadata === void 0 ? { r: requestId } : {
-          r: requestId,
-          m: metadata
-        }, toProgressHandler(onProgress, metadata), controller.signal);
-        return await Promise.race([responsePromise, sending.then(() => responsePromise)]);
-      } finally {
-        clearPendingRequestWaiter(requestId);
-      }
-    };
-    const action2 = {
-      request: requestOne,
-      requestMany: async (data, options) => {
-        const { targets, onResult, ...requestOptions } = options;
-        throwIfAborted(requestOptions.signal);
-        return await all(targets.map(async (target) => {
-          try {
-            const result = {
-              peerId: target,
-              status: "fulfilled",
-              value: await requestOne(data, {
-                ...requestOptions,
-                target
-              })
-            };
-            onResult?.(result);
-            return result;
-          } catch (err) {
-            const error = toError(err, "request failed");
-            if (error.kind === "aborted" || !error.kind) throw error;
-            const result = error.kind === "timeout" ? {
-              peerId: target,
-              status: "timeout"
-            } : error.kind === "disconnected" ? {
-              peerId: target,
-              status: "disconnected"
-            } : {
-              peerId: target,
-              status: "rejected",
-              error
-            };
-            onResult?.(result);
-            return result;
-          }
-        }));
-      },
-      get onRequest() {
-        return onRequest;
-      },
-      set onRequest(handler) {
-        onRequest = handler;
-        rawAction.onMessage(handler ? receiveRequest : null);
-      },
-      get onReceive() {
-        return state.onReceive;
-      },
-      set onReceive(handler) {
-        setReceive(handler);
-      },
-      get onReceiveProgress() {
-        return state.onReceiveProgress;
-      },
-      set onReceiveProgress(handler) {
-        state.onReceiveProgress = handler;
-      }
-    };
-    state.action = action2;
-    publicActions[type] = state;
-    rawAction.onMessage(onRequest ? receiveRequest : null);
-    return action2;
-  };
-  return {
-    makeAction: makeActionImpl,
-    makeInternalAction,
-    handleData,
-    clearPeer
-  };
-};
-
-// node_modules/@trystero-p2p/core/dist/media.mjs
-var toPendingMediaMeta = (value2) => {
-  if (value2 && typeof value2 === "object" && !Array.isArray(value2) && typeof value2.k === "string") return {
-    key: value2.k,
-    ...typeof value2.s === "string" ? { streamId: value2.s } : {},
-    ...typeof value2.t === "string" ? { trackId: value2.t } : {},
-    ...Object.hasOwn(value2, "m") ? { metadata: value2.m } : {}
-  };
-  return null;
-};
-var makeKeyGetter = (map) => (item2) => {
-  let key = map.get(item2);
-  if (!key) {
-    key = genId(20);
-    map.set(item2, key);
-  }
-  return key;
-};
-var createMediaIdentityCache = () => {
-  const localStreamKeys = /* @__PURE__ */ new WeakMap();
-  const localTrackKeys = /* @__PURE__ */ new WeakMap();
-  const remoteStreamsByKey = /* @__PURE__ */ new Map();
-  const remoteStreamsById = /* @__PURE__ */ new Map();
-  const remoteTracksByKey = /* @__PURE__ */ new Map();
-  const remoteTracksById = /* @__PURE__ */ new Map();
-  const remoteStreamKeys = /* @__PURE__ */ new WeakMap();
-  const remoteTrackKeys = /* @__PURE__ */ new WeakMap();
-  return {
-    getStreamKey: makeKeyGetter(localStreamKeys),
-    getTrackKey: makeKeyGetter(localTrackKeys),
-    rememberRemoteStream: (key, stream, streamId) => {
-      const previous = remoteStreamKeys.get(stream);
-      if (previous !== void 0 && remoteStreamsByKey.get(previous) === stream) remoteStreamsByKey.delete(previous);
-      remoteStreamKeys.set(stream, key);
-      remoteStreamsByKey.set(key, stream);
-      if (streamId) remoteStreamsById.set(streamId, stream);
-      stream.getTracks?.().forEach((track) => {
-        if (typeof track.id === "string") remoteTracksById.set(track.id, {
-          track,
-          stream
-        });
-      });
-    },
-    getRemoteStream: (key, streamId) => remoteStreamsByKey.get(key) ?? (streamId ? remoteStreamsById.get(streamId) : void 0),
-    rememberRemoteTrack: (key, track, stream, trackId, streamId) => {
-      const ref = {
-        track,
-        stream
-      };
-      const previous = remoteTrackKeys.get(track);
-      if (previous !== void 0 && remoteTracksByKey.get(previous)?.track === track) remoteTracksByKey.delete(previous);
-      remoteTrackKeys.set(track, key);
-      remoteTracksByKey.set(key, ref);
-      if (trackId) remoteTracksById.set(trackId, ref);
-      if (streamId) remoteStreamsById.set(streamId, stream);
-    },
-    getRemoteTrack: (key, trackId) => remoteTracksByKey.get(key) ?? (trackId ? remoteTracksById.get(trackId) : void 0),
-    hasRemoteMedia: () => remoteStreamsByKey.size > 0 || remoteTracksByKey.size > 0,
-    clearRemote: () => {
-      remoteStreamsByKey.clear();
-      remoteStreamsById.clear();
-      remoteTracksByKey.clear();
-      remoteTracksById.clear();
-    }
-  };
-};
-var createMediaManager = ({ iterate, isActive, getSharedMediaPeer, onPeerError }) => {
-  const pendingStreamMetas = {};
-  const pendingTrackMetas = {};
-  const peerMediaCaches = {};
-  const localMedia = createMediaIdentityCache();
-  const getPeerMedia = (id) => getSharedMediaPeer(id)?.__trysteroMedia ?? (peerMediaCaches[id] ??= createMediaIdentityCache());
-  const queuePendingMeta = (metas, id, parsed, kind) => {
-    const queue = metas[id] ??= [];
-    if (queue.length >= 64) {
-      console.warn(`${libName}: too many pending ${kind} metadata messages`);
-      onPeerError(id, mkErr("too many pending media metadata messages"));
-      return;
-    }
-    queue.push(parsed);
-  };
-  const takePendingMeta = (queue, idValue, getMetaId) => {
-    if (!queue?.length) return;
-    const index = idValue ? queue.findIndex((meta) => {
-      const metaId = getMetaId(meta);
-      return !metaId || metaId === idValue;
-    }) : 0;
-    return index >= 0 ? queue.splice(index, 1)[0] : void 0;
-  };
-  const emitStream = (id, key, stream, metadata) => {
-    if (!isActive(id)) return;
-    getPeerMedia(id).rememberRemoteStream(key, stream, typeof stream.id === "string" ? stream.id : void 0);
-    manager.onPeerStream?.(stream, id, metadata);
-  };
-  const emitTrack = (id, key, track, stream, metadata) => {
-    if (!isActive(id)) return;
-    getPeerMedia(id).rememberRemoteTrack(key, track, stream, typeof track.id === "string" ? track.id : void 0, typeof stream.id === "string" ? stream.id : void 0);
-    manager.onPeerTrack?.(track, stream, id, metadata);
-  };
-  const applyMediaOp = (targets, key, metadata, sendMeta, op, mediaIds = {}) => {
-    const payload = {
-      k: key,
-      ...mediaIds,
-      ...metadata === void 0 ? {} : { m: metadata }
-    };
-    return iterate(targets, async (id, peer) => {
-      await sendMeta(payload, id);
-      await op(peer);
-    });
-  };
-  const manager = {
-    addStream: (stream, options, sendMeta) => applyMediaOp(options.target, localMedia.getStreamKey(stream), options.metadata, sendMeta, (peer) => peer.addStream(stream), { s: stream.id }),
-    removeStream: (stream, target) => {
-      iterate(target, (_, peer) => peer.removeStream(stream));
-    },
-    addTrack: (track, stream, options, sendMeta) => applyMediaOp(options.target, localMedia.getTrackKey(track), options.metadata, sendMeta, (peer) => peer.addTrack(track, stream), {
-      s: stream.id,
-      t: track.id
-    }),
-    removeTrack: (track, target) => {
-      iterate(target, (_, peer) => peer.removeTrack(track));
-    },
-    replaceTrack: (oldTrack, newTrack, options, sendMeta) => applyMediaOp(options.target, localMedia.getTrackKey(newTrack), options.metadata, sendMeta, (peer) => peer.replaceTrack(oldTrack, newTrack), { t: oldTrack.id }),
-    receiveStreamMeta: (meta, id) => {
-      if (!isActive(id)) return;
-      const parsed = toPendingMediaMeta(meta);
-      if (!parsed) return;
-      const cached = getPeerMedia(id).getRemoteStream(parsed.key, parsed.streamId);
-      if (cached?.getTracks().length) {
-        emitStream(id, parsed.key, cached, parsed.metadata);
-        return;
-      }
-      queuePendingMeta(pendingStreamMetas, id, parsed, "stream");
-    },
-    receiveTrackMeta: (meta, id) => {
-      if (!isActive(id)) return;
-      const parsed = toPendingMediaMeta(meta);
-      if (!parsed) return;
-      const cached = getPeerMedia(id).getRemoteTrack(parsed.key, parsed.trackId);
-      if (cached && cached.track.readyState !== "ended" && (!cached.stream.getTracks || cached.stream.getTracks().includes(cached.track))) {
-        emitTrack(id, parsed.key, cached.track, cached.stream, parsed.metadata);
-        return;
-      }
-      queuePendingMeta(pendingTrackMetas, id, parsed, "track");
-    },
-    receiveRemoteStream: (id, stream) => {
-      if (!isActive(id)) return;
-      const next2 = takePendingMeta(pendingStreamMetas[id], typeof stream.id === "string" ? stream.id : void 0, (meta) => meta.streamId);
-      if (!next2) return;
-      emitStream(id, next2.key, stream, next2.metadata);
-    },
-    receiveRemoteTrack: (id, track, stream) => {
-      if (!isActive(id)) return;
-      const queue = pendingTrackMetas[id];
-      const trackId = typeof track.id === "string" ? track.id : void 0;
-      const streamId = typeof stream.id === "string" ? stream.id : void 0;
-      const byTrackIdx = queue && trackId ? queue.findIndex((meta) => meta.trackId === trackId) : -1;
-      const next2 = byTrackIdx >= 0 ? queue?.splice(byTrackIdx, 1)[0] : takePendingMeta(queue, streamId, (meta) => meta.streamId);
-      if (!next2) return;
-      emitTrack(id, next2.key, track, stream, next2.metadata);
-    },
-    clearPeer: (id) => {
-      delete pendingStreamMetas[id];
-      delete pendingTrackMetas[id];
-      delete peerMediaCaches[id];
-    },
-    onPeerStream: null,
-    onPeerTrack: null
-  };
-  return manager;
-};
-
-// node_modules/@trystero-p2p/core/dist/room.mjs
-var unloadEvent = "beforeunload";
-var defaultHandshakeTimeoutMs = 1e4;
-var internalNs = (ns) => "@_" + ns;
-var beforeUnloadRoomCleanups = /* @__PURE__ */ new Set();
-var cleanupActiveRoomsOnBeforeUnload = () => beforeUnloadRoomCleanups.forEach((cleanup) => cleanup());
-var registerBeforeUnloadCleanup = (cleanup) => {
-  beforeUnloadRoomCleanups.add(cleanup);
-  if (beforeUnloadRoomCleanups.size === 1) addEventListener(unloadEvent, cleanupActiveRoomsOnBeforeUnload);
-  return () => {
-    beforeUnloadRoomCleanups.delete(cleanup);
-    if (!beforeUnloadRoomCleanups.size) removeEventListener(unloadEvent, cleanupActiveRoomsOnBeforeUnload);
-  };
-};
-var room_default = (onPeer, onPeerLeave, onSelfLeave, { onPeerHandshake, onHandshakeError, handshakeTimeoutMs = defaultHandshakeTimeoutMs, maxReceiveBytes, isPassive = false, onBeforeLeave } = {}) => {
-  const peerMap = {};
-  const activePeerMap = {};
-  const pendingPongs = {};
-  const listeners = {
-    onPeerJoin: null,
-    onPeerLeave: null
-  };
-  let unregisterBeforeUnloadCleanup = noOp;
-  let leavePromise = null;
-  const iterate = (targets, f) => (targets ? Array.isArray(targets) ? targets : [targets] : keys(activePeerMap)).flatMap((id) => {
-    const peer = activePeerMap[id];
-    if (!peer) {
-      console.warn(`${libName}: no peer with id ${id} found`);
-      return [];
-    }
-    return [Promise.resolve(f(id, peer))];
-  });
-  const kickPeer = (id, peer, reason) => {
-    const current = peerMap[id];
-    if (!current || peer && current !== peer) return;
-    leaveAction.send("", id).catch(noOp);
-    exitPeer(id, current, reason);
-  };
-  const onPeerError = (id, error) => kickPeer(id, void 0, error);
-  const mediaManager = createMediaManager({
-    onPeerError,
-    iterate: (targets, f) => iterate(targets, (id, peer) => f(id, peer)),
-    isActive: (id) => Boolean(activePeerMap[id]),
-    getSharedMediaPeer: (id) => peerMap[id] ?? null
-  });
-  const actionManager = createActionManager({
-    onPeerError,
-    ...maxReceiveBytes === void 0 ? {} : { maxReceiveBytes },
-    getPeer: (id, includePending) => (includePending ? peerMap : activePeerMap)[id],
-    getPeerIds: (includePending) => keys(includePending ? peerMap : activePeerMap),
-    canReceiveFromPeer: (id, receiveWhilePending) => handshakeManager.canReceiveFromPeer(id, receiveWhilePending)
-  });
-  const makeActionInternal = actionManager.makeInternalAction;
-  const handleData = actionManager.handleData;
-  const makeAction = actionManager.makeAction;
-  const clearPeerState = (id, reason = mkErr("peer disconnected")) => {
-    const err = toError(reason, "peer disconnected");
-    handshakeManager.clearPeer(id, err);
-    delete peerMap[id];
-    delete activePeerMap[id];
-    actionManager.clearPeer(id, err);
-    pendingPongs[id]?.splice(0).forEach((waiter) => waiter.reject(err));
-    delete pendingPongs[id];
-    mediaManager.clearPeer(id);
-  };
-  const exitPeer = (id, peer, reason) => {
-    const current = peerMap[id];
-    if (!current) return;
-    if (peer && current !== peer) return;
-    const wasActive = Boolean(activePeerMap[id]);
-    clearPeerState(id, reason);
-    current.destroy();
-    if (wasActive) listeners.onPeerLeave?.(id);
-    onPeerLeave(id);
-  };
-  const leave = () => leavePromise ??= (async () => {
-    onBeforeLeave?.();
-    const controller = new AbortController();
-    leaveAction.send("", void 0, void 0, void 0, controller.signal).catch(noOp);
-    await new Promise((res) => setTimeout(res, 99));
-    controller.abort();
-    try {
-      entries3(peerMap).forEach(([id, peer]) => {
-        peer.destroy();
-        clearPeerState(id, mkErr("room left"));
-      });
-    } finally {
-      try {
-        unregisterBeforeUnloadCleanup();
-      } finally {
-        onSelfLeave();
-      }
-    }
-  })();
-  const pingAction = makeActionInternal(internalNs("ping"));
-  const pongAction = makeActionInternal(internalNs("pong"));
-  const signalAction = makeActionInternal(internalNs("signal"));
-  const streamMetaAction = makeActionInternal(internalNs("stream"), { maxPayloadBytes: 65536 });
-  const trackMetaAction = makeActionInternal(internalNs("track"), { maxPayloadBytes: 65536 });
-  const leaveAction = makeActionInternal(internalNs("leave"), {
-    sendToPending: true,
-    receiveWhilePending: true
-  });
-  const handshakeDataAction = makeActionInternal(internalNs("hsdata"), {
-    sendToPending: true,
-    receiveWhilePending: true,
-    maxPayloadBytes: 65536
-  });
-  const handshakeReadyAction = makeActionInternal(internalNs("hsready"), {
-    sendToPending: true,
-    receiveWhilePending: true
-  });
-  const handshakeManager = createHandshakeManager({
-    ...onPeerHandshake === void 0 ? {} : { onPeerHandshake },
-    ...onHandshakeError === void 0 ? {} : { onHandshakeError },
-    handshakeTimeoutMs,
-    sendHandshakeData: handshakeDataAction.send,
-    sendHandshakeReady: handshakeReadyAction.send,
-    onActivate: (id, peer) => {
-      activePeerMap[id] = peer;
-      peer.setHandlers({ signal: (sdp) => {
-        if (activePeerMap[id] === peer) signalAction.send(sdp, id).catch(noOp);
-      } });
-      listeners.onPeerJoin?.(id);
-    },
-    onFailure: (id, peer, reason) => kickPeer(id, peer, reason)
-  });
-  pingAction.onMessage((_, id) => {
-    pongAction.send("", id).catch(noOp);
-  });
-  pongAction.onMessage((_, id) => {
-    const queue = pendingPongs[id];
-    queue?.shift()?.resolve();
-    if (queue && !queue.length) delete pendingPongs[id];
-  });
-  signalAction.onMessage((sdp, id) => {
-    activePeerMap[id]?.signal(sdp);
-  });
-  streamMetaAction.onMessage((meta, id) => mediaManager.receiveStreamMeta(meta, id));
-  trackMetaAction.onMessage((meta, id) => mediaManager.receiveTrackMeta(meta, id));
-  leaveAction.onMessage((_, id) => exitPeer(id, void 0, mkErr("peer left room")));
-  handshakeDataAction.onMessage((data, id, metadata) => handshakeManager.receiveHandshakeData(data, id, metadata));
-  handshakeReadyAction.onMessage((_, id) => handshakeManager.receiveHandshakeReady(id));
-  onPeer((peer, id) => {
-    const existingPeer = peerMap[id];
-    if (existingPeer) {
-      if (existingPeer === peer) return;
-      existingPeer.destroy();
-      clearPeerState(id, mkErr("peer replaced"));
-    }
-    peerMap[id] = peer;
-    handshakeManager.addPeer(id, peer);
-    peer.setHandlers({
-      data: (d) => {
-        if (peerMap[id] === peer) handleData(id, d);
-      },
-      stream: (stream) => mediaManager.receiveRemoteStream(id, stream),
-      track: (track, stream) => mediaManager.receiveRemoteTrack(id, track, stream),
-      close: () => exitPeer(id, peer, mkErr("peer disconnected")),
-      error: (err) => {
-        console.error(`${libName} peer error:`, err);
-        exitPeer(id, peer, err);
-      }
-    });
-    handshakeManager.start(id, peer);
-  });
-  if (isBrowser) unregisterBeforeUnloadCleanup = registerBeforeUnloadCleanup(() => leave().catch(noOp));
-  return {
-    makeAction,
-    leave,
-    ping: async (id) => {
-      if (!activePeerMap[id]) throw mkErr(`no active peer with id ${id}`);
-      const start = Date.now();
-      await new Promise((resolve3, reject) => {
-        const queue = pendingPongs[id] ??= [];
-        const clearFromQueue = () => {
-          const currentQueue = pendingPongs[id];
-          if (!currentQueue) return;
-          const i = currentQueue.indexOf(waiter);
-          if (i > -1) currentQueue.splice(i, 1);
-          if (!currentQueue.length) delete pendingPongs[id];
-        };
-        const waiter = {
-          resolve: () => {
-            clearFromQueue();
-            resolve3();
-          },
-          reject: (reason) => {
-            clearFromQueue();
-            reject(reason);
-          }
-        };
-        queue.push(waiter);
-        pingAction.send("", id).catch((err) => waiter.reject(toError(err, "peer disconnected")));
-      });
-      return Date.now() - start;
-    },
-    isPassive: () => isPassive,
-    getPeers: () => fromEntries(entries3(activePeerMap).map(([id, peer]) => [id, peer.connection])),
-    addStream: (stream, options = {}) => mediaManager.addStream(stream, options, streamMetaAction.send),
-    removeStream: (stream, options = {}) => {
-      mediaManager.removeStream(stream, options.target);
-    },
-    addTrack: (track, stream, options = {}) => mediaManager.addTrack(track, stream, options, trackMetaAction.send),
-    removeTrack: (track, options = {}) => {
-      mediaManager.removeTrack(track, options.target);
-    },
-    replaceTrack: (oldTrack, newTrack, options = {}) => mediaManager.replaceTrack(oldTrack, newTrack, options, trackMetaAction.send),
-    get onPeerJoin() {
-      return listeners.onPeerJoin;
-    },
-    set onPeerJoin(handler) {
-      listeners.onPeerJoin = handler;
-      if (handler) keys(activePeerMap).forEach((peerId) => handler(peerId));
-    },
-    get onPeerLeave() {
-      return listeners.onPeerLeave;
-    },
-    set onPeerLeave(handler) {
-      listeners.onPeerLeave = handler;
-    },
-    get onPeerStream() {
-      return mediaManager.onPeerStream;
-    },
-    set onPeerStream(handler) {
-      mediaManager.onPeerStream = handler;
-    },
-    get onPeerTrack() {
-      return mediaManager.onPeerTrack;
-    },
-    set onPeerTrack(handler) {
-      mediaManager.onPeerTrack = handler;
-    }
-  };
-};
-
-// node_modules/@trystero-p2p/core/dist/shared-peer.mjs
-var roomFrameVersion = 1;
-var roomPresenceFrameVersion = 2;
-var wrapRoomFrame = (roomToken, data) => {
-  const tokenBytes = encodeBytes(roomToken);
-  const frame2 = new Uint8Array(3 + tokenBytes.byteLength + data.byteLength);
-  frame2[0] = roomFrameVersion;
-  frame2[1] = tokenBytes.byteLength >>> 8 & 255;
-  frame2[2] = tokenBytes.byteLength & 255;
-  frame2.set(tokenBytes, 3);
-  frame2.set(data, 3 + tokenBytes.byteLength);
-  return frame2;
-};
-var wrapRoomPresenceFrame = (roomToken, isPresent) => {
-  const tokenBytes = encodeBytes(roomToken);
-  const frame2 = new Uint8Array(4 + tokenBytes.byteLength);
-  frame2[0] = roomPresenceFrameVersion;
-  frame2[1] = Number(isPresent);
-  frame2[2] = tokenBytes.byteLength >>> 8 & 255;
-  frame2[3] = tokenBytes.byteLength & 255;
-  frame2.set(tokenBytes, 4);
-  return frame2;
-};
-var decodeRoomTokenHeader = (buffer, offset) => {
-  if (buffer.byteLength < offset + 2) return null;
-  const tokenSize = (buffer[offset] ?? 0) << 8 | (buffer[offset + 1] ?? 0);
-  const headerSize = offset + 2 + tokenSize;
-  if (tokenSize <= 0 || tokenSize > 128 || buffer.byteLength < headerSize) return null;
-  return {
-    roomToken: decodeBytes(buffer.subarray(offset + 2, headerSize)),
-    headerSize
-  };
-};
-var unwrapFrame = (data) => {
-  const buffer = new Uint8Array(data);
-  if (buffer.byteLength < 3 || buffer.byteLength > 16515) return null;
-  if (buffer[0] === roomFrameVersion) {
-    const header2 = decodeRoomTokenHeader(buffer, 1);
-    return header2 ? {
-      type: "room",
-      roomToken: header2.roomToken,
-      payload: buffer.subarray(header2.headerSize).slice().buffer
-    } : null;
-  }
-  if (buffer[0] === roomPresenceFrameVersion) {
-    const header2 = decodeRoomTokenHeader(buffer, 2);
-    return header2 ? {
-      type: "presence",
-      roomToken: header2.roomToken,
-      isPresent: buffer[1] === 1
-    } : null;
-  }
-  return null;
-};
-var isPeerUnderlyingStale = (peer) => {
-  const { connection: connection2, channel } = peer;
-  return peer.isDead || connection2.connectionState === "closed" || connection2.connectionState === "failed" || connection2.iceConnectionState === "closed" || connection2.iceConnectionState === "failed" || channel?.readyState === "closing" || channel?.readyState === "closed";
-};
-var getConnectedPeerHealth = (peer) => {
-  if (isPeerUnderlyingStale(peer)) return "stale";
-  const { channel } = peer;
-  if (!channel || channel.readyState !== "open") return "transient";
-  return "live";
-};
-var SharedPeerManager = class {
-  rooms = /* @__PURE__ */ new Map();
-  unclaimedDataTimers = /* @__PURE__ */ new WeakMap();
-  pendingDataTimers = /* @__PURE__ */ new WeakMap();
-  byApp = {};
-  registerRoom(appId, roomId, tokenPromise, options) {
-    const rooms = this.rooms.get(appId) ?? /* @__PURE__ */ new Map();
-    if (rooms.has(roomId)) throw mkErr("room membership already registered");
-    const registration = {
-      token: null,
-      tokenPromise,
-      ...options
-    };
-    rooms.set(roomId, registration);
-    this.rooms.set(appId, rooms);
-    const current = () => this.rooms.get(appId)?.get(roomId) === registration;
-    const advertise = (present) => {
-      if (!registration.token) return;
-      for (const shared2 of values(this.byApp[appId] ?? {})) try {
-        this.sendRoomPresence(shared2, registration.token, present);
-      } catch {
-      }
-    };
-    tokenPromise.then((token) => {
-      if (!current()) return;
-      registration.token = token;
-      for (const shared2 of values(this.byApp[appId] ?? {})) {
-        if (shared2.remoteRoomTokens.has(token)) this.attachRoom(appId, roomId, registration, shared2);
-        this.discardUnboundData(shared2);
-      }
-      if (current() && registration.active) advertise(true);
-    });
-    return {
-      connect: (peerId, peer, idleMs) => {
-        if (!current()) {
-          peer.destroy();
-          return;
-        }
-        const existing = this.reusable(appId, peerId);
-        if (existing && existing.peer !== peer) peer.destroy();
-        const shared2 = existing ?? this.register(appId, peerId, peer, idleMs);
-        this.attachRoom(appId, roomId, registration, shared2);
-        if (!existing) {
-          for (const room2 of rooms.values()) if (room2.active && room2.token) this.sendRoomPresence(shared2, room2.token, true);
-        }
-      },
-      reuse: (peerId) => {
-        if (!current()) return false;
-        const shared2 = this.reusable(appId, peerId);
-        if (!shared2) return false;
-        this.attachRoom(appId, roomId, registration, shared2);
-        return true;
-      },
-      setActive: (active) => {
-        if (!current() || registration.active === active) return;
-        registration.active = active;
-        advertise(active);
-      },
-      leave: () => {
-        if (!current()) return;
-        rooms.delete(roomId);
-        if (!rooms.size) this.rooms.delete(appId);
-        advertise(false);
-        for (const shared2 of values(this.byApp[appId] ?? {})) {
-          const binding = shared2.bindings[roomId];
-          binding?.handlers.close?.();
-          binding?.detach();
-          this.discardUnboundData(shared2);
-        }
-      }
-    };
-  }
-  owns(appId, peerId, peer) {
-    return this.byApp[appId]?.[peerId]?.peer === peer;
-  }
-  reusable(appId, peerId) {
-    const shared2 = this.byApp[appId]?.[peerId];
-    if (shared2 && isPeerUnderlyingStale(shared2.peer)) {
-      this.clear(appId, peerId, { destroyPeer: true });
-      return;
-    }
-    return shared2;
-  }
-  attachRoom(appId, roomId, registration, shared2) {
-    if (this.rooms.get(appId)?.get(roomId) !== registration || shared2.isClosing || this.get(appId, shared2.peerId) !== shared2) return;
-    const { proxy, isNew } = this.bind(roomId, registration.tokenPromise, shared2, { onDetach: () => registration.onDetach(shared2.peerId, shared2.peer) });
-    if (isNew) registration.onPeer(proxy, shared2.peerId, shared2.peer);
-  }
-  get(appId, peerId) {
-    return this.byApp[appId]?.[peerId];
-  }
-  sendRoomPresence(shared2, roomToken, isPresent) {
-    if (shared2.isClosing || isPeerUnderlyingStale(shared2.peer)) return;
-    shared2.peer.sendData(wrapRoomPresenceFrame(roomToken, isPresent));
-  }
-  clear(appId, peerId, { destroyPeer }) {
-    const map = this.byApp[appId];
-    const shared2 = map?.[peerId];
-    if (!shared2 || shared2.isClosing) return;
-    shared2.idleTimer = resetTimer(shared2.idleTimer);
-    this.clearDataTimers(shared2);
-    shared2.isClosing = true;
-    if (destroyPeer && !shared2.peer.isDead) shared2.peer.destroy();
-    const bindings = values(shared2.bindings);
-    shared2.bindings = {};
-    shared2.bindingsByToken = {};
-    shared2.controlRoomId = null;
-    delete map[peerId];
-    bindings.forEach((binding) => {
-      binding.handlers.close?.();
-      binding.pendingData.length = 0;
-      binding.pendingSendData.length = 0;
-      binding.pendingTracks.length = 0;
-    });
-    shared2.media.clearRemote();
-    shared2.pendingDataByToken.clear();
-    shared2.remoteRoomTokens.clear();
-    if (keys(map).length === 0) delete this.byApp[appId];
-  }
-  register(appId, peerId, peer, idleMs) {
-    const existing = this.byApp[appId]?.[peerId];
-    if (existing) {
-      existing.idleTimer = resetTimer(existing.idleTimer);
-      if (existing.peer === peer) return existing;
-      this.clear(appId, peerId, { destroyPeer: true });
-    }
-    const shared2 = {
-      appId,
-      peerId,
-      peer,
-      bindings: {},
-      bindingsByToken: {},
-      pendingDataByToken: /* @__PURE__ */ new Map(),
-      remoteRoomTokens: /* @__PURE__ */ new Set(),
-      idleTimer: null,
-      controlRoomId: null,
-      streamOwners: /* @__PURE__ */ new Map(),
-      trackOwners: /* @__PURE__ */ new Map(),
-      media: createMediaIdentityCache(),
-      idleMs,
-      isClosing: false
-    };
-    (this.byApp[appId] ??= {})[peerId] = shared2;
-    const clearCurrent = () => {
-      if (this.owns(appId, peerId, peer)) this.clear(appId, peerId, { destroyPeer: true });
-    };
-    peer.setHandlers({
-      data: (data) => this.dispatchData(shared2, data),
-      signal: (signal) => this.dispatchSignal(shared2, signal),
-      close: clearCurrent,
-      error: (err) => {
-        console.error(`${libName} peer error:`, err);
-        clearCurrent();
-      },
-      track: (track, stream) => this.dispatchTrack(shared2, track, stream)
-    });
-    return shared2;
-  }
-  bind(roomId, roomTokenPromise, shared2, { onDetach }) {
-    const existingBinding = shared2.bindings[roomId];
-    if (existingBinding) {
-      shared2.idleTimer = resetTimer(shared2.idleTimer);
-      return {
-        proxy: existingBinding.proxy,
-        isNew: false
-      };
-    }
-    const binding = {
-      roomId,
-      roomToken: null,
-      roomTokenPromise,
-      handlers: {},
-      pendingData: [],
-      pendingSendData: [],
-      pendingTracks: [],
-      detach: noOp,
-      proxy: {}
-    };
-    const detachBinding = () => {
-      if (shared2.bindings[roomId] !== binding) return;
-      const shouldDestroy = keys(shared2.bindings).length === 1 && (shared2.streamOwners.size > 0 || shared2.trackOwners.size > 0 || shared2.media.hasRemoteMedia());
-      if (!shouldDestroy) this.pruneRoomOwnership(shared2, roomId);
-      delete shared2.bindings[roomId];
-      if (binding.roomToken && shared2.bindingsByToken[binding.roomToken] === binding) delete shared2.bindingsByToken[binding.roomToken];
-      if (shared2.controlRoomId === roomId) shared2.controlRoomId = keys(shared2.bindings)[0] ?? null;
-      this.discardUnboundData(shared2);
-      onDetach();
-      if (shouldDestroy) this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
-      else this.scheduleIdleTimer(shared2);
-    };
-    const proxy = {
-      get connection() {
-        return shared2.peer.connection;
-      },
-      get channel() {
-        return shared2.peer.channel;
-      },
-      get isDead() {
-        return shared2.peer.isDead;
-      },
-      getOffer: (restartIce) => shared2.peer.getOffer(restartIce),
-      signal: (sdp) => shared2.peer.signal(sdp),
-      sendData: (data) => {
-        if (!binding.roomToken) {
-          binding.pendingSendData.push(data);
-          return;
-        }
-        shared2.peer.sendData(wrapRoomFrame(binding.roomToken, data));
-      },
-      destroy: () => detachBinding(),
-      setHandlers: (newHandlers) => {
-        Object.assign(binding.handlers, newHandlers);
-        this.flushBindingQueues(shared2, binding);
-      },
-      addStream: (stream) => {
-        const owners = shared2.streamOwners.get(stream) ?? /* @__PURE__ */ new Set();
-        const shouldAttach = owners.size === 0;
-        owners.add(roomId);
-        shared2.streamOwners.set(stream, owners);
-        if (shouldAttach) shared2.peer.addStream(stream);
-      },
-      removeStream: (stream) => this.releaseStreamOwner(shared2, stream, roomId),
-      addTrack: (track, stream) => {
-        const entry = shared2.trackOwners.get(track) ?? {
-          stream,
-          rooms: /* @__PURE__ */ new Set()
-        };
-        const shouldAttach = entry.rooms.size === 0;
-        entry.stream = stream;
-        entry.rooms.add(roomId);
-        shared2.trackOwners.set(track, entry);
-        if (shouldAttach) return shared2.peer.addTrack(track, stream);
-        return shared2.peer.connection.getSenders().find((s) => s.track === track) ?? shared2.peer.addTrack(track, stream);
-      },
-      removeTrack: (track) => this.releaseTrackOwner(shared2, track, roomId),
-      replaceTrack: async (oldTrack, newTrack) => {
-        const oldEntry = shared2.trackOwners.get(oldTrack);
-        await shared2.peer.replaceTrack(oldTrack, newTrack);
-        if (oldEntry && shared2.trackOwners.get(oldTrack) === oldEntry) {
-          shared2.trackOwners.delete(oldTrack);
-          const nextEntry = shared2.trackOwners.get(newTrack) ?? {
-            stream: oldEntry.stream,
-            rooms: /* @__PURE__ */ new Set()
-          };
-          oldEntry.rooms.forEach((room2) => nextEntry.rooms.add(room2));
-          shared2.trackOwners.set(newTrack, nextEntry);
-        }
-      },
-      __trysteroMedia: shared2.media
-    };
-    binding.proxy = proxy;
-    binding.detach = detachBinding;
-    shared2.bindings[roomId] = binding;
-    shared2.controlRoomId ??= roomId;
-    shared2.idleTimer = resetTimer(shared2.idleTimer);
-    roomTokenPromise.then((roomToken) => {
-      if (shared2.isClosing || shared2.bindings[roomId] !== binding) return;
-      binding.roomToken = roomToken;
-      shared2.bindingsByToken[roomToken] = binding;
-      const pendingData = shared2.pendingDataByToken.get(roomToken);
-      if (pendingData?.length) {
-        binding.pendingData.push(...pendingData);
-        shared2.pendingDataByToken.delete(roomToken);
-      }
-      const pendingSendData = binding.pendingSendData.splice(0);
-      if (!isPeerUnderlyingStale(shared2.peer)) pendingSendData.forEach((payload) => {
-        try {
-          shared2.peer.sendData(wrapRoomFrame(roomToken, payload));
-        } catch {
-        }
-      });
-      this.flushBindingQueues(shared2, binding);
-      this.discardUnboundData(shared2);
-    });
-    return {
-      proxy,
-      isNew: true
-    };
-  }
-  releaseStreamOwner(shared2, stream, roomIdToRemove) {
-    const rooms = shared2.streamOwners.get(stream);
-    if (!rooms) return;
-    rooms.delete(roomIdToRemove);
-    if (rooms.size === 0) {
-      shared2.streamOwners.delete(stream);
-      shared2.peer.removeStream(stream);
-    }
-  }
-  releaseTrackOwner(shared2, track, roomIdToRemove) {
-    const entry = shared2.trackOwners.get(track);
-    if (!entry) return;
-    entry.rooms.delete(roomIdToRemove);
-    if (entry.rooms.size === 0) {
-      shared2.trackOwners.delete(track);
-      shared2.peer.removeTrack(track);
-    }
-  }
-  pruneRoomOwnership(shared2, roomIdToRemove) {
-    shared2.streamOwners.forEach((_, stream) => this.releaseStreamOwner(shared2, stream, roomIdToRemove));
-    shared2.trackOwners.forEach((_, track) => this.releaseTrackOwner(shared2, track, roomIdToRemove));
-  }
-  scheduleIdleTimer(shared2) {
-    if (shared2.isClosing || keys(shared2.bindings).length > 0) return;
-    shared2.idleTimer = resetTimer(shared2.idleTimer);
-    shared2.idleTimer = setTimeout(() => {
-      const current = this.byApp[shared2.appId]?.[shared2.peerId];
-      if (!current || keys(current.bindings).length > 0) return;
-      this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
-    }, shared2.idleMs);
-  }
-  getSignalBinding(shared2) {
-    if (shared2.controlRoomId) {
-      const selected = shared2.bindings[shared2.controlRoomId];
-      if (selected?.handlers.signal) return selected;
-    }
-    const fallback = values(shared2.bindings).find((binding) => Boolean(binding.handlers.signal));
-    if (!fallback) return null;
-    shared2.controlRoomId = fallback.roomId;
-    return fallback;
-  }
-  flushBindingQueues(shared2, binding) {
-    const { handlers } = binding;
-    if (handlers.data && binding.pendingData.length > 0) {
-      const queued = binding.pendingData.splice(0);
-      this.syncDataTimers(shared2);
-      queued.forEach((payload) => handlers.data?.(payload));
-    } else this.syncDataTimers(shared2);
-    if ((handlers.track || handlers.stream) && binding.pendingTracks.length) binding.pendingTracks.splice(0).forEach(({ track, stream }) => {
-      handlers.track?.(track, stream);
-      handlers.stream?.(stream);
-    });
-  }
-  unclaimedBufferedFrameCount(shared2) {
-    let count = 0;
-    for (const queue of shared2.pendingDataByToken.values()) count += queue.length;
-    return count;
-  }
-  boundBufferedFrameCount(shared2) {
-    let count = 0;
-    for (const binding of values(shared2.bindings)) count += binding.pendingData.length;
-    return count;
-  }
-  bufferedFrameCount(shared2) {
-    return this.unclaimedBufferedFrameCount(shared2) + this.boundBufferedFrameCount(shared2);
-  }
-  clearDataTimers(shared2) {
-    resetTimer(this.unclaimedDataTimers.get(shared2));
-    this.unclaimedDataTimers.delete(shared2);
-    resetTimer(this.pendingDataTimers.get(shared2));
-    this.pendingDataTimers.delete(shared2);
-  }
-  syncDataTimers(shared2) {
-    if (shared2.isClosing) {
-      this.clearDataTimers(shared2);
-      return;
-    }
-    if (this.unclaimedBufferedFrameCount(shared2) === 0) {
-      resetTimer(this.unclaimedDataTimers.get(shared2));
-      this.unclaimedDataTimers.delete(shared2);
-    } else if (!this.unclaimedDataTimers.has(shared2)) this.unclaimedDataTimers.set(shared2, setTimeout(() => {
-      this.unclaimedDataTimers.delete(shared2);
-      shared2.pendingDataByToken.clear();
-    }, pendingDataTimeoutMs));
-    if (this.boundBufferedFrameCount(shared2) === 0) {
-      resetTimer(this.pendingDataTimers.get(shared2));
-      this.pendingDataTimers.delete(shared2);
-    } else if (!this.pendingDataTimers.has(shared2)) this.pendingDataTimers.set(shared2, setTimeout(() => {
-      this.pendingDataTimers.delete(shared2);
-      if (this.boundBufferedFrameCount(shared2) > 0) this.failData(shared2, "room data handler timed out");
-    }, pendingDataTimeoutMs));
-  }
-  canBindRoomToken(shared2, token) {
-    return values(shared2.bindings).some((binding) => !binding.roomToken) || [...this.rooms.get(shared2.appId)?.values() ?? []].some((room2) => !room2.token || room2.token === token);
-  }
-  discardUnboundData(shared2) {
-    for (const token of shared2.pendingDataByToken.keys()) if (!this.canBindRoomToken(shared2, token)) shared2.pendingDataByToken.delete(token);
-    this.syncDataTimers(shared2);
-  }
-  failData(shared2, reason) {
-    console.warn(`${libName}: ${reason}; disconnecting peer ${shared2.peerId}`);
-    this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
-  }
-  dispatchData(shared2, data) {
-    if (shared2.isClosing) return;
-    const decoded = unwrapFrame(data);
-    if (!decoded) {
-      this.failData(shared2, "invalid or incompatible room frame");
-      return;
-    }
-    if (decoded.type === "presence") {
-      if (decoded.isPresent) {
-        if (!shared2.remoteRoomTokens.has(decoded.roomToken) && shared2.remoteRoomTokens.size >= 64) {
-          this.failData(shared2, "too many advertised rooms");
-          return;
-        }
-        shared2.remoteRoomTokens.add(decoded.roomToken);
-        for (const [roomId, registration] of this.rooms.get(shared2.appId) ?? []) if (registration.token === decoded.roomToken) this.attachRoom(shared2.appId, roomId, registration, shared2);
-      } else {
-        shared2.remoteRoomTokens.delete(decoded.roomToken);
-        shared2.pendingDataByToken.delete(decoded.roomToken);
-        const binding2 = shared2.bindingsByToken[decoded.roomToken];
-        binding2?.handlers.close?.();
-        binding2?.detach();
-        this.syncDataTimers(shared2);
-      }
-      return;
-    }
-    const binding = shared2.bindingsByToken[decoded.roomToken];
-    if (!binding) {
-      if (!this.canBindRoomToken(shared2, decoded.roomToken) || this.bufferedFrameCount(shared2) >= 64) return;
-      const pending = shared2.pendingDataByToken.get(decoded.roomToken) ?? [];
-      pending.push(decoded.payload);
-      shared2.pendingDataByToken.set(decoded.roomToken, pending);
-      this.syncDataTimers(shared2);
-      return;
-    }
-    if (binding.handlers.data) binding.handlers.data(decoded.payload);
-    else {
-      if (this.bufferedFrameCount(shared2) >= 64) {
-        this.failData(shared2, "too much data waiting for a room handler");
-        return;
-      }
-      binding.pendingData.push(decoded.payload);
-      this.syncDataTimers(shared2);
-    }
-  }
-  dispatchSignal(shared2, signal) {
-    const binding = this.getSignalBinding(shared2);
-    if (binding) binding.handlers.signal?.(signal);
-    else if (signal.type === "offer") this.clear(shared2.appId, shared2.peerId, { destroyPeer: true });
-  }
-  dispatchTrack(shared2, track, stream) {
-    values(shared2.bindings).forEach((binding) => {
-      if (binding.handlers.track || binding.handlers.stream) {
-        binding.handlers.track?.(track, stream);
-        binding.handlers.stream?.(stream);
-        return;
-      }
-      binding.pendingTracks.push({
-        track,
-        stream
-      });
-    });
-  }
-};
-
-// node_modules/@trystero-p2p/core/dist/signal-handler.mjs
-var offerPostAnswerTtlMs = 23333;
-var offerTtl = 57333;
-var offerIdSize = 12;
-var disconnectedPeerGraceMs = 7533;
-var answeringTtlMs = 23333;
-var offerRelayPlaceholder = "offer-placeholder";
-var signalKeys = [
-  "offer",
-  "answer",
-  "candidate"
-];
-var toPayload = (msg) => {
-  if (typeof msg === "string") try {
-    const parsed = fromJson(msg);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-  return msg && typeof msg === "object" && !Array.isArray(msg) ? msg : null;
-};
-var getString = (payload, key) => typeof payload[key] === "string" && payload[key] ? payload[key] : void 0;
-var isPeerHandle = (value2) => Boolean(value2 && typeof value2 === "object" && typeof value2.signal === "function" && typeof value2.destroy === "function" && typeof value2.setHandlers === "function");
-var hasInvalidSignalField = (payload, isStringMessage = false) => signalKeys.some((key) => key in payload && (typeof payload[key] !== "string" || payload[key] === "")) || "peer" in payload && (isStringMessage || payload["peer"] !== void 0 && !isPeerHandle(payload["peer"]));
-var shouldActivatePassiveRoom = (msg) => {
-  const payload = toPayload(msg);
-  if (!payload || hasInvalidSignalField(payload, typeof msg === "string")) return false;
-  const peerId = getString(payload, "peerId");
-  return Boolean(peerId && peerId !== selfId && payload["passive"] !== true && !getString(payload, "answer") && !getString(payload, "candidate"));
-};
-var publishCipheredSignalingMessage = (ctx, signal, peerTopic, signalPeer, buildPayload, stillValid) => {
-  ctx.toCipher(signal).then((encryptedSignal) => {
-    if (ctx.isLeaving() || !stillValid()) return;
-    signalPeer(peerTopic, toJson(buildPayload(encryptedSignal.sdp)));
-  });
-};
-var makeState = () => ({
-  offerPeer: null,
-  offerId: null,
-  offerSdp: null,
-  offerInitPromise: null,
-  offerAnswered: false,
-  offerRelays: [],
-  offerSignalRelays: [],
-  offerSignalBacklog: [],
-  offerRelayTimers: [],
-  offerExpiryTimer: null,
-  connectedPeer: null,
-  connectedPeerUnhealthySinceMs: null,
-  answeringExpiryTimer: null,
-  answeringPeer: null,
-  answerSent: false,
-  answerReplay: null,
-  connectionErrorReported: false
-});
-var hasTurnServer = (config) => {
-  return [...config.turnConfig ?? [], ...config.rtcConfig?.iceServers ?? []].some(({ urls }) => {
-    return (Array.isArray(urls) ? urls : [urls]).some((url) => /^turns?:/i.test(url));
-  });
-};
-var getSdpExchangeConnectionError = (peerId, config) => `could not connect to peer ${peerId} after exchanging SDP; ${hasTurnServer(config) ? "check that your TURN server URLs and credentials are reachable by both peers" : "configure TURN servers with turnConfig or rtcConfig.iceServers"}`;
-var reportSdpExchangeConnectionFailure = (ctx, state, peerId) => {
-  if (ctx.isLeaving() || state.connectedPeer || state.connectionErrorReported) return;
-  state.connectionErrorReported = true;
-  ctx.onJoinError?.({
-    error: getSdpExchangeConnectionError(peerId, ctx.config),
-    appId: ctx.appId,
-    peerId,
-    roomId: ctx.roomId
-  });
-};
-var getState = (peerStates, peerId) => peerStates[peerId] ??= makeState();
-var counterAnnounceTimestamps = /* @__PURE__ */ new WeakMap();
-var resetAnsweringState = (state) => {
-  counterAnnounceTimestamps.delete(state);
-  state.answeringExpiryTimer = resetTimer(state.answeringExpiryTimer);
-  state.answeringPeer = null;
-  state.answerSent = false;
-  state.answerReplay = null;
-};
-var clearAnswering = (state, peer) => {
-  if (state.answeringPeer === peer) {
-    resetAnsweringState(state);
-    if (state.connectedPeer !== peer && !peer.isDead) peer.destroy();
-  }
-};
-var markPeerConnected = (state, physical) => {
-  if (state.answeringPeer && state.answeringPeer !== physical && !state.answeringPeer.isDead) state.answeringPeer.destroy();
-  resetAnsweringState(state);
-  state.connectedPeer = physical;
-  state.connectedPeerUnhealthySinceMs = null;
-};
-var detachConnectedPeer = (state, physical) => {
-  if (state?.connectedPeer === physical) {
-    state.connectedPeer = null;
-    state.connectedPeerUnhealthySinceMs = null;
-  }
-};
-var clearConnectedPeer = (state, peerId, _reason) => {
-  if (!state.connectedPeer) return;
-  if (!state.connectedPeer.isDead) state.connectedPeer.destroy();
-  state.connectedPeer = null;
-  state.connectedPeerUnhealthySinceMs = null;
-};
-var clearOfferRelay = (state, relayId) => {
-  state.offerRelayTimers[relayId] = resetTimer(state.offerRelayTimers[relayId]);
-  if (state.offerRelays[relayId]) state.offerRelays[relayId] = void 0;
-};
-var clearOfferRelayIfPlaceholder = (state, relayId) => {
-  if (state?.offerRelays[relayId] === offerRelayPlaceholder) clearOfferRelay(state, relayId);
-};
-var resetOfferState = (state) => {
-  counterAnnounceTimestamps.delete(state);
-  state.offerExpiryTimer = resetTimer(state.offerExpiryTimer);
-  state.offerInitPromise = null;
-  state.offerRelays.forEach((_, relayId) => clearOfferRelay(state, relayId));
-  state.offerRelays = [];
-  state.offerSignalRelays = [];
-  state.offerRelayTimers = [];
-  state.offerSignalBacklog = [];
-  if (state.offerPeer && state.offerPeer !== state.connectedPeer) {
-    if (!state.offerPeer.isDead) state.offerPeer.destroy();
-  }
-  state.offerPeer = null;
-  state.offerId = null;
-  state.offerSdp = null;
-  state.offerAnswered = false;
-  state.connectionErrorReported = false;
-};
-var scheduleAnsweringExpiry = (ctx, state, peerId, peer) => {
-  resetTimer(state.answeringExpiryTimer);
-  state.answeringExpiryTimer = setTimeout(() => {
-    const current = ctx.peerStates[peerId];
-    if (!current || current.connectedPeer || current.answeringPeer !== peer) return;
-    if (current.answerSent) reportSdpExchangeConnectionFailure(ctx, current, peerId);
-    clearAnswering(current, peer);
-    ctx.checkDeactivate();
-  }, answeringTtlMs);
-};
-var scheduleOfferExpiry = (ctx, state, peerId, ttlMs = offerTtl) => {
-  resetTimer(state.offerExpiryTimer);
-  const offerId = state.offerId;
-  state.offerExpiryTimer = setTimeout(() => {
-    const current = ctx.peerStates[peerId];
-    if (!current || current.connectedPeer || current.offerId !== offerId) return;
-    if (current.offerAnswered) reportSdpExchangeConnectionFailure(ctx, current, peerId);
-    resetOfferState(current);
-    ctx.checkDeactivate();
-  }, ttlMs);
-};
-var bindOfferPeerHandlers = (ctx, state, peerId, peer, onSignal) => {
-  const onOfferPeerClosedOrError = () => {
-    if (state.offerPeer === peer && !state.connectedPeer) {
-      if (state.offerAnswered) reportSdpExchangeConnectionFailure(ctx, state, peerId);
-      resetOfferState(state);
-    }
-    ctx.disconnectPeer(peer, peerId);
-    ctx.checkDeactivate();
-  };
-  peer.setHandlers({
-    connect: () => ctx.connectPeer(peer, peerId),
-    ...onSignal ? { signal: onSignal } : {},
-    close: onOfferPeerClosedOrError,
-    error: onOfferPeerClosedOrError
-  });
-};
-var ensureOffer = (ctx, state, peerId) => {
-  if (state.offerPeer && state.offerId && state.offerSdp) return Promise.resolve({
-    peer: state.offerPeer,
-    offer: state.offerSdp,
-    offerId: state.offerId
-  });
-  if (state.offerInitPromise) return state.offerInitPromise;
-  const allocateOffer = async () => {
-    let firstOffer;
-    try {
-      firstOffer = (await ctx.offerManager.checkout(1, false, ctx.encryptOffer))[0];
-    } catch (error) {
-      if (ctx.isLeaving() || state.offerInitPromise !== pending) return null;
-      throw error;
-    }
-    if (!firstOffer) throw mkErr("failed to allocate offer peer");
-    const { peer, offer: offer4 } = firstOffer;
-    if (ctx.isLeaving() || state.offerInitPromise !== pending) {
-      peer.destroy();
-      return null;
-    }
-    state.offerPeer = peer;
-    state.offerId = genId(offerIdSize);
-    state.offerSdp = offer4;
-    state.offerAnswered = false;
-    state.connectionErrorReported = false;
-    state.offerSignalBacklog = [];
-    bindOfferPeerHandlers(ctx, state, peerId, peer, (signal) => {
-      if (state.offerPeer !== peer) return;
-      state.offerSignalBacklog.push(signal);
-      state.offerSignalRelays.forEach((sendSignal) => sendSignal?.(signal));
-    });
-    scheduleOfferExpiry(ctx, state, peerId);
-    return {
-      peer,
-      offer: offer4,
-      offerId: state.offerId
-    };
-  };
-  const pending = allocateOffer().finally(() => {
-    if (state.offerInitPromise === pending) state.offerInitPromise = null;
-  });
-  return state.offerInitPromise = pending;
-};
-var handleAnnouncement = async (ctx, relayId, peerId, signalPeer, retryAttempt = 0) => {
-  const state = ctx.peerStates[peerId];
-  if (!state || state.connectedPeer || state.answeringPeer || state.offerAnswered) {
-    clearOfferRelayIfPlaceholder(state, relayId);
-    return;
-  }
-  if (state.offerRelays[relayId] !== offerRelayPlaceholder) return;
-  const [peerTopic, offerInfo] = await all([sha1(topicPath(ctx.rootTopicPlaintext, peerId)), ensureOffer(ctx, state, peerId)]);
-  if (!offerInfo) {
-    clearOfferRelayIfPlaceholder(state, relayId);
-    return;
-  }
-  if (ctx.isLeaving()) {
-    resetOfferState(state);
-    return;
-  }
-  if (state.connectedPeer || state.answeringPeer || state.offerAnswered || state.offerRelays[relayId] !== offerRelayPlaceholder) {
-    clearOfferRelayIfPlaceholder(state, relayId);
-    return;
-  }
-  state.offerRelayTimers[relayId] = resetTimer(state.offerRelayTimers[relayId]);
-  state.offerRelays[relayId] = true;
-  state.offerRelayTimers[relayId] = setTimeout(() => {
-    if (retryAttempt >= 2 || ctx.isLeaving() || state.connectedPeer || state.answeringPeer || state.offerAnswered || state.offerPeer !== offerInfo.peer || state.offerId !== offerInfo.offerId) {
-      prunePendingOffer(ctx, peerId, relayId);
-      return;
-    }
-    state.offerRelays[relayId] = offerRelayPlaceholder;
-    handleAnnouncement(ctx, relayId, peerId, signalPeer, retryAttempt + 1);
-  }, retryAttempt === 0 && ctx.announceIntervals[relayId] === void 0 ? 2e3 : (ctx.announceIntervals[relayId] ?? ctx.announceIntervalMs) * 0.9);
-  let didSendOffer = false;
-  state.offerSignalRelays[relayId] = (signal) => {
-    if (!didSendOffer) return;
-    if (ctx.isLeaving() || state.connectedPeer || state.offerPeer !== offerInfo.peer || state.offerId !== offerInfo.offerId || signal.type !== "candidate") return;
-    publishCipheredSignalingMessage(ctx, signal, peerTopic, signalPeer, (sdp) => ({
-      peerId: selfId,
-      offerId: offerInfo.offerId,
-      candidate: sdp,
-      ...ctx.isPassive ? { passive: true } : {}
-    }), () => !state.connectedPeer && state.offerPeer === offerInfo.peer && state.offerId === offerInfo.offerId);
-  };
-  signalPeer(peerTopic, toJson({
-    peerId: selfId,
-    offerId: offerInfo.offerId,
-    offer: offerInfo.offer,
-    ...ctx.isPassive ? { passive: true } : {}
-  }));
-  didSendOffer = true;
-  state.offerSignalBacklog.forEach((signal) => state.offerSignalRelays[relayId]?.(signal));
-};
-var handleOffer = async (ctx, relayId, peerId, offer4, offerId, signalPeer) => {
-  const state = getState(ctx.peerStates, peerId);
-  if (state.answeringPeer || state.offerAnswered) {
-    const replay2 = state.answerReplay;
-    const lastSentAt = replay2?.lastSentAt[relayId];
-    if (state.answeringPeer && !state.answeringPeer.isDead && replay2 && replay2.offer === offer4 && replay2.offerId === offerId && (lastSentAt === void 0 || Date.now() - lastSentAt >= 1e3)) {
-      replay2.lastSentAt[relayId] = Date.now();
-      const peerTopic2 = await sha1(topicPath(ctx.rootTopicPlaintext, peerId));
-      if (!ctx.isLeaving() && state.answerReplay === replay2 && !state.connectedPeer) {
-        const send = (message) => signalPeer(peerTopic2, message);
-        replay2.relays[relayId] = send;
-        replay2.messages.forEach(send);
-      }
-    }
-    return;
-  }
-  const hasTrackedOutgoingOffer = Boolean(state.offerPeer || state.offerRelays.some(Boolean));
-  if (hasTrackedOutgoingOffer && selfId < peerId) return;
-  if (hasTrackedOutgoingOffer) resetOfferState(state);
-  const answerPeer = ctx.initPeer(false, ctx.config);
-  const replay = {
-    offer: offer4,
-    offerId,
-    messages: [],
-    lastSentAt: [],
-    relays: []
-  };
-  replay.lastSentAt[relayId] = Date.now();
-  state.answeringPeer = answerPeer;
-  state.answerSent = false;
-  state.answerReplay = replay;
-  state.connectionErrorReported = false;
-  scheduleAnsweringExpiry(ctx, state, peerId, answerPeer);
-  const onAnswerPeerClosedOrError = () => {
-    if (state.answeringPeer === answerPeer && !state.connectedPeer && state.answerSent) reportSdpExchangeConnectionFailure(ctx, state, peerId);
-    clearAnswering(state, answerPeer);
-    ctx.disconnectPeer(answerPeer, peerId);
-    ctx.checkDeactivate();
-  };
-  answerPeer.setHandlers({
-    connect: () => ctx.connectPeer(answerPeer, peerId),
-    close: onAnswerPeerClosedOrError,
-    error: onAnswerPeerClosedOrError
-  });
-  let plainOffer;
-  try {
-    plainOffer = await ctx.toPlain({
-      type: "offer",
-      sdp: offer4
-    });
-  } catch {
-    clearAnswering(state, answerPeer);
-    ctx.onJoinError?.({
-      error: "incorrect room password when decrypting offer",
-      appId: ctx.appId,
-      peerId,
-      roomId: ctx.roomId
-    });
-    return;
-  }
-  if (answerPeer.isDead) {
-    clearAnswering(state, answerPeer);
-    return;
-  }
-  const peerTopic = await sha1(topicPath(ctx.rootTopicPlaintext, peerId));
-  if (ctx.isLeaving() || state.answerReplay !== replay) return;
-  replay.relays[relayId] = (message) => signalPeer(peerTopic, message);
-  const pendingCandidates = [];
-  let didSendAnswer = false;
-  const publishAnswerSignal = (signal) => {
-    ctx.toCipher(signal).then((encryptedSignal) => {
-      if (ctx.isLeaving() || state.answeringPeer !== answerPeer || answerPeer.isDead) return;
-      const payloadToSend = { peerId: selfId };
-      if (signal.type === "answer") {
-        state.answerSent = true;
-        payloadToSend["answer"] = encryptedSignal.sdp;
-      } else payloadToSend["candidate"] = encryptedSignal.sdp;
-      if (offerId) payloadToSend["offerId"] = offerId;
-      if (ctx.isPassive) payloadToSend["passive"] = true;
-      const message = toJson(payloadToSend);
-      const now2 = Date.now();
-      replay.messages.push(message);
-      replay.relays.forEach((send, id) => {
-        if (send) {
-          replay.lastSentAt[id] = now2;
-          send(message);
-        }
-      });
-      if (signal.type === "answer" && !didSendAnswer) {
-        didSendAnswer = true;
-        pendingCandidates.splice(0).forEach(publishAnswerSignal);
-      }
-    });
-  };
-  answerPeer.setHandlers({ signal: (signal) => {
-    if (ctx.isLeaving() || state.answeringPeer !== answerPeer || answerPeer.isDead) return;
-    if (signal.type !== "answer" && signal.type !== "candidate") return;
-    if (signal.type === "candidate" && !didSendAnswer) {
-      pendingCandidates.push(signal);
-      return;
-    }
-    publishAnswerSignal(signal);
-  } });
-  await answerPeer.signal(plainOffer);
-};
-var handleCandidate = async (ctx, peerId, candidate, offerId, peer) => {
-  let plainCandidate;
-  try {
-    plainCandidate = await ctx.toPlain({
-      type: candidateType,
-      sdp: candidate
-    });
-  } catch {
-    return;
-  }
-  const state = ctx.peerStates[peerId];
-  const offerPeerMatch = offerId && state?.offerPeer && state.offerId === offerId ? state.offerPeer : null;
-  const answeringPeer = !offerId || state?.answerReplay?.offerId === offerId ? state?.answeringPeer : null;
-  const fallbackOfferPeer = !offerId && state?.offerPeer ? state.offerPeer : null;
-  const targetPeer = peer && !peer.isDead ? peer : offerPeerMatch ?? answeringPeer ?? fallbackOfferPeer;
-  if (targetPeer && !targetPeer.isDead) targetPeer.signal(plainCandidate);
-};
-var handleAnswer = async (ctx, peerId, answer, offerId, peer) => {
-  let plainAnswer;
-  try {
-    plainAnswer = await ctx.toPlain({
-      type: "answer",
-      sdp: answer
-    });
-  } catch {
-    if (peer) {
-      ctx.offerManager.reclaimLeased(peer);
-      if (!peer.isDead) peer.destroy();
-    }
-    ctx.onJoinError?.({
-      error: "incorrect room password when decrypting answer",
-      appId: ctx.appId,
-      peerId,
-      roomId: ctx.roomId
-    });
-    return;
-  }
-  if (peer) {
-    const state = getState(ctx.peerStates, peerId);
-    ctx.offerManager.claimLeased(peer);
-    if (state.connectedPeer || state.offerAnswered || state.answeringPeer && !state.answeringPeer.isDead && selfId > peerId) {
-      peer.destroy();
-      return;
-    }
-    if (state.answeringPeer) {
-      const answeringPeer = state.answeringPeer;
-      clearAnswering(state, answeringPeer);
-    }
-    resetOfferState(state);
-    state.offerPeer = peer;
-    state.offerId = offerId ?? null;
-    state.offerAnswered = true;
-    scheduleOfferExpiry(ctx, state, peerId, offerPostAnswerTtlMs);
-    bindOfferPeerHandlers(ctx, state, peerId, peer);
-    peer.signal(plainAnswer);
-  } else {
-    const state = ctx.peerStates[peerId];
-    if (!state || !state.offerPeer || state.offerAnswered || offerId && state.offerId && offerId !== state.offerId || state.offerPeer.isDead) return;
-    state.offerAnswered = true;
-    scheduleOfferExpiry(ctx, state, peerId, offerPostAnswerTtlMs);
-    state.offerPeer.signal(plainAnswer);
-  }
-};
-var prunePendingOffer = (ctx, peerId, relayId) => {
-  const state = ctx.peerStates[peerId];
-  if (!state || state.connectedPeer) return;
-  if (state.offerRelays[relayId]) {
-    clearOfferRelay(state, relayId);
-    ctx.checkDeactivate();
-  }
-};
-var createSignalHandler = (ctx) => (relayId) => async (topic, msg, signalPeer) => {
-  if (ctx.isLeaving()) return;
-  const payload = toPayload(msg);
-  if (!payload || hasInvalidSignalField(payload, typeof msg === "string")) return;
-  const peerId = getString(payload, "peerId") ?? "";
-  const offer4 = getString(payload, "offer");
-  const answer = getString(payload, "answer");
-  const candidate = getString(payload, "candidate");
-  const offerId = getString(payload, "offerId");
-  const peer = isPeerHandle(payload["peer"]) ? payload["peer"] : void 0;
-  const remoteIsPassive = payload["passive"] === true;
-  if (!peerId || peerId === selfId) return;
-  const [rootTopic, selfTopic] = await all([ctx.rootTopicP, ctx.selfTopicP]);
-  if (ctx.isLeaving()) return;
-  if (topic !== rootTopic && topic !== selfTopic) return;
-  if (ctx.isPassive && remoteIsPassive) return;
-  if (ctx.isPassive && !ctx.isActive && !answer && !candidate) {
-    ctx.isActive = true;
-    ctx.requeueAnnounce?.();
-  }
-  if (ctx.isPassive && !ctx.isActive) return;
-  const state = ctx.peerStates[peerId];
-  const connectedPeer = state?.connectedPeer;
-  if (connectedPeer && state) {
-    const health = getConnectedPeerHealth(connectedPeer);
-    if (health === "live") {
-      state.connectedPeerUnhealthySinceMs = null;
-      return;
-    }
-    if (health === "stale") clearConnectedPeer(state, peerId, "message-from-stale-peer");
-    else {
-      const nowMs = Date.now();
-      const unhealthySinceMs = state.connectedPeerUnhealthySinceMs ?? nowMs;
-      state.connectedPeerUnhealthySinceMs = unhealthySinceMs;
-      if (nowMs - unhealthySinceMs < disconnectedPeerGraceMs) return;
-      clearConnectedPeer(state, peerId, "message-from-prolonged-disconnect");
-    }
-  }
-  if (ctx.reusePeer(peerId)) return;
-  if (Boolean(peerId && !offer4 && !answer && !candidate)) {
-    const announcePeerState = getState(ctx.peerStates, peerId);
-    const shouldLeadOffer = selfId < peerId;
-    if (announcePeerState.answeringPeer || announcePeerState.connectedPeer || announcePeerState.offerAnswered) return;
-    if (!shouldLeadOffer && !announcePeerState.offerPeer) {
-      let lastSentByRelay = counterAnnounceTimestamps.get(announcePeerState);
-      if (!lastSentByRelay) {
-        lastSentByRelay = [];
-        counterAnnounceTimestamps.set(announcePeerState, lastSentByRelay);
-      }
-      const lastSentAt = lastSentByRelay[relayId];
-      if (lastSentAt !== void 0 && Date.now() - lastSentAt < 1e3) return;
-      lastSentByRelay[relayId] = Date.now();
-      const peerSelfTopic = await sha1(topicPath(ctx.rootTopicPlaintext, peerId));
-      if (!ctx.isLeaving() && !announcePeerState.connectedPeer && !announcePeerState.answeringPeer && !announcePeerState.offerAnswered) signalPeer(peerSelfTopic, toJson({ peerId: selfId }));
-      return;
-    }
-    if (announcePeerState.offerRelays[relayId]) return;
-    announcePeerState.offerRelays[relayId] = offerRelayPlaceholder;
-    return handleAnnouncement(ctx, relayId, peerId, signalPeer);
-  }
-  if (offer4) return handleOffer(ctx, relayId, peerId, offer4, offerId, signalPeer);
-  if (candidate) return handleCandidate(ctx, peerId, candidate, offerId, peer);
-  if (answer) return handleAnswer(ctx, peerId, answer, offerId, peer);
-};
-
-// node_modules/@trystero-p2p/core/dist/strategy.mjs
-var announceIntervalMs = 5333;
-var announceWarmupIntervalsMs = [
-  233,
-  533,
-  1333
-];
-var passiveActivationGraceMs = 7533;
-var sharedPeerIdleMsDefault = 123333;
-var strategy_default = ({ init, subscribe, announce, deactivate }) => {
-  const occupiedRooms = {};
-  const leavingRoomCleanups = {};
-  const sharedPeers = new SharedPeerManager();
-  const hasActiveRooms = () => values(occupiedRooms).some((rooms) => keys(rooms).length > 0);
-  let didInit = false;
-  let initPromises = [];
-  let cleanupWatchOnline = noOp;
-  return (config, roomId, callbacks) => {
-    if (!config) throw mkErr("requires a config map as the first argument");
-    if (callbacks && typeof callbacks !== "object") throw mkErr("third argument must be a callbacks object");
-    const { appId } = config;
-    const onJoinError = callbacks?.onJoinError;
-    const onPeerHandshake = callbacks?.onPeerHandshake;
-    const handshakeTimeoutMs = callbacks?.handshakeTimeoutMs;
-    if (!appId) throw mkErr("config map is missing appId field");
-    if (!roomId) throw mkErr("roomId argument required");
-    if (config.maxReceiveBytes !== void 0 && (!Number.isSafeInteger(config.maxReceiveBytes) || config.maxReceiveBytes <= 0)) throw mkErr("maxReceiveBytes must be a positive safe integer");
-    if (handshakeTimeoutMs !== void 0 && (!Number.isFinite(handshakeTimeoutMs) || handshakeTimeoutMs <= 0)) throw mkErr("handshakeTimeoutMs must be a positive number");
-    if (occupiedRooms[appId]?.[roomId]) return occupiedRooms[appId][roomId];
-    leavingRoomCleanups[appId]?.[roomId]?.(true);
-    const rootTopicPlaintext = topicPath(libName, appId, roomId);
-    const rootTopicP = sha1(rootTopicPlaintext);
-    const selfTopicP = sha1(topicPath(rootTopicPlaintext, selfId));
-    const key = genKey(config.password ?? "", appId, roomId);
-    const roomNamespacePromise = deriveRoomNamespace(appId, roomId);
-    const sharedPeerIdleMs = config._test_only_sharedPeerIdleMs ?? sharedPeerIdleMsDefault;
-    let didLeaveRoom = false;
-    const withKey = (f) => async (signal) => ({
-      type: signal.type,
-      sdp: await f(key, signal.sdp)
-    });
-    const toPlain = withKey(decrypt);
-    const toCipher = withKey(encrypt);
-    const makeOffer = () => peer_default(true, config);
-    let reannounceOnDisconnect = false;
-    const offerManager = new OfferManager(makeOffer);
-    const encryptOffer = async (peer) => {
-      const plainOffer = await peer.getOffer();
-      if (!plainOffer || plainOffer.type !== "offer") throw mkErr("failed to get offer for peer");
-      return (await toCipher(plainOffer)).sdp;
-    };
-    const connectPeer = (peer, peerId) => {
-      membership.connect(peerId, peer, sharedPeerIdleMs);
-    };
-    let disconnectReannounceQueued = false;
-    const reannounceAfterDisconnect = () => {
-      if (isPassive || !reannounceOnDisconnect || disconnectReannounceQueued) return;
-      disconnectReannounceQueued = true;
-      queueMicrotask(() => {
-        disconnectReannounceQueued = false;
-        if (!didLeaveRoom) ctx.requeueAnnounce?.();
-      });
-    };
-    const disconnectPeer = (peer, peerId) => {
-      if (didLeaveRoom) return;
-      const state = ctx.peerStates[peerId];
-      if (state?.connectedPeer === peer) {
-        clearConnectedPeer(state, peerId, "close-event");
-        checkDeactivate();
-        reannounceAfterDisconnect();
-      }
-    };
-    const isPassive = Boolean(config.passive);
-    let passiveActivationTimeout;
-    let deactivateRelayAnnouncements = noOp;
-    const checkDeactivate = () => {
-      if (!isPassive || !ctx.isActive) return;
-      let hasActiveWork = false;
-      entries3(ctx.peerStates).forEach(([peerId, state]) => {
-        if (state.connectedPeer || state.answeringPeer || state.offerInitPromise || state.offerPeer || state.offerRelays.some(Boolean)) hasActiveWork = true;
-        else delete ctx.peerStates[peerId];
-      });
-      if (!hasActiveWork) {
-        ctx.isActive = false;
-        passiveActivationTimeout = resetTimer(passiveActivationTimeout);
-        announceTimeouts.forEach(resetTimer);
-        announceTimeouts.length = 0;
-        deactivateRelayAnnouncements();
-        membership.setActive(false);
-      }
-    };
-    const ctx = {
-      appId,
-      roomId,
-      config,
-      peerStates: {},
-      rootTopicPlaintext,
-      rootTopicP,
-      selfTopicP,
-      toPlain,
-      toCipher,
-      isLeaving: () => didLeaveRoom,
-      isPassive,
-      isActive: !isPassive,
-      onJoinError,
-      offerManager,
-      encryptOffer,
-      initPeer: peer_default,
-      connectPeer,
-      disconnectPeer,
-      reusePeer: (peerId) => membership.reuse(peerId),
-      checkDeactivate,
-      announceIntervals: [],
-      announceIntervalMs
-    };
-    const strategyContext = {
-      config,
-      appId,
-      roomId,
-      isPassive
-    };
-    const handleMessage = createSignalHandler(ctx);
-    if (!didInit) {
-      const initRes = init(config);
-      initPromises = (Array.isArray(initRes) ? initRes : [initRes]).map((value2) => Promise.resolve(value2));
-      didInit = true;
-      cleanupWatchOnline = config.relayConfig?.manualReconnection ? noOp : watchOnline();
-    }
-    const announceScheduleIntervals = initPromises.map(() => announceIntervalMs);
-    const announceAttemptCounts = initPromises.map(() => 0);
-    const announceErrorStreaks = initPromises.map(() => 0);
-    const announceTimeouts = [];
-    const unsubFns = initPromises.map(async (relayP, i) => subscribe(await relayP, await rootTopicP, await selfTopicP, handleMessage(i), (n) => offerManager.getOffers(n, encryptOffer), strategyContext));
-    all([rootTopicP, selfTopicP]).then(([rootTopic, selfTopic]) => {
-      if (didLeaveRoom) return;
-      const queueAnnounce = async (relay, i) => {
-        if (didLeaveRoom) return;
-        if (isPassive && !ctx.isActive) return;
-        const extra = isPassive ? { passive: true } : void 0;
-        let announceResult = void 0;
-        try {
-          announceResult = await announce(relay, rootTopic, selfTopic, extra, strategyContext);
-          announceErrorStreaks[i] = 0;
-        } catch (error) {
-          if (didLeaveRoom) return;
-          const errorStreak = announceErrorStreaks[i] ?? 0;
-          if (errorStreak === 0 && config.relayConfig?.warnOnRelayFailure !== false) console.warn(`${libName}: announce failed - ${toErrorMessage(error, "")}`);
-          announceErrorStreaks[i] = errorStreak + 1;
-        }
-        if (didLeaveRoom || isPassive && !ctx.isActive) return;
-        if (announceResult && typeof announceResult !== "number" && "stopAnnouncing" in announceResult) return;
-        if (typeof announceResult === "number") {
-          ctx.announceIntervals[i] = announceResult;
-          announceScheduleIntervals[i] = announceResult;
-        } else if (announceResult) {
-          announceScheduleIntervals[i] = announceResult.nextAnnounceMs;
-          reannounceOnDisconnect ||= announceResult.reannounceOnDisconnect === true;
-        }
-        const announceAttempt = announceAttemptCounts[i] ?? 0;
-        announceAttemptCounts[i] = announceAttempt + 1;
-        const currentInterval = announceScheduleIntervals[i] ?? announceIntervalMs;
-        const warmupDelay = announceWarmupIntervalsMs[announceAttempt] ?? (announceAttempt === 3 && typeof announceResult === "object" ? announceIntervalMs : void 0);
-        announceTimeouts[i] = setTimeout(() => {
-          queueAnnounce(relay, i);
-        }, typeof warmupDelay === "number" ? Math.min(currentInterval, warmupDelay) : currentInterval);
-      };
-      deactivateRelayAnnouncements = () => {
-        if (!deactivate) return;
-        initPromises.forEach(async (relayP) => {
-          const relay = await relayP;
-          if (!didLeaveRoom) deactivate(relay, rootTopic, selfTopic, strategyContext);
-        });
-      };
-      ctx.requeueAnnounce = () => {
-        announceTimeouts.forEach(resetTimer);
-        announceTimeouts.length = 0;
-        passiveActivationTimeout = resetTimer(passiveActivationTimeout);
-        membership.setActive(true);
-        passiveActivationTimeout = setTimeout(checkDeactivate, passiveActivationGraceMs);
-        initPromises.forEach(async (relayP, i) => {
-          const relay = await relayP;
-          if (relay && !didLeaveRoom) {
-            announceAttemptCounts[i] = 0;
-            queueAnnounce(relay, i);
-          }
-        });
-      };
-      unsubFns.forEach(async (didSub, i) => {
-        await didSub;
-        if (didLeaveRoom) return;
-        const relay = await initPromises[i];
-        if (relay && !didLeaveRoom && (!isPassive || ctx.isActive)) queueAnnounce(relay, i);
-      });
-    });
-    let onPeerConnect = noOp;
-    const sharedPassword = config.password ?? "";
-    const { compose } = createPasswordHandshake(sharedPassword, appId, roomId);
-    const composedPeerHandshake = compose(onPeerHandshake);
-    const releaseOccupiedRoom = () => {
-      if (occupiedRooms[appId]?.[roomId] === joinedRoom) {
-        delete occupiedRooms[appId][roomId];
-        if (keys(occupiedRooms[appId]).length === 0) delete occupiedRooms[appId];
-      }
-    };
-    const clearLeavingCleanup = () => {
-      if (leavingRoomCleanups[appId]?.[roomId] === cleanupRoom) {
-        delete leavingRoomCleanups[appId][roomId];
-        if (keys(leavingRoomCleanups[appId]).length === 0) delete leavingRoomCleanups[appId];
-      }
-    };
-    const cleanupRoom = (rejoining = false) => {
-      if (didLeaveRoom) return;
-      didLeaveRoom = true;
-      onPeerConnect = noOp;
-      releaseOccupiedRoom();
-      clearLeavingCleanup();
-      membership.leave();
-      entries3(ctx.peerStates).forEach(([peerId, state]) => {
-        if (state.connectedPeer && !state.connectedPeer.isDead) {
-          if (!sharedPeers.owns(appId, peerId, state.connectedPeer)) state.connectedPeer.destroy();
-        }
-        if (state.answeringPeer && !state.answeringPeer.isDead) state.answeringPeer.destroy();
-        resetOfferState(state);
-        resetAnsweringState(state);
-        state.connectedPeer = null;
-        state.connectedPeerUnhealthySinceMs = null;
-      });
-      announceTimeouts.forEach(resetTimer);
-      passiveActivationTimeout = resetTimer(passiveActivationTimeout);
-      unsubFns.forEach(async (f) => {
-        (await f)();
-      });
-      offerManager.destroy();
-      if (rejoining || hasActiveRooms()) return;
-      didInit = false;
-      cleanupWatchOnline();
-    };
-    const roomOptions = {
-      ...config.maxReceiveBytes === void 0 ? {} : { maxReceiveBytes: config.maxReceiveBytes },
-      ...composedPeerHandshake ? { onPeerHandshake: composedPeerHandshake } : {},
-      ...handshakeTimeoutMs === void 0 ? {} : { handshakeTimeoutMs },
-      isPassive,
-      onBeforeLeave: () => {
-        releaseOccupiedRoom();
-        (leavingRoomCleanups[appId] ??= {})[roomId] = cleanupRoom;
-      },
-      onHandshakeError: (peerId, error) => onJoinError?.({
-        error: error.replace(/^handshake failed: /, ""),
-        appId,
-        peerId,
-        roomId
-      })
-    };
-    occupiedRooms[appId] ??= {};
-    const joinedRoom = room_default((f) => onPeerConnect = f, (id) => {
-      if (didLeaveRoom) return;
-      const state = ctx.peerStates[id];
-      if (state?.connectedPeer) detachConnectedPeer(state, state.connectedPeer);
-      checkDeactivate();
-      reannounceAfterDisconnect();
-    }, () => cleanupRoom(false), roomOptions);
-    const membership = sharedPeers.registerRoom(appId, roomId, roomNamespacePromise, {
-      active: !isPassive || ctx.isActive,
-      onPeer: (proxy, peerId, physical) => {
-        const state = getState(ctx.peerStates, peerId);
-        markPeerConnected(state, physical);
-        if (isPassive && !ctx.isActive) {
-          ctx.isActive = true;
-          membership.setActive(true);
-          if (ctx.requeueAnnounce) ctx.requeueAnnounce();
-          else {
-            passiveActivationTimeout = resetTimer(passiveActivationTimeout);
-            passiveActivationTimeout = setTimeout(checkDeactivate, passiveActivationGraceMs);
-          }
-        }
-        onPeerConnect(proxy, peerId);
-        resetOfferState(state);
-      },
-      onDetach: (peerId, physical) => {
-        detachConnectedPeer(ctx.peerStates[peerId], physical);
-        checkDeactivate();
-      }
-    });
-    return occupiedRooms[appId][roomId] = joinedRoom;
-  };
-};
-
-// node_modules/@trystero-p2p/core/dist/topic-strategy.mjs
-var defaultSteadyAnnounceIntervalMs = 6e4;
-var requireContext = (context) => {
-  if (!context) throw mkErr("topic strategy missing room context");
-  return context;
-};
-var makeTopicContext = (context, kind, rootTopic, selfTopic) => ({
-  kind,
-  appId: context.appId,
-  roomId: context.roomId,
-  rootTopic,
-  selfTopic
-});
-var topic_strategy_default = ({ steadyAnnounceIntervalMs: steadyAnnounceIntervalMs2 = defaultSteadyAnnounceIntervalMs, reannounceOnDisconnect = true, init, subscribeTopic, publishTopic, unpublishTopic }) => strategy_default({
-  init,
-  subscribe: async (relay, rootTopic, selfTopic, onMessage, _getOffers, rawContext) => {
-    const context = requireContext(rawContext);
-    const signalPeer = (peerTopic, signal) => void publishTopic(relay, peerTopic, signal, makeTopicContext(context, "signal", rootTopic, selfTopic));
-    let selfCleanup = null;
-    let selfCleanupDone = false;
-    let selfSubscriptionP = null;
-    let didCleanup = false;
-    const cleanupSelf = (cleanup) => {
-      if (selfCleanupDone) return;
-      selfCleanupDone = true;
-      cleanup();
-    };
-    const ensureSelfSubscription = () => {
-      if (!selfSubscriptionP) selfSubscriptionP = Promise.resolve(subscribeTopic(relay, selfTopic, (topic, msg) => {
-        if (!didCleanup) onMessage(topic, msg, signalPeer);
-      }, makeTopicContext(context, "self", rootTopic, selfTopic))).then((cleanup) => {
-        selfCleanup = cleanup;
-        if (didCleanup) cleanupSelf(cleanup);
-      });
-      return selfSubscriptionP;
-    };
-    if (!context.isPassive) await ensureSelfSubscription();
-    const rootCleanup = await subscribeTopic(relay, rootTopic, async (topic, msg) => {
-      if (didCleanup) return;
-      if (context.isPassive && shouldActivatePassiveRoom(msg)) await ensureSelfSubscription();
-      if (!didCleanup) await onMessage(topic, msg, signalPeer);
-    }, makeTopicContext(context, "root", rootTopic, selfTopic));
-    return () => {
-      didCleanup = true;
-      if (selfCleanup) cleanupSelf(selfCleanup);
-      rootCleanup();
-    };
-  },
-  announce: async (relay, rootTopic, selfTopic, extraPayload, rawContext) => {
-    const context = requireContext(rawContext);
-    const result = await publishTopic(relay, rootTopic, toJson({
-      peerId: selfId,
-      ...extraPayload
-    }), makeTopicContext(context, "announce", rootTopic, selfTopic));
-    return typeof result === "number" || result !== void 0 && "stopAnnouncing" in result ? result : {
-      nextAnnounceMs: result?.nextAnnounceMs ?? steadyAnnounceIntervalMs2,
-      reannounceOnDisconnect: result?.reannounceOnDisconnect ?? reannounceOnDisconnect
-    };
-  },
-  ...unpublishTopic ? { deactivate: (relay, rootTopic, selfTopic, rawContext) => {
-    const context = requireContext(rawContext);
-    return unpublishTopic(relay, rootTopic, makeTopicContext(context, "announce", rootTopic, selfTopic));
-  } } : {}
-});
-
-// node_modules/@trystero-p2p/nostr/dist/index.mjs
-var relayManager = createRelayManager((client) => client.socket);
-var defaultRedundancy = 5;
-var tag = "x";
+// node_modules/@trystero-p2p/nostr/dist/protocol.mjs
 var eventMsgType = "EVENT";
-var { secretKey, publicKey } = schnorr.keygen();
-var pubkey = toHex(publicKey);
-var kindCache = {};
-var maxTopicsPerSubscription = 250;
-var steadyAnnounceIntervalMs = 6e4;
-var maxRelayBackoffMs = 9e5;
-var subscriptionRetryMs = 5333;
-var relayBackoffs = /* @__PURE__ */ new WeakMap();
-var announcementMessages = relayManager.scoped();
-var retiredRelays = /* @__PURE__ */ new WeakSet();
-var backoffRelay = (client) => {
-  const previous = relayBackoffs.get(client);
-  const delayMs = Math.min(previous?.delayMs ? Math.max(steadyAnnounceIntervalMs, previous.delayMs * 2) : steadyAnnounceIntervalMs, maxRelayBackoffMs);
-  relayBackoffs.set(client, {
-    delayMs,
-    untilMs: Date.now() + delayMs
-  });
-  return delayMs;
-};
-var getRelayBackoffMs = (client) => {
-  const state = relayBackoffs.get(client);
-  if (!state) return 0;
-  const remainingMs = state.untilMs - Date.now();
-  if (remainingMs > 0) return remainingMs;
-  return 0;
-};
-var nextAnnounce = (nextAnnounceMs) => ({ nextAnnounceMs });
-var stopAnnouncing = { stopAnnouncing: true };
-var retireRelay = (client) => {
-  if (retiredRelays.has(client)) return false;
-  retiredRelays.add(client);
-  relayBackoffs.delete(client);
-  client.close?.();
-  return true;
-};
+var subscribeClockSkewSeconds = 60;
+var nativeToHex = Uint8Array.prototype.toHex;
+var toHex = typeof nativeToHex === "function" ? (bytes) => nativeToHex.call(bytes) : (bytes) => Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 var now = () => Math.floor(Date.now() / 1e3);
-var topicToKind = (topic) => kindCache[topic] ??= strToNum(topic, 1e4) + 2e4;
-var createEvent = async (topic, content) => {
+var subscribeSince = () => Math.max(0, now() - subscribeClockSkewSeconds);
+var createSigner = () => {
+  const { secretKey, publicKey } = schnorr.keygen();
+  return {
+    secretKey,
+    pubkey: toHex(publicKey)
+  };
+};
+var topicToKind = (topic) => {
+  let h = 2166136261;
+  for (let i = 0; i < topic.length; i++) h = Math.imul(h ^ topic.charCodeAt(i), 16777619);
+  return (h >>> 0) % 1e4 + 2e4;
+};
+var createEvent = async (topic, content, signer) => {
   const payload = {
     kind: topicToKind(topic),
-    tags: [[tag, topic]],
+    tags: [["x", topic]],
     created_at: now(),
     content,
-    pubkey
+    pubkey: signer.pubkey
   };
-  const id = await hashWith("SHA-256", toJson([
+  const id = new Uint8Array(await crypto.subtle.digest("SHA-256", encodeBytes(toJson([
     0,
     payload.pubkey,
     payload.created_at,
     payload.kind,
     payload.tags,
     payload.content
-  ]));
+  ]))));
   return toJson([eventMsgType, {
     ...payload,
     id: toHex(id),
-    sig: toHex(await schnorr.signAsync(id, secretKey))
+    sig: toHex(await schnorr.signAsync(id, signer.secretKey))
   }]);
 };
-var batchers = {};
+
+// node_modules/@trystero-p2p/nostr/dist/index.mjs
+var unreachable2 = (x) => {
+  throw mkErr(`unreachable: ${String(x)}`);
+};
+var cancelTimer = (timer) => {
+  if (timer !== null) clearTimeout(timer);
+  return null;
+};
+var relayManager = /* @__PURE__ */ createRelayManager((client) => client.socket, (client) => {
+  cleanupClientBatcher(client);
+  client.close?.();
+});
+var defaultRedundancy = 5;
+var maxTopicsPerSubscription = 250;
+var steadyAnnounceIntervalMs = 6e4;
+var maxRelayBackoffMs = 9e5;
+var subscriptionRetryMs = 5333;
+var roomSigners = /* @__PURE__ */ new Map();
+var relayHealth = /* @__PURE__ */ new WeakMap();
+var announcementMessages = /* @__PURE__ */ createRelayScopedStore();
+var batchers = /* @__PURE__ */ new WeakMap();
+var getRoomKey = (rootTopic, selfTopic) => `${rootTopic}\0${selfTopic}`;
+var getRoomSigner = (key) => {
+  const entry = roomSigners.get(key);
+  if (!entry) return createSigner();
+  return entry.signer ??= createSigner();
+};
+var getRelayHealth = (client) => {
+  const state = relayHealth.get(client);
+  if (!state) return { phase: "healthy" };
+  if (state.phase === "cooldown" && Date.now() >= state.untilMs) {
+    const next2 = {
+      phase: "probation",
+      lastDelayMs: state.delayMs
+    };
+    relayHealth.set(client, next2);
+    return next2;
+  }
+  return state;
+};
+var backoffRelay = (client) => {
+  const current = getRelayHealth(client);
+  switch (current.phase) {
+    case "retired":
+      return maxRelayBackoffMs;
+    case "healthy": {
+      const delayMs = steadyAnnounceIntervalMs;
+      relayHealth.set(client, {
+        phase: "cooldown",
+        delayMs,
+        untilMs: Date.now() + delayMs
+      });
+      return delayMs;
+    }
+    case "cooldown":
+    case "probation": {
+      const prevDelay = current.phase === "cooldown" ? current.delayMs : current.lastDelayMs;
+      const delayMs = Math.min(Math.max(steadyAnnounceIntervalMs, prevDelay * 2), maxRelayBackoffMs);
+      relayHealth.set(client, {
+        phase: "cooldown",
+        delayMs,
+        untilMs: Date.now() + delayMs
+      });
+      return delayMs;
+    }
+    default:
+      return unreachable2(current);
+  }
+};
+var acknowledgeRelaySuccess = (client) => {
+  if (getRelayHealth(client).phase === "probation") relayHealth.set(client, { phase: "healthy" });
+};
+var getRelayCooldownMs = (client) => {
+  const current = getRelayHealth(client);
+  return current.phase === "cooldown" ? Math.max(0, current.untilMs - Date.now()) : 0;
+};
+var nextAnnounce = (nextAnnounceMs) => ({ nextAnnounceMs });
+var stopAnnouncing = { stopAnnouncing: true };
+var retireRelay = (client) => {
+  if (getRelayHealth(client).phase === "retired") return false;
+  relayHealth.set(client, { phase: "retired" });
+  relayManager.evict(client);
+  cleanupClientBatcher(client);
+  client.close?.();
+  return true;
+};
 var resolveBatchFlush = (batcher) => {
   batcher.flushWaiters.forEach((resolve3) => resolve3());
   batcher.flushWaiters.clear();
 };
-var batchAdd = (client, topic, handler) => {
-  const batcher = batchers[client.url] ??= {
-    subIds: [],
-    topics: /* @__PURE__ */ new Map(),
-    updateTimer: null,
-    flushWaiters: /* @__PURE__ */ new Set(),
-    retryTimer: null,
-    retryMs: subscriptionRetryMs,
-    pendingEose: /* @__PURE__ */ new Set(),
-    requestedAt: 0
-  };
-  batcher.topics.set(topic, handler);
-  scheduleBatchFlush(client, batcher);
-};
-var batchRemove = (client, topic) => {
-  const batcher = batchers[client.url];
+var cleanupClientBatcher = (client) => {
+  const batcher = batchers.get(client);
   if (!batcher) return;
+  batcher.flushTimer = cancelTimer(batcher.flushTimer);
+  batcher.retryTimer = cancelTimer(batcher.retryTimer);
+  batcher.sync = { phase: "unsynced" };
+  resolveBatchFlush(batcher);
+  batchers.delete(client);
+};
+var batchAdd = (client, topic, handler) => {
+  let batcher = batchers.get(client);
+  if (!batcher) {
+    batcher = {
+      subIds: [],
+      topics: /* @__PURE__ */ new Map(),
+      flushTimer: null,
+      flushWaiters: /* @__PURE__ */ new Set(),
+      sync: { phase: "unsynced" },
+      retryTimer: null,
+      retryMs: subscriptionRetryMs
+    };
+    batchers.set(client, batcher);
+  }
+  let handlers = batcher.topics.get(topic);
+  const isNewTopic = !handlers;
+  if (!handlers) {
+    handlers = /* @__PURE__ */ new Set();
+    batcher.topics.set(topic, handlers);
+  }
+  handlers.add(handler);
+  if (isNewTopic || batcher.sync.phase === "unsynced") scheduleBatchFlush(client, batcher);
+};
+var batchRemove = (client, topic, handler) => {
+  const batcher = batchers.get(client);
+  if (!batcher) return false;
+  const handlers = batcher.topics.get(topic);
+  if (!handlers || !handlers.delete(handler)) return false;
+  if (handlers.size > 0) return true;
   batcher.topics.delete(topic);
   delete announcementMessages.forRelay(client)[topic];
   if (batcher.topics.size === 0) {
-    if (batcher.retryTimer !== null) clearTimeout(batcher.retryTimer);
-    if (batcher.updateTimer !== null) {
-      clearTimeout(batcher.updateTimer);
-      batcher.updateTimer = null;
-    }
-    resolveBatchFlush(batcher);
     batcher.subIds.forEach((subId) => client.send(toJson(["CLOSE", subId])));
-    delete batchers[client.url];
-  } else scheduleBatchFlush(client, batcher);
+    cleanupClientBatcher(client);
+    return true;
+  }
+  scheduleBatchFlush(client, batcher);
+  return true;
 };
 var scheduleBatchFlush = (client, batcher) => {
-  if (batcher.updateTimer !== null) return;
-  batcher.updateTimer = setTimeout(() => {
-    batcher.updateTimer = null;
+  if (batcher.flushTimer !== null) return;
+  batcher.flushTimer = setTimeout(() => {
+    batcher.flushTimer = null;
     try {
       flushBatch(client);
     } finally {
@@ -8969,172 +14231,216 @@ var scheduleBatchFlush = (client, batcher) => {
   }, 0);
 };
 var waitForBatchFlush = (client) => {
-  const batcher = batchers[client.url];
-  if (!batcher || batcher.updateTimer === null) return Promise.resolve();
-  return new Promise((resolve3) => batcher.flushWaiters.add(resolve3));
+  const batcher = batchers.get(client);
+  if (!batcher || batcher.flushTimer === null) return Promise.resolve();
+  return new Promise((resolve3) => {
+    batcher.flushWaiters.add(resolve3);
+  });
 };
 var flushBatch = (client) => {
-  const batcher = batchers[client.url];
+  const batcher = batchers.get(client);
   if (!batcher || batcher.topics.size === 0) return;
+  batcher.flushTimer = cancelTimer(batcher.flushTimer);
+  batcher.retryTimer = cancelTimer(batcher.retryTimer);
   const topics = [...batcher.topics.keys()];
   const chunks = [];
-  const since = now();
+  const since = subscribeSince();
   for (let i = 0; i < topics.length; i += maxTopicsPerSubscription) chunks.push(topics.slice(i, i + maxTopicsPerSubscription));
   while (batcher.subIds.length > chunks.length) {
     const subId = batcher.subIds.pop();
     if (subId) client.send(toJson(["CLOSE", subId]));
   }
-  batcher.pendingEose.clear();
-  batcher.requestedAt = Date.now();
-  chunks.forEach((chunk2, i) => {
+  const pendingSubIds = /* @__PURE__ */ new Set();
+  const requestedAt = Date.now();
+  chunks.forEach((chunk, i) => {
     const subId = batcher.subIds[i] ??= genId(64);
-    batcher.pendingEose.add(subId);
+    pendingSubIds.add(subId);
     client.send(toJson([
       "REQ",
       subId,
       {
-        kinds: [...new Set(chunk2.map(topicToKind))],
+        kinds: [...new Set(chunk.map(topicToKind))],
         since,
-        ["#x"]: chunk2
+        ["#x"]: chunk
       }
     ]));
   });
+  batcher.sync = {
+    phase: "awaiting-eose",
+    pendingSubIds,
+    requestedAt
+  };
+  resolveBatchFlush(batcher);
 };
 var resubscribeOnReconnect = (client) => {
-  const batcher = batchers[client.url];
+  const batcher = batchers.get(client);
   if (batcher && batcher.topics.size > 0 && !client.isClosed) {
-    if (getRelayBackoffMs(client) > 0) {
+    if (getRelayCooldownMs(client) > 0) {
       retrySubscription(client, true);
       return;
-    }
-    if (batcher.retryTimer !== null) {
-      clearTimeout(batcher.retryTimer);
-      batcher.retryTimer = null;
     }
     flushBatch(client);
     replayAnnouncements(client);
   }
 };
 var replayAnnouncements = (client) => {
-  Object.entries(announcementMessages.forRelay(client)).forEach(([topic, payload]) => {
-    publishMessage(client, topic, payload, true);
+  Object.entries(announcementMessages.forRelay(client)).forEach(([topic, { payload, getSigner }]) => {
+    publishMessage(client, topic, payload, true, getSigner);
   });
 };
-var publishMessage = async (client, topic, payload, isAnnouncement) => {
-  if (retiredRelays.has(client) || client.isClosed) return isAnnouncement ? stopAnnouncing : void 0;
-  const remaining = getRelayBackoffMs(client);
-  if (remaining > 0 || client.socket.readyState !== 1) return isAnnouncement ? nextAnnounce(Math.max(steadyAnnounceIntervalMs, remaining)) : void 0;
+var getPublishBlockedResult = (client, isAnnouncement) => {
+  const health = getRelayHealth(client);
+  if (health.phase === "retired" || client.isClosed) return isAnnouncement ? stopAnnouncing : void 0;
+  const remaining = health.phase === "cooldown" ? Math.max(0, health.untilMs - Date.now()) : 0;
+  if (remaining > 0 || client.socket?.readyState !== 1) return isAnnouncement ? nextAnnounce(Math.max(steadyAnnounceIntervalMs, remaining)) : void 0;
+  return null;
+};
+var publishMessage = async (client, topic, payload, isAnnouncement, getSigner) => {
+  const preBlocked = getPublishBlockedResult(client, isAnnouncement);
+  if (preBlocked !== null) return preBlocked;
   const event = await createEvent(topic, isAnnouncement ? toJson({
     ...fromJson(payload),
     nonce: genId(8)
-  }) : payload);
-  if (isAnnouncement && !batchers[client.url]?.topics.has(topic)) return nextAnnounce(steadyAnnounceIntervalMs);
-  if (getRelayBackoffMs(client) > 0 || client.isClosed || client.socket.readyState !== 1) return isAnnouncement ? nextAnnounce(steadyAnnounceIntervalMs) : void 0;
+  }) : payload, getSigner());
+  const postBlocked = getPublishBlockedResult(client, isAnnouncement);
+  if (postBlocked !== null) return postBlocked;
+  if (isAnnouncement && !batchers.get(client)?.topics.has(topic)) return nextAnnounce(steadyAnnounceIntervalMs);
   client.send(event);
-  if (isAnnouncement) return nextAnnounce(steadyAnnounceIntervalMs);
+  return isAnnouncement ? nextAnnounce(steadyAnnounceIntervalMs) : void 0;
 };
 var retrySubscription = (client, rateLimited) => {
-  const batcher = batchers[client.url];
-  if (!batcher || batcher.retryTimer !== null && !rateLimited) return;
-  if (batcher.retryTimer !== null) clearTimeout(batcher.retryTimer);
-  const delay = rateLimited ? getRelayBackoffMs(client) : batcher.retryMs;
+  const batcher = batchers.get(client);
+  if (!batcher || batcher.topics.size === 0 || client.isClosed) return;
+  if (batcher.retryTimer !== null && !rateLimited) return;
+  const delay = rateLimited ? getRelayCooldownMs(client) : batcher.retryMs;
   batcher.retryMs = Math.min(batcher.retryMs * 2, steadyAnnounceIntervalMs);
+  if (batcher.sync.phase === "synced") batcher.sync = { phase: "unsynced" };
+  batcher.retryTimer = cancelTimer(batcher.retryTimer);
   batcher.retryTimer = setTimeout(() => {
     batcher.retryTimer = null;
     resubscribeOnReconnect(client);
   }, Math.max(delay, subscriptionRetryMs));
+  unrefTimer(batcher.retryTimer);
 };
-var joinRoom = topic_strategy_default({
+var joinRoom = /* @__PURE__ */ topic_strategy_default({
   init: (config) => getRelays(config, defaultRelayUrls, defaultRedundancy, true).map((url) => {
-    const client = relayManager.register(url, () => makeSocket(url, (data) => {
-      const [msgType, subId, payload, relayMsg] = fromJson(data);
-      if (msgType !== eventMsgType) {
-        const prefix = `${libName}: relay failure from ${client.url} - `;
-        const rejectionReason = msgType === "CLOSED" && typeof payload === "string" ? payload : relayMsg;
-        const didRejectEvent = msgType === "OK" && payload === false;
-        const isRateLimited = (didRejectEvent || msgType === "CLOSED") && rejectionReason?.startsWith("rate-limited:");
-        const isDuplicate = didRejectEvent && rejectionReason?.startsWith("duplicate:");
-        const isTerminalRejection = rejectionReason && /^(blocked|restricted|auth-required|pow):/.test(rejectionReason);
-        if (msgType === "OK" && payload === true && getRelayBackoffMs(client) === 0) relayBackoffs.delete(client);
-        if ((didRejectEvent || msgType === "CLOSED") && isTerminalRejection && !retireRelay(client)) return;
-        if (isRateLimited) backoffRelay(client);
-        else if (msgType === "EOSE") {
-          const batcher = batchers[client.url];
-          if (batcher?.pendingEose.delete(subId) && batcher.pendingEose.size === 0) {
-            batcher.retryMs = subscriptionRetryMs;
-            if (batcher.retryTimer !== null) {
-              clearTimeout(batcher.retryTimer);
-              batcher.retryTimer = null;
+    const client = relayManager.register(url, () => {
+      const created = makeSocket(url, (data) => {
+        const parsed = fromJson(data);
+        if (!Array.isArray(parsed)) return;
+        const [msgType, subId, payload, relayMsg] = parsed;
+        if (msgType !== "EVENT") {
+          if (msgType === "CLOSED" && !batchers.get(created)?.subIds.includes(subId)) return;
+          const prefix = `${libName}: relay failure from ${created.url} - `;
+          const rejectionReason = msgType === "CLOSED" && typeof payload === "string" ? payload : relayMsg;
+          const didRejectEvent = msgType === "OK" && payload === false;
+          const isRateLimited = (didRejectEvent || msgType === "CLOSED") && rejectionReason?.startsWith("rate-limited:");
+          const isDuplicate = didRejectEvent && rejectionReason?.startsWith("duplicate:");
+          const isTerminalRejection = rejectionReason && /^(blocked|restricted|auth-required|pow):/.test(rejectionReason);
+          if (msgType === "OK" && payload === true) acknowledgeRelaySuccess(created);
+          if ((didRejectEvent || msgType === "CLOSED") && isTerminalRejection && !retireRelay(created)) return;
+          if (isRateLimited) backoffRelay(created);
+          else if (msgType === "EOSE") {
+            const batcher = batchers.get(created);
+            if (batcher && batcher.sync.phase === "awaiting-eose" && batcher.sync.pendingSubIds.delete(subId) && batcher.sync.pendingSubIds.size === 0) {
+              const { requestedAt } = batcher.sync;
+              batcher.retryTimer = cancelTimer(batcher.retryTimer);
+              batcher.retryMs = subscriptionRetryMs;
+              batcher.sync = { phase: "synced" };
+              if (Date.now() - requestedAt >= 1e3) replayAnnouncements(created);
             }
-            if (Date.now() - batcher.requestedAt >= 1e3) replayAnnouncements(client);
+          }
+          if (msgType === "CLOSED" && !isTerminalRejection) retrySubscription(created, Boolean(isRateLimited));
+          if (!isDuplicate && config.relayConfig?.warnOnRelayFailure !== false) {
+            if (msgType === "NOTICE") console.warn(prefix + subId);
+            else if (didRejectEvent || msgType === "CLOSED") console.warn(prefix + rejectionReason);
+          }
+          return;
+        }
+        if (payload && typeof payload === "object" && "content" in payload) {
+          const batcher = batchers.get(created);
+          if (batcher?.subIds.includes(subId) && payload.tags) {
+            const topicTag = payload.tags.find((t) => Array.isArray(t) && t[0] === "x");
+            if (topicTag?.[1]) {
+              const matchedTopic = topicTag[1];
+              batcher.topics.get(matchedTopic)?.forEach((handler) => {
+                handler(matchedTopic, payload.content);
+              });
+            }
           }
         }
-        if (msgType === "CLOSED" && !isTerminalRejection) retrySubscription(client, Boolean(isRateLimited));
-        if (!isDuplicate && config.relayConfig?.warnOnRelayFailure !== false) {
-          if (msgType === "NOTICE") console.warn(prefix + subId);
-          else if (didRejectEvent || msgType === "CLOSED") console.warn(prefix + rejectionReason);
-        }
-        return;
-      }
-      if (payload && typeof payload === "object" && "content" in payload) {
-        const batcher = batchers[client.url];
-        if (batcher?.subIds.includes(subId) && payload.tags) {
-          const topicTag = payload.tags.find((t) => t[0] === tag);
-          if (topicTag?.[1]) batcher.topics.get(topicTag[1])?.(topicTag[1], payload.content);
-        }
-      }
-    }, () => resubscribeOnReconnect(client)));
-    return client.ready;
+      }, () => resubscribeOnReconnect(created));
+      return created;
+    });
+    return relayManager.lease(client, client.ready);
   }),
   subscribeTopic: (client, topic, onMessage, context) => {
-    const handler = (topic2, data) => void onMessage(topic2, data);
+    const key = getRoomKey(context.rootTopic, context.selfTopic);
+    const existingSigner = roomSigners.get(key);
+    if (existingSigner) existingSigner.refs += 1;
+    else roomSigners.set(key, {
+      refs: 1,
+      signer: null
+    });
+    let released = false;
+    const handler = (receivedTopic, data) => void onMessage(receivedTopic, data);
     batchAdd(client, topic, handler);
     const cleanup = () => {
-      if (batchers[client.url]?.topics.get(topic) === handler) batchRemove(client, topic);
+      if (released) return;
+      released = true;
+      const entry = roomSigners.get(key);
+      if (entry) {
+        if (entry.refs <= 1) roomSigners.delete(key);
+        else entry.refs -= 1;
+      }
+      batchRemove(client, topic, handler);
     };
     return context.kind === "root" ? waitForBatchFlush(client).then(() => cleanup) : cleanup;
   },
-  publishTopic: (client, topic, msg, { kind }) => {
+  publishTopic: (client, topic, msg, { kind, rootTopic, selfTopic }) => {
     const payload = typeof msg === "string" ? msg : toJson(msg);
-    if (kind === "announce") announcementMessages.forRelay(client)[topic] = payload;
-    return publishMessage(client, topic, payload, kind === "announce");
-  },
-  unpublishTopic: (client, topic) => {
-    delete announcementMessages.forRelay(client)[topic];
+    const key = getRoomKey(rootTopic, selfTopic);
+    const getSigner = () => getRoomSigner(key);
+    if (kind === "announce" && batchers.get(client)?.topics.has(topic)) announcementMessages.forRelay(client)[topic] = {
+      payload,
+      getSigner
+    };
+    return publishMessage(client, topic, payload, kind === "announce", getSigner);
   }
 });
-var getRelaySockets = relayManager.getSockets;
+var getRelaySockets = () => relayManager.getSockets();
 var defaultRelayUrls = [
-  "0x-nostr-relay.fly.dev",
-  "bendernostur.duckdns.org:8443",
-  "cdn.satellite.earth",
-  "nos.lol",
-  "nostr.chaima.info",
-  "nostr.christiansass.de",
-  "nostr.rblb.it",
-  "nostr.red5d.dev",
-  "nostr.robosats.org",
-  "nostr.stakey.net",
-  "nostrcity-club.fly.dev",
-  "relay-dev.gulugulu.moe",
-  "relay.aarpia.com",
-  "relay.agentry.com",
-  "relay.bitmacro.cloud",
-  "relay.bullishbounty.com",
-  "relay.degmods.com",
-  "relay.flashapp.me",
-  "relay.grigic.org",
-  "relay.hackshed.dev",
-  "relay.kaleidoswap.com",
-  "relay.layer.systems",
-  "relay.nostr.blockhenge.com",
-  "relay.nostr.dev.br",
-  "relay.nostrmap.net",
-  "relay.novospes.com",
-  "relay.piazza.today",
-  "relay.routstr.com",
-  "testr.nymble.world"
-].map((url) => "wss://" + url);
+  "wss://bucket.coracle.social",
+  "wss://fanfares.nostr1.com",
+  "wss://no.str.cr",
+  "wss://nostr-01.yakihonne.com",
+  "wss://nostr-pub.wellorder.net",
+  "wss://nostr.azzamo.net",
+  "wss://nostr.chaima.info",
+  "wss://nostr.data.haus",
+  "wss://nostr.hifish.org",
+  "wss://nostr.liberty.fans",
+  "wss://nostr.overmind.lol",
+  "wss://nostr.sathoarder.com",
+  "wss://nostrelay.circum.space",
+  "wss://relay.angor.io",
+  "wss://relay.ditto.pub",
+  "wss://relay.dwadziesciajeden.pl",
+  "wss://relay.fundstr.me",
+  "wss://relay.guggero.org",
+  "wss://relay.masize.com",
+  "wss://relay.minibolt.info",
+  "wss://relay.mostro.network",
+  "wss://relay.nostr.com",
+  "wss://relay.nostr.net",
+  "wss://relay.nostrhub.fr",
+  "wss://relay.notoshi.win",
+  "wss://relay.primal.net",
+  "wss://relay.snort.social",
+  "wss://relay.wavlake.com",
+  "wss://soloco.nl",
+  "wss://yabu.me"
+];
 
 // src/net/wire.ts
 var APP = "hollow-table";
@@ -9143,7 +14449,6 @@ var STUN = ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"];
 var MAX_BYTES = 64 * 1024 * 1024;
 var BLOB_MAX = 25 * 1024 * 1024;
 var BLOB_MS = 6e4;
-var HANDSHAKE_MS = 15e3;
 var HASH = /^[0-9a-f]{64}$/;
 var TAB = /^[\w-]{1,64}$/;
 var Wire = class {
@@ -9156,58 +14461,57 @@ var Wire = class {
   #leaves = [];
   #answer;
   #msg;
+  #hi;
   #img;
   // Seq: seq-join.md#1 | R156: join a room; the relays only introduce.
   constructor(roomName, w) {
     this.tab = w.tab;
     this.#room = joinRoom({
       appId: APP,
+      identity: w.identity.trystero(),
       maxReceiveBytes: MAX_BYTES,
       relayConfig: { urls: w.relay ? [w.relay] : RELAYS },
-      rtcConfig: { iceServers: STUN.map((urls) => ({ urls })) },
-      ...w.loopback && { _test_only_mdnsHostFallbackToLoopback: true }
-    }, roomName, {
-      onPeerHandshake: (peer, send, receive) => this.#handshake(w, peer, send, receive),
-      handshakeTimeoutMs: HANDSHAKE_MS,
-      onJoinError: (d) => w.refused?.(d.peerId, d.error)
+      rtcConfig: { iceServers: STUN.map((urls) => ({ urls })) }
+    }, roomName);
+    this.#room.onError((e) => {
+      if ("peerId" in e && e.peerId) w.refused?.(e.peerId, e.message);
     });
     this.#msg = this.#room.makeAction("e");
-    this.#msg.onMessage = (data, { peerId }) => this.#heard(data, peerId);
-    this.#room.onPeerJoin = (peer) => {
-      const p = this.#who.get(peer);
-      if (p) for (const fn of this.#joins) fn(p);
-    };
-    this.#room.onPeerLeave = (peer) => {
-      const p = this.#who.get(peer);
-      this.#who.delete(peer);
-      if (!p) return;
-      if (this.#byTab.get(p.tab) === peer) this.#byTab.delete(p.tab);
-      for (const fn of this.#leaves) fn(p);
-    };
-    this.#img = this.#room.makeAction("img", {
-      kind: "request",
-      onRequest: async (hash) => {
-        if (typeof hash !== "string" || !HASH.test(hash)) throw new Error("not an image hash");
-        const blob = await this.#answer?.(hash);
-        if (!blob) throw new Error("not here");
-        return blob;
-      },
-      onReceive: ({ byteLength }) => byteLength <= BLOB_MAX
+    this.#msg.onMessage((data, { peerId }) => this.#heard(data, peerId));
+    this.#hi = this.#room.makeAction("hi");
+    this.#hi.onMessage((data, { peerId, userId }) => this.#hello(w, data, peerId, userId));
+    this.#room.onPeerJoin(({ peerId }) => {
+      void this.#hi.send({ key: w.sealer.pub, tab: this.tab }, { target: peerId });
     });
+    this.#room.onPeerLeave(({ peerId }) => {
+      const p = this.#who.get(peerId);
+      this.#who.delete(peerId);
+      if (!p) return;
+      if (this.#byTab.get(p.tab) === peerId) this.#byTab.delete(p.tab);
+      for (const fn of this.#leaves) fn(p);
+    });
+    this.#img = this.#room.makeAction("img", { kind: "request" });
+    this.#img.onRequest(async (hash) => {
+      if (typeof hash !== "string" || !HASH.test(hash)) throw new Error("not an image hash");
+      const blob = await this.#answer?.(hash);
+      if (!blob) throw new Error("not here");
+      return blob;
+    });
+    this.#img.onReceive(({ byteLength }) => byteLength <= BLOB_MAX);
   }
-  // Seq: seq-join.md#1.2 to seq-join.md#1.6 | R165: both sides prove their browsers' keys and vouch
-  // for their sealing keys; a bad proof refuses the peer, which never joins.
-  async #handshake(w, peer, send, receive) {
-    const nonce = b64(crypto.getRandomValues(new Uint8Array(16)));
-    await send({ ik: w.identity.pub, key: w.sealer.pub, nonce, tab: this.tab });
-    const hi = (await receive()).data;
-    if (!hi || typeof hi.ik !== "string" || !PUB.test(hi.ik) || typeof hi.key !== "string" || !PUB.test(hi.key) || typeof hi.nonce !== "string" || hi.nonce.length > 40 || typeof hi.tab !== "string" || !TAB.test(hi.tab)) throw new Error("bad hello");
-    await send({ sig: await w.identity.prove(hi.nonce, { from: selfId, to: peer }, w.sealer.pub) });
-    const back3 = (await receive()).data;
-    const browser = await verify(back3?.sig, nonce, { from: peer, to: selfId }, hi.ik, hi.key);
-    if (!browser) throw new Error("the proof did not check out");
-    this.#who.set(peer, { tab: hi.tab, browser, sealKey: hi.key });
+  // Seq: seq-join.md#1.6, seq-join.md#1.7 | R471: a proven peer's `hi`, checked, lets it in: it now
+  // speaks for that tab, with that sealing key. A malformed one refuses it; a second is ignored.
+  #hello(w, data, peer, browser) {
+    if (this.#who.has(peer)) return;
+    const hi = data;
+    if (!hi || typeof hi.key !== "string" || !PUB.test(hi.key) || typeof hi.tab !== "string" || !TAB.test(hi.tab)) {
+      w.refused?.(peer, "bad hello");
+      return;
+    }
+    const p = { tab: hi.tab, browser, sealKey: hi.key };
+    this.#who.set(peer, p);
     this.#byTab.set(hi.tab, peer);
+    for (const fn of this.#joins) fn(p);
   }
   // R177: checked before anyone reads it, and only from a proven peer speaking for its own tab.
   #heard(data, peer) {
@@ -9779,8 +15083,8 @@ var RollRowView = class {
       if (!mat || c?.kind !== "character") continue;
       let els = this.#els.get(oid);
       if (!els) {
-        const el4 = (tag2, cls) => {
-          const e = doc.createElement(tag2);
+        const el4 = (tag, cls) => {
+          const e = doc.createElement(tag);
           e.className = cls;
           return e;
         };
@@ -10329,8 +15633,8 @@ var RegisterView = class {
   #armed = null;
   constructor(bar, w) {
     this.#w = w;
-    const doc = bar.ownerDocument, el4 = (tag2, cls, text = "") => {
-      const e = doc.createElement(tag2);
+    const doc = bar.ownerDocument, el4 = (tag, cls, text = "") => {
+      const e = doc.createElement(tag);
       e.className = cls;
       e.textContent = text;
       return e;
@@ -10454,8 +15758,8 @@ var LABEL = {
   affliction: "Affliction",
   injury: "Injury"
 };
-var el3 = (doc, tag2, cls, text) => {
-  const e = doc.createElement(tag2);
+var el3 = (doc, tag, cls, text) => {
+  const e = doc.createElement(tag);
   if (cls) e.className = cls;
   if (text !== void 0) e.textContent = text;
   return e;
@@ -10481,9 +15785,9 @@ function makeMenu(e, oid, w) {
   const all2 = w.game.all().map(([, r]) => r), chars = all2.filter((r) => r.kind === "character");
   const t = tableOf(all2) ?? newConnections("", { x: 0, y: 0, z: 0, tilt: 0 });
   const c = chars.find((x) => x.oid === oid), holder = c && rowOf(t, c);
-  const offer4 = candidates(t, all2.filter((r) => r.kind === "opinion"), holder?.id ?? "", chars);
-  if (offer4.length) m.append(el3(e.ownerDocument, "div", "menuhead", "Opinion of"));
-  for (const o of offer4) {
+  const offer3 = candidates(t, all2.filter((r) => r.kind === "opinion"), holder?.id ?? "", chars);
+  if (offer3.length) m.append(el3(e.ownerDocument, "div", "menuhead", "Opinion of"));
+  for (const o of offer3) {
     const b = el3(e.ownerDocument, "button", `opinionof${o.pc ? " pc" : ""}`, o.name);
     gesture(b, { click: () => {
       m.remove();
@@ -10681,11 +15985,11 @@ function drawer(box2, c, cards, w, shown3, drawn) {
     tools.push(pen);
   }
   const pileTile = el3(doc, "div", "usedpile");
-  const tag2 = el3(doc, "button", "used", "used");
-  tag2.append(el3(doc, "b", "", String(used.length)));
-  tag2.title = "Used Influence cards: click to see them, click one to put it back";
-  gesture(tag2, { click: () => w.toggle("used", c.oid) });
-  pileTile.append(tag2);
+  const tag = el3(doc, "button", "used", "used");
+  tag.append(el3(doc, "b", "", String(used.length)));
+  tag.title = "Used Influence cards: click to see them, click one to put it back";
+  gesture(tag, { click: () => w.toggle("used", c.oid) });
+  pileTile.append(tag);
   if (opened.used.has(c.oid) && visible) {
     const list2 = el3(doc, "div", "usedlist");
     if (!used.length) list2.append(el3(doc, "p", "", "None used."));
@@ -10807,8 +16111,8 @@ var BarView = class {
     this.#image.title = r ? r.why : this.#imageSays.title;
   }
   constructor(bar, w) {
-    const doc = bar.ownerDocument, el4 = (tag2, cls, text = "", title = "") => {
-      const e = doc.createElement(tag2);
+    const doc = bar.ownerDocument, el4 = (tag, cls, text = "", title = "") => {
+      const e = doc.createElement(tag);
       e.className = cls;
       e.textContent = text;
       if (title) e.title = title;
@@ -11097,8 +16401,8 @@ function isPageUndo(ev) {
 
 // src/ui/folks.ts
 function tags(me, people, held = () => void 0) {
-  const warn = me.why !== void 0 ? "offline" : me.notYours !== void 0 ? "notyours" : me.said !== void 0 ? "said" : void 0;
-  const mine = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...warn && { warn } };
+  const warn2 = me.why !== void 0 ? "offline" : me.notYours !== void 0 ? "notyours" : me.said !== void 0 ? "said" : void 0;
+  const mine = { name: me.name, gm: me.gm, you: true, live: me.live, stale: false, ...warn2 && { warn: warn2 } };
   const others = people.map((p) => {
     const holder = held(p.name), impostor = p.role === "player" && holder !== void 0 && holder !== p.browser;
     return {
@@ -11272,7 +16576,7 @@ function newChip(oid, sign2, points3, at3) {
 }
 
 // src/store/blobs.ts
-async function sha256(bytes) {
+async function sha2562(bytes) {
   const buf = bytes instanceof Blob ? await bytes.arrayBuffer() : bytes;
   const digest = await crypto.subtle.digest("SHA-256", buf);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -11290,7 +16594,7 @@ var BlobStore = class {
   // R26: an image from the supply belongs to the game by its hash.
   /** Stores a file and gives what an Image record needs. */
   async add(file) {
-    const blob = await sha256(file), size = await this.#measure(file);
+    const blob = await sha2562(file), size = await this.#measure(file);
     await this.#keep(blob, file);
     return { blob, ...size };
   }
@@ -11307,7 +16611,7 @@ var BlobStore = class {
   // R194: bytes from another page are kept only if they hash to the name asked for.
   /** Keeps bytes another page (or an import) sent, if they are what `hash` names. */
   async accept(hash, bytes) {
-    if (await sha256(bytes) !== hash) return false;
+    if (await sha2562(bytes) !== hash) return false;
     await this.#keep(hash, bytes);
     return true;
   }
@@ -11953,7 +17257,7 @@ async function importGame(store, blobs, text) {
   const images = [];
   for (const [hash, uri] of Object.entries(file.blobs)) {
     const blob = typeof uri === "string" ? fromDataUri(uri) : null;
-    if (!blob || await sha256(blob) !== hash) throw new BadFile(`image ${hash.slice(0, 12)}\u2026 is not what its name says`);
+    if (!blob || await sha2562(blob) !== hash) throw new BadFile(`image ${hash.slice(0, 12)}\u2026 is not what its name says`);
     images.push([hash, blob]);
   }
   const taken = new Set((await store.list()).map((g) => g.name));
@@ -11967,7 +17271,7 @@ var time = (at3) => new Date(at3).toTimeString().slice(0, 8);
 function stamp(at3) {
   return `${new Date(at3).toLocaleString("en-US", { month: "short", day: "numeric" })}, ${time(at3)}`;
 }
-function offer3(round, now2) {
+function offer2(round, now2) {
   return `Round ${round}, ${time(now2)}`;
 }
 function named3(answer) {
@@ -12031,8 +17335,8 @@ var LedgerView = class {
       click: click2 ?? void 0,
       shift: () => this.#dooms.arm(b, "Shift-click again to delete forever", () => void destroy().then(() => this.render()))
     });
-    const el4 = (tag2, cls, text = "", title = "") => {
-      const e = doc.createElement(tag2);
+    const el4 = (tag, cls, text = "", title = "") => {
+      const e = doc.createElement(tag);
       e.className = cls;
       e.textContent = text;
       if (title) e.title = title;
@@ -12056,7 +17360,7 @@ var LedgerView = class {
       acts.append(a);
     };
     if (!w.player) act("Checkpoint", "Save a named copy of the table as it is now", async () => {
-      const n = named3(prompt("Name this checkpoint", offer3(w.round(), w.now())));
+      const n = named3(prompt("Name this checkpoint", offer2(w.round(), w.now())));
       if (n === null) return;
       await w.checkpoint(n).catch(() => void 0);
       await this.render();
@@ -13518,23 +18822,27 @@ function ledgerOf(store, blobs, player) {
 function redrawImages(game, table, hash) {
   table.render(game.all().filter(([, r]) => r.kind === "image" && r.blob === hash).map(([rid2]) => rid2));
 }
+var OLD_INVITE = "This invite is from an older version of the table. Ask the GM for a new link.";
 async function main() {
   const db = await IdbDb.open();
   const store = new GameStore(db, clock, localStorage, async () => !!navigator.storage?.persist && (await navigator.storage.persisted() || await navigator.storage.persist()));
   const blobs = new BlobStore(db, measure);
   const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
   const tab2 = tabId(sessionStorage), invited = fromUrl(location.search);
-  const loopback = !!local("hollow.loopback");
   const relay = new URLSearchParams(location.search).has("test") ? local("hollow.relay") ?? void 0 : void 0;
   const stamps = new Stamps(sessionStorage);
   const rng = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
   addEventListener("pagehide", () => {
     void store.save();
   });
+  if (invited === "old") {
+    document.body.replaceChildren(Object.assign(document.createElement("p"), { className: "old-invite", textContent: OLD_INVITE }));
+    return { version: "dev", date: "", role: "old" };
+  }
   if (invited) {
     await store.copyFor(invited.room);
     const game2 = store.game, name2 = local("hollow.name") ?? local("hollow.name", askName());
-    const wire = new Wire(invited.room, { identity, sealer, tab: tab2, loopback, relay });
+    const wire = new Wire(invited.room, { identity, sealer, tab: tab2, relay });
     const copy = new Copy({
       game: game2,
       stamps,
@@ -13611,6 +18919,8 @@ async function main() {
   const game = store.game;
   const older = markOlder(game);
   if (older) game.change(older);
+  const stale = oldClaims(game);
+  if (stale) game.change(stale);
   let gmShown = local("hollow.gmname") ?? GM;
   let table = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
@@ -13629,7 +18939,7 @@ async function main() {
     if (table) return table;
     const key = `hollow.room.${store.current.id}`;
     const room2 = local(key) ?? local(key, newRoom(store.current.name));
-    const wire = new Wire(room2, { identity, sealer, tab: tab2, loopback, relay });
+    const wire = new Wire(room2, { identity, sealer, tab: tab2, relay });
     const presence = new Presence({
       net: wire,
       clock,

@@ -1,4 +1,4 @@
-// CRC: crc-Identity.md, crc-Seal.md | R164, R184
+// CRC: crc-Seal.md | R184
 // base64url without padding, for keys, signatures and boxes on the wire.
 
 export const b64 = (u8: Uint8Array): string =>

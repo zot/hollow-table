@@ -36,9 +36,19 @@ them. Nothing to install, no local-network grant, no daemon.
 
 - Each browser makes a signing key pair once and keeps it (the private half can't be exported). The
   browser's id comes from its public key, so it survives reloads.
-- **Before a page is let in, both sides prove their browsers' keys** and vouch for their sealing
-  keys. A bad signature is refused. So every message's sender is the browser behind that
-  connection.
+- **Before a page is let in, both sides prove their browsers' keys.** Trystero does the proving
+  (Bill, 11-21: "Trystero's userId", with the key "Ours, via a loader"): our key is handed to it, a
+  browser's id is the user id it derives from that key, and its handshake binds the room, both
+  connections and both browsers' keys. A bad proof is refused. So every message's sender is the
+  browser behind that connection.
+- **A page then says its sealing key and its tab**, as its first message over that proven connection.
+  A page counts as at the table only once that has arrived, so every later message comes from a known
+  tab with a known sealing key.
+- **Ids from before Trystero proved them are dropped** (Bill, 11-21: "Map the GM, clear the rest").
+  A saved game's claims made under the old ids are cleared when the GM's page loads it, and each
+  player claims their name again on arriving, the first browser to claim it holding it as ever. The
+  GM's own id was never saved with a game, so the GM keeps nothing. An invite carrying an old id
+  doesn't open a table: it says the link is from an older version and to ask the GM for a new one.
 - **The first browser to claim a name holds it.** A page claiming a held name from another browser
   is nobody: it gets only what anyone sees, its changes, moves and roll requests are refused, and it
   sees a red "not yours" chip that says why. The GM's strip marks it in red, and clicking it hands

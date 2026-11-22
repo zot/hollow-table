@@ -4,6 +4,7 @@
 
 import type { Clock } from '../store/gamestore.ts';
 import type { Net, Peer } from './link.ts';
+import { ID } from './identity.ts';
 
 export const OFFLINE_MS = 15_000, CHECK_MS = 1000;
 // R293: a heartbeat every 10 s; a page unheard for 25 s is stale, and after 60 s it's gone.
@@ -31,13 +32,16 @@ export function invite(base: string, room: string, gm: string): string {
   return u.toString();
 }
 
-const ROOM = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/, BROWSER = /^[\w-]{20}$/;
+const ROOM = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/, OLD = /^[\w-]{20}$/;
 
-// R155: the plain page is the GM's; an invite makes a player.
-/** What a page's URL makes it: a player, with the room and the GM's browser; or null (the GM). */
-export function fromUrl(search: string): { room: string; gm: string } | null {
+// R155: the plain page is the GM's; an invite makes a player. R473: an invite naming the GM by an id
+// from before Trystero proved them is `old`, not the GM's page.
+/** What a page's URL makes it: a player, with the room and the GM's browser; `old`; or null (the GM). */
+export function fromUrl(search: string): { room: string; gm: string } | 'old' | null {
   const q = new URLSearchParams(search), room = q.get('room'), gm = q.get('gm');
-  return room && gm && ROOM.test(room) && BROWSER.test(gm) ? { room, gm } : null;
+  if (!room || !gm || !ROOM.test(room)) return null;
+  if (ID.test(gm)) return { room, gm };
+  return OLD.test(gm) ? 'old' : null;
 }
 
 export type PresenceWith = {

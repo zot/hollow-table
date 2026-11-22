@@ -1,14 +1,14 @@
-// CRC: crc-Wire.md | Seq: seq-join.md#1, seq-join.md#1.1, seq-join.md#1.2, seq-join.md#1.3, seq-join.md#1.4, seq-join.md#1.5, seq-join.md#1.6, seq-join.md#1.7 | R156, R160, R162, R165
+// CRC: crc-Wire.md | Seq: seq-join.md#1, seq-join.md#1.1, seq-join.md#1.2, seq-join.md#1.3, seq-join.md#1.4, seq-join.md#1.5, seq-join.md#1.6, seq-join.md#1.7 | R156, R160, R162, R470, R471
 // The only code that knows Trystero. Pages meet in a room through public Nostr relays, which carry
-// only the introductions; the table's messages go peer to peer over WebRTC. A peer is let in only
-// after the identity handshake, so every message's sender is the browser behind that connection.
+// only the introductions; the table's messages go peer to peer over WebRTC. Trystero proves each
+// peer's browser before it lets the peer in, and a peer counts only once it has said its sealing key
+// and tab, so every message's sender is the browser behind that connection, speaking for that tab.
 
-import { getRelaySockets, joinRoom, selfId, type DataPayload, type JsonValue, type MessageAction, type Room } from '@trystero-p2p/nostr';
+import { getRelaySockets, joinRoom, type DataPayload, type JsonValue, type MessageAction, type Room } from '@trystero-p2p/nostr';
 import { check, make, type Kind } from './envelope.ts';
-import { Identity, PUB, verify } from './identity.ts';
+import { Identity, PUB } from './identity.ts';
 import type { Net, Peer } from './link.ts';
 import type { Sealer } from './seal.ts';
-import { b64 } from './b64.ts';
 
 export const APP = 'hollow-table';
 // R160: Trystero picks a few of its default relays by app id, and on 11-11 three of the mockup's
@@ -19,21 +19,19 @@ export const RELAYS = ['nos.lol', 'nostr.stakey.net', 'nostr.rblb.it', 'nostr.re
 const STUN = ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'];
 /** The largest message (Trystero chunks it on the way) and the largest image. */
 export const MAX_BYTES = 64 * 1024 * 1024, BLOB_MAX = 25 * 1024 * 1024;
-const BLOB_MS = 60_000, HANDSHAKE_MS = 15_000;
+const BLOB_MS = 60_000;
 const HASH = /^[0-9a-f]{64}$/, TAB = /^[\w-]{1,64}$/;
 
-type Hi = { ik: string; key: string; nonce: string; tab: string };
+type Hi = { key: string; tab: string };
 type Handler = (body: never, from: Peer) => void | Promise<void>;
 
 export type WireWith = {
   identity: Identity; sealer: Sealer;
   /** This page's tab id (sessionStorage), the same across reloads. */
   tab: string;
-  /** Tests only: pages in one headless browser need Trystero's loopback fallback. */
-  loopback?: boolean;
   /** Tests only (R297): the local relay the spec run starts, in place of the public ones. */
   relay?: string;
-  /** A peer the handshake refused, and why. */
+  /** A peer refused, and why: its proof failed (R470) or its `hi` was malformed (R471). */
   refused?: (peer: string, why: string) => void;
 };
 
@@ -47,57 +45,55 @@ export class Wire implements Net {
   #leaves: ((p: Peer) => void)[] = [];
   #answer: ((hash: string) => Promise<Blob | undefined>) | undefined;
   #msg: MessageAction<DataPayload>;
+  #hi: MessageAction<JsonValue>;
   #img;
 
   // Seq: seq-join.md#1 | R156: join a room; the relays only introduce.
   constructor(roomName: string, w: WireWith) {
     this.tab = w.tab;
+    // Seq: seq-join.md#1.2 | R470: Trystero proves both browsers' keys before it lets a peer in.
     this.#room = joinRoom({
-      appId: APP, maxReceiveBytes: MAX_BYTES, relayConfig: { urls: w.relay ? [w.relay] : RELAYS },
-      rtcConfig: { iceServers: STUN.map(urls => ({ urls })) },
-      ...(w.loopback && { _test_only_mdnsHostFallbackToLoopback: true }),
-    }, roomName, {
-      onPeerHandshake: (peer, send, receive) => this.#handshake(w, peer, send, receive),
-      handshakeTimeoutMs: HANDSHAKE_MS,
-      onJoinError: d => w.refused?.(d.peerId, d.error),
-    });
+      appId: APP, identity: w.identity.trystero(), maxReceiveBytes: MAX_BYTES,
+      relayConfig: { urls: w.relay ? [w.relay] : RELAYS }, rtcConfig: { iceServers: STUN.map(urls => ({ urls })) },
+    }, roomName);
+    this.#room.onError(e => { if ('peerId' in e && e.peerId) w.refused?.(e.peerId, e.message); });
     this.#msg = this.#room.makeAction<DataPayload>('e');
-    this.#msg.onMessage = (data, { peerId }) => this.#heard(data, peerId);
-    this.#room.onPeerJoin = peer => { const p = this.#who.get(peer); if (p) for (const fn of this.#joins) fn(p); };
+    this.#msg.onMessage((data, { peerId }) => this.#heard(data, peerId));
+    // Seq: seq-join.md#1.3, seq-join.md#1.4 | R471: a proven peer is told this page's sealing key and tab.
+    this.#hi = this.#room.makeAction<JsonValue>('hi');
+    this.#hi.onMessage((data, { peerId, userId }) => this.#hello(w, data, peerId, userId));
+    this.#room.onPeerJoin(({ peerId }) => { void this.#hi.send({ key: w.sealer.pub, tab: this.tab } satisfies Hi, { target: peerId }); });
     // R162: a closed connection counts as leaving.
-    this.#room.onPeerLeave = peer => {
-      const p = this.#who.get(peer);
-      this.#who.delete(peer);
+    this.#room.onPeerLeave(({ peerId }) => {
+      const p = this.#who.get(peerId);
+      this.#who.delete(peerId);
       if (!p) return;
-      if (this.#byTab.get(p.tab) === peer) this.#byTab.delete(p.tab);
+      if (this.#byTab.get(p.tab) === peerId) this.#byTab.delete(p.tab);
       for (const fn of this.#leaves) fn(p);
-    };
-    this.#img = this.#room.makeAction<string, Blob>('img', {
-      kind: 'request',
-      onRequest: async hash => {
-        if (typeof hash !== 'string' || !HASH.test(hash)) throw new Error('not an image hash');
-        const blob = await this.#answer?.(hash);
-        if (!blob) throw new Error('not here');
-        return blob;
-      },
-      onReceive: ({ byteLength }) => byteLength <= BLOB_MAX,
     });
+    this.#img = this.#room.makeAction<string, Blob>('img', { kind: 'request' });
+    this.#img.onRequest(async hash => {
+      if (typeof hash !== 'string' || !HASH.test(hash)) throw new Error('not an image hash');
+      const blob = await this.#answer?.(hash);
+      if (!blob) throw new Error('not here');
+      return blob;
+    });
+    this.#img.onReceive(({ byteLength }) => byteLength <= BLOB_MAX);
   }
 
-  // Seq: seq-join.md#1.2 to seq-join.md#1.6 | R165: both sides prove their browsers' keys and vouch
-  // for their sealing keys; a bad proof refuses the peer, which never joins.
-  async #handshake(w: WireWith, peer: string, send: (d: JsonValue) => Promise<void>, receive: () => Promise<{ data: unknown }>): Promise<void> {
-    const nonce = b64(crypto.getRandomValues(new Uint8Array(16)));
-    await send({ ik: w.identity.pub, key: w.sealer.pub, nonce, tab: this.tab } satisfies Hi);
-    const hi = (await receive()).data as Partial<Hi> | null;
-    if (!hi || typeof hi.ik !== 'string' || !PUB.test(hi.ik) || typeof hi.key !== 'string' || !PUB.test(hi.key)
-      || typeof hi.nonce !== 'string' || hi.nonce.length > 40 || typeof hi.tab !== 'string' || !TAB.test(hi.tab)) throw new Error('bad hello');
-    await send({ sig: await w.identity.prove(hi.nonce, { from: selfId, to: peer }, w.sealer.pub) });
-    const back = (await receive()).data as { sig?: unknown } | null;
-    const browser = await verify(back?.sig, nonce, { from: peer, to: selfId }, hi.ik, hi.key);
-    if (!browser) throw new Error('the proof did not check out');
-    this.#who.set(peer, { tab: hi.tab, browser, sealKey: hi.key });
+  // Seq: seq-join.md#1.6, seq-join.md#1.7 | R471: a proven peer's `hi`, checked, lets it in: it now
+  // speaks for that tab, with that sealing key. A malformed one refuses it; a second is ignored.
+  #hello(w: WireWith, data: unknown, peer: string, browser: string): void {
+    if (this.#who.has(peer)) return;
+    const hi = data as Partial<Hi> | null;
+    if (!hi || typeof hi.key !== 'string' || !PUB.test(hi.key) || typeof hi.tab !== 'string' || !TAB.test(hi.tab)) {
+      w.refused?.(peer, 'bad hello');
+      return;
+    }
+    const p: Peer = { tab: hi.tab, browser, sealKey: hi.key };
+    this.#who.set(peer, p);
     this.#byTab.set(hi.tab, peer);
+    for (const fn of this.#joins) fn(p);
   }
 
   // R177: checked before anyone reads it, and only from a proven peer speaking for its own tab.

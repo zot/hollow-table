@@ -32,7 +32,7 @@ import { BarView, type Supply } from './ui/bar.ts';
 import { BootHillView, isPageUndo } from './ui/boothill.ts';
 import { FolksView, arrivalName, gmName, viewAsChoices, type Here, type Me } from './ui/folks.ts';
 import { newCharacter, newChip, newHowTo, newSticky, newText } from './rules/supplies.ts';
-import { handOver } from './net/claims.ts';
+import { handOver, oldClaims } from './net/claims.ts';
 import { redact, type Viewer } from './rules/visibility.ts';
 import { BlobStore, type Size } from './store/blobs.ts';
 import { IdbDb } from './store/db.ts';
@@ -446,6 +446,8 @@ function redrawImages(game: Game, table: TableView, hash: string): void {
   table.render(game.all().filter(([, r]) => (r as PieceRecord).kind === 'image' && (r as Image).blob === hash).map(([rid]) => rid));
 }
 
+const OLD_INVITE = 'This invite is from an older version of the table. Ask the GM for a new link.';
+
 async function main() {
   const db = await IdbDb.open();
   // R455: once a game is first saved, the browser is asked to keep this storage.
@@ -453,18 +455,23 @@ async function main() {
   const blobs = new BlobStore(db, measure);
   const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
   const tab = tabId(sessionStorage), invited = fromUrl(location.search);
-  const loopback = !!local('hollow.loopback');
   // R297: a page opened with the test hook may be told to meet through the specs' local relay.
   const relay = new URLSearchParams(location.search).has('test') ? local('hollow.relay') ?? undefined : undefined;
   const stamps = new Stamps(sessionStorage);
   const rng = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 2 ** 32;
   addEventListener('pagehide', () => { void store.save(); });
 
+  // R473: an invite from before Trystero proved ids opens no table, and says why.
+  if (invited === 'old') {
+    document.body.replaceChildren(Object.assign(document.createElement('p'), { className: 'old-invite', textContent: OLD_INVITE }));
+    return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'old' as const };
+  }
+
   if (invited) {
     // R155, R140: a player, joining with a copy of the GM's table, kept per room.
     await store.copyFor(invited.room);
     const game: Game = store.game, name = local('hollow.name') ?? local('hollow.name', askName())!;
-    const wire = new Wire(invited.room, { identity, sealer, tab, loopback, relay });
+    const wire = new Wire(invited.room, { identity, sealer, tab, relay });
     // Copy only asks what's held when a message arrives, after Moves is made.
     const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm,
       held: rid => moves.holds(rid) });
@@ -519,6 +526,9 @@ async function main() {
   // R380: an older game's Fields and Skills, marked the first time the GM's page opens it.
   const older = markOlder(game);
   if (older) game.change(older);
+  // R472: claims made under ids from before Trystero proved them go; players claim again on arriving.
+  const stale = oldClaims(game);
+  if (stale) game.change(stale);
   let gmShown = local('hollow.gmname') ?? GM;
   let table: { room: string; wire: Wire; presence: Presence; authority: Authority; rolls: Rolls; images: ImageExchange } | null = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
@@ -531,7 +541,7 @@ async function main() {
     if (table) return table;
     const key = `hollow.room.${store.current!.id}`;
     const room = local(key) ?? local(key, newRoom(store.current!.name))!;
-    const wire = new Wire(room, { identity, sealer, tab, loopback, relay });
+    const wire = new Wire(room, { identity, sealer, tab, relay });
     const presence = new Presence({ net: wire, clock, role: 'gm', name: gmShown,
       here: (p, from) => { if (p.role === 'player') authority.join(from.tab, p.name, from.browser, from.sealKey); },
       gone: tab => hands.leave(tab) });

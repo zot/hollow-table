@@ -18,9 +18,10 @@ why, live again once reachable
 ## Test: rooms and invites
 **Purpose:** a room is a label and 128 random bits; the invite carries the room and the GM's browser
 **Input:** a room for "The 11-08 playtest"; two fresh rooms; an invite from a URL with a query and a
-hash; the plain page; a malformed invite
+hash; the plain page; a malformed invite; an invite whose `gm=` is a 20-character id
 **Expected:** `the-11-08-playtest-` and 32 hex digits; the two differ; the invite is the base with
-only `room` and `gm`, and reads back; the plain page and the malformed one are the GM's
+only `room` and `gm`, and reads back; the plain page and the malformed one are the GM's; the one
+with the old id is `old` (R473)
 **Refs:** crc-Presence.md
 **Code:** `src/net/presence.test.ts`
 **Alarm:** 2

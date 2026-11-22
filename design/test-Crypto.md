@@ -1,18 +1,16 @@
 # Test Design: Identity, Seal and Envelope
 **Source:** crc-Identity.md
 
-## Test: the handshake proof
-**Purpose:** a proof binds the nonce, both peer ids and the keys
-**Input:** two identities; a good proof; the same proof with another nonce, swapped peer ids, or a
-different sealing key
-**Expected:** the good one verifies to the right browser id; each altered one fails
+## Test: a browser's id is Trystero's for its key
+**Purpose:** R164, R470: the id this browser gives Trystero is the one Trystero derives from the key, so a brought identity is accepted, and it signs with the kept key
+**Input:** an extractable key pair kept in the `identity` store; Trystero's `importUserIdentity` of the same key
+**Expected:** the id has Identity's ID shape and equals Trystero's user id; the same store gives the same id, another browser another; `trystero()` carries that id and public key, and its signature verifies with the kept key
 **Refs:** crc-Identity.md, seq-join.md
 **Code:** `src/net/identity.test.ts`
 **Alarm:** 1
-**Fire alarm:** Leave the peer ids out of what a proof signs: the proof with the peer ids swapped verifies
-**Inject:** src/net/identity.ts:statement
-@alarm-hash: 532cd748ea843ee0
-**Pulled:** 2026-11-12 — rang: the proof with the peer ids swapped verified
+**Fire alarm:** derive the id under another domain tag (`trystero:uid:v2:`); red: the id is not Trystero's
+**Inject:** src/net/identity.ts:userIdOf
+**Pulled:** 2026-11-22 — rang: under `trystero:uid:v2:` the id was not Trystero's user id; restored clean
 
 ## Test: a box opens only for what it was made for
 **Purpose:** the additional data binds what, from and to

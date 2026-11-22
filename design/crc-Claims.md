@@ -1,5 +1,5 @@
 # Claims
-**Requirements:** R166, R167, R168, R169, R467, R468
+**Requirements:** R166, R167, R168, R169, R467, R468, R472
 
 On the GM's page: which browser holds which name. A page claiming a name another browser holds is
 nobody until the GM hands the name over.
@@ -12,6 +12,9 @@ nobody until the GM hands the name over.
 - renameWhy(game, from, to) (R467): why `to` can't be `from`'s new name, or null: blank, over 32
   characters, GM, open, another browser's claim or another character's owner, compared without case.
   renamed(game, from, to) (R468): the change that moves the claim and rewrites owners and chips' `by`.
+- oldClaims(game) (R472): the change that drops claims whose browser id isn't of Identity's ID shape,
+  made under ids from before Trystero proved them; null when there are none. The GM's page makes it
+  when it loads a game, as it marks an older game's Fields and Skills.
 - whoIs(game, name, browser): the name if this browser holds it or the name is free (claiming it in
   the book); nobody (null) otherwise. "GM" can't be claimed.
 - handOver(game, name, browser): the GM gives the name to another browser; secrets follow the new

@@ -207,3 +207,14 @@ is tombed
 **Fire alarm:** answer a free name without making the change (skip `renamed`); red: the book has no claim Dee
 **Inject:** src/net/authority.ts:Authority
 **Pulled:** 2026-11-19 — rang: the book had no claim Dee; restored clean
+
+## Test: claims made under the old ids go, and the name is claimed again
+**Purpose:** R472: a claim held by an id from before Trystero proved them is dropped when the GM's page loads the game
+**Input:** claims Dana by a 20-character id, Ann and Dee by 22-character ids
+**Expected:** only Dana's claim goes; a second pass has nothing to drop; Dana is free to claim again
+**Refs:** crc-Claims.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 19
+**Fire alarm:** keep every claim whatever its id's shape; red: Dana's old claim stays
+**Inject:** src/net/claims.ts:oldClaims
+**Pulled:** 2026-11-22 — rang: with every claim kept, Dana's old claim stayed; restored clean

@@ -406,7 +406,7 @@
 - **R162:** A page that connects is greeted and answers; a connection that closes counts as leaving.
 - **R163:** A page is live while a relay or a peer is reachable, offline (with why) after 15 s with neither, and keeps trying.
 - **R164:** Each browser makes a non-extractable signing key pair once and keeps it; its id derives from the public key and survives reloads.
-- **R165:** Before a page is let in, both sides prove their browsers' keys and vouch for their sealing keys; a bad signature is refused.
+- **~~R165:~~** (Retired T52 — see R470) Before a page is let in, both sides prove their browsers' keys and vouch for their sealing keys; a bad signature is refused.
 - **R166:** The first browser to claim a name holds it.
 - **R167:** A page claiming a held name from another browser sees only what anyone sees, has its changes, moves and roll requests refused, and is shown a "not yours" chip that says why.
 - **R168:** The GM's strip marks such a page, and clicking it hands the name over.
@@ -455,6 +455,10 @@
 - **R449:** An image is stored as its MIME type and its bytes (an ArrayBuffer), never a Blob, so a browser whose database refuses Blobs (WebKit in a private session) keeps it; an image stored as a Blob before still loads.
 - **R452:** `npm run relays` reports, for each relay in the pinned list and in Trystero's defaults, whether it answers a request for one event within 8 s, and how long it took or why not, the pinned ones first.
 - **R456:** An image from another page that this browser's store refuses is marked missing with why (FULL: this browser's storage is full), and asked for again like any missing image.
+- **R470:** Before a page is let in, Trystero's handshake proves both browsers' keys, the browser's own key brought to it; a browser's id is the user id Trystero derives from that key, and a bad proof is refused.
+- **R471:** A page's first message over a proven connection says its sealing key and its tab; a page counts as at the table only once it has arrived.
+- **R472:** When the GM's page loads a game, claims made under ids from before Trystero proved them are cleared.
+- **R473:** An invite carrying an id from before Trystero proved them opens no table: it says the link is old and to ask the GM for a new one.
 
 ## Feature: connections
 **Source:** specs/connections.md

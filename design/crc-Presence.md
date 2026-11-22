@@ -1,5 +1,5 @@
 # Presence
-**Requirements:** R155, R157, R158, R159, R161, R162, R163, R293, R294
+**Requirements:** R155, R157, R158, R159, R161, R162, R163, R293, R294, R473
 
 Who's at the table, and the room itself.
 
@@ -13,7 +13,9 @@ Who's at the table, and the room itself.
 ## Does
 - newRoom(label): a room name, the game's name as label (the GM's page remembers it per game).
 - invite(base, room, gm): the link: the page's address with only `room` and `gm=<the GM's browser
-  id>`. fromUrl(search): what an address makes a page, a player (room and GM) or the GM.
+  id>`. fromUrl(search): what an address makes a page, a player (room and GM) or the GM; or `old`, an
+  invite whose `gm=` is from before Trystero proved ids (R473), which opens no table and says to ask
+  the GM for a new link.
 - start(): watches liveness. close(): says bye and leaves the room (shift-click on Copy invite).
 - greet: a newly connected peer is sent `hello` and answers `here` to that peer only; a closed
   connection or a `bye` removes it. `here` is handed on (the GM's page joins a player to

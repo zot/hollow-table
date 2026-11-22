@@ -23,6 +23,6 @@
     "node": ">=22.18"
   },
   "dependencies": {
-    "@trystero-p2p/nostr": "0.26.0"
+    "@trystero-p2p/nostr": "0.27.0"
   }
 }

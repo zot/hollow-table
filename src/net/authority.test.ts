@@ -6,7 +6,7 @@ import { TOMBS, ridOf, type Book, type Character, type Opinion, type PieceRecord
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
 import { burialOf, bury } from '../rules/yards.ts';
-import { handOver, renameWhy, renamed, whoIs } from './claims.ts';
+import { handOver, oldClaims, renameWhy, renamed, whoIs } from './claims.ts';
 import { FakeRoom } from './fakeroom.ts';
 import { Sealer } from './seal.ts';
 import { Stamps } from './stamps.ts';
@@ -107,6 +107,17 @@ test('claims', () => {
   assert.equal(whoIs(game, 'GM', 'b-dana'), null, '"GM" cannot be claimed');
   handOver(game, 'Dana', 'b-other');
   assert.deepEqual([whoIs(game, 'Dana', 'b-other'), whoIs(game, 'Dana', 'b-dana')], ['Dana', null]);
+});
+
+test('claims made under the old ids go, and the name is claimed again', () => {
+  // R472: a claim held by a 20-character id is from before Trystero proved ids.
+  const game = new Game(), dee = 'D1'.repeat(11), ann = 'A1'.repeat(11);
+  game.load(playtest('Dana', 'Ann'));
+  game.change(w => w.put('book', { ...(game.get('book') as Book), claims: { Dana: 'D-'.repeat(10), Ann: ann, Dee: dee } }));
+  game.change(oldClaims(game)!);
+  assert.deepEqual((game.get('book') as Book).claims, { Ann: ann, Dee: dee }, "only Dana's old claim goes");
+  assert.equal(oldClaims(game), null, 'nothing left to drop');
+  assert.equal(whoIs(game, 'Dana', 'N1'.repeat(11)), 'Dana', 'Dana is free to claim again');
 });
 
 test('a name handed over: the new holder is told and gets its secrets, the old one is told', async () => {

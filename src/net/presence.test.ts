@@ -45,11 +45,14 @@ test('rooms and invites', () => {
   const room = newRoom('The 11-08 playtest');
   assert.match(room, /^the-11-08-playtest-[0-9a-f]{32}$/);
   assert.notEqual(newRoom(), newRoom());
-  const link = invite('https://zot.github.io/hollow-table/?test#x', room, 'A'.repeat(20));
-  assert.equal(link, `https://zot.github.io/hollow-table/?room=${room}&gm=${'A'.repeat(20)}`);
-  assert.deepEqual(fromUrl(new URL(link).search), { room, gm: 'A'.repeat(20) });
+  const gm = 'A1'.repeat(11);
+  const link = invite('https://zot.github.io/hollow-table/?test#x', room, gm);
+  assert.equal(link, `https://zot.github.io/hollow-table/?room=${room}&gm=${gm}`);
+  assert.deepEqual(fromUrl(new URL(link).search), { room, gm });
   assert.equal(fromUrl(''), null, 'the plain page is the GM');
   assert.equal(fromUrl('?room=x&gm=y'), null, 'a malformed invite is no invite');
+  // R473: an invite naming the GM by an id from before Trystero proved them is old, not the GM's page.
+  assert.equal(fromUrl(`?room=${room}&gm=${'A-'.repeat(10)}`), 'old');
 });
 
 test('a page that goes quiet dims, then goes', async () => {
