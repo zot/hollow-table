@@ -1,8 +1,8 @@
-// CRC: crc-Absorb.md | Seq: seq-take.md#1.2, seq-take.md#1.4.2 | R309, R310, R312, R315, R338, R339, R340, R341
+// CRC: crc-Absorb.md | Seq: seq-take.md#1.2, seq-take.md#1.4.2 | R309, R310, R312, R315, R338, R339, R340, R341, R496
 // Taking an Attack into a Damage column: Hollow Folks, *Absorbing Damage*, with Bill's rulings of
 // 2026-11-13 (carves/damage.md, Item 4). Pure.
 import { DAMAGE, LASTING, ROWS, type AttackKind, type Character, type Damage, type DamageSlot, type Lasting, type LastingColumn, type NameRow, type RowName } from '../model/records.ts';
-import { columnRoom } from './influence.ts';
+import { columnRoom, slotWorth } from './influence.ts';
 
 /** What a Slot of each row absorbs. */
 export const SIZE: Record<RowName, number> = { mild: 2, min: 2, sig: 4, maj: 6 };
@@ -59,7 +59,7 @@ export function free(char: Character, d: Damage): Record<RowName, number> {
   return out;
 }
 
-const total = (use: Record<RowName, number>) => ROWS.reduce((a, r) => a + use[r] * SIZE[r], 0);
+const total = (use: Record<RowName, number>, size: (r: RowName) => number) => ROWS.reduce((a, r) => a + use[r] * size(r), 0);
 const slots = (use: Record<RowName, number>) => ROWS.reduce((a, r) => a + use[r], 0);
 
 // R310: every set of free Slots that covers what the absorb leaves, with none to spare; R339: when
@@ -67,22 +67,24 @@ const slots = (use: Record<RowName, number>) => ROWS.reduce((a, r) => a + use[r]
 /** The pages for an Attack of `kind` with Result `result` against `char`. */
 export function pages(char: Character, kind: AttackKind, result: number): Page[] {
   const d = COLUMN_OF[kind], left = result - (columnRoom(char, d)?.absorb ?? 0);
+  // R496: a slot worth only 1 absorbs 1 point.
+  const size = (r: RowName) => slotWorth(char, d, r), sum = (use: Record<RowName, number>) => total(use, size);
   if (left <= 0) return [{ use: none(), overflow: 0 }];
   const avail = free(char, d), found: Page[] = [];
   const walk = (i: number, use: Record<RowName, number>) => {
     if (i === ROWS.length) {
       const used = ROWS.filter(r => use[r] > 0);
       if (!used.length) return;
-      const sum = total(use), smallest = Math.min(...used.map(r => SIZE[r]));
-      if (sum >= left && sum - smallest < left) found.push({ use: { ...use }, overflow: 0 });
+      const got = sum(use), smallest = Math.min(...used.map(size));
+      if (got >= left && got - smallest < left) found.push({ use: { ...use }, overflow: 0 });
       return;
     }
     const row = ROWS[i]!;
     for (let n = 0; n <= avail[row]; n++) walk(i + 1, { ...use, [row]: n });
   };
   walk(0, none());
-  if (!found.length) return [{ use: avail, overflow: left - total(avail) }];
-  return found.sort((a, b) => total(a.use) - total(b.use) || slots(a.use) - slots(b.use));
+  if (!found.length) return [{ use: avail, overflow: left - sum(avail) }];
+  return found.sort((a, b) => sum(a.use) - sum(b.use) || slots(a.use) - slots(b.use));
 }
 
 /** Whether two pages use the same Slots and leave the same over. */

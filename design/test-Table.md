@@ -491,3 +491,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** drop the card's `clip-path`; red: the card has none
 **Inject:** src/ui/theme.css
 **Pulled:** 2026-11-23 — rang: with the card's clip-path dropped, its computed clip was none (Chromium); restored clean
+
+## Test: a slot worth only 1 reads "Mild (1)"
+**Purpose:** R496: the back shows a slot worth only 1 after its Level word
+**Input:** Sam's card with Wis −1, its back's Biases open
+**Expected:** the Bias Mild slot reads "Mild (1)"; the Min slot reads "Min"
+**Refs:** crc-PieceView.md, ui-card.md
+**Code:** `tests/card.spec.ts`
+**Alarm:** 40
+**Fire alarm:** never write "(1)" on a slot; red: the Mild slot reads "Mild"
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-23 — rang: with no "(1)" written, the Mild slot read "Mild" (Chromium); restored clean

@@ -1,5 +1,5 @@
 # Absorb
-**Requirements:** R309, R310, R312, R315, R338, R339-341
+**Requirements:** R309, R310, R312, R315, R338, R339-341, R496
 
 Taking an Attack into a Damage column, by Hollow Folks' *Absorbing Damage* and Bill's rulings of
 2026-11-13 (`carves/done/damage.md`, Item 4). Pure (`src/rules/absorb.ts`).
@@ -18,7 +18,8 @@ Taking an Attack into a Damage column, by Hollow Folks' *Absorbing Damage* and B
   has no name and waits for none (R315); its boxes count as Influence.room (Con or Wis) gives, or as
   the card has them when unmarked, and any checked beyond that; a box is free while unchecked. A row
   is used in order: its named Slot first, then its boxes.
-- pages(char, kind, result): the result less the column's absorb (Influence.columnRoom); nothing
+- pages(char, kind, result): the result less the column's absorb (Influence.columnRoom), each Slot
+  absorbing its worth (Influence.slotWorth, R496: 1 for a slot worth only 1); nothing
   left is one empty page. Otherwise every count of free Slots per row whose sum covers what is left
   and whose sum less its smallest used Slot falls short (R310), each once, fewest points first, then
   fewest Slots; when none covers, the one page uses every free Slot and carries the overflow (R339).

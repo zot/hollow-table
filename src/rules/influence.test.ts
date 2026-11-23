@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, Chip, Influence, Sign } from '../model/records.ts';
-import { columnRoom, levelName, lowerCard, lowerChip, raiseChip, rider, room } from './influence.ts';
+import { columnRoom, levelName, slotWorth, lowerCard, lowerChip, raiseChip, rider, room } from './influence.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const where = { slot: '00000001', name: 'edge' } as const;
@@ -58,4 +58,13 @@ test('Wis and Con size the Damage columns', () => {
   const sam = chars.get(SAM)!, tough = { ...sam, front: sam.front.replace('<att>Cha 2   Int 2   Wis 4</att>', '<att>Con 7  Wis 10</att>') };
   assert.deepEqual([columnRoom(tough, 'bias')!.absorb, columnRoom(tough, 'injury')!.boxes.sig], [2, 1]);
   assert.equal(columnRoom({ ...sam, front: 'Cha 2   Int 2   Wis 4' }, 'bias'), null, 'unmarked: the card keeps its boxes');
+});
+
+test('below 0 a slot is worth only 1', () => {
+  // R496: Hollow Folks' "Worth only 1": Mild at −1, Mild and Min at −2 or below.
+  assert.deepEqual([-3, -2, -1, 0].map(n => room(n).one), [['mild', 'min'], ['mild', 'min'], ['mild'], []]);
+  const sam = scene().find((r): r is Character => r.kind === 'character' && r.oid === SAM)!;
+  const weak = { ...sam, front: sam.front.replace('<att>Cha 2   Int 2   Wis 4</att>', '<att>Con 0  Wis −2</att>') };
+  assert.deepEqual((['mild', 'min', 'sig'] as const).map(r => slotWorth(weak, 'bias', r)), [1, 1, 4]);
+  assert.equal(slotWorth(weak, 'injury', 'mild'), 2, 'Con 0: as usual');
 });

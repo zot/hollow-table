@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486, R496
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -335,7 +335,7 @@ function tornroll(e: HTMLElement, r: TornRoll): void {
   e.replaceChildren(...r.receipts.map(x => receiptEl(e.ownerDocument, x)));
 }
 
-// ---- the back: R23, R209, R213, R253, R264, R265 ----
+// ---- the back: R23, R209, R213, R253, R264, R265, R496 ----
 
 const filled = (s: DamageSlot) => !!s.name || s.boxes.some(b => b);
 
@@ -392,6 +392,8 @@ function damage(box: HTMLElement, c: Character, w: PieceWith): void {
     col.querySelector('.absorb')!.textContent = absorb ? `(absorb ${absorb})` : '';
     for (const line of col.querySelectorAll<HTMLElement>('.slotline')) {
       const row = line.dataset.row as RowName, s = slots[row];
+      // R496: a slot worth only 1 says so after its Level word.
+      line.querySelector('.lvl')!.textContent = room?.one.includes(row) ? `${LEVEL[row]} (1)` : LEVEL[row];
       const name = line.querySelector<HTMLElement>('.name')!;
       if (doc.activeElement !== name && name.textContent !== s.name) name.textContent = s.name;
       const spent = s.spent.reduce((a, b) => a + b, 0);

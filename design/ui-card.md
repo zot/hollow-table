@@ -1,5 +1,5 @@
 # UI: a character card
-**Requirements:** R5, R22-24, R75, R202, R209, R213, R245, R246, R249, R253, R254, R256, R264, R265, R316, R318, R331-335, R341, R342
+**Requirements:** R5, R22-24, R75, R202, R209, R213, R245, R246, R249, R253, R254, R256, R264, R265, R316, R318, R331-335, R341, R342, R496
 
 Front:
 ```
@@ -39,7 +39,7 @@ Back (Injuries empty, so collapsed to its name):
   one per checked box.
 - A heading shows `(absorb N)` only when N isn't 0, worked out from Wis or Con (R264); it isn't
   edited. Clicking the name brings the column to the front (R253). The boxes per slot follow the
-  same attribute (R265). An open column's name sits over its
+  same attribute (R265). A slot worth only 1 reads "Mild (1)" (R496). An open column's name sits over its
   blanks, 72 px in, on one line (R254). A collapsed column is 64 px whichever name it is, and open
   columns share the rest evenly, so the blanks are one length per arrangement (R256).
 

@@ -1,4 +1,4 @@
-// CRC: crc-Tap.md | R54, R55, R56, R57, R461, R59, R60, R66, R210, R211, R212, R250, R259, R463, R261, R262, R343, R344, R432, R433
+// CRC: crc-Tap.md | R54, R55, R56, R57, R461, R59, R60, R66, R210, R211, R212, R250, R259, R463, R261, R262, R343, R344, R432, R433, R497
 // Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source
 // so every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
 // Resources*), and NPCs' Motivations (Bunkum, *Mental Resources*). Pure: returns the records to
@@ -15,7 +15,7 @@ import { lastingLevels } from './absorb.ts';
 import { marks, parse, serialize, setMark } from '../text/marks.ts';
 import { adjust, influence, levelsOf, motiveLeft, spend, unadjusted } from './readmarks.ts';
 import type { Viewer } from './visibility.ts';
-import { MIN, STEP, rowLevels } from './influence.ts';
+import { MIN, STEP, rowLevels, slotWorth } from './influence.ts';
 
 /** A source's holder: a character, or an Opinion Record (R433). */
 export type Holder = Character | Opinion;
@@ -25,6 +25,8 @@ export type Tapped = { card: Influence; changed: Holder[] };
 
 type Source = {
   char: Character; name: string; sign: Sign; left: number; damage?: Damage; mot?: true; spend: (n: number) => Holder;
+  /** R497: what its card is born at: 1 from a Damage slot worth only 1, else Min. */
+  points?: number;
 };
 
 const OPINION_SOURCE = /^o([0-9a-f]{8})\/(.+)$/;
@@ -85,7 +87,8 @@ function inBack(char: Character, rest: string): Source | null {
     const column = { ...char.back.damage[damage], [row]: { ...slot, spent: Array.from(spent, x => x ?? 0) } };
     return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage]: column } } };
   };
-  return { char, name: slot.name, sign: -1, left: rowLevels(row) - (slot.spent[k] ?? 0), damage, spend };
+  return { char, name: slot.name, sign: -1, left: rowLevels(row) - (slot.spent[k] ?? 0), damage, spend,
+    points: Math.min(MIN, slotWorth(char, damage, row)) };
 }
 
 // R259: your own Resources only (the GM may, running NPCs and working players' rolls); anyone's
@@ -121,7 +124,7 @@ export function tap(chars: Lookup, src: string, where: Where, oid: Oid): Tapped 
   const s = source(chars, src);
   if (!s || s.left < 1) return null;
   const card: Influence = {
-    kind: 'influence', oid, home: s.char.oid, where, n: 0, name: s.name, sign: s.sign, points: MIN,
+    kind: 'influence', oid, home: s.char.oid, where, n: 0, name: s.name, sign: s.sign, points: s.points ?? MIN,
     used: false, crit: false, tap: { ledger: { [src]: 1 }, current: src }, ...(s.damage && { damage: s.damage }),
     ...(s.mot && { mot: true as const }),
   };
@@ -140,6 +143,8 @@ export function feed(chars: Lookup, card: Influence, src: string | undefined, _o
   if (!id) return null;
   const s = source(chars, id);
   if (!s || s.left < 1 || s.damage !== card.damage) return null;
+  // R497: a slot worth only 1 feeds no card, and a 1-point card is fed by nothing.
+  if ((s.points ?? MIN) < MIN || card.points < MIN) return null;
   const why = !card.tap ? PLAIN : card.used ? USED : !!s.mot !== !!card.mot ? MIXED : null;
   const ledger = { ...card.tap?.ledger, [id]: (card.tap?.ledger[id] ?? 0) + 1 };
   const flag = why ? flagged(card.flag, why, id, !card.tap) : card.flag;

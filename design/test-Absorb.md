@@ -22,8 +22,7 @@
 **Alarm:** 2
 **Fire alarm:** drop the none-to-spare test (keep only `sum >= left`); red: wasteful sets such as Mild + Min + Sig appear among the pages
 **Inject:** src/rules/absorb.ts:pages
-**Pulled:** 2026-11-13 — 2026-11-13 — rang: "the pages for Sam taking 5" and "absorb comes off first" failed (spare Slots among the pages); restored clean
-
+**Pulled:** 2026-11-23 — re-pulled after R496 (pages changed): rang, wasteful sets appeared among the pages; restored clean *Earlier —* 2026-11-13 — 2026-11-13 — rang: "the pages for Sam taking 5" and "absorb comes off first" failed (spare Slots among the pages); restored clean
 ## Test: only a Maj left takes a single point
 **Purpose:** a last point uses a larger Slot when that is all that is free (Bill: "they must use the Maj slot to cover it")
 **Input:** a back whose Biases have only the Maj Slot free; Result 1
@@ -40,8 +39,7 @@
 **Alarm:** 3
 **Fire alarm:** stop subtracting the column's absorb (`left = result`); red: Result 1 gives four one-Slot pages instead of one empty page
 **Inject:** src/rules/absorb.ts:pages
-**Pulled:** 2026-11-13 — 2026-11-13 — rang: "absorb comes off first" failed; restored clean
-
+**Pulled:** 2026-11-23 — re-pulled after R496 (pages changed): rang, the absorb wasn't subtracted; restored clean *Earlier —* 2026-11-13 — 2026-11-13 — rang: "absorb comes off first" failed; restored clean
 ## Test: overflow
 **Purpose:** nothing covers it: every free Slot fills, and a physical Attack's rest is a Condition in the Notes (R339)
 **Input:** a back with only one Min Injury Slot free; a physical Result of 5
@@ -91,3 +89,14 @@
 **Fire alarm:** use the Influence ladder (2 points a Level, tops 2, 4, 6, 8, 10) for TOPS; red: 3 points reads Sig but 6 reads Maj
 **Inject:** src/rules/absorb.ts:lastingLevels
 **Pulled:** 2026-11-15 — rang: "a Conviction's Level follows its points" failed on the Influence ladder; restored clean
+
+## Test: a slot worth only 1 absorbs 1
+**Purpose:** R496: the pages count a slot worth only 1 as absorbing 1 point
+**Input:** a character with Wis −2 and a free Mild, Min and Sig Bias, taking a mental Attack of 2
+**Expected:** the pages are the Min and Mild together (1 + 1), the Sig alone (4) and the Maj alone (6), fewest points first; no page uses Mild or Min alone
+**Refs:** crc-Absorb.md, crc-Influence.md
+**Code:** `src/rules/absorb.test.ts`
+**Alarm:** 8
+**Fire alarm:** size every slot by SIZE in pages (ignore slotWorth); red: Mild alone covers 2
+**Inject:** src/rules/absorb.ts:pages
+**Pulled:** 2026-11-23 — rang: sized by SIZE, the pages changed (Mild alone covered 2); restored clean

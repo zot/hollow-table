@@ -1,4 +1,4 @@
-// CRC: crc-Influence.md | R36, R264, R265
+// CRC: crc-Influence.md | R36, R264, R265, R496
 // Levels and points, and what a click or shift-click does to one chip or card. Pure: each returns
 // the new record, or null when a click removes it.
 
@@ -55,8 +55,8 @@ export function rowLevels(row: RowName): number {
 }
 
 // R264, R265: Hollow Folks, *Absorbing Damage*: extra Slot boxes and Result absorption by Con or
-// Wis, each row from its Level up. The book's negative rows ("worth only 1") are open.
-export type Room = { boxes: Record<RowName, number>; absorb: number };
+// Wis, each row from its Level up. R496: below 0, the book's "worth only 1": Mild at −1, Mild and Min at −2.
+export type Room = { boxes: Record<RowName, number>; absorb: number; one: RowName[] };
 const ROOM: [number, number, number, number, number][] = [
   // level, mild, min, sig, absorb
   [15, 2, 2, 2, 3], [11, 2, 2, 1, 2], [10, 1, 2, 1, 2], [9, 1, 2, 1, 1],
@@ -66,7 +66,14 @@ const ROOM: [number, number, number, number, number][] = [
 /** The extra boxes per row and the absorb a Con or Wis of `level` gives. */
 export function room(level: number): Room {
   const [, mild, min, sig, absorb] = ROOM.find(r => level >= r[0]) ?? [0, 0, 0, 0, 0];
-  return { boxes: { mild, min, sig, maj: 0 }, absorb };
+  const one: RowName[] = level <= -2 ? ['mild', 'min'] : level === -1 ? ['mild'] : [];
+  return { boxes: { mild, min, sig, maj: 0 }, absorb, one };
+}
+
+// R496: a slot absorbs and holds its row's Levels in points (Mild and Min 2, Sig 4, Maj 6), or 1 when worth only 1.
+/** The points a Damage slot of this character absorbs and holds. */
+export function slotWorth(char: Character, d: Damage, row: RowName): number {
+  return columnRoom(char, d)?.one.includes(row) ? 1 : rowLevels(row) * STEP;
 }
 
 /** A Damage column's room from the card's `<att>` marks (Wis, or Con for Injuries); null if unmarked. */

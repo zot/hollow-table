@@ -108,6 +108,7 @@
 - **R451:** A press and move on a piece's text carries the piece: the browser's own drag never starts from the table (`dragstart` is cancelled there), and while a carry lasts it leaves any writing the browser takes up again (WebKit's text selection refocuses the text); dropping files from outside the page still works.
 - **R453:** When the browser refuses to store a new image, the image supply turns red and reads "storage full" (a QuotaExceededError) or "not added", its tooltip saying why, until an image is added.
 - **R460:** (principle) The table enforces who may see and touch what, with the GM's page arbitrating; works out and shows the arithmetic; and allows a judgment call the book leaves to the GM, flagging it for the GM, rather than refusing it.
+- **R496:** At Con or Wis −1 a Damage column's Mild Slot, at −2 or below its Mild and Min Slots, are worth only 1 point: each absorbs 1 point of an Attack instead of 2, and the back shows it beside its Level word, "Mild (1)".
 
 ## Feature: Influence
 **Source:** specs/influence.md
@@ -181,6 +182,7 @@
 - **R462:** A roll marks the Influence cards in the rolling character's pool used (dimmed, tagged); a Resource fed into a used card feeds that card, flagged USED for the GM, and click and shift-click still change them.
 - **R463:** A card tapped from a Motivation is a Main Pool Influence of the Motivation's sign: it goes only into a Main slot (dropped in another slot, it goes home), Motivations and Opinions feed it, and dropped into a Main slot it joins that character's drawer; a Resource fed into it, or a Motivation into a Resource's card, feeds it flagged MIXED for the GM.
 - **R464:** A flag (why, and the Levels fed under it by source) is a mark on its card that every page shows, a viewer who can't read the card getting the why alone; on the GM's page a click offers Allow (the flag goes) and Undo (the Levels fed under it go back to their sources, and a card that was plain is plain again); the GM's page refuses a player's change that drops or shrinks a flag.
+- **R497:** A slot worth only 1 taps into a 1-point card, which a pool shows as a −1 chip, refunded when killed and gone at End as a Mild tap is; it feeds no card, and no source feeds it.
 
 ## Feature: rolls
 **Source:** specs/rolls.md

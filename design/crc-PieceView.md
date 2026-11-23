@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -60,7 +60,8 @@ stickies, loose text, images, torn rolls and reference cards.
   until its slot has a name), each checked box with a tap glyph of its own; how many boxes a slot has,
   and the absorb a column's heading shows when it isn't 0, come from Influence.columnRoom (R264,
   R265): never typed; a box checked beyond the count stays drawn until unchecked; with no attribute
-  marked, the boxes the card has.
+  marked, the boxes the card has. A slot worth only 1 says so after its Level word, "Mild (1)"
+  (Influence.slotWorth, R496).
 - actions (R316, R76, R77): a small die before each alternative of an `<act>` label (split at `/`) at rest (like the glyphs), which calls
   useAction (the roll row docks and fills, or the die shakes); the action in use (inUse, matched by
   label) carries `inuse`, its highlighter swish, even while written on.

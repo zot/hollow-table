@@ -759,7 +759,11 @@ var ROOM = [
 ];
 function room(level2) {
   const [, mild, min2, sig, absorb2] = ROOM.find((r) => level2 >= r[0]) ?? [0, 0, 0, 0, 0];
-  return { boxes: { mild, min: min2, sig, maj: 0 }, absorb: absorb2 };
+  const one = level2 <= -2 ? ["mild", "min"] : level2 === -1 ? ["mild"] : [];
+  return { boxes: { mild, min: min2, sig, maj: 0 }, absorb: absorb2, one };
+}
+function slotWorth(char, d, row2) {
+  return columnRoom(char, d)?.one.includes(row2) ? 1 : rowLevels(row2) * STEP;
 }
 function columnRoom(char, d) {
   const name2 = d === "injury" ? "Con" : "Wis";
@@ -771,7 +775,6 @@ function columnRoom(char, d) {
 }
 
 // src/rules/absorb.ts
-var SIZE = { mild: 2, min: 2, sig: 4, maj: 6 };
 var COLUMN_OF = { phys: "injury", mental: "bias", psych: "affliction" };
 var OVERFLOW = { bias: "Conviction", affliction: "Burden", injury: "Condition" };
 var isLasting = (d) => LASTING.includes(d);
@@ -801,26 +804,27 @@ function free(char, d) {
   }
   return out;
 }
-var total = (use) => ROWS.reduce((a, r) => a + use[r] * SIZE[r], 0);
+var total = (use, size) => ROWS.reduce((a, r) => a + use[r] * size(r), 0);
 var slots = (use) => ROWS.reduce((a, r) => a + use[r], 0);
 function pages(char, kind, result) {
   const d = COLUMN_OF[kind], left = result - (columnRoom(char, d)?.absorb ?? 0);
+  const size = (r) => slotWorth(char, d, r), sum2 = (use) => total(use, size);
   if (left <= 0) return [{ use: none(), overflow: 0 }];
   const avail = free(char, d), found = [];
   const walk = (i, use) => {
     if (i === ROWS.length) {
       const used = ROWS.filter((r) => use[r] > 0);
       if (!used.length) return;
-      const sum2 = total(use), smallest = Math.min(...used.map((r) => SIZE[r]));
-      if (sum2 >= left && sum2 - smallest < left) found.push({ use: { ...use }, overflow: 0 });
+      const got = sum2(use), smallest = Math.min(...used.map(size));
+      if (got >= left && got - smallest < left) found.push({ use: { ...use }, overflow: 0 });
       return;
     }
     const row2 = ROWS[i];
     for (let n = 0; n <= avail[row2]; n++) walk(i + 1, { ...use, [row2]: n });
   };
   walk(0, none());
-  if (!found.length) return [{ use: avail, overflow: left - total(avail) }];
-  return found.sort((a, b) => total(a.use) - total(b.use) || slots(a.use) - slots(b.use));
+  if (!found.length) return [{ use: avail, overflow: left - sum2(avail) }];
+  return found.sort((a, b) => sum2(a.use) - sum2(b.use) || slots(a.use) - slots(b.use));
 }
 function same2(a, b) {
   return a.overflow === b.overflow && ROWS.every((r) => a.use[r] === b.use[r]);
@@ -1605,7 +1609,15 @@ function inBack(char, rest) {
     const column2 = { ...char.back.damage[damage3], [row2]: { ...slot2, spent: Array.from(spent, (x) => x ?? 0) } };
     return { ...char, back: { ...char.back, damage: { ...char.back.damage, [damage3]: column2 } } };
   };
-  return { char, name: slot2.name, sign: -1, left: rowLevels(row2) - (slot2.spent[k] ?? 0), damage: damage3, spend: spend2 };
+  return {
+    char,
+    name: slot2.name,
+    sign: -1,
+    left: rowLevels(row2) - (slot2.spent[k] ?? 0),
+    damage: damage3,
+    spend: spend2,
+    points: Math.min(MIN, slotWorth(char, damage3, row2))
+  };
 }
 function mayTap(viewer, char, rest) {
   if (OPINION_SOURCE.test(rest)) return !!viewer?.gm;
@@ -1635,7 +1647,7 @@ function tap(chars, src, where2, oid) {
     n: 0,
     name: s.name,
     sign: s.sign,
-    points: MIN,
+    points: s.points ?? MIN,
     used: false,
     crit: false,
     tap: { ledger: { [src]: 1 }, current: src },
@@ -1652,6 +1664,7 @@ function feed(chars, card2, src, _oid) {
   if (!id) return null;
   const s = source(chars, id);
   if (!s || s.left < 1 || s.damage !== card2.damage) return null;
+  if ((s.points ?? MIN) < MIN || card2.points < MIN) return null;
   const why3 = !card2.tap ? PLAIN : card2.used ? USED : !!s.mot !== !!card2.mot ? MIXED : null;
   const ledger = { ...card2.tap?.ledger, [id]: (card2.tap?.ledger[id] ?? 0) + 1 };
   const flag = why3 ? flagged(card2.flag, why3, id, !card2.tap) : card2.flag;
@@ -2411,6 +2424,7 @@ function damage2(box2, c, w) {
     col.querySelector(".absorb").textContent = absorb2 ? `(absorb ${absorb2})` : "";
     for (const line of col.querySelectorAll(".slotline")) {
       const row2 = line.dataset.row, s = slots2[row2];
+      line.querySelector(".lvl").textContent = room2?.one.includes(row2) ? `${LEVEL2[row2]} (1)` : LEVEL2[row2];
       const name2 = line.querySelector(".name");
       if (doc.activeElement !== name2 && name2.textContent !== s.name) name2.textContent = s.name;
       const spent = s.spent.reduce((a, b) => a + b, 0);

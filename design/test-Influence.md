@@ -45,4 +45,14 @@ and one extra Sig Injury box; null
 **Alarm:** 3
 **Fire alarm:** In room, take the first row whose Level is at most the attribute from the bottom (rows ascending): Wis 15 reads as Wis 1
 **Inject:** src/rules/influence.ts:room
-**Pulled:** 2026-11-12 — rang: with the rows read from the bottom, every Level from 1 up came out as `0 1 0 0 0`
+**Pulled:** 2026-11-23 — re-pulled after R496 (room changed): rang, Wis 15 read as Wis 1; restored clean *Earlier —* 2026-11-12 — rang: with the rows read from the bottom, every Level from 1 up came out as `0 1 0 0 0`
+## Test: below 0 a slot is worth only 1
+**Purpose:** R496: room's `one` rows, Mild at −1 and Mild and Min at −2 or below; slotWorth gives 1 for them and the usual size otherwise
+**Input:** room at −3, −2, −1, 0; slotWorth for a card with Wis −2 (Bias Mild, Min, Sig) and Con 0 (Injury Mild)
+**Expected:** `one` Mild and Min, Mild and Min, Mild, none; 1, 1, 4; 2
+**Refs:** crc-Influence.md
+**Code:** `src/rules/influence.test.ts`
+**Alarm:** 4
+**Fire alarm:** give `one` only at −2 and below (drop the −1 row); red: a Wis −1 Mild slot is worth 2
+**Inject:** src/rules/influence.ts:room
+**Pulled:** 2026-11-23 — rang: with the −1 row dropped, a Wis −1 Mild slot was worth 2; restored clean

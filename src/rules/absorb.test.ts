@@ -109,3 +109,9 @@ test('a Conviction\'s Level follows its points', () => {
   assert.deepEqual(at.map(lastingLevels), [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5]);
   assert.deepEqual(at.map(lastingTop), [2, 2, 2, 6, 6, 12, 12, 20, 20, 30, 30, 30]);
 });
+
+test('a slot worth only 1 absorbs 1', () => {
+  // R496: at Wis −2, Mild and Min each absorb 1, so neither alone covers 2.
+  const s = sam(), weak = { ...s, front: s.front.replace('<att>Cha 2   Int 2   Wis 4</att>', '<att>Cha 2   Int 2   Wis −2</att>') };
+  assert.deepEqual(pages(weak, 'mental', 2).map(show), ['min+mild', 'sig', 'maj']);
+});

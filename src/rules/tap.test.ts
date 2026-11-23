@@ -273,3 +273,16 @@ test('tapping an Opinion', () => {
   assert.equal(mayTap({ name: 'Dana', gm: false }, dev, 'oe0000001/Reputation'), false, 'R432: only the GM');
   assert.equal(mayTap({ name: 'GM', gm: true }, dev, 'oe0000001/Reputation'), true);
 });
+
+test('a slot worth only 1 taps into a −1, and neither feeds', () => {
+  // R497: at Wis −1 the Mild Bias is worth only 1.
+  const t = table(), sam = t.chars.get(SAM)!;
+  t.chars.set(SAM, { ...sam, front: sam.front.replace('<att>Cha 2   Int 2   Wis 4</att>', '<att>Cha 2   Int 2   Wis −1</att>') });
+  damaged(t, { 'bias/mild': ['Sore loser', 0], 'bias/min': ['Uncertain', 0] });
+  const one = t.take(tap(t.look, `${SAM}:bias/mild`, where, 'c1'))!;
+  assert.deepEqual([one.points, one.tap?.ledger], [1, { [`${SAM}:bias/mild`]: 1 }], 'a −1, with its ledger');
+  assert.equal(feed(t.look, one, `${SAM}:bias/min`, 'x'), null, 'nothing feeds a −1');
+  const min = t.take(tap(t.look, `${SAM}:bias/min`, where, 'c2'))!;
+  assert.equal(min.points, 2, 'the Min is worth Min');
+  assert.equal(feed(t.look, min, `${SAM}:bias/mild`, 'x'), null, 'a slot worth only 1 feeds no card');
+});

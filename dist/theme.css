@@ -293,7 +293,7 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .column .hd .absorb { font-weight: 400; font-size: 15px; }
 .slotline { display: flex; align-items: flex-end; gap: 4px; min-height: 22px; }
 .slotline .boxes { flex: 0 0 34px; }
-.slotline .lvl { flex: 0 0 30px; }
+.slotline .lvl { flex: 0 0 auto; min-width: 30px; }   /* R496: room for "Mild (1)" */
 .slotline .name { flex: 1; min-width: 0; }
 .slotline .boxes { display: flex; gap: 3px; justify-content: flex-end; padding-bottom: 3px; }
 .slotline .lvl { font-weight: 600; text-decoration: underline; }

@@ -11,7 +11,7 @@ the negative rows of the Con/Wis table. Opened by Bill, 2026-11-23, from gaps O2
 - [x] ~~**Item 2 — shift-click cancels an armed End.**~~ **LANDED (2026-11-23 — `#60`.)** On "End conflict?" or "End
       scene?" in the Round's window.
 - [x] ~~**Item 3 — the Round's tab, pointed like a register's flag.**~~ **LANDED (2026-11-23 — `#61`.)**
-- [ ] **Item 4 — the negative rows of the Con/Wis table.** **OPEN (not queued.)** Gap O3.
+- [x] ~~**Item 4 — the negative rows of the Con/Wis table.**~~ **LANDED (2026-11-23 — `#62`.)** Gap O3.
 - [x] ~~**Item 5 — End's tooltip says how to end only the Conflict.**~~ **LANDED (2026-11-23 — `#59`.)** At Round 0, ▲ to
       Round 1 first, then End.
 
@@ -51,6 +51,15 @@ DECIDED (Bill, 2026-11-23), after Item 1: "In Round 0, to end the conflict but n
 raise it to Round 1 and then end it", noted on End's tooltip ("Yes, let's do the tooltip"), not on the
 "End scene?" tab, which holds two words and rises only after the first press (Item 5).
 
+DECIDED (Bill, 2026-11-23), on Daneel's questions when Item 4 started:
+
+- **A slot worth only 1, tapped, gives a −1** ("A −1 chip"): Hollow Folks has each Slot absorb "its Influence
+  amount" and then hold that Damage Resource, so a slot worth 1 holds 1 point. Tapped it makes a 1-point
+  Influence, which a pool draws as a −1 chip, keeping its tap's refund and End's clearing (R344).
+- **The back shows it** ("Yes, on the slot"): a slot worth only 1 says so beside its row, "Mild (1)".
+- **Neither feeds** ("Neither feeds"): a worth-1 slot only taps into a fresh −1, and a −1 can't be fed; Roll
+  Up adds it in with the rest of the pool.
+
 ## Built
 
 - **Item 1, as `#58`** (2026-11-23; R492, gap O2 resolved): the register arms with "End scene?" when the
@@ -65,6 +74,10 @@ raise it to Round 1 and then end it", noted on End's tooltip ("Yes, let's do the
   38 px width: rounded shoulders, a concave rise and a small tip in the middle, after the "$1" flag; no new
   element. Tried live in the browser, "0" and "99" both fit in the glass. The register's browser test checks
   the card's clip.
+- **Item 4, as `#62`** (2026-11-23; R496, R497, gap O3 resolved): `Influence.room` gives `one`, the rows worth
+  only 1 (Mild at −1, Mild and Min at −2 or below), and `slotWorth` a slot's points. The absorb pages size
+  each slot by it; a tap from such a slot makes a 1-point card (a pool's −1 chip) and neither feeds nor is
+  fed; the back writes "Mild (1)", its Level word widening (names on such a row start a little later).
 - **Item 5, as `#59`** (2026-11-23; R493): End's tooltip adds "(▲ to Round 1 first to end only the
   Conflict)"; the register's browser test checks it, and fails with the hint removed.
 

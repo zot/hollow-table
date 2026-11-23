@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -180,4 +180,15 @@ test('a Conviction under Biases', async ({ page }) => {
   await expect.poll(async () => (await rec(page, SAM)).back.lasting).toBeUndefined();
   await page.locator('body').click({ position: { x: 5, y: 5 } });
   await expect(line).toBeHidden();
+});
+
+test('a slot worth only 1 reads "Mild (1)"', async ({ page }) => {
+  // R496: at Wis −1 the Bias Mild slot is worth only 1, and says so; the Min isn't.
+  await hook(page, h => {
+    const sam = h.store.game.get('o:00000001');
+    h.store.game.change((w: any) => w.put('o:00000001', { ...sam, front: sam.front.replace('<att>Cha 2   Int 2   Wis 4</att>', '<att>Cha 2   Int 2   Wis −1</att>') }));
+  });
+  await page.locator(`${CARD} .flip`).click();
+  await expect(page.locator(`${CARD} .col-bias .slotline[data-row="mild"] .lvl`)).toHaveText('Mild (1)');
+  await expect(page.locator(`${CARD} .col-bias .slotline[data-row="min"] .lvl`)).toHaveText('Min');
 });

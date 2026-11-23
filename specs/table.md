@@ -151,8 +151,11 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
   the count stays until it is unchecked. A card whose attributes aren't marked keeps the boxes it has.
 - **A column's heading carries its absorb**, *Biases (absorb 1)*: how much of each Attack's Result
   the character absorbs before any Slot fills, 1 from 5, 2 from 10, 3 from 15, by the same table.
-  It is worked out, never typed, and shown only when it isn't 0. (What the book's negative rows,
-  "worth only 1", do is open.)
+  It is worked out, never typed, and shown only when it isn't 0.
+- **Below 0 a slot is worth only 1** (Hollow Folks' table, "Worth only 1"; Bill, 2026-11-23: "Mild, then
+  Mild and Min"): at −1 the column's Mild Slot, at −2 or below its Mild and Min Slots, absorb 1 point of an
+  Attack instead of 2 and hold a 1-point Damage Resource. Such a slot says so beside its Level word,
+  *Mild (1)* ("Yes, on the slot").
 - **A slot's column says what its entry is.** The entry is stored as a plain name (*The mayor can
   pardon criminals*); the table draws it as a `<bias>`, `<aff>` or `<inj>` mark, for its look and
   its tap glyph, so a Damage mark can't appear anywhere but its own column (Bill, 11-12).

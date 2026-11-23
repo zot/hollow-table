@@ -1,5 +1,5 @@
 # Influence
-**Requirements:** R36, R40, R42, R43, R61, R269, R264, R265
+**Requirements:** R36, R40, R42, R43, R61, R269, R264, R265, R496
 
 Levels and points, and what a click or shift-click does to one chip or card (Hollow Folks,
 *Tracking Influence* and *Absorbing Damage* for the Damage slots). Pure.
@@ -14,7 +14,10 @@ Levels and points, and what a click or shift-click does to one chip or card (Hol
   The book's negative rows ("worth only 1") are open; below 1, nothing extra.
 
 ## Does
-- room(level): `{boxes: {mild, min, sig, maj}, absorb}` for a Con or Wis Level, from ROOM.
+- room(level): `{boxes: {mild, min, sig, maj}, absorb, one}` for a Con or Wis Level, from ROOM; `one`, the rows
+  worth only 1 (R496): Mild at −1, Mild and Min at −2 or below.
+- slotWorth(character, damage, row) (R496): the points a slot absorbs and holds: 1 for a row in its column's
+  `one`, else Absorb.SIZE's.
 - columnRoom(character, damage): room for the column's attribute (Wis for Biases and Afflictions,
   Con for Injuries) read from the front's `<att>` marks (MarkReader.attributes), or null when the
   card has no such attribute marked (R264, R265).

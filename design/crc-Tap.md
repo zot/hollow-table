@@ -1,5 +1,5 @@
 # Tap
-**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262, R343, R344, R432, R433, R461, R462, R463, R464
+**Requirements:** R54-60, R66, R210-212, R225, R250, R259-262, R343, R344, R432, R433, R461, R462, R463, R464, R497
 
 Tapping Resources, Biases, Afflictions and Injuries into Influence cards, with a ledger per source so
 every Level can go back where it came from (Hollow Folks, *Tapping Resources* and *Damage
@@ -28,10 +28,11 @@ Resources*). Pure: returns the records to write.
   or unnamed (R250: PieceView fades a dry glyph).
 - Each takes a lookup from oid to a character or an Opinion Record, and returns the card and the
   characters and records it changed.
-- tap(chars, source, where, oid): a new resource-made card born at Min, named after the source, current source set,
+- tap(chars, source, where, oid): a new resource-made card born at Min (R497: at 1 point from a slot worth
+  only 1, Influence.slotWorth), named after the source, current source set,
   ledger `{source: 1}`, and the source spent by one Level. A Damage source makes a card of its kind
   (`damage` set); a Motivation or an Opinion a `mot` card of its sign (R463, R433).
-- feed(chars, card, source?, oid): a Level from the current source (or from a dropped source, which becomes
+- feed(chars, card, source?, oid): (R497) never from a slot worth only 1, nor into a 1-point card; a Level from the current source (or from a dropped source, which becomes
   current) into the card. Refused for a source of a Damage kind other than the card's (a `<res>` and a
   card of a Damage kind, or two Damage kinds, R211). The GM's call is fed and flagged (R461–R463): a
   plain card (PLAIN, the card remembering it was plain), a used card (USED, fed itself), or a

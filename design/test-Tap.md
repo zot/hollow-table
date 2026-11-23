@@ -47,8 +47,7 @@ checked before its slot has a name is PieceView's (R62).
 **Alarm:** 3
 **Fire alarm:** Count a slot's Levels without what was spent (`left: rowLevels(row)`): the third feed from the Sig slot succeeds instead of being refused
 **Inject:** src/rules/tap.ts:inBack
-**Pulled:** 2026-11-12 — rang: the third feed from the Sig slot succeeded instead of being refused (`tap.test.ts:93`)
-
+**Pulled:** 2026-11-23 — re-pulled after R497 (inBack changed): rang, the third feed from the Sig slot succeeded; restored clean *Earlier —* 2026-11-12 — rang: the third feed from the Sig slot succeeded instead of being refused (`tap.test.ts:93`)
 ## Test: only res marks on the front are sources
 **Purpose:** on the front, only `<res>` marks are tapped; Damage lives only in its slots (R54, R209)
 **Input:** Sam's front with `<inf>Luck +Sig</inf>` and `<inj>Broken Leg -Sig</inj>` added; tap
@@ -85,7 +84,7 @@ the Money card from the Bias; feed the Bias card from its own source
 **Alarm:** 6
 **Fire alarm:** Let feed take any source (drop the kind check): the Injury feeds the Bias card
 **Inject:** src/rules/tap.ts:feed
-**Pulled:** 2026-11-19 — re-pulled after R461 to R463 (feed changed): rang; restored clean *Earlier —* 2026-11-12 — rang: the Injury fed the Bias card instead of being refused
+**Pulled:** 2026-11-23 — re-pulled after R497 (feed changed): rang, the Injury fed the Bias card; restored clean *Earlier —* 2026-11-19 — re-pulled after R461 to R463 (feed changed): rang; restored clean *Earlier —* 2026-11-12 — rang: the Injury fed the Bias card instead of being refused
 ## Test: what a source has left
 **Purpose:** R250: Tap.leftOf gives the Levels a source can still be tapped for, which fades a dry glyph
 **Input:** Sam's Ammo before and after a tap and a feed take both its Levels; Money; an unknown name;
@@ -167,3 +166,14 @@ the used card back to 2 points, no flag, its own tap's ledger Money 1 kept
 **Fire alarm:** undo every Level of a flagged source (the ledger, not `fed`); red: the used card's own tap is lost too
 **Inject:** src/rules/tap.ts:undoFlag
 **Pulled:** 2026-11-19 — rang: undoing every Level of the flagged source took the used card's own tap too; restored clean
+
+## Test: a slot worth only 1 taps into a −1, and neither feeds
+**Purpose:** R497: the tap makes a 1-point card from a slot worth only 1; it feeds no card, and nothing feeds it
+**Input:** a character with Wis −1 and named Mild and Min Bias slots; tap the Mild; feed the Min into that card; tap the Min and feed the Mild into it
+**Expected:** a 1-point card with the Mild's ledger; feeding refused; a Min card of 2 points; feeding the Mild refused
+**Refs:** crc-Tap.md, crc-Influence.md
+**Code:** `src/rules/tap.test.ts`
+**Alarm:** 14
+**Fire alarm:** make every tapped card at Min (ignore slotWorth); red: the Mild's card has 2 points
+**Inject:** src/rules/tap.ts:tap
+**Pulled:** 2026-11-23 — rang: every tapped card at Min, the Mild's card had 2 points; restored clean

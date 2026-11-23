@@ -124,6 +124,9 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   with its slot, rolled or not: a Mild Damage Resource "disappears immediately after the Contest"
   (Bill, 11-15). A card fed by a Mild slot and other sources loses only the Levels its Mild slot gave
   and keeps the rest (Bill, 11-15).
+- **A slot worth only 1** (Con or Wis below 0, see `table.md`) **taps into a −1** (Bill, 2026-11-23: "A −1
+  chip"): a 1-point card, which a pool shows as a −1 chip, refunded when killed and gone at End as a
+  Mild tap is. It feeds no card, and nothing feeds it ("Neither feeds"); Roll Up adds it in.
 
 ## After a roll
 
