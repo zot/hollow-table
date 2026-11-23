@@ -2,7 +2,7 @@
 // One page: the roll row docked and filled from a card, aiming through the Defend chooser, the
 // Difference as pools change, the tape and the register.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, dragFromTo, dragVia, kinds, open, openTable, rec } from './page.ts';
+import { at, barMiddle, dragFromTo, dragVia, hook, kinds, open, openTable, rec } from './page.ts';
 
 const SAM = 'o:00000001', DEVREUX = 'o:00000003';
 const SPOOL = `.obj.pool[data-rid="${SAM}"]`, DPOOL = `.obj.pool[data-rid="${DEVREUX}"]`;
@@ -199,9 +199,17 @@ test('the tape, and the register', async ({ page }) => {
   await page.locator('.register .key.end').click();
   await expect(page.locator('.register')).toHaveClass(/\barmed\b/);
   expect((await rec(page, 'meta')).round).toBe(2);
+  await expect(page.locator('.register .tab')).toHaveText('End conflict?');
   await page.locator('.register .key.end').click();
   await expect.poll(async () => (await rec(page, 'meta')).round).toBe(0);
   await expect(page.locator('.register .rtab')).toHaveText('0');
+  // R492: at Round 0, End offers to end the scene, and ends it after an "End of scene" checkpoint.
+  await expect(page.locator('.register')).not.toHaveClass(/\barmed\b/);
+  await page.locator('.register .key.end').click();
+  await expect(page.locator('.register .tab')).toHaveText('End scene?');
+  await page.locator('.register .key.end').click();
+  await expect.poll(() => hook(page, async h => (await h.store.checkpoints()).map((c: { name: string }) => c.name)))
+    .toContain('End of scene');
 });
 
 test('the world as opposition', async ({ page }) => {

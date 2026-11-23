@@ -414,8 +414,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 32
 **Fire alarm:** end only once the checkpoint is kept (`.then(end)`, as before R454); red: the Round stays 1
 **Inject:** src/ui/register.ts:RegisterView
-**Pulled:** 2026-11-19 — rang: the Round stayed 1 (Chromium); restored clean
-
+**Pulled:** 2026-11-23 — re-pulled after R492 (End's checkpoint call changed): rang, the Round stayed 1 (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the Round stayed 1 (Chromium); restored clean
 ## Test: the GM rules on a flagged tap: allow keeps it, undo gives it back
 **Purpose:** R464: a flagged card in a slot shows its flag, titled with why; on the GM's page a click offers Allow and Undo
 **Input:** two flagged cards in Devreux's Main slot (plain, Money 1 fed); the first allowed, the second undone
@@ -459,3 +458,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** don't watch the view during a carry (drop `table.onView` in `#carry`); red: the piece is left off its finger as the view slides
 **Inject:** src/ui/drag.ts:Drag
 **Pulled:** 2026-11-23 — rang: the piece was left about 812 table units off its finger as the view slid (Chromium); restored clean
+
+## Test: End at Round 0 ends the scene
+**Purpose:** R492: at Round 0 End's tab says "End scene?", and the second press checkpoints "End of scene"; at Round 2 it says "End conflict?"
+**Input:** the GM's page at Round 2 presses End twice (the Round goes to 0); then presses End twice again
+**Expected:** "End conflict?" at Round 2; "End scene?" at Round 0; a checkpoint named "End of scene"
+**Refs:** crc-Register.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 37
+**Fire alarm:** always arm with "End conflict?"; red: the tab says "End conflict?" at Round 0
+**Inject:** src/ui/register.ts:RegisterView
+**Pulled:** 2026-11-23 — rang: always armed with "End conflict?", the tab said so at Round 0 (Chromium); restored clean

@@ -6,7 +6,7 @@ the negative rows of the Con/Wis table. Opened by Bill, 2026-11-23, from gaps O2
 
 ## Status
 
-- [ ] **Item 1 — End scene.** **OPEN (not queued.)** Gap O2. At Round 0, End offers to end the scene, and
+- [x] ~~**Item 1 — End scene.**~~ **LANDED (2026-11-23 — `#58`.)** Gap O2. At Round 0, End offers to end the scene, and
       ending it recharges Motivations.
 - [ ] **Item 2 — shift-click cancels an armed End.** **OPEN (not queued.)** On "End conflict?" or "End
       scene?" in the Round's window.
@@ -25,8 +25,30 @@ its glass case).
   Conflict, as it does now.
 - **Shift-click cancels** (Item 2): shift-clicking the raised "End conflict?" or "End scene?" tab lowers it
   and ends nothing. A long press does the same, as every shift-click has one (R14).
-- **The Round's tab is pointed** (Item 3): read by Daneel, to confirm with Bill, as the flags in the
-  picture: a white card whose top edge rises to a point in the middle, a gable, with the number below.
+- **The Round's tab is pointed** (Item 3): as the flags in the picture, a white card whose top edge rises
+  to a point in the middle, a gable, with the number below (confirmed below).
+
+DECIDED (Bill, 2026-11-23), on Daneel's questions when the carve started:
+
+- **Ending a scene does what ending a Conflict does, and recharges Motivations** ("Every scene (keep
+  11-12)", Item 1). The books end at a Scene's end what End conflict ends: Damage recharges "at the end of
+  each Contest or Scene" (Hollow Folks), Convictions and Burdens deplete "until the end of the Scene"
+  (Bunkum), and CRIT! lasts "until the end of the Scene" (Hollow Folks). Motivations recharge every scene,
+  Bill's 11-12 ruling kept over Bunkum's "At the end of the Event" (R262); Opinion Records keep their
+  parentheses until an Event's end, which the table doesn't have yet.
+- **The Round's tab has a pointed top, a gable** ("Pointed top (a gable)", Item 3).
+- **The negative rows: Mild, then Mild and Min** ("Mild, then Mild and Min", Item 4). At Con or Wis −1 a
+  Mild Slot of that column absorbs only 1 point, not 2; at −2 its Mild and Min Slots each absorb only 1.
+  Read from the export's flattened row, which holds "Worth only 1" once at −1 and twice at −2 in the order
+  Mild, Min, Sig, Absorption; the PDF wasn't readable here.
+
+## Built
+
+- **Item 1, as `#58`** (2026-11-23; R492, gap O2 resolved): the register arms with "End scene?" when the
+  Round is 0 (the offer kept from the first press, so a Round stepped between the presses changes
+  nothing), and the second press checkpoints "End of scene" and runs `ended(game, true)`: all that ending a
+  Conflict does, and every character's Motivations recharged by `Tap.rechargeMotives` (R262, uncalled
+  until now).
 
 ## Where it stands
 
@@ -45,8 +67,4 @@ Checked 2026-11-23:
 
 ## Open for the talk
 
-- Item 1: whether ending a scene also does what ending a Conflict does (a scene's end would end any
-  Conflict in it), or only recharges Motivations, since at Round 0 there may be no Conflict to end. And
-  what else Hollow Folks or Bunkum say happens at a scene's end.
-- Item 3: the tab's shape as read here, confirmed against the picture.
-- Item 4: what the negative rows do, once the PDF's table is read; a rule, so Bill's ruling.
+- None: Items 1, 3 and 4 were answered when the carve started (the decisions above).

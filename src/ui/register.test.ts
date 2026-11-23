@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
 import { ridOf, type Character, type Influence, type Meta } from '../model/records.ts';
-import { SAM, playtest } from '../store/playtest.ts';
+import { DEVREUX, SAM, playtest } from '../store/playtest.ts';
 import { ROUND_MAX, ended, stepped } from './register.ts';
 
 test('the Round runs from 0 to 99', () => {
@@ -51,4 +51,24 @@ test('End ends the Conflict', () => {
   const mixed = at('000000a6')!;
   assert.deepEqual([mixed.points, mixed.tap, mixed.where], [4, { ledger: { [`${SAM}:bias/sig`]: 2 }, current: `${SAM}:bias/sig` }, { slot: SAM, name: 'bias' }],
     'a mixed card keeps what the Sig Bias gave');
+});
+
+test("a scene's end recharges Motivations", () => {
+  // R492, R262: all that ending a Conflict does, and every Motivation's parentheses go.
+  const run = (scene: boolean) => {
+    const g = new Game();
+    g.load(playtest('Dana', 'Ann'));
+    g.change(w => {
+      const sam = g.get(ridOf(SAM)) as Character;
+      w.put(ridOf(SAM), { ...sam, back: { ...sam.back, damage: { ...sam.back.damage, bias: { ...sam.back.damage.bias,
+        sig: { name: 'Uncertain', boxes: [], spent: [2] } } } } });
+    });
+    g.change(ended(g, scene));
+    return { bias: (g.get(ridOf(SAM)) as Character).back.damage.bias.sig.spent, front: (g.get(ridOf(DEVREUX)) as Character).front };
+  };
+  const conflict = run(false), scene = run(true);
+  assert.deepEqual([conflict.bias, scene.bias], [[], []], 'Damage recharged both times');
+  assert.ok(conflict.front.includes('<mot>Keep the Peace +Sig (0)</mot>'), "a Conflict's end leaves the Motivation spent");
+  assert.ok(scene.front.includes('<mot>Keep the Peace +Sig</mot>'), "a scene's end recharges it");
+  assert.ok(!scene.front.includes('(0)'), 'every Motivation');
 });

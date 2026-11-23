@@ -1722,6 +1722,11 @@ function mildGone(card2) {
   const keep2 = Object.fromEntries(rest), current = card2.tap.current in keep2 ? card2.tap.current : rest[0][0];
   return { ...card2, points: Math.max(MIN, card2.points - STEP * lost), tap: { ledger: keep2, current } };
 }
+function rechargeMotives(char) {
+  let lines = parse(char.front);
+  for (const m of marks(lines, "mot")) lines = setMark(lines, m, unadjusted(m.text));
+  return { ...char, front: serialize(lines) };
+}
 
 // src/ui/gesture.ts
 var LONG_MS = 500;
@@ -15703,7 +15708,7 @@ var END_MS = 3e3;
 function stepped(meta, by) {
   return { ...meta, round: Math.max(0, Math.min(ROUND_MAX, meta.round + by)) };
 }
-function ended(game) {
+function ended(game, scene2 = false) {
   return (w) => {
     const meta = game.get("meta");
     w.put("meta", { ...meta, round: 0 });
@@ -15711,7 +15716,8 @@ function ended(game) {
       const p = r;
       if (!("kind" in p)) continue;
       if (p.kind === "character") {
-        w.put(rid2, mildEnds(recharge(p)));
+        const c = mildEnds(recharge(p));
+        w.put(rid2, scene2 ? rechargeMotives(c) : c);
         continue;
       }
       if (p.kind !== "influence") continue;
@@ -15733,6 +15739,8 @@ var RegisterView = class {
   #tab;
   #shown = -1;
   #armed = null;
+  /** R492: what the raised tab offers: the scene's end (armed at Round 0) or the Conflict's. */
+  #scene = false;
   constructor(bar, w) {
     this.#w = w;
     const doc = bar.ownerDocument, el4 = (tag, cls, text = "") => {
@@ -15751,7 +15759,7 @@ var RegisterView = class {
     roll3.title = "Roll the tape up, or down again";
     up.title = "The next Round";
     down.title = "The Round before";
-    end.title = "End the Conflict: Round to 0, Biases, Afflictions and Injuries recharged, the used piles emptied";
+    end.title = "End the Conflict: Round to 0, Biases, Afflictions and Injuries recharged, the used piles emptied. At Round 0, end the scene: Motivations recharged too";
     keys2.append(up, down, end);
     this.#el.append(el4("span", "rslot"), win, keys2, roll3);
     bar.append(this.#el);
@@ -15761,7 +15769,10 @@ var RegisterView = class {
     gesture(up, { click: () => step(1) });
     gesture(down, { click: () => step(-1) });
     gesture(end, { click: () => {
+      const round = w.game.get("meta").round;
       if (this.#armed === null) {
+        this.#scene = round === 0;
+        confirm2.textContent = this.#scene ? "End scene?" : "End conflict?";
         this.#el.classList.add("armed");
         this.#armed = setTimeout(() => {
           this.#armed = null;
@@ -15772,9 +15783,8 @@ var RegisterView = class {
       clearTimeout(this.#armed);
       this.#armed = null;
       this.#el.classList.remove("armed");
-      const round = w.game.get("meta").round;
-      const end2 = () => w.game.change(ended(w.game));
-      void w.checkpoint?.(`End of conflict, round ${round}`).then(end2, end2);
+      const scene2 = this.#scene, end2 = () => w.game.change(ended(w.game, scene2));
+      void w.checkpoint?.(scene2 ? "End of scene" : `End of conflict, round ${round}`).then(end2, end2);
     } });
     gesture(roll3, { click: () => w.paperRoll() });
     w.game.listen((rids) => {

@@ -354,3 +354,8 @@ table: if it succeeds, the NPC accepts.
   Bill, 11-15) and the cards tapped from it (see *Tapping Resources* in `influence.md`), empties the used piles
   (plain cards go home, tapped cards are spent and gone), clears "used", clears CRIT! Influences,
   and checkpoints the game first.
+- **At Round 0, End ends the scene** (Bill, 2026-11-23: "we can have end on turn 0 offer to end the
+  scene"). With the Round at 0, End raises "End scene?" in place of "End conflict?"; pressed again within
+  3 s it checkpoints the game as "End of scene" and does all that ending a Conflict does (the books end
+  Damage, Convictions, Burdens and CRIT! at a Scene's end too), and every Motivation recharges, its
+  parentheses removed ("Every scene (keep 11-12)"). Opinion Records keep theirs until an Event's end.

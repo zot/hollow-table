@@ -110,8 +110,8 @@ Hollow Folks *Tracking Influence*, *Tapping Resources* and *Influence Roll Up*, 
   Influences"), from its Opinion Records, the GM's alone (see *Opinion Records* in `connections.md`).
 - **What a Motivation spends is temporary.** Its written Level stays, and the Levels left follow it
   in parentheses, as Bunkum writes an adjusted value: *Keep the Peace +Sig (+Min)*, or *(0)* when
-  spent out. Motivations **recharge at the end of every scene** (Bill, 11-12), and the parentheses
-  go.
+  spent out. Motivations **recharge at the end of every scene** (Bill, 11-12; ended by End at Round 0,
+  see *The register* in `rolls.md`), and the parentheses go.
 - Killing an unused tap refunds it. A tap may wait loose on the table, the one exception to "never
   lost".
 - **Biases, Afflictions and Injuries** recharge each Conflict (Bill, 11-15: a table ruling; the book
