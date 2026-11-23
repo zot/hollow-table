@@ -34,7 +34,7 @@ carried with the mouse, as a person does; measurements wait for the web fonts.
 **Alarm:** 2
 **Fire alarm:** Give a loose chip only its drag: clicks leave it at 2
 **Inject:** src/ui/table.ts:TableView
-**Pulled:** 2026-11-19 — re-pulled after R451 (TableView changed): rang, the loose chip's clicks did nothing (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the loose 2 stayed 2 when clicked (Chromium) *Earlier —* 2026-11-13 — rang: the loose 2 stayed 2 when clicked (Chromium)
+**Pulled:** 2026-11-23 — re-pulled after R479–R482 (TableView changed): rang, the loose 2 stayed 2 when clicked (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R451 (TableView changed): rang, the loose chip's clicks did nothing (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the loose 2 stayed 2 when clicked (Chromium) *Earlier —* 2026-11-13 — rang: the loose 2 stayed 2 when clicked (Chromium)
 ## Test: Influence in the browser
 **Purpose:** drawers, Roll Up and piles, the kill box, taps merging, secrecy
 **Expected:**
@@ -89,7 +89,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 3
 **Fire alarm:** Redraw a held piece like any other: the sticky jumps from the hand when its record changes
 **Inject:** src/ui/table.ts:TableView
-**Pulled:** 2026-11-19 — re-pulled after R451 (TableView changed): rang, a held piece was redrawn under the hand (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the held sticky jumped from 995,132 when its record changed (Chromium) *Earlier —* 2026-11-13 — rang: the held sticky jumped from 995,132 when its record changed (Chromium)
+**Pulled:** 2026-11-23 — re-pulled after R479–R482 (TableView changed): rang, a held piece was redrawn under the hand (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R451 (TableView changed): rang, a held piece was redrawn under the hand (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the held sticky jumped from 995,132 when its record changed (Chromium) *Earlier —* 2026-11-13 — rang: the held sticky jumped from 995,132 when its record changed (Chromium)
 ## Test: a chip in hand
 **Purpose:** R216 for a chip from a slot
 **Expected:** centred on the pointer within a pixel
@@ -427,3 +427,36 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** make Allow undo too (ruleFlag ignores `allow`); red: the allowed card drops to 2
 **Inject:** src/ui/actions.ts:ruleFlag
 **Pulled:** 2026-11-19 — rang: Allow undid the card too (Chromium); restored clean
+
+## Test: two fingers pinch the table as a sheet stuck to them, and hand off to one
+**Purpose:** R479, R480: a pinch keeps the table point under the fingers' midpoint and zooms by their spacing, stops at the limit while still panning; lifting a finger leaves the other panning with no jump; a second finger during a pan pinches even on a piece; a third does nothing
+**Input:** touch pointers on open table spread half again; one lifted and the other moved 25, 15; a second finger on a piece in view, brought halfway in; a third finger moved; a fresh second finger spread far past the limit
+**Expected:** the zoom half again, the midpoint's table point kept; the view moved exactly 25, 15 at the same zoom; the zoom halved and nothing lifted; the third changes nothing; the zoom 2.5 with the midpoint's table point kept
+**Refs:** crc-TableView.md
+**Code:** `tests/pinch.spec.ts`
+**Alarm:** 34
+**Fire alarm:** let a lifted finger end the gesture (drop the pan from the other finger in `end`); red: the remaining finger doesn't pan
+**Inject:** src/ui/table.ts:TableView
+**Pulled:** 2026-11-23 — rang: the remaining finger did not pan (the view moved 0, 0, not 25, 15; Chromium); restored clean
+
+## Test: a second finger turns a press on a piece into a pinch
+**Purpose:** R481: a press on a piece that hasn't moved is given up when a second finger lands: nothing picked up or clicked, and the table pinches
+**Input:** a touch on the sticky, a second on open table spreading, the first moved 20, 10, both lifted, a wait past a long press
+**Expected:** the sticky never lifted, its record unchanged, nothing being written in; the zoom changed
+**Refs:** crc-TableView.md, crc-Gesture.md
+**Code:** `tests/pinch.spec.ts`
+**Alarm:** 35
+**Fire alarm:** don't give the press up (drop `claim(id)` in the table's capture listener); red: the sticky is picked up
+**Inject:** src/ui/table.ts:TableView
+**Pulled:** 2026-11-23 — rang: the sticky was picked up (Chromium); restored clean
+
+## Test: a piece in hand can be pinched under, and stays glued to its finger
+**Purpose:** R482, R216: with a piece in hand a second finger pinches the table, the piece glued to its finger as the view moves under it; lifting the second finger carries on the drag, and the drop lands under the finger
+**Input:** the sticky carried 20, 10 by touch; a second finger spread far past the limit (so the view slides under the still finger); the second lifted, the first moved and lifted
+**Expected:** the zoom grew; the piece stays at the finger's table point less the grip, during the pinch, after it and where it lands
+**Refs:** crc-TableView.md, crc-Drag.md
+**Code:** `tests/pinch.spec.ts`
+**Alarm:** 36
+**Fire alarm:** don't watch the view during a carry (drop `table.onView` in `#carry`); red: the piece is left off its finger as the view slides
+**Inject:** src/ui/drag.ts:Drag
+**Pulled:** 2026-11-23 — rang: the piece was left about 812 table units off its finger as the view slid (Chromium); restored clean

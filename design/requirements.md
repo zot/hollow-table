@@ -21,6 +21,10 @@
 - **R15:** The table fills the window; dragging empty table pans and the wheel zooms.
 - **R270:** The wheel zooms about the pointer by `exp(-deltaY × 0.0012)` a step, from 0.25 to 2.5 times.
 - **R271:** A first visit (no view kept in the Seat) fits everything on the table into the window, centred, at most full size; after that the view is the Seat's, and a resize keeps it.
+- **R479:** Two fingers pinch the table as a sheet stuck to them: the table point under their midpoint stays under it and the zoom scales by their spacing, both measured from where the pinch began; the table never turns, and at the wheel's limits (R270) the zoom stops while the midpoint still pans.
+- **R480:** Lifting a finger from a pinch leaves the other panning from where it is, and a second finger during a pan makes it a pinch from there, the table taking that finger even over a piece; a third finger does nothing.
+- **R481:** A second finger on a press that has not yet become a drag makes it a pinch: the press is dropped, picking up and clicking nothing.
+- **R482:** With a piece in hand, a second finger pinches the table (R479), the piece glued to its finger (R216) and so holding its place on the table; lifting the second finger carries on the drag, and lifting the carrying finger drops it.
 - **R16:** A click on a pool's empty space beside its name passes through to the table.
 - **R17:** Labels, slot rows, drawer tools, the roll row, the register and the bar don't select as text.
 - **R215:** Dragging, panning and zooming follow the pointer at most once a frame: a move sets where the thing in hand is headed, and the next frame (or 100 ms in a hidden tab) puts it there.

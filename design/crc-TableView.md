@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -7,6 +7,9 @@ DOM a view of the records.
 ## Knows
 - world: the transformed layer pieces live in; view `{x, y, zoom}` from the Seat, or none on a first visit.
 - ZOOM_MIN 0.25, ZOOM_MAX 2.5, ZOOM_RATE 0.0012 a wheel unit (R270).
+- fingers: each pointer down on the table, pointerId → where it is on screen, and whether a piece took
+  it (a carry or another control's own pointer); the first two are the pinch (R479-482).
+- watchers: what to call after the view is placed (Drag's carry, R482).
 - views: rid → its PieceView or PoolView element.
 
 ## Does
@@ -36,6 +39,17 @@ DOM a view of the records.
   never slides.
 - pan (drag on empty table) and zoom (wheel, about the pointer, R270); saved to the Seat only. The view
   is placed at most once a frame (Gesture.paced), and a zoom saved once a frame too, not per tick.
+- pinch (R479): two fingers on the table pinch it: pinchView(view, a0, b0, a1, b1) gives the view in
+  which the table point under the fingers' first midpoint is under their midpoint now, the zoom the
+  first one times their spacing's ratio, clamped to ZOOM_MIN and ZOOM_MAX; no rotation. Measured from
+  where the pinch began (the view and both fingers then), so it never drifts. Saved to the Seat when the
+  pinch ends.
+- hand-off (R480, R481, R482): every press on the table is noted in the capture phase, before a piece
+  sees it. A second finger is the table's (stopped there, so no piece takes it) and starts a pinch with
+  the first: a pan's finger, a press Gesture gives up (Gesture.claim, R481), or a carry's finger, whose
+  piece then rides in its hand (R482). Lifting one finger of a pinch starts the pinch over as a pan from
+  the other, unless a piece holds it, which carries on alone. A third finger is stopped and ignored.
+- onView(fn) (R482): fn runs after each placing of the view, so a carry re-frames under a still finger.
 - fit (R271): with no view in the Seat, the first render that draws anything fits it all: fitView
   takes the pieces' box in world coordinates and the table's size and gives the view (centred, zoom
   at most 1, a 20 px margin each side and 14 px from the top), which is kept in the Seat. Never on

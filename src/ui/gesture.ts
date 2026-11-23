@@ -1,4 +1,4 @@
-// CRC: crc-Gesture.md | Seq: seq-drag.md#1, seq-drag.md#1.1 | R10, R14
+// CRC: crc-Gesture.md | Seq: seq-drag.md#1, seq-drag.md#1.1 | R10, R14, R481
 // One reading of the pointer for every control: a click, a "shift" click (shift, ctrl or alt held,
 // or a long press on touch), or the start of a drag. Every control that reacts to shift-click is
 // registered here, so none can lack its long press.
@@ -24,6 +24,18 @@ const real: Timers = { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout:
 /** Every element registered with a shift handler, for the quality-floor test (R14). */
 export const shifty = new Set<EventTarget>();
 
+/** Presses not yet a drag, by pointer: each gives its press up (R481). */
+const pending = new Map<number, Set<() => void>>();
+
+// R481: a second finger makes a press that hasn't become a drag a pinch: the press is given up.
+/** Gives up the presses `pointerId` holds that haven't become a drag; true if there were any. */
+export function claim(pointerId: number): boolean {
+  const ups = pending.get(pointerId);
+  if (!ups?.size) return false;
+  for (const up of [...ups]) up();
+  return true;
+}
+
 const shifted = (e: PointerLike) => !!(e.shiftKey || e.ctrlKey || e.altKey);
 
 /** The handler a click reads as: shift when held and there is one, click otherwise. */
@@ -35,6 +47,8 @@ export function gesture(el: EventTarget, h: Handlers, timers: Timers = real): ()
   if (h.shift) shifty.add(el);
   let down: PointerLike | null = null, long: unknown = null, done = false;
   const reset = () => {
+    const ups = down && pending.get(down.pointerId ?? 0);
+    if (ups?.delete(reset) && !ups.size) pending.delete(down!.pointerId ?? 0);
     if (long !== null) timers.clearTimeout(long);
     long = null;
     down = null;
@@ -71,6 +85,8 @@ export function gesture(el: EventTarget, h: Handlers, timers: Timers = real): ()
     reset();
     down = e;
     done = false;
+    const id = e.pointerId ?? 0;
+    pending.set(id, (pending.get(id) ?? new Set()).add(reset));
     target.addEventListener('pointermove', onMove);
     target.addEventListener('pointerup', onUp);
     target.addEventListener('pointercancel', onCancel);

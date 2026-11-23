@@ -54,6 +54,19 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 
 - The table fills the window. Drag empty table to pan; the wheel zooms about the pointer, from a
   quarter size to two and a half times (Bill, 11-12, as the mockup).
+- **Two fingers pinch the table** (Bill, 11-21: a "rubber sheet, stuck to the user's fingers"): the spot
+  of table under the fingers' midpoint stays under it and their spacing sets the zoom, so one pinch pans
+  and zooms at once. The table never turns (11-23: "No rotation"). At the wheel's limits the zoom stops
+  and the midpoint still pans, the fingers sliding over the table ("Stop, keep panning").
+- **One finger and two hand off without a jump** ("Seamless handoff"): lifting a finger from a pinch
+  leaves the other panning from where it is, and a second finger during a pan makes it a pinch, even
+  one that lands on a piece. A third finger does nothing.
+- **A pinch can begin on a piece** ("Pinch if not yet moving"): before the piece has started moving, a
+  second finger makes the press a pinch, and nothing is picked up or clicked.
+- **A piece in hand can be pinched under** (11-23: "The user drags with a finger and then adjusts zoom by
+  temporarily using a second finger"; "Sheet follows both"): a second finger pinches the same sheet,
+  the piece glued to its finger, so it holds its place on the table while the view moves; lifting the
+  second finger carries on the drag, and lifting the carrying finger drops the piece.
 - **A first visit fits the table into the window**: everything on it, centred, at most full size
   (Bill, 11-12). After that the view is your own and stays as you left it, a resized window included.
 - Dragging, panning and zooming follow the pointer at most once a frame: each move only sets

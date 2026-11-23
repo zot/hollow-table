@@ -159,7 +159,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Crypto.md → `src/net/identity.test.ts`, `src/net/seal.test.ts`, `src/net/envelope.test.ts`
 - [x] test-Yards.md → `src/rules/yards.test.ts`
 - [x] test-Connections.md → `src/rules/connections.test.ts`
-- [x] test-Table.md → `tests/table.spec.ts`, `tests/rolls-local.spec.ts`, `tests/floor.spec.ts`, `tests/drag.spec.ts`, `tests/card.spec.ts`
+- [x] test-Table.md → `tests/table.spec.ts`, `tests/rolls-local.spec.ts`, `tests/floor.spec.ts`, `tests/drag.spec.ts`, `tests/card.spec.ts`, `tests/pinch.spec.ts`
 - [x] test-Network.md → `tests/sync.spec.ts`, `tests/secret.spec.ts`, `tests/away.spec.ts`, `tests/deletion.spec.ts`, `tests/images.spec.ts`, `tests/rolls.spec.ts`, `tests/relays.spec.ts`
 
 ## Gaps

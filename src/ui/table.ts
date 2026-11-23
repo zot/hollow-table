@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -7,7 +7,7 @@ import { isPiece, ridOf, type Character, type PieceRecord, type Rid } from '../m
 import { levelName } from '../rules/influence.ts';
 import { cardClick, chipClick } from './actions.ts';
 import type { Item } from '../rules/pool.ts';
-import { gesture, paced } from './gesture.ts';
+import { claim, gesture, paced } from './gesture.ts';
 import { draw, type PieceWith } from './piece.ts';
 import { chipFace, drawPool, type Box, type PoolWith } from './pool.ts';
 
@@ -17,6 +17,21 @@ export const GATHER_GAP = 14;
 export type View = { x: number; y: number; zoom: number };
 // R270: as the mockup: a step of exp(-deltaY × 0.0012), a quarter to two and a half times.
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 2.5, ZOOM_RATE = 0.0012;
+/** A point on screen, relative to the table. */
+export type Pt = { x: number; y: number };
+
+// R479: a pinch is a sheet stuck to the fingers: the point under their midpoint stays under it, the
+// zoom follows their spacing (within the wheel's limits), and nothing turns. Measured from where the
+// pinch began, so it never drifts.
+/** The view after fingers at a0, b0 (in view v) have moved to a1, b1. */
+export function pinchView(v: View, a0: Pt, b0: Pt, a1: Pt, b1: Pt): View {
+  const d0 = Math.hypot(b0.x - a0.x, b0.y - a0.y), d1 = Math.hypot(b1.x - a1.x, b1.y - a1.y);
+  const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, d0 ? v.zoom * d1 / d0 : v.zoom));
+  const m0 = { x: (a0.x + b0.x) / 2, y: (a0.y + b0.y) / 2 }, m1 = { x: (a1.x + b1.x) / 2, y: (a1.y + b1.y) / 2 };
+  const k = zoom / v.zoom;
+  return { x: m1.x - (m0.x - v.x) * k, y: m1.y - (m0.y - v.y) * k, zoom };
+}
+
 /** A box in world coordinates. */
 export type Bounds = { left: number; top: number; right: number; bottom: number };
 
@@ -66,6 +81,8 @@ export class TableView {
   /** Each mat's height when last seen outside a carry (R241). */
   #heights = new Map<Rid, number>();
   view: View;
+  /** Called after each placing of the view (R482). */
+  #watchers = new Set<() => void>();
 
   constructor(root: HTMLElement, world: HTMLElement, w: TableWith) {
     this.#root = root;
@@ -380,31 +397,86 @@ export class TableView {
     this.#world.style.transform = `translate(${this.view.x}px, ${this.view.y}px) scale(${this.view.zoom})`;
   }
 
+  // R482: a carry under a pinch re-frames when the view moves beneath its still finger.
+  /** Calls `fn` after each move of the view; returns a function that stops it. */
+  onView(fn: () => void): () => void {
+    this.#watchers.add(fn);
+    return () => this.#watchers.delete(fn);
+  }
+
+  /** Places the view and tells the watchers. */
+  #moved(): void {
+    this.#place();
+    for (const fn of [...this.#watchers]) fn();
+  }
+
   // R15: drag empty table to pan; the wheel zooms about the pointer. R16: a press that no piece
-  // takes (a pool's empty space beside its name included) lands here.
+  // takes (a pool's empty space beside its name included) lands here. R479-R482: two fingers pinch.
   #panZoom(): void {
     const root = this.#root, doc = root.ownerDocument;
+    // Every finger down on the table, and whether a piece holds it (a carry, or a control's own).
+    const fingers = new Map<number, { at: Pt; held: boolean }>();
     let from: { x: number; y: number; vx: number; vy: number; id: number } | null = null;
+    let pinch: { v: View; a: number; b: number; a0: Pt; b0: Pt } | null = null;
     // R215: a pan sets where the view is headed; the next frame places it. A wheel tick is an
     // increment, so it folds into the view at once, and only the placing and the saving are paced.
-    const pan = paced<{ x: number; y: number }>(this.#w.schedule, ({ x, y }) => { this.view = { ...this.view, x, y }; this.#place(); });
-    const zoomed = paced<View>(this.#w.schedule, v => { this.#place(); this.#w.keepView(v); });
+    const pan = paced<Pt>(this.#w.schedule, ({ x, y }) => { this.view = { ...this.view, x, y }; this.#moved(); });
+    const look = paced<View>(this.#w.schedule, v => { this.view = v; this.#moved(); });
+    const zoomed = paced<View>(this.#w.schedule, v => { this.#moved(); this.#w.keepView(v); });
+    const local = (e: PointerEvent): Pt => { const r = root.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    const panFrom = (id: number, at: Pt) => {
+      from = { x: at.x, y: at.y, vx: this.view.x, vy: this.view.y, id };
+      doc.body.classList.add('panning');
+    };
+    const settle = () => {
+      pan.flush();
+      look.flush();
+      doc.body.classList.remove('panning');
+      this.#w.keepView(this.view);
+    };
+    // R480, R481, R482: seen before any piece: a second finger is the table's and starts a pinch.
+    root.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      fingers.delete(e.pointerId);   // a mouse let go outside the window never said so
+      if (fingers.size >= 2) { e.stopPropagation(); return; }   // a third finger does nothing
+      const at = local(e);
+      if (fingers.size === 0) { fingers.set(e.pointerId, { at, held: true }); return; }
+      e.stopPropagation();
+      const [id, first] = [...fingers][0]!;
+      if (first.held && claim(id)) first.held = false;
+      fingers.set(e.pointerId, { at, held: false });
+      if (from) { pan.flush(); from = null; }
+      pinch = { v: { ...this.view }, a: id, b: e.pointerId, a0: first.at, b0: at };
+      doc.body.classList.add('panning');
+    }, { capture: true });
     root.addEventListener('pointerdown', e => {
       if (e.button !== 0) return;
       (doc.activeElement as HTMLElement | null)?.blur?.();
-      from = { x: e.clientX, y: e.clientY, vx: this.view.x, vy: this.view.y, id: e.pointerId };
-      doc.body.classList.add('panning');
+      const f = fingers.get(e.pointerId);
+      if (f) f.held = false;
+      panFrom(e.pointerId, local(e));
     });
     doc.addEventListener('pointermove', e => {
-      if (!from || e.pointerId !== from.id) return;
-      pan.to({ x: from.vx + e.clientX - from.x, y: from.vy + e.clientY - from.y });
+      const f = fingers.get(e.pointerId);
+      if (f) f.at = local(e);
+      if (pinch && f) {
+        look.to(pinchView(pinch.v, pinch.a0, pinch.b0, fingers.get(pinch.a)!.at, fingers.get(pinch.b)!.at));
+      } else if (from && e.pointerId === from.id) {
+        const at = local(e);
+        pan.to({ x: from.vx + at.x - from.x, y: from.vy + at.y - from.y });
+      }
     });
     const end = (e: PointerEvent) => {
-      if (!from || e.pointerId !== from.id) return;
-      from = null;
-      pan.flush();
-      doc.body.classList.remove('panning');
-      this.#w.keepView(this.view);
+      if (!fingers.delete(e.pointerId) && !(from && e.pointerId === from.id)) return;
+      if (pinch && (e.pointerId === pinch.a || e.pointerId === pinch.b)) {
+        const rest = e.pointerId === pinch.a ? pinch.b : pinch.a, f = fingers.get(rest);
+        pinch = null;
+        settle();
+        if (f && !f.held) panFrom(rest, f.at);   // R480: the other finger pans on from where it is
+      } else if (from && e.pointerId === from.id) {
+        from = null;
+        settle();
+      }
     };
     doc.addEventListener('pointerup', end);
     doc.addEventListener('pointercancel', end);

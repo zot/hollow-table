@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R463, R273, R19, R119, R122, R288, R409, R451
+**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R463, R273, R19, R119, R122, R288, R409, R451, R482
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -68,7 +68,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - grip (R216): the press's offset from the piece's corner, kept in world coordinates; each frame
   places the piece at `toWorld(pointer) - grip`, so it stays glued at any zoom with nothing to
   scale. Drawn as a chip over the slots, it is gripped at its centre; a tap at its glyph's
-  centre.
+  centre. A pinch under a carry (R482) moves the view, not the pointer: the carry watches the
+  view (TableView.onView) and places the piece again at the pointer's last spot.
 - land (R217, R226): a drop is one Game change made inside TableView.still, so the piece is drawn
   where it was let go with no glide.
 - A card dragged alone leaves its pool from where it was drawn and is ungathered.

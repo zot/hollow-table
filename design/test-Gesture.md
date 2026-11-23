@@ -13,8 +13,7 @@ quality floor until it stops listening
 **Alarm:** 1
 **Fire alarm:** Let the release after a long press click too (drop the `fired` test): the long press reads shift then click
 **Inject:** src/ui/gesture.ts:gesture
-**Pulled:** 2026-11-12 — rang: the long press read shift, then click as well
-
+**Pulled:** 2026-11-23 — re-pulled after R481 (gesture changed): rang, the long press read shift, then click as well; restored clean *Earlier —* 2026-11-12 — rang: the long press read shift, then click as well
 ## Test: moves are paced to frames
 **Purpose:** R215: however many moves arrive between frames, the thing in hand moves once, to the
 latest target; the next move after a frame asks for another frame
@@ -29,3 +28,14 @@ nothing
 **Fire alarm:** Apply every move as it comes (call `apply` in `to`, as before pacing): three applies before the frame, not one
 **Inject:** src/ui/gesture.ts:paced
 **Pulled:** 2026-11-12 — rang: three moves before the pass applied three times, not once
+
+## Test: a second finger takes a press that is not yet a drag
+**Purpose:** R481: claim gives up a press that hasn't become a drag (no click, long press or drag after it) and says so; a drag already begun, or a pointer with no press, is not claimed
+**Input:** a press claimed then released; one claimed then held past a long press; one claimed then moved far and released; a press moved 5 px then claimed; a claim of an unpressed pointer
+**Expected:** nothing from the claimed presses; true for each claim of a press, false after the drag and for the unpressed pointer; the drag alone fires
+**Refs:** crc-Gesture.md
+**Code:** `src/ui/gesture.test.ts`
+**Alarm:** 3
+**Fire alarm:** Make claim say yes without giving the press up (skip the calls): the claimed press clicks
+**Inject:** src/ui/gesture.ts:claim
+**Pulled:** 2026-11-23 — rang: the claimed presses clicked, long-pressed and dragged; restored clean

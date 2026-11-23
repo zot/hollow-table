@@ -1,5 +1,5 @@
 # Gesture
-**Requirements:** R10, R14, R215
+**Requirements:** R10, R14, R215, R481
 
 One reading of the pointer for every control: a click, a "shift" click (shift, ctrl or alt held, or
 a long press on touch), or the start of a drag.
@@ -17,6 +17,8 @@ a long press on touch), or the start of a drag.
   headed (a position, an offset, a view); one pass on the next frame (`schedule`: an animation frame or 100 ms, whichever first)
   applies the latest target, so however many moves arrive between frames, it moves once. `flush()`
   applies a pending target now; `cancel()` drops it (R215).
+- claim(pointerId) (R481): a press with that pointer that hasn't become a drag yet is given up, as a
+  cancel: no click, no long press, no drag. True if there was one, so the table may take the finger.
 - Every control that reacts to shift-click is registered here (`shifty`), so none can lack its
   long press, and the quality-floor test can find them all.
 

@@ -1674,12 +1674,21 @@ var LONG_MS = 500;
 var DRAG_PX = 5;
 var real = { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (h) => clearTimeout(h) };
 var shifty = /* @__PURE__ */ new Set();
+var pending = /* @__PURE__ */ new Map();
+function claim(pointerId) {
+  const ups = pending.get(pointerId);
+  if (!ups?.size) return false;
+  for (const up of [...ups]) up();
+  return true;
+}
 var shifted = (e) => !!(e.shiftKey || e.ctrlKey || e.altKey);
 var clickOf = (h, e) => shifted(e) ? h.shift ?? h.click : h.click;
 function gesture(el4, h, timers = real) {
   if (h.shift) shifty.add(el4);
   let down = null, long = null, done2 = false;
   const reset = () => {
+    const ups = down && pending.get(down.pointerId ?? 0);
+    if (ups?.delete(reset) && !ups.size) pending.delete(down.pointerId ?? 0);
     if (long !== null) timers.clearTimeout(long);
     long = null;
     down = null;
@@ -1716,6 +1725,8 @@ function gesture(el4, h, timers = real) {
     reset();
     down = e;
     done2 = false;
+    const id = e.pointerId ?? 0;
+    pending.set(id, (pending.get(id) ?? /* @__PURE__ */ new Set()).add(reset));
     target.addEventListener("pointermove", onMove);
     target.addEventListener("pointerup", onUp);
     target.addEventListener("pointercancel", onCancel);
@@ -1745,21 +1756,21 @@ function gesture(el4, h, timers = real) {
   };
 }
 function paced(schedule, apply3) {
-  let pending = null;
+  let pending2 = null;
   const pass = () => {
-    if (!pending) return;
-    const { target } = pending;
-    pending = null;
+    if (!pending2) return;
+    const { target } = pending2;
+    pending2 = null;
     apply3(target);
   };
   return {
     to(target) {
-      if (!pending) schedule(pass);
-      pending = { target };
+      if (!pending2) schedule(pass);
+      pending2 = { target };
     },
     flush: pass,
     cancel() {
-      pending = null;
+      pending2 = null;
     }
   };
 }
@@ -2811,7 +2822,7 @@ function reference(doc, r) {
   }
   return [
     hd("How to play the table", "put me away when known"),
-    p("Move", ": drag anything; drag empty table to pan, the wheel zooms."),
+    p("Move", ": drag anything; drag empty table to pan, the wheel or a two-finger pinch zooms."),
     p("Write", ": click paper to write; the pens mark what the table should read."),
     p("Shift-click", " (or press and hold) lowers, opens and deletes."),
     p("Put away", ": drop it on the bar; Boot Hill keeps what was buried."),
@@ -8094,7 +8105,7 @@ var createSignalHandler = (ctx) => {
         return unreachable(state.outbound);
     }
     if (atPendingCap(peerId)) return Promise.resolve(null);
-    const isAllocCanceled = () => isLeaving() || state.outbound.phase !== "allocating" || state.outbound.promise !== pending;
+    const isAllocCanceled = () => isLeaving() || state.outbound.phase !== "allocating" || state.outbound.promise !== pending2;
     const allocateOffer = async () => {
       const localSelfId = getSelfIdNow() ?? await getSelfId();
       let firstOffer;
@@ -8137,14 +8148,14 @@ var createSignalHandler = (ctx) => {
         offerId
       ];
     };
-    const pending = allocateOffer().finally(() => {
-      if (state.outbound.phase === "allocating" && state.outbound.promise === pending) state.outbound = { phase: "idle" };
+    const pending2 = allocateOffer().finally(() => {
+      if (state.outbound.phase === "allocating" && state.outbound.promise === pending2) state.outbound = { phase: "idle" };
     });
     state.outbound = {
       phase: "allocating",
-      promise: pending
+      promise: pending2
     };
-    return pending;
+    return pending2;
   };
   const transitionOutboundToAnswered = (state, peerId, peer, offerId) => {
     let bufferedCandidates = [];
@@ -17530,10 +17541,16 @@ var Drag = class {
       moves?.drag([it]);
       this.#lightBar(doc, cy, c.buries);
     });
-    const to = (e) => pace.to({ cx: e.clientX, cy: e.clientY });
+    let at3 = { cx: move.clientX, cy: move.clientY };
+    const to = (e) => pace.to(at3 = { cx: e.clientX, cy: e.clientY });
     to(move);
     pace.flush();
+    const off = table.onView(() => {
+      pace.to(at3);
+      pace.flush();
+    });
     this.#follow(doc, down, to, (e) => {
+      off();
       pace.cancel();
       keepOut();
       last = c.frame(e.clientX, e.clientY);
@@ -17794,6 +17811,13 @@ var GATHER_GAP = 14;
 var ZOOM_MIN = 0.25;
 var ZOOM_MAX = 2.5;
 var ZOOM_RATE = 12e-4;
+function pinchView(v, a0, b0, a1, b1) {
+  const d0 = Math.hypot(b0.x - a0.x, b0.y - a0.y), d1 = Math.hypot(b1.x - a1.x, b1.y - a1.y);
+  const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, d0 ? v.zoom * d1 / d0 : v.zoom));
+  const m0 = { x: (a0.x + b0.x) / 2, y: (a0.y + b0.y) / 2 }, m1 = { x: (a1.x + b1.x) / 2, y: (a1.y + b1.y) / 2 };
+  const k = zoom / v.zoom;
+  return { x: m1.x - (m0.x - v.x) * k, y: m1.y - (m0.y - v.y) * k, zoom };
+}
 function fitView(b, size) {
   const bw = b.right - b.left, bh = b.bottom - b.top;
   const zoom = Math.max(ZOOM_MIN, Math.min(1, (size.w - 40) / bw, (size.h - 30) / bh));
@@ -17827,6 +17851,8 @@ var TableView = class {
   /** Each mat's height when last seen outside a carry (R241). */
   #heights = /* @__PURE__ */ new Map();
   view;
+  /** Called after each placing of the view (R482). */
+  #watchers = /* @__PURE__ */ new Set();
   constructor(root, world, w) {
     this.#root = root;
     this.#world = world;
@@ -18167,35 +18193,101 @@ var TableView = class {
   #place() {
     this.#world.style.transform = `translate(${this.view.x}px, ${this.view.y}px) scale(${this.view.zoom})`;
   }
+  // R482: a carry under a pinch re-frames when the view moves beneath its still finger.
+  /** Calls `fn` after each move of the view; returns a function that stops it. */
+  onView(fn) {
+    this.#watchers.add(fn);
+    return () => this.#watchers.delete(fn);
+  }
+  /** Places the view and tells the watchers. */
+  #moved() {
+    this.#place();
+    for (const fn of [...this.#watchers]) fn();
+  }
   // R15: drag empty table to pan; the wheel zooms about the pointer. R16: a press that no piece
-  // takes (a pool's empty space beside its name included) lands here.
+  // takes (a pool's empty space beside its name included) lands here. R479-R482: two fingers pinch.
   #panZoom() {
     const root = this.#root, doc = root.ownerDocument;
+    const fingers = /* @__PURE__ */ new Map();
     let from = null;
+    let pinch = null;
     const pan = paced(this.#w.schedule, ({ x, y }) => {
       this.view = { ...this.view, x, y };
-      this.#place();
+      this.#moved();
+    });
+    const look = paced(this.#w.schedule, (v) => {
+      this.view = v;
+      this.#moved();
     });
     const zoomed = paced(this.#w.schedule, (v) => {
-      this.#place();
+      this.#moved();
       this.#w.keepView(v);
     });
+    const local2 = (e) => {
+      const r = root.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    };
+    const panFrom = (id, at3) => {
+      from = { x: at3.x, y: at3.y, vx: this.view.x, vy: this.view.y, id };
+      doc.body.classList.add("panning");
+    };
+    const settle = () => {
+      pan.flush();
+      look.flush();
+      doc.body.classList.remove("panning");
+      this.#w.keepView(this.view);
+    };
+    root.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      fingers.delete(e.pointerId);
+      if (fingers.size >= 2) {
+        e.stopPropagation();
+        return;
+      }
+      const at3 = local2(e);
+      if (fingers.size === 0) {
+        fingers.set(e.pointerId, { at: at3, held: true });
+        return;
+      }
+      e.stopPropagation();
+      const [id, first2] = [...fingers][0];
+      if (first2.held && claim(id)) first2.held = false;
+      fingers.set(e.pointerId, { at: at3, held: false });
+      if (from) {
+        pan.flush();
+        from = null;
+      }
+      pinch = { v: { ...this.view }, a: id, b: e.pointerId, a0: first2.at, b0: at3 };
+      doc.body.classList.add("panning");
+    }, { capture: true });
     root.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
       doc.activeElement?.blur?.();
-      from = { x: e.clientX, y: e.clientY, vx: this.view.x, vy: this.view.y, id: e.pointerId };
-      doc.body.classList.add("panning");
+      const f = fingers.get(e.pointerId);
+      if (f) f.held = false;
+      panFrom(e.pointerId, local2(e));
     });
     doc.addEventListener("pointermove", (e) => {
-      if (!from || e.pointerId !== from.id) return;
-      pan.to({ x: from.vx + e.clientX - from.x, y: from.vy + e.clientY - from.y });
+      const f = fingers.get(e.pointerId);
+      if (f) f.at = local2(e);
+      if (pinch && f) {
+        look.to(pinchView(pinch.v, pinch.a0, pinch.b0, fingers.get(pinch.a).at, fingers.get(pinch.b).at));
+      } else if (from && e.pointerId === from.id) {
+        const at3 = local2(e);
+        pan.to({ x: from.vx + at3.x - from.x, y: from.vy + at3.y - from.y });
+      }
     });
     const end = (e) => {
-      if (!from || e.pointerId !== from.id) return;
-      from = null;
-      pan.flush();
-      doc.body.classList.remove("panning");
-      this.#w.keepView(this.view);
+      if (!fingers.delete(e.pointerId) && !(from && e.pointerId === from.id)) return;
+      if (pinch && (e.pointerId === pinch.a || e.pointerId === pinch.b)) {
+        const rest = e.pointerId === pinch.a ? pinch.b : pinch.a, f = fingers.get(rest);
+        pinch = null;
+        settle();
+        if (f && !f.held) panFrom(rest, f.at);
+      } else if (from && e.pointerId === from.id) {
+        from = null;
+        settle();
+      }
     };
     doc.addEventListener("pointerup", end);
     doc.addEventListener("pointercancel", end);

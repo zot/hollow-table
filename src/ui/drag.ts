@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -101,10 +101,14 @@ export class Drag {
       moves?.drag([it]);
       this.#lightBar(doc, cy, c.buries);
     });
-    const to = (e: PointerLike) => pace.to({ cx: e.clientX, cy: e.clientY });
+    let at = { cx: move.clientX, cy: move.clientY };
+    const to = (e: PointerLike) => pace.to(at = { cx: e.clientX, cy: e.clientY });
     to(move);
     pace.flush();
+    // R482: a pinch moves the table under a still finger; the piece stays glued to it (R216).
+    const off = table.onView(() => { pace.to(at); pace.flush(); });
     this.#follow(doc, down, to, e => {
+      off();
       pace.cancel();
       keepOut();
       last = c.frame(e.clientX, e.clientY);

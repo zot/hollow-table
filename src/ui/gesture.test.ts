@@ -1,7 +1,7 @@
 // CRC: crc-Gesture.md | Test: test-Gesture.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gesture, paced, shifty, DRAG_PX, LONG_MS } from './gesture.ts';
+import { claim, gesture, paced, shifty, DRAG_PX, LONG_MS } from './gesture.ts';
 import { fakeClock } from '../store/fakes.ts';
 
 const ev = (type: string, x = 0, y = 0, extra: Record<string, unknown> = {}) =>
@@ -32,6 +32,24 @@ test('one reading of the pointer', () => {
   assert.ok(shifty.has(el), 'registered for the quality floor');
   stop();
   assert.ok(!shifty.has(el));
+});
+
+test('a second finger takes a press that is not yet a drag', () => {
+  // R481: claimed, the press is given up: no click, no long press, no drag.
+  const { clock, advance } = fakeClock();
+  const el = new EventTarget(), got: string[] = [];
+  const stop = gesture(el, { click: () => got.push('click'), shift: () => got.push('shift'), drag: () => got.push('drag') }, clock);
+  const press = () => el.dispatchEvent(ev('pointerdown', 10, 10));
+  press(); assert.equal(claim(1), true); el.dispatchEvent(ev('pointerup', 10, 10));
+  press(); claim(1); advance(LONG_MS);
+  press(); claim(1); el.dispatchEvent(ev('pointermove', 10 + DRAG_PX * 4, 10)); el.dispatchEvent(ev('pointerup'));
+  assert.deepEqual(got, [], 'nothing clicked, long-pressed or picked up');
+  press(); el.dispatchEvent(ev('pointermove', 10 + DRAG_PX, 10));
+  assert.equal(claim(1), false, 'a drag already begun is not given up');
+  el.dispatchEvent(ev('pointerup'));
+  assert.equal(claim(7), false, 'nothing pressed with that pointer');
+  assert.deepEqual(got, ['drag']);
+  stop();
 });
 
 test('moves are paced to frames', () => {

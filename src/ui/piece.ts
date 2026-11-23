@@ -881,7 +881,7 @@ function reference(doc: Document, r: Reference): HTMLElement[] {
       p('IMPRESS', ": change an NPC's Opinions"), p('REQUEST', ': get an NPC to transfer a Resource or perform a task')];
   }
   return [hd('How to play the table', 'put me away when known'),
-    p('Move', ': drag anything; drag empty table to pan, the wheel zooms.'),
+    p('Move', ': drag anything; drag empty table to pan, the wheel or a two-finger pinch zooms.'),
     p('Write', ': click paper to write; the pens mark what the table should read.'),
     p('Shift-click', ' (or press and hold) lowers, opens and deletes.'),
     p('Put away', ': drop it on the bar; Boot Hill keeps what was buried.'),
