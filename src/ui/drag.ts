@@ -1,14 +1,14 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Character, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName, type Yards } from '../model/records.ts';
+import { ridFor, ridOf, type Character, type Hill, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName, type Yards } from '../model/records.ts';
 import type { Item } from '../rules/pool.ts';
 import { gapAt } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
-import { burialOf, bury, empty, graveName } from '../rules/yards.ts';
+import { burialOf, bury, buryOwn, empty, graveName } from '../rules/yards.ts';
 import type { Aim, MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
 import type { Hands } from './hands.ts';
@@ -291,9 +291,14 @@ export class Drag {
   // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is
   // buried in the current graveyard, a character with its cards and pinned paper, under its name.
   #putAway(rec: PieceRecord): Change {
-    const { game } = this.#w, rid = ridOf(rec.oid);
+    const { game } = this.#w, rid = ridFor(rec);
     // R19: a supply dropped back on the bar makes nothing.
     if (this.#fresh.delete(rid) || rec.kind === 'reference') return w => w.del(rid);
+    // R488: a torn roll is buried on this page alone, in its Hill under the graveyard's name.
+    if (rec.kind === 'tornroll') {
+      const h = (game.get('hill') as Hill | undefined) ?? { hill: [] };
+      return w => { w.put('hill', buryOwn(h, this.#w.yard().name, [rec], graveName(rec))); w.del(rid); };
+    }
     // R409: the Connection Table is put away, kept for its supply, not buried.
     if (rec.kind === 'connections') return w => w.put(rid, { ...rec, away: true });
     const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
@@ -301,7 +306,7 @@ export class Drag {
     const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
     return w => {
       w.put('yards', bury(y, cur, recs, graveName(rec)));
-      for (const r of recs) w.del(ridOf(r.oid));
+      for (const r of recs) w.del(ridFor(r));
     };
   }
 
@@ -336,7 +341,7 @@ export class Drag {
   // where it was let go (`to`); a pool's card comes too unless gathered; a card's pinned paper moves
   // with it; paper is pinned to the card it was aimed at, or let go of one.
   #drop(rec: PieceRecord, part: 'pool' | 'card', from: { x: number; y: number }, to: { x: number; y: number }, z: number, aim?: Aim): Change {
-    const { game } = this.#w, rid = ridOf(rec.oid), dx = to.x - from.x, dy = to.y - from.y;
+    const { game } = this.#w, rid = ridFor(rec), dx = to.x - from.x, dy = to.y - from.y;
     this.#fresh.delete(rid);   // made now: later, the bar buries it
     const moved = <P extends { x: number; y: number; z: number }>(p: P): P => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
     return w => {

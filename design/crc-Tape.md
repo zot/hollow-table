@@ -1,5 +1,5 @@
 # Tape
-**Requirements:** R97, R105, R110-114, R279-283, R308, R313, R317, R340, R441, R465
+**Requirements:** R97, R105, R110-114, R279-283, R308, R313, R317, R340, R441, R465, R486
 
 The paper tape from the register: this page's receipts, never sent.
 
@@ -39,7 +39,8 @@ The paper tape from the register: this page's receipts, never sent.
   the chosen line and removes the other.
 - raise / lower: a roll or a press raises it; pressing anything else lowers it; the paper roll on
   the register rolls it up and down (toggleUp; down again, it rises).
-- tear(): once a drag has gone a few pixels, hands the whole roll to Drag as a torn-roll piece,
+- tear(): once a drag has gone a few pixels, hands the whole roll to Drag as a torn-roll piece under
+  `t:` and its oid, this page's own (R486),
   slightly tilted; the next roll starts a fresh tape. Pressing a receipt's title to edit it doesn't
   tear. A torn roll's wheel scrolls it, and zooms the table only at its ends (R283).
 

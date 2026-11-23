@@ -1,5 +1,5 @@
 # BootHillView
-**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405, R428, R457
+**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405, R428, R457, R488, R489
 
 The gravestone and its graveyard list.
 
@@ -9,7 +9,10 @@ The gravestone and its graveyard list.
 - R428: an Opinion Record's burial comes up as a record: put back, its Connection written to its cell,
   slid out under a card of its row; undoCard digs up the newest Info card or record. A record whose
   row is gone stays buried.
-- badge: the count of the buried in every graveyard; the grey Sancreek stone fades when it's 0 (R289).
+- own (R488, R489): this page's Hill burials in the graveyard browsed (Yards.ownIn) are listed after its
+  shared burials, dug up as a `t:` torn roll (Yards.exhumeOwn) and deleted forever (Yards.forgetOwn) the
+  same way; deleting everything in a graveyard takes them too (Yards.forgetOwnIn).
+- badge: the count of the buried in every graveyard, this page's own included; the grey Sancreek stone fades when it's 0 (R289).
 - stone (`src/ui/boothill.ts`): a button after the register; a click opens or closes the list, kept
   in the Seat with the graveyard browsed. Burials are listed by the names Yards.graveName gave them.
 - panel: opens as the graveyard list below the gravestone: ‹, the editable name, › fixed at the

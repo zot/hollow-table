@@ -1,5 +1,5 @@
 # Moves
-**Requirements:** R298, R299, R300, R182, R183, R218, R361
+**Requirements:** R298, R299, R300, R182, R183, R218, R361, R486
 
 Drags go straight to the room, without passing through the GM's page. A move is only shown (Hands);
 nothing saved changes until the drop's change.
@@ -9,8 +9,8 @@ nothing saved changes until the drop's change.
 - filling, draining: the move actor's double buffer.
 
 ## Does
-- shared(rid) (R361): a piece of a private mat (Visibility gives nobody a view of it) is carried on
-  this page alone; its items are left out of every move sent, in hand or dropped.
+- shared(rid) (R361, R486): a piece of a private mat (Visibility gives nobody a view of it), or a torn
+  roll (Records.isLocal), is carried on this page alone; its items are left out of every move sent, in hand or dropped.
 - drag(items): `{s, items: [{rid, part?, x, y, z, aim?}]}` at most every SEND_MS while in hand: the
   piece held (what follows it, each page works out), and its aim (R299).
 - drop(items): the drop is a move too, `drop: true`, sent at once with its own number and no aim;

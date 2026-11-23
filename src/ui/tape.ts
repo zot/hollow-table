@@ -1,10 +1,10 @@
-// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R465, R112, R113, R317, R282, R283, R308, R313, R340, R441
+// CRC: crc-Tape.md | Seq: seq-roll.md#2, seq-take.md#1, seq-take.md#2 | R97, R110, R465, R112, R113, R317, R282, R283, R308, R313, R340, R441, R486
 // The paper tape from the register: this page's receipts, never sent but to a page come late (R465). It lies under the
 // pieces and rises for a new roll or a press; rolled up it leaves a sliver; dragged, it tears off
 // the whole roll as a torn-roll piece. The decisions are pure (retitled, torn, mayChoose).
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Damage, type Oid, type Place, type NameRow, type Receipt, type RowName, type Tape, type TornRoll } from '../model/records.ts';
+import { ridFor, type Damage, type Oid, type Place, type NameRow, type Receipt, type RowName, type Tape, type TornRoll } from '../model/records.ts';
 import { OVERFLOW } from '../rules/absorb.ts';
 import type { Viewer } from '../rules/visibility.ts';
 import type { PointerLike } from './gesture.ts';
@@ -205,12 +205,11 @@ export class TapeView {
       if (ev.pointerId !== e.pointerId || Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < TEAR_PX) return;
       stop();
       const oid = this.#w.mint(), at = this.#w.toWorld(box.left, box.top);
-      this.#w.game.change(w => {
-        w.put(ridOf(oid), torn(tape, oid, { x: Math.round(at.x), y: Math.round(at.y), z: 0, tilt: 0 }));
-        w.put('tape', EMPTY);
-      });
+      const roll = torn(tape, oid, { x: Math.round(at.x), y: Math.round(at.y), z: 0, tilt: 0 }), rid = ridFor(roll);
+      // R486: the torn roll is this page's own (`t:`), never sent.
+      this.#w.game.change(w => { w.put(rid, roll); w.put('tape', EMPTY); });
       this.#el.classList.remove('raised');
-      this.#w.carry(ridOf(oid), e, ev);
+      this.#w.carry(rid, e, ev);
     };
     const stop = () => { doc.removeEventListener('pointermove', onMove); doc.removeEventListener('pointerup', stop); };
     doc.addEventListener('pointermove', onMove);

@@ -1,11 +1,11 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442, R486
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
 // its own version.
 
 import { same, type Game } from '../model/game.ts';
-import { TOMBS, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
+import { TOMBS, isLocal, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
 import { mayChange } from '../rules/ownership.ts';
 import { redact, type Characters, type Viewer } from '../rules/visibility.ts';
 import { renameWhy, renamed, why, whoIs } from './claims.ts';
@@ -25,9 +25,6 @@ type Own = { puts: Put[]; dels: Del[] };
 export type Sealed = { g: number; puts: Put[]; dels?: Del[] };
 /** A player's change, as it is sealed to the GM's page: `base` is the version of the copy it was made on. */
 export type Edit = { s: number; base: number; puts: { rid: Rid; rec: Rec }[]; dels: Rid[] };
-
-/** Each page's own, never sent: the GM's book, and every page's tape. */
-export const LOCAL = new Set<Rid>(['book', 'tape']);
 
 type Tab = { name: string; browser: string; sealKey: string; holds: Map<Rid, Rec> };
 type Stamp = { s: number; by?: string };
@@ -117,7 +114,7 @@ function capped<T>(m: Record<Rid, T>, at: (v: T) => number): number {
  * was made; (R448) everything, from a copy older than the book's floor.
  */
 export function judge(game: Game, edit: Edit, who: string | null, tab?: string): { puts: { rid: Rid; rec: Rec }[]; dels: Rid[]; refused: Rid[] } {
-  const all = [...edit.puts.map(p => p.rid), ...edit.dels].filter(rid => rid !== 'meta' && !LOCAL.has(rid));
+  const all = [...edit.puts.map(p => p.rid), ...edit.dels].filter(rid => rid !== 'meta' && !isLocal(rid));
   const book = game.get('book') as Book, chars = characters(game);
   if (!who) return { puts: [], dels: [], refused: all };                                   // R167
   if (edit.base < (book.floor ?? 0)) return { puts: [], dels: [], refused: all };           // R448
@@ -148,6 +145,7 @@ export function judge(game: Game, edit: Edit, who: string | null, tab?: string):
       if (merged) puts.push({ rid, rec: merged }); else refused.push(rid);
     } else if (rid === 'rows') puts.push({ rid, rec: mergeRows(game.get('rows') as Rows | undefined, rec as Rows, who, chars) });
     else if (!isPiece(rid) || (book.tomb[rid] ?? 0) > edit.base) refused.push(rid);       // R192
+    else if (kindOf(rec) === 'tornroll') refused.push(rid);                                  // R486: each page's own
     else if (stale(rid)) refused.push(rid);                                                  // R444
     else if (forged(game.get(rid), rec, who)) refused.push(rid);                             // R360
     else if (ruled(game.get(rid), rec)) refused.push(rid);                                   // R464
@@ -260,11 +258,11 @@ export class Authority {
   // Seq: seq-sync.md#1.1 to seq-sync.md#1.6 | R170, R174, R175, R185, R188
   #out(): void {
     const { game } = this.#w, chars = characters(game);
-    let rids = [...this.#pending].filter(rid => !LOCAL.has(rid));
+    let rids = [...this.#pending].filter(rid => !isLocal(rid));
     this.#pending.clear();
     // R193: a character changing (its owner, say) can change who sees its cards: check everything.
     if (rids.some(rid => kindOf(game.get(rid)) === 'character' || kindOf(this.#public.get(rid)) === 'character')) {
-      rids = [...game.all().map(([rid]) => rid).filter(rid => !LOCAL.has(rid)), ...rids.filter(rid => !game.get(rid))];
+      rids = [...game.all().map(([rid]) => rid).filter(rid => !isLocal(rid)), ...rids.filter(rid => !game.get(rid))];
     }
     const puts: Put[] = [], dels: Del[] = [], sealFor = new Map<string, Own>();
     const gone: Rid[] = [];
@@ -349,7 +347,7 @@ export class Authority {
     const puts: Put[] = [], mine: Put[] = [];
     t.holds.clear();
     for (const [rid, rec] of game.all()) {
-      if (LOCAL.has(rid)) continue;
+      if (isLocal(rid)) continue;
       const stamp = this.#current(rid), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
       // R361: a piece nobody-at-all may see is left out of the public part, sealed to those who may.
       if (pv) puts.push({ rid, ...stamp, rec: pv });

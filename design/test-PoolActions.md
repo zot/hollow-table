@@ -81,8 +81,7 @@ without a place goes last; the drawer is renumbered in order
 **Alarm:** 4
 **Fire alarm:** Mint players' oids by counting up like the GM's: the player's oid is under PLAYER_OIDS
 **Inject:** src/ui/actions.ts:minter
-**Pulled:** 2026-11-12 — rang: the player's oid was under PLAYER_OIDS
-
+**Pulled:** 2026-11-23 — re-pulled after R486 (minter changed): rang, a player's oid was under PLAYER_OIDS; restored clean *Earlier —* 2026-11-12 — rang: the player's oid was under PLAYER_OIDS
 ## Test: a Motivation's card joins the drawer of the Main slot it lands in
 **Purpose:** R463: a card tapped from an NPC's Motivation becomes the tapper's when dropped in their
 Main slot, and goes into no other slot

@@ -1,13 +1,13 @@
-// CRC: crc-Build.md | R196, R201, R476, R483
+// CRC: crc-Build.md | R196, R201, R476, R483, R486, R487
 // The page's entry point: the store, this browser's identity, and, at a table, the network. The
 // plain page is the GM's and opens a table on demand; an invite makes a player, who joins with a
 // copy of the GM's table. The views attach here as they land. With `?test` the page exposes one
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, ridOf, type Book, type Character, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
+import { GM, isLocal, ridFor, ridOf, type Book, type Character, type Hill, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
-import { buryInfo, buryRecord, empty as emptyYards } from './rules/yards.ts';
+import { buryInfo, buryRecord, empty as emptyYards, ownTorn } from './rules/yards.ts';
 import { first, groupOf, keep as keepRow, nameOf, newConnections, pcsOf, published, rowOf, synced, tableOf } from './rules/connections.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
@@ -350,7 +350,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     open: () => seat.boothill.open, setOpen: open => keep({ ...seat, boothill: { ...seat.boothill, open } }),
     toWorld: (x, y) => table.toWorld(x, y), top: topZ,
     slideInfo,
-    carry: (lead, down, move) => lead.kind === 'character' ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridOf(lead.oid), down, move),
+    carry: (lead, down, move) => lead.kind === 'character' ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridFor(lead), down, move),
   });
   // R404: on the GM's page, Ctrl+Z / ⌘Z outside written text digs up the newest Info card buried.
   if (gm) addEventListener('keydown', ev => { if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault(); });
@@ -546,6 +546,9 @@ async function main() {
   // R472: claims made under ids from before Trystero proved them go; players claim again on arriving.
   const stale = oldClaims(game);
   if (stale) game.change(stale);
+  // R487: torn rolls shared before this become the GM's page's own, and leave every other page.
+  const torn = ownTorn(game.all(), game.get('yards') as Yards | undefined, game.get('hill') as Hill | undefined);
+  if (torn.puts.length || torn.dels.length) game.change(w => { for (const rid of torn.dels) w.del(rid); for (const [rid, r] of torn.puts) w.put(rid, r); });
   let gmShown = local('hollow.gmname') ?? GM;
   let table: { room: string; wire: Wire; presence: Presence; authority: Authority; rolls: Rolls; images: ImageExchange } | null = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
@@ -615,8 +618,9 @@ async function main() {
     forNobody: () => game.all().map(([rid]) => rid).filter(shared(game)) };
 }
 
-// R361: a piece someone who owns nothing may see at all: anything but a private mat's.
+// R361: a piece someone who owns nothing may see at all: anything but a private mat's. R486: nor a page's own.
 const shared = (game: Game) => (rid: string): boolean => {
+  if (isLocal(rid)) return false;
   const r = game.get(rid);
   return !r || !!redact(r, null, oid => game.get(ridOf(oid)) as Character | undefined);
 };

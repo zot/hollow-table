@@ -41,8 +41,8 @@ faulty record is refused
 **Alarm:** 3
 **Fire alarm:** leave `world` out of the singletons; red: the good records are refused
 **Inject:** src/model/records.ts:SINGLETONS
-@alarm-hash: 24059ddc46884f53
-**Pulled:** 2026-11-19 — re-pulled after R444 and R448 (the Book's shape in SINGLETONS changed; missed at #39 and #42, caught at #45): rang, the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after Item 7 added `reaction` to the rows entry in SINGLETONS; rang: "the world's record" failed; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
+@alarm-hash: 9c1a0a3558a61e9d
+**Pulled:** 2026-11-23 — re-pulled after R488 (the singletons changed): rang, the good records were refused; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 and R448 (the Book's shape in SINGLETONS changed; missed at #39 and #42, caught at #45): rang, the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after Item 7 added `reaction` to the rows entry in SINGLETONS; rang: "the world's record" failed; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
 ## Test: a card an action suffers
 **Purpose:** R362: an Influence may carry `once: true`, and nothing else in that field
 **Input:** Beauford's Tricky card with `once: true`, and with `once: false`
@@ -65,3 +65,14 @@ faulty record is refused
 **Inject:** src/model/records.ts:PIECES
 @alarm-hash: 7824d3ba44a05618
 **Pulled:** 2026-11-19 — re-pulled after R464 (the Influence shape gained flag): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: a list of line numbers was taken as `shown`; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean
+
+## Test: a torn roll and the Hill are this page's own records
+**Purpose:** R486, R488: a `t:` rid holds a torn roll and nothing else; `hill` holds this page's burials; isLocal names `book`, `tape`, `hill` and every `t:`, and no table piece
+**Input:** a torn roll under `t:`; a sticky under `t:`; a Hill with one tape's burial; a Hill whose entry has no graveyard name; isLocal of `book`, `tape`, `hill`, `t:0000000f`, `o:0000000f`, `yards`
+**Expected:** accepted, refused, accepted, refused; true, true, true, true, false, false
+**Refs:** crc-Records.md
+**Code:** `src/model/records.test.ts`
+**Alarm:** 6
+**Fire alarm:** check a `t:` record as any piece; red: the sticky under `t:` is accepted
+**Inject:** src/model/records.ts:check
+**Pulled:** 2026-11-23 — rang: a sticky under `t:` was accepted; restored clean

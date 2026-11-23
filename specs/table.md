@@ -136,7 +136,7 @@ the register, the Ledger and Boot Hill.
 ## Pieces
 
 Everything on the table is a piece: a character's pool and card, a sticky, loose text, an image, a
-chip, a torn-off roll of receipts.
+chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
 
 - **Character card**: a rounded index card with two faces, edited in place and flipped at the
   corner. The front holds name and Rank, `Cha Int Wis`, Fields and Skills, and a right column

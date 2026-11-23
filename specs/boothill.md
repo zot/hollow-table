@@ -20,6 +20,11 @@ Where put-away work goes, so nothing that holds work is lost by accident.
 - **The list closes on a press anywhere else**, as the Ledger does (Bill, 11-12).
 - **Putting away** a pool or its character card buries both, with everything on them. Stickies,
   loose writing, images and torn rolls are buried too.
+- **A torn tape is buried on its own page** (Bill, 2026-11-23): dropped on the bar, a torn roll goes
+  into the graveyard being browsed, on that page alone. It is listed there after the graveyard's
+  other burials and counted in the badge, and no other page's Boot Hill shows it; it is dug up and
+  deleted forever only there. If no graveyard has its graveyard's name any more, it shows in the first.
+  Deleting everything in a graveyard deletes this page's buried tapes there too.
 - **Drag a name out** of the list to bring it back under the pointer (a character by its pool, the
   card following). It comes up once it's dragged a few pixels, so a long press on it can delete it
   forever like a shift-click (Bill, 11-13), and the list closes. Dropped back on the bar, it's

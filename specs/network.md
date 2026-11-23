@@ -78,7 +78,8 @@ them. Nothing to install, no local-network grant, no daemon.
 ## The GM's page holds the game
 
 - **The GM's page holds the game; a player's page shows a copy.** Each save on the GM's page sends
-  the pieces that changed. Players take the round from the GM but keep their own tape.
+  the pieces that changed. Players take the round from the GM but keep their own tape, and every page keeps its torn rolls and
+  their burials to itself (see `rolls.md`).
 - **Joining**, a player's page asks for the whole table until it arrives, and sends none of its own
   changes before then, so a stale copy can't overwrite the GM's. A gap in the GM's batches asks
   again.

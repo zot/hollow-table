@@ -58,12 +58,12 @@ back on both, and nothing is left pending
 **Alarm:** 2
 **Fire alarm:** Take a piece put back however long ago it was deleted (drop the tomb check from judge, R192): the buried sticky comes back
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge changed): rang, the spec failed with the tomb check dropped (Chromium); restored clean *Earlier —* 2026-11-19 — re-aimed: the old injection (a catch-up left out of what has gone out) was silent, on HEAD before R444 too (cause not traced); the tomb check is the guard: rang, the buried sticky came back (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the away page brought the buried sticky back (Chromium) *Earlier —* 2026-11-13 — rang: the buried sticky came back on the GM's table (Chromium)
+**Pulled:** 2026-11-23 — re-pulled after R486 (judge changed): rang, the buried sticky came back (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R464 (judge changed): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge changed): rang, the spec failed with the tomb check dropped (Chromium); restored clean *Earlier —* 2026-11-19 — re-aimed: the old injection (a catch-up left out of what has gone out) was silent, on HEAD before R444 too (cause not traced); the tomb check is the guard: rang, the buried sticky came back (Chromium); restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the away page brought the buried sticky back (Chromium) *Earlier —* 2026-11-13 — rang: the buried sticky came back on the GM's table (Chromium)
 ## Test: a deletion reaches a player who is at the table
 **Purpose:** the 11-11 bug, end to end
-**Input:** the GM rolls three times, tears the tape off onto the bar, and deletes the graveyard
-forever, with Dana present; then again with Dana away and back
-**Expected:** Dana's table has no torn roll either time, and her Boot Hill matches the GM's
+**Input:** the GM buries a sticky on the bar and deletes the graveyard forever, with Dana present; then
+again with Dana away and back
+**Expected:** Dana's table loses the sticky, and her Boot Hill matches the GM's, both times
 **Refs:** crc-Authority.md, crc-Stamps.md, seq-sync.md
 **Code:** `tests/deletion.spec.ts`
 
@@ -318,3 +318,25 @@ by the drop
 **Fire alarm:** key every copy by its room alone (`m-${room}` whoever it is); red: Dana reloads with Sam's receipt on her tape
 **Inject:** src/store/gamestore.ts:copyFor
 **Pulled:** 2026-11-23 — rang: both names opened m-<room> (Chromium), and with the id checks left out, Dana reloaded with Sam's receipt on her tape; restored clean
+
+## Test: a torn tape and its burial stay on the page that tore it
+**Purpose:** R486, R488, R489: the GM's torn roll and Dana's never reach the other page; buried, each is listed and counted on its own page's Boot Hill alone, digs up there as a torn roll, and goes when its graveyard is emptied
+**Input:** the GM rolls twice and tears the tape onto the table; Dana rolls and tears hers; the GM drops its torn roll on the bar; the GM digs it up and buries it again; the GM empties the graveyard
+**Expected:** each page holds only its own torn roll, under `t:`; the GM's Boot Hill lists "Tape: 2 rolls" with badge 1, Dana's lists nothing and her page holds no receipt of the GM's; dug up, the GM's table has its torn roll back; emptied, the GM's Hill is empty
+**Refs:** crc-Tape.md, crc-Drag.md, crc-BootHillView.md, crc-Authority.md, crc-Copy.md
+**Code:** `tests/tapes.spec.ts`
+**Alarm:** 27
+**Fire alarm:** tear onto `o:` (ridOf) in TapeView; red: Dana's page holds the GM's torn roll
+**Inject:** src/ui/tape.ts:TapeView
+**Pulled:** 2026-11-23 — rang: torn onto `o:`, Dana's page held the GM's torn roll (Chromium); restored clean
+
+## Test: torn rolls shared before leave the players' pages
+**Purpose:** R487: a game holding an `o:` torn roll and a tape buried in the shared Boot Hill, loaded by the GM's page, keeps them as the GM's own, and Dana's page loses them
+**Input:** the GM's page writes an `o:` torn roll and a tape's burial into `yards`, as builds before this did, and Dana sees both; the GM's page reloads
+**Expected:** Dana's page holds no torn roll and her Boot Hill no tape; the GM's page holds the roll under `t:` and the tape in its Hill
+**Refs:** crc-Build.md, crc-Yards.md
+**Code:** `tests/tapes.spec.ts`
+**Alarm:** 28
+**Fire alarm:** skip ownTorn when the GM's page loads; red: Dana's page keeps the torn roll
+**Inject:** src/main.ts
+**Pulled:** 2026-11-23 — rang: with ownTorn skipped, Dana's page kept the torn roll (Chromium); restored clean

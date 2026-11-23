@@ -34,7 +34,7 @@ both players synced with the same sticky
 **Alarm:** 2
 **Fire alarm:** Let a full table take away pending new pieces too: Dana's own sticky is gone
 **Inject:** src/net/copy.ts:Copy
-**Pulled:** 2026-11-23 — re-pulled after R483-R485 (Copy changed): rang, catch-up and gaps failed; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the full table took away Dana's own pending sticky *Earlier —* 2026-11-12 — rang: Dana's own pending sticky was taken away by the full table
+**Pulled:** 2026-11-23 — re-pulled after R486 (Copy changed): rang, the pending sticky was taken away; restored clean *Earlier —* 2026-11-23 — re-pulled after R483-R485 (Copy changed): rang, catch-up and gaps failed; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the full table took away Dana's own pending sticky *Earlier —* 2026-11-12 — rang: Dana's own pending sticky was taken away by the full table
 ## Test: deletions, the book, and silence
 **Purpose:** the GM's page tombs deletions and dates Boot Hill; a deletion after a drag is not stale
 end to end; a player's page sends nothing before the table arrives; 25 s of silence counts as the

@@ -1,8 +1,8 @@
-// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290, R403, R404, R405, R428
+// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290, R403, R404, R405, R428, R487, R488, R489
 // Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever. `cur` is the index
 // of the graveyard being browsed (a seat setting); every operation returns the new yards and cur.
 
-import type { Burial, Character, Graveyard, InfoBurial, Oid, Opinion, PieceRecord, Place, Yards } from '../model/records.ts';
+import { isPiece, ridFor, type Burial, type Character, type Graveyard, type Hill, type InfoBurial, type Oid, type Opinion, type PieceRecord, type Place, type Rec, type Rid, type Yards } from '../model/records.ts';
 
 export type At = { yard: number; item: number };
 export type Browse = { yards: Yards; cur: number };
@@ -118,6 +118,58 @@ export function forget(y: Yards, cur: number, at: At): Browse {
 
 export function forgetAll(y: Yards, cur: number): Browse {
   return sweep(withYard(y, cur, { ...y.yards[cur]!, items: [] }), cur, cur);
+}
+
+// R488: this page's own burials (torn tapes), kept in its Hill under the graveyard's name, never sent.
+export function buryOwn(h: Hill, yard: string, records: PieceRecord[], name: string): Hill {
+  return { hill: [...h.hill, { yard, burial: { name, records } }] };
+}
+
+// R489: a graveyard shows the own burials under its name; the first also those whose name no graveyard has.
+/** The indices in the Hill of the burials graveyard `cur` shows. */
+export function ownIn(h: Hill, y: Yards, cur: number): number[] {
+  const names = new Set(y.yards.map(g => g.name)), name = y.yards[cur]?.name;
+  return h.hill.flatMap((o, k) => o.yard === name || (cur === 0 && !names.has(o.yard)) ? [k] : []);
+}
+
+/** Takes own burial `k` out of the Hill, with its records. */
+export function exhumeOwn(h: Hill, k: number): { hill: Hill; records: PieceRecord[] } {
+  return { hill: forgetOwn(h, k), records: h.hill[k]?.burial.records ?? [] };
+}
+
+export function forgetOwn(h: Hill, k: number): Hill {
+  return { hill: h.hill.filter((_, i) => i !== k) };
+}
+
+/** R489: forgetAll's part for this page's own: those graveyard `cur` shows. */
+export function forgetOwnIn(h: Hill, y: Yards, cur: number): Hill {
+  const gone = new Set(ownIn(h, y, cur));
+  return { hill: h.hill.filter((_, k) => !gone.has(k)) };
+}
+
+// R487: what builds before this shared becomes the GM's page's own: each `o:` torn roll moves to `t:`,
+// and each burial of torn rolls alone moves from the shared Boot Hill into the Hill.
+/** The change that makes the torn rolls shared before this page's own; nothing when there are none. */
+export function ownTorn(all: [Rid, Rec][], y: Yards | undefined, h: Hill | undefined): { puts: [Rid, Rec][]; dels: Rid[] } {
+  const puts: [Rid, Rec][] = [], dels: Rid[] = [];
+  for (const [rid, r] of all) {
+    if (isPiece(rid) && (r as PieceRecord).kind === 'tornroll') { dels.push(rid); puts.push([ridFor(r as PieceRecord), r]); }
+  }
+  const tapes = (b: Burial) => !b.gm && b.records.length > 0 && b.records.every(r => r.kind === 'tornroll');
+  const moved = y?.yards.flatMap(g => g.items.filter(tapes).map(burial => ({ yard: g.name, burial }))) ?? [];
+  if (y && moved.length) {
+    puts.push(['yards', { yards: y.yards.map(g => ({ ...g, items: g.items.filter(b => !tapes(b)) })) }]);
+    puts.push(['hill', { hill: [...h?.hill ?? [], ...moved] }]);
+  }
+  return { puts, dels };
+}
+
+/** R487: records as a checkpoint holds them, with ownTorn's change made. */
+export function ownedTorn(records: [Rid, Rec][]): [Rid, Rec][] {
+  const m = new Map(records), { puts, dels } = ownTorn(records, m.get('yards') as Yards | undefined, m.get('hill') as Hill | undefined);
+  for (const rid of dels) m.delete(rid);
+  for (const [rid, r] of puts) m.set(rid, r);
+  return [...m];
 }
 
 // R290, R114: a burial's name: the pool's (or "Nameless"); a sticky's or loose writing's first line;

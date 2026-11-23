@@ -1,5 +1,5 @@
 # Yards
-**Requirements:** R119, R120, R121, R122, R123, R124, R125, R290, R403-405, R428
+**Requirements:** R119, R120, R121, R122, R123, R124, R125, R290, R403-405, R428, R487-489
 
 Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
 
@@ -29,6 +29,13 @@ Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
 - rename(yards, cur, name): an erased name makes it nameless.
 - forget(yards, cur, at) / forgetAll(yards, cur): deleting forever, after the two-shift-click arming
   (BootHillView).
+- This page's own burials (R488, R489), in Hill: buryOwn(hill, yard, records, name) adds one under the
+  graveyard's name; ownIn(hill, yards, cur): the indices of those shown in graveyard `cur`, its name's,
+  and in the first graveyard those whose name no graveyard has; exhumeOwn(hill, k) and forgetOwn(hill,
+  k) take one out; forgetOwnIn(hill, yards, cur): forgetAll's part for this page's own.
+- ownTorn(all, yards, hill) (R487): the GM's page's own of what was shared: each `o:` torn roll moved
+  to `t:`, and each burial in `yards` holding only torn rolls moved into Hill with its graveyard's name.
+  ownedTorn(records): the same made on a checkpoint's records, before GameStore.restore loads them.
 
 ## Collaborators
 - Records

@@ -26,6 +26,19 @@ function oidOf(rid2) {
 function ridOf(oid) {
   return "o:" + oid;
 }
+function isTorn(rid2) {
+  return rid2.startsWith("t:");
+}
+function onTable(rid2) {
+  return isPiece(rid2) || isTorn(rid2);
+}
+function ridFor(r) {
+  return r.kind === "tornroll" ? "t:" + r.oid : ridOf(r.oid);
+}
+var LOCAL = /* @__PURE__ */ new Set(["book", "tape", "hill"]);
+function isLocal(rid2) {
+  return LOCAL.has(rid2) || isTorn(rid2);
+}
 var CAPS = { name: 200, text: 2e4, id: 64, coord: 1e6, list: 500 };
 var obj = (v) => typeof v === "object" && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
 var num = (lo, hi) => (v) => typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
@@ -148,12 +161,10 @@ var PIECES = {
   )
 };
 var piece = (v) => obj(v) && typeof v.kind === "string" && Object.hasOwn(PIECES, v.kind) && PIECES[v.kind](v);
+var burial = fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid });
 var SINGLETONS = {
-  yards: fields({ yards: list(fields({
-    name: str(CAPS.name),
-    named: bool,
-    items: list(fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid }))
-  }), 100) }),
+  yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool, items: list(burial) }), 100) }),
+  hill: fields({ hill: list(fields({ yard: str(CAPS.name), burial }), 1e4) }),
   meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1e3, 1e3) }),
   rows: fields({ rows: dict(fields(
@@ -195,6 +206,7 @@ var SINGLETONS = {
 };
 function check(rid2, value2) {
   if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2);
+  if (isTorn(rid2)) return PIECES.tornroll(value2) && value2.oid === oidOf(rid2);
   return Object.hasOwn(SINGLETONS, rid2) && SINGLETONS[rid2](value2);
 }
 
@@ -895,13 +907,13 @@ function buryRecord(y, cur, holder, of, record, gm) {
   return withYard(y, cur, { ...g, items: [...g.items, { name: `${holder.trim() || "Nameless"}: Opinion of ${of}`, records: [record], gm }] });
 }
 function take(y, cur, at3) {
-  const g = y.yards[at3.yard], burial = g?.items[at3.item];
-  if (!g || !burial) return { yards: y, cur, burial: void 0 };
-  return { ...sweep(withYard(y, at3.yard, { ...g, items: g.items.filter((_, i) => i !== at3.item) }), at3.yard, cur), burial };
+  const g = y.yards[at3.yard], burial2 = g?.items[at3.item];
+  if (!g || !burial2) return { yards: y, cur, burial: void 0 };
+  return { ...sweep(withYard(y, at3.yard, { ...g, items: g.items.filter((_, i) => i !== at3.item) }), at3.yard, cur), burial: burial2 };
 }
 function exhume(y, cur, at3) {
-  const { burial, ...b } = take(y, cur, at3);
-  return { ...b, records: burial?.records ?? [], ...burial?.info ? { info: burial.info } : {} };
+  const { burial: burial2, ...b } = take(y, cur, at3);
+  return { ...b, records: burial2?.records ?? [], ...burial2?.info ? { info: burial2.info } : {} };
 }
 function next(y, cur) {
   if (cur < y.yards.length - 1) return sweep(y, cur, cur + 1);
@@ -921,6 +933,45 @@ function forget(y, cur, at3) {
 }
 function forgetAll(y, cur) {
   return sweep(withYard(y, cur, { ...y.yards[cur], items: [] }), cur, cur);
+}
+function buryOwn(h, yard, records3, name2) {
+  return { hill: [...h.hill, { yard, burial: { name: name2, records: records3 } }] };
+}
+function ownIn(h, y, cur) {
+  const names = new Set(y.yards.map((g) => g.name)), name2 = y.yards[cur]?.name;
+  return h.hill.flatMap((o, k) => o.yard === name2 || cur === 0 && !names.has(o.yard) ? [k] : []);
+}
+function exhumeOwn(h, k) {
+  return { hill: forgetOwn(h, k), records: h.hill[k]?.burial.records ?? [] };
+}
+function forgetOwn(h, k) {
+  return { hill: h.hill.filter((_, i) => i !== k) };
+}
+function forgetOwnIn(h, y, cur) {
+  const gone = new Set(ownIn(h, y, cur));
+  return { hill: h.hill.filter((_, k) => !gone.has(k)) };
+}
+function ownTorn(all2, y, h) {
+  const puts = [], dels = [];
+  for (const [rid2, r] of all2) {
+    if (isPiece(rid2) && r.kind === "tornroll") {
+      dels.push(rid2);
+      puts.push([ridFor(r), r]);
+    }
+  }
+  const tapes = (b) => !b.gm && b.records.length > 0 && b.records.every((r) => r.kind === "tornroll");
+  const moved = y?.yards.flatMap((g) => g.items.filter(tapes).map((burial2) => ({ yard: g.name, burial: burial2 }))) ?? [];
+  if (y && moved.length) {
+    puts.push(["yards", { yards: y.yards.map((g) => ({ ...g, items: g.items.filter((b) => !tapes(b)) })) }]);
+    puts.push(["hill", { hill: [...h?.hill ?? [], ...moved] }]);
+  }
+  return { puts, dels };
+}
+function ownedTorn(records3) {
+  const m = new Map(records3), { puts, dels } = ownTorn(records3, m.get("yards"), m.get("hill"));
+  for (const rid2 of dels) m.delete(rid2);
+  for (const [rid2, r] of puts) m.set(rid2, r);
+  return [...m];
 }
 var firstLine = (marked2) => marked2.replace(/<[^>]*>/g, "").split("\n").find((l) => l.trim())?.trim().slice(0, 28) || "\u2026";
 function graveName(piece2) {
@@ -2145,7 +2196,7 @@ function draw(r, old, w) {
   return e;
 }
 function make(doc, r, w) {
-  const rid2 = ridOf(r.oid);
+  const rid2 = ridFor(r);
   const e = el2(doc, "div", `obj ${CLASS[r.kind] ?? r.kind}`);
   e.dataset.kind = r.kind;
   e.dataset.rid = rid2;
@@ -3069,7 +3120,6 @@ function check2(raw) {
 }
 
 // src/net/authority.ts
-var LOCAL = /* @__PURE__ */ new Set(["book", "tape"]);
 var stampOf = (o) => o.by === void 0 ? { s: o.s } : { s: o.s, by: o.by };
 var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters2 = (game) => (oid) => game.get(`o:${oid}`);
@@ -3134,7 +3184,7 @@ function capped(m, at3) {
   return dropped;
 }
 function judge(game, edit, who, tab2) {
-  const all2 = [...edit.puts.map((p) => p.rid), ...edit.dels].filter((rid2) => rid2 !== "meta" && !LOCAL.has(rid2));
+  const all2 = [...edit.puts.map((p) => p.rid), ...edit.dels].filter((rid2) => rid2 !== "meta" && !isLocal(rid2));
   const book2 = game.get("book"), chars = characters2(game);
   if (!who) return { puts: [], dels: [], refused: all2 };
   if (edit.base < (book2.floor ?? 0)) return { puts: [], dels: [], refused: all2 };
@@ -3167,6 +3217,7 @@ function judge(game, edit, who, tab2) {
       else refused.push(rid2);
     } else if (rid2 === "rows") puts.push({ rid: rid2, rec: mergeRows(game.get("rows"), rec, who, chars) });
     else if (!isPiece(rid2) || (book2.tomb[rid2] ?? 0) > edit.base) refused.push(rid2);
+    else if (kindOf(rec) === "tornroll") refused.push(rid2);
     else if (stale(rid2)) refused.push(rid2);
     else if (forged(game.get(rid2), rec, who)) refused.push(rid2);
     else if (ruled2(game.get(rid2), rec)) refused.push(rid2);
@@ -3277,10 +3328,10 @@ var Authority = class {
   // Seq: seq-sync.md#1.1 to seq-sync.md#1.6 | R170, R174, R175, R185, R188
   #out() {
     const { game } = this.#w, chars = characters2(game);
-    let rids = [...this.#pending].filter((rid2) => !LOCAL.has(rid2));
+    let rids = [...this.#pending].filter((rid2) => !isLocal(rid2));
     this.#pending.clear();
     if (rids.some((rid2) => kindOf(game.get(rid2)) === "character" || kindOf(this.#public.get(rid2)) === "character")) {
-      rids = [...game.all().map(([rid2]) => rid2).filter((rid2) => !LOCAL.has(rid2)), ...rids.filter((rid2) => !game.get(rid2))];
+      rids = [...game.all().map(([rid2]) => rid2).filter((rid2) => !isLocal(rid2)), ...rids.filter((rid2) => !game.get(rid2))];
     }
     const puts = [], dels = [], sealFor = /* @__PURE__ */ new Map();
     const gone = [];
@@ -3364,7 +3415,7 @@ var Authority = class {
     const puts = [], mine = [];
     t.holds.clear();
     for (const [rid2, rec] of game.all()) {
-      if (LOCAL.has(rid2)) continue;
+      if (isLocal(rid2)) continue;
       const stamp2 = this.#current(rid2), pv = redact(rec, null, chars), tv = redact(rec, viewer, chars);
       if (pv) puts.push({ rid: rid2, ...stamp2, rec: pv });
       if (pv && !this.#public.has(rid2)) this.#public.set(rid2, pv);
@@ -3607,7 +3658,7 @@ var Copy = class {
     const now2 = [], gone = [];
     for (const d of dels) {
       const by = d.by ?? gmTab;
-      if (!this.#takes(d.rid, by, d.s)) continue;
+      if (isLocal(d.rid) || !this.#takes(d.rid, by, d.s)) continue;
       if (held(d.rid)) {
         this.#deferred.set(d.rid, { del: d, by });
         continue;
@@ -3617,7 +3668,7 @@ var Copy = class {
     }
     for (const p of puts) {
       const by = p.by ?? gmTab;
-      if (LOCAL.has(p.rid) || !this.#takes(p.rid, by, p.s)) continue;
+      if (isLocal(p.rid) || !this.#takes(p.rid, by, p.s)) continue;
       if (held(p.rid)) {
         this.#deferred.set(p.rid, { put: p, by });
         continue;
@@ -14716,7 +14767,7 @@ var TrayView = class {
 
 // src/ui/actions.ts
 function minter(game, gm, rng = Math.random) {
-  const used = new Set(game.all().map(([rid2]) => rid2).filter(isPiece).map(oidOf));
+  const used = new Set(game.all().map(([rid2]) => rid2).filter(onTable).map(oidOf));
   let top = 0;
   for (const o of used) {
     const n = parseInt(o, 16);
@@ -15622,12 +15673,13 @@ var TapeView = class {
       if (ev.pointerId !== e.pointerId || Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < TEAR_PX) return;
       stop();
       const oid = this.#w.mint(), at3 = this.#w.toWorld(box2.left, box2.top);
+      const roll3 = torn2(tape, oid, { x: Math.round(at3.x), y: Math.round(at3.y), z: 0, tilt: 0 }), rid2 = ridFor(roll3);
       this.#w.game.change((w) => {
-        w.put(ridOf(oid), torn2(tape, oid, { x: Math.round(at3.x), y: Math.round(at3.y), z: 0, tilt: 0 }));
+        w.put(rid2, roll3);
         w.put("tape", EMPTY);
       });
       this.#el.classList.remove("raised");
-      this.#w.carry(ridOf(oid), e, ev);
+      this.#w.carry(rid2, e, ev);
     };
     const stop = () => {
       doc.removeEventListener("pointermove", onMove);
@@ -16294,9 +16346,12 @@ var BootHillView = class {
     this.#items.className = "items";
     this.#panel.append(nav, this.#items);
     root.append(this.#panel);
-    const browse = (f) => {
+    const browse = (f, hill) => {
       const b = f(this.#yards(), this.#cur());
-      this.#w.game.change((x) => x.put("yards", b.yards));
+      this.#w.game.change((x) => {
+        x.put("yards", b.yards);
+        if (hill) x.put("hill", hill);
+      });
       this.#w.setCur(b.cur);
       this.render();
     };
@@ -16313,7 +16368,11 @@ var BootHillView = class {
     this.#name.addEventListener("change", () => browse((y, cur) => rename(y, cur, this.#name.value)));
     gesture(this.#name, { shift: (e) => {
       e.preventDefault?.();
-      if (this.#yards().yards[this.#cur()]?.items.length) this.#dooms.arm(this.#name, "Delete everything here? Shift-click again", () => browse(forgetAll));
+      if (this.#yards().yards[this.#cur()]?.items.length || this.#own().length) this.#dooms.arm(
+        this.#name,
+        "Delete everything here? Shift-click again",
+        () => browse(forgetAll, forgetOwnIn(this.#hill(), this.#yards(), this.#cur()))
+      );
     } });
     doc.addEventListener("pointerdown", (e) => {
       if (!this.#w.open() || e.target.closest?.("#graves, #boothill")) return;
@@ -16321,7 +16380,7 @@ var BootHillView = class {
       this.render();
     }, true);
     w.game.listen((rids) => {
-      if (rids.has("yards")) this.render();
+      if (rids.has("yards") || rids.has("hill")) this.render();
     });
     this.render();
   }
@@ -16331,33 +16390,54 @@ var BootHillView = class {
   #cur() {
     return Math.min(this.#w.cur(), this.#yards().yards.length - 1);
   }
+  /** R488: this page's own burials, never sent. */
+  #hill() {
+    return this.#w.game.get("hill") ?? { hill: [] };
+  }
+  /** R489: the Hill's indices of those the graveyard browsed shows. */
+  #own() {
+    return ownIn(this.#hill(), this.#yards(), this.#cur());
+  }
   // R289: the badge counts every graveyard; the stone fades when nothing is buried.
   render() {
     const y = this.#yards(), cur = this.#cur(), g = y.yards[cur], doc = this.#panel.ownerDocument;
-    const total3 = y.yards.reduce((n, x) => n + x.items.length, 0);
+    const total3 = y.yards.reduce((n, x) => n + x.items.length, 0) + this.#hill().hill.length;
     this.#badge.textContent = total3 ? String(total3) : "";
     this.#stone.classList.toggle("empty", !total3);
     this.#panel.hidden = !this.#w.open();
     this.#prev.disabled = cur === 0;
     if (doc.activeElement !== this.#name && this.#dooms.armed !== this.#name) this.#name.value = g.name;
     if (this.#dooms.armed && this.#dooms.armed !== this.#name) this.#dooms.drop();
-    if (!g.items.length) {
+    const own2 = this.#own(), hill = this.#hill();
+    if (!g.items.length && !own2.length) {
       const p = doc.createElement("p");
       p.textContent = "Nothing is buried here.";
       this.#items.replaceChildren(p);
       return;
     }
-    this.#items.replaceChildren(...g.items.map((burial, item2) => {
+    this.#items.replaceChildren(...g.items.map((burial2, item2) => {
       const b = doc.createElement("button");
-      b.textContent = burial.name;
+      b.textContent = burial2.name;
       b.title = "Drag this back onto the table. Shift-click or long-press twice to delete it forever.";
-      if (burial.gm && !burial.info) b.title = "A card the GM put away";
+      if (burial2.gm && !burial2.info) b.title = "A card the GM put away";
       gesture(b, {
         drag: (_down, move) => this.#digUp(item2, move),
         shift: () => this.#dooms.arm(b, "Delete forever? Shift-click again", () => {
           const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item: item2 });
           this.#w.game.change((x) => x.put("yards", f.yards));
           this.#w.setCur(f.cur);
+          this.render();
+        })
+      });
+      return b;
+    }), ...own2.map((k) => {
+      const b = doc.createElement("button");
+      b.textContent = hill.hill[k].burial.name;
+      b.title = "Your own: drag this back onto the table. Shift-click or long-press twice to delete it forever.";
+      gesture(b, {
+        drag: (_down, move) => this.#digUpOwn(k, move),
+        shift: () => this.#dooms.arm(b, "Delete forever? Shift-click again", () => {
+          this.#w.game.change((x) => x.put("hill", forgetOwn(this.#hill(), k)));
           this.render();
         })
       });
@@ -16428,9 +16508,22 @@ var BootHillView = class {
     if (!recs.length) return;
     this.#w.game.change((x) => {
       x.put("yards", dug.yards);
-      for (const r of recs) x.put(ridOf(r.oid), r);
+      for (const r of recs) x.put(ridFor(r), r);
     });
     this.#w.setCur(dug.cur);
+    this.#w.setOpen(false);
+    this.render();
+    this.#w.carry(recs[0], e, e);
+  }
+  // R488: this page's own buried tape comes up as its torn roll, this page's alone.
+  #digUpOwn(k, e) {
+    const dug = exhumeOwn(this.#hill(), k);
+    const recs = raised(dug.records, this.#w.toWorld(e.clientX, e.clientY), this.#w.top());
+    if (!recs.length) return;
+    this.#w.game.change((x) => {
+      x.put("hill", dug.hill);
+      for (const r of recs) x.put(ridFor(r), r);
+    });
     this.#w.setOpen(false);
     this.render();
     this.#w.carry(recs[0], e, e);
@@ -17083,7 +17176,7 @@ var GameStore = class {
     if (!cp) throw new Error(`no checkpoint ${id}`);
     await this.checkpoint(beforeRestoring(cp.name), true);
     const book2 = this.game.get("book");
-    const records3 = Object.entries(cp.records).filter(([rid2]) => rid2 !== "book");
+    const records3 = ownedTorn(Object.entries(cp.records).filter(([rid2]) => rid2 !== "book"));
     this.game.load(book2 ? [...records3, ["book", book2]] : records3);
     await this.save();
   }
@@ -17741,15 +17834,22 @@ var Drag = class {
   // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is
   // buried in the current graveyard, a character with its cards and pinned paper, under its name.
   #putAway(rec) {
-    const { game } = this.#w, rid2 = ridOf(rec.oid);
+    const { game } = this.#w, rid2 = ridFor(rec);
     if (this.#fresh.delete(rid2) || rec.kind === "reference") return (w) => w.del(rid2);
+    if (rec.kind === "tornroll") {
+      const h = game.get("hill") ?? { hill: [] };
+      return (w) => {
+        w.put("hill", buryOwn(h, this.#w.yard().name, [rec], graveName(rec)));
+        w.del(rid2);
+      };
+    }
     if (rec.kind === "connections") return (w) => w.put(rid2, { ...rec, away: true });
     const all2 = game.all().map(([, r]) => r).filter((r) => "kind" in r);
     const recs = burialOf(rec, all2), y = game.get("yards") ?? empty();
     const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
     return (w) => {
       w.put("yards", bury(y, cur, recs, graveName(rec)));
-      for (const r of recs) w.del(ridOf(r.oid));
+      for (const r of recs) w.del(ridFor(r));
     };
   }
   /** Follows one pointer on the document until it lets go. */
@@ -17783,7 +17883,7 @@ var Drag = class {
   // where it was let go (`to`); a pool's card comes too unless gathered; a card's pinned paper moves
   // with it; paper is pinned to the card it was aimed at, or let go of one.
   #drop(rec, part, from, to, z, aim2) {
-    const { game } = this.#w, rid2 = ridOf(rec.oid), dx = to.x - from.x, dy = to.y - from.y;
+    const { game } = this.#w, rid2 = ridFor(rec), dx = to.x - from.x, dy = to.y - from.y;
     this.#fresh.delete(rid2);
     const moved = (p) => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
     return (w) => {
@@ -18102,7 +18202,7 @@ var TableView = class {
     }
     let items = false;
     for (const rid2 of rids) {
-      if (!isPiece(rid2)) continue;
+      if (!onTable(rid2)) continue;
       const r = this.#w.game.get(rid2);
       if (!r || r.kind === "character") characters3.add(rid2);
       if (!r || r.kind === "chip" || r.kind === "influence") {
@@ -18839,7 +18939,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     toWorld: (x, y) => table.toWorld(x, y),
     top: topZ,
     slideInfo,
-    carry: (lead, down, move) => lead.kind === "character" ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridOf(lead.oid), down, move)
+    carry: (lead, down, move) => lead.kind === "character" ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridFor(lead), down, move)
   });
   if (gm) addEventListener("keydown", (ev) => {
     if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault();
@@ -19069,6 +19169,11 @@ async function main() {
   if (older) game.change(older);
   const stale = oldClaims(game);
   if (stale) game.change(stale);
+  const torn3 = ownTorn(game.all(), game.get("yards"), game.get("hill"));
+  if (torn3.puts.length || torn3.dels.length) game.change((w) => {
+    for (const rid2 of torn3.dels) w.del(rid2);
+    for (const [rid2, r] of torn3.puts) w.put(rid2, r);
+  });
   let gmShown = local("hollow.gmname") ?? GM;
   let table = null;
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
@@ -19184,6 +19289,7 @@ async function main() {
   };
 }
 var shared = (game) => (rid2) => {
+  if (isLocal(rid2)) return false;
   const r = game.get(rid2);
   return !r || !!redact(r, null, (oid) => game.get(ridOf(oid)));
 };

@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -17,8 +17,8 @@ DOM a view of the records.
   would swallow the pointer moves a carry needs); files dropped from outside still arrive.
 - R419, R421, R438: a change to an Opinion Record or the Connection Table, or a piece going, redraws
   the cards, whose folders show them, on every page: a player's shows the records revealed to it.
-- render(changed): on Game changes, makes, updates or removes the view of each changed rid; nothing
-  else is touched.
+- render(changed): on Game changes, makes, updates or removes the view of each changed rid on the table
+  (Records.onTable: a torn roll's `t:` too, R486); nothing else is touched.
 - lift(key, el, at) / place(key, at) / letGo(key) (R220): the hand, for anything held, this page's
   or another's (Hands): key is the rid, or `rid#pool` for a pool. The piece is put in the world
   layer at `at`, squared up and raised (`lifted`); every layer skips it while held, so a redraw

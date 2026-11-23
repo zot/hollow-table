@@ -189,7 +189,8 @@ test('the tape, and the register', async ({ page }) => {
   await expect(receipts).toHaveCount(1);
   const t = await at(page, `[data-rid="${torn[0]![0]}"]`, 20, 20), mid = await barMiddle(page);
   await dragFromTo(page, t.x, t.y, mid.x, mid.y);
-  expect(JSON.stringify(await rec(page, 'yards'))).toContain('Tape: 5 rolls, last Devreux, roll 5');
+  // R488: on this page's own Hill.
+  expect(JSON.stringify(await rec(page, 'hill'))).toContain('Tape: 5 rolls, last Devreux, roll 5');
   // R115, R116, R284: ▲ steps the Round; End once raises the tab and changes nothing; twice ends
   // the Conflict: Round 0.
   await page.locator('.register .key.up').click();

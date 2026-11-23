@@ -14,7 +14,7 @@ refused
 **Alarm:** 1
 **Fire alarm:** Skip the checks that the sender can see the piece as it is, before and after (drop both redaction tests): Dana's rename of Devreux's card is taken
 **Inject:** src/net/authority.ts:judge
-**Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote judge's check of what a player may write; rang: Dana's rename of Devreux's card was taken; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's rename of Devreux's card was taken (refused []) *Earlier —* 2026-11-12 — rang: Dana's rename of Devreux's card was taken
+**Pulled:** 2026-11-23 — re-pulled after R486 (judge changed): rang, Dana's change to Devreux's card was taken; restored clean *Earlier —* 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after R444 (judge changed): rang, Dana's rename of Devreux's card was taken (redacted to her); restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 rewrote judge's check of what a player may write; rang: Dana's rename of Devreux's card was taken; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's rename of Devreux's card was taken (refused []) *Earlier —* 2026-11-12 — rang: Dana's rename of Devreux's card was taken
 ## Test: out seals what differs and nothing else
 **Purpose:** each tab gets sealed only the pieces it sees differently; giving Sam to Dana sends his
 sheet; taking him back sends the redacted one
@@ -218,3 +218,25 @@ is tombed
 **Fire alarm:** keep every claim whatever its id's shape; red: Dana's old claim stays
 **Inject:** src/net/claims.ts:oldClaims
 **Pulled:** 2026-11-22 — rang: with every claim kept, Dana's old claim stayed; restored clean
+
+## Test: a torn roll put on the table is refused
+**Purpose:** R486: the GM's page puts no torn roll from another page on the table, even under `o:`
+**Input:** Dana's change putting a torn roll of one receipt under `o:` and a sticky of her own
+**Expected:** the sticky taken; the torn roll refused
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 20
+**Fire alarm:** let judge take a torn roll like any piece; red: the torn roll is taken
+**Inject:** src/net/authority.ts:judge
+**Pulled:** 2026-11-23 — rang: the torn roll was taken; restored clean
+
+## Test: a torn roll and the Hill never leave the GM's page
+**Purpose:** R486: the GM's torn roll under `t:` and its Hill go out in no batch and no catch-up
+**Input:** the GM's page tears a roll (a `t:` torn roll) and buries another in its Hill; then Dana asks for the whole table
+**Expected:** no batch, public or sealed, and no catch-up names a `t:` rid or `hill`, or holds a receipt's words
+**Refs:** crc-Authority.md, crc-Records.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 21
+**Fire alarm:** leave `t:` out of isLocal; red: Dana's batches hold the torn roll
+**Inject:** src/model/records.ts:isLocal
+**Pulled:** 2026-11-23 — rang: with `t:` out of isLocal, Dana's batches held the torn roll; restored clean

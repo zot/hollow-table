@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -166,6 +166,8 @@ export type InfoBurial = { oid: Oid; k: number; text: Marked };
 export type Burial = { name: string; records: PieceRecord[]; info?: InfoBurial; gm?: Oid };
 export type Graveyard = { name: string; named: boolean; items: Burial[] };
 export type Yards = { yards: Graveyard[] };
+/** R488: this page's own burials (torn tapes), each with the name of the graveyard it went to. */
+export type Hill = { hill: { yard: string; burial: Burial }[] };
 // R278: `counts` numbers each character's rolls on their own.
 // R380: `marked`: an older game's Fields and Skills have been marked.
 export type Meta = { round: number; rolls: number; counts?: Record<Oid, number>; marked?: true };
@@ -217,7 +219,7 @@ export const TOMBS = 3000;
 /** Each page's own; only a page come late is sent the table's view of the GM's (R465, R466). */
 export type Tape = { receipts: Receipt[] };
 
-export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape;
+export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill;
 
 // Player-made characters number from here up, so they can't collide with the GM's.
 export const PLAYER_OIDS = 0x100000;
@@ -225,6 +227,15 @@ export const PLAYER_OIDS = 0x100000;
 export function isPiece(rid: Rid): boolean { return rid.startsWith('o:'); }
 export function oidOf(rid: Rid): Oid { return rid.slice(2); }
 export function ridOf(oid: Oid): Rid { return 'o:' + oid; }
+/** R486: a torn roll is this page's own, under `t:` and its oid. */
+export function isTorn(rid: Rid): boolean { return rid.startsWith('t:'); }
+/** Drawn on the table: the table's pieces and this page's torn rolls. */
+export function onTable(rid: Rid): boolean { return isPiece(rid) || isTorn(rid); }
+/** A piece's key: `t:` for a torn roll, else ridOf. */
+export function ridFor(r: PieceRecord): Rid { return r.kind === 'tornroll' ? 't:' + r.oid : ridOf(r.oid); }
+const LOCAL = new Set<Rid>(['book', 'tape', 'hill']);
+/** R486: each page's own, never sent: the GM's book, every page's tape, its Hill and its torn rolls. */
+export function isLocal(rid: Rid): boolean { return LOCAL.has(rid) || isTorn(rid); }
 
 // ---- check: every record from another page or an import passes here (R177) ----
 
@@ -303,9 +314,10 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
 const piece: Shape = v => obj(v) && typeof v.kind === 'string' && Object.hasOwn(PIECES, v.kind)
   && PIECES[v.kind as PieceRecord['kind']](v);
 
+const burial = fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid });
 const SINGLETONS: Record<string, Shape> = {
-  yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool,
-    items: list(fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid })) }), 100) }),
+  yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool, items: list(burial) }), 100) }),
+  hill: fields({ hill: list(fields({ yard: str(CAPS.name), burial }), 10_000) }),
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1000, 1000) }),
   rows: fields({ rows: dict(fields({ pool: isOid, action: str(CAPS.name), opponent: (v: unknown) => v === null || v === WORLD || isOid(v),
@@ -329,5 +341,6 @@ const SINGLETONS: Record<string, Shape> = {
  */
 export function check(rid: Rid, value: unknown): value is Rec {
   if (isPiece(rid)) return piece(value) && (value as PieceRecord).oid === oidOf(rid);
+  if (isTorn(rid)) return PIECES.tornroll(value) && (value as PieceRecord).oid === oidOf(rid);   // R486
   return Object.hasOwn(SINGLETONS, rid) && SINGLETONS[rid]!(value);
 }

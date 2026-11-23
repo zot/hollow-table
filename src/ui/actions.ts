@@ -1,11 +1,11 @@
-// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R366, R367, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R463, R268, R269, R360, R366, R369
+// CRC: crc-PoolView.md, crc-Drag.md | Seq: seq-drag.md#1.7 | R225, R39, R40, R41, R42, R43, R366, R367, R46, R47, R48, R50, R55, R56, R57, R59, R60, R64, R463, R268, R269, R360, R366, R369, R486
 // What a click or a drop on a pool, a drawer or a glyph does to the game, as one change. Pure: each
 // takes the game and gives a writer for Game.change (or null when nothing happens), so the views stay
 // thin and these are tested without a browser.
 
 import type { Game, Writer } from '../model/game.ts';
 import {
-  PLAYER_OIDS, isPiece, oidOf, ridOf, type Character, type Chip, type Influence, type Oid, type Place, type Rec,
+  PLAYER_OIDS, oidOf, onTable, ridOf, type Character, type Chip, type Influence, type Oid, type Place, type Rec,
   type Rid, type Sign, type SlotName, type Where, type Who,
 } from '../model/records.ts';
 import { lowerCard, lowerChip, raiseCard, raiseChip, MIN } from '../rules/influence.ts';
@@ -17,7 +17,7 @@ export type Change = (w: Writer) => void;
 // Players mint at random in their range so two players can't collide; the GM counts up below it.
 /** A source of new oids for one change. */
 export function minter(game: Game, gm: boolean, rng: () => number = Math.random): () => Oid {
-  const used = new Set(game.all().map(([rid]) => rid).filter(isPiece).map(oidOf));
+  const used = new Set(game.all().map(([rid]) => rid).filter(onTable).map(oidOf));   // a torn roll's oid is taken too
   let top = 0;
   for (const o of used) { const n = parseInt(o, 16); if (n < PLAYER_OIDS) top = Math.max(top, n); }
   return () => {

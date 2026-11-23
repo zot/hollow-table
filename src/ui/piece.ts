@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -6,7 +6,7 @@
 import { connections, groupChooser, sheet } from './connections.ts';
 import type { Game } from '../model/game.ts';
 import {
-  DAMAGE, GM, ROWS, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
+  DAMAGE, GM, ROWS, ridFor, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
@@ -184,7 +184,7 @@ export function draw(r: PieceRecord, old: HTMLElement | undefined, w: PieceWith)
 }
 
 function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
-  const rid = ridOf(r.oid);
+  const rid = ridFor(r);   // R486: a torn roll's is `t:`
   const e = el(doc, 'div', `obj ${CLASS[r.kind] ?? r.kind}`);
   e.dataset.kind = r.kind;
   e.dataset.rid = rid;

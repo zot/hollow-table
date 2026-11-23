@@ -1,9 +1,9 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
 import type { Game } from '../model/game.ts';
-import { isPiece, ridOf, type Character, type PieceRecord, type Rid } from '../model/records.ts';
+import { isPiece, onTable, ridOf, type Character, type PieceRecord, type Rid } from '../model/records.ts';
 import { levelName } from '../rules/influence.ts';
 import { cardClick, chipClick } from './actions.ts';
 import type { Item } from '../rules/pool.ts';
@@ -312,7 +312,7 @@ export class TableView {
       for (const [rid, r] of game.all()) if ((r as PieceRecord).kind === 'character' && !rids.includes(rid)) rids.push(rid);
     let items = false;
     for (const rid of rids) {
-      if (!isPiece(rid)) continue;
+      if (!onTable(rid)) continue;   // R486: this page's torn rolls too
       const r = this.#w.game.get(rid) as PieceRecord | undefined;
       if (!r || r.kind === 'character') characters.add(rid);
       if (!r || r.kind === 'chip' || r.kind === 'influence') { items = true; this.#drawLoose(rid); if (r) continue; }

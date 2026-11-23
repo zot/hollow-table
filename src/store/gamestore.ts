@@ -1,4 +1,4 @@
-// CRC: crc-GameStore.md | Seq: seq-save.md#1.5, seq-restore.md#1.1 | R129, R130, R131, R133, R134, R135, R137, R483, R141
+// CRC: crc-GameStore.md | Seq: seq-save.md#1.5, seq-restore.md#1.1 | R129, R130, R131, R133, R134, R135, R137, R483, R141, R487
 // The browser's games: the list, each game's records, its checkpoints, and the write-through that
 // keeps them current. Reaches the database only through Db; the clock and localStorage are passed in.
 
@@ -6,6 +6,7 @@ import { Game, same } from '../model/game.ts';
 import type { Rec, Rid } from '../model/records.ts';
 import type { Db, Tx } from './db.ts';
 import { PLAYTEST, playtest, singletons } from './playtest.ts';
+import { ownedTorn } from '../rules/yards.ts';
 
 export type GameInfo = { id: string; name: string; made: number; opened: number; copyOf?: string; as?: string };
 export type Checkpoint = { id: string; name: string; at: number; auto: boolean; records: Record<Rid, Rec> };
@@ -205,7 +206,8 @@ export class GameStore {
     if (!cp) throw new Error(`no checkpoint ${id}`);
     await this.checkpoint(beforeRestoring(cp.name), true);
     const book = this.game.get('book');
-    const records = Object.entries(cp.records).filter(([rid]) => rid !== 'book');
+    // R487: a checkpoint from before torn rolls were each page's own comes back as the GM's own.
+    const records = ownedTorn(Object.entries(cp.records).filter(([rid]) => rid !== 'book'));
     this.game.load(book ? [...records, ['book', book]] : records);
     await this.save();
   }

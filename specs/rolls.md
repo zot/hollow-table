@@ -276,8 +276,14 @@ this section and the book disagree, the book wins and this section is wrong.
   lowers it. The register's paper roll rolls it up to a sliver and back.
 - **Dragging the tape tears off the whole roll** as one strip onto the table, once the drag has gone
   a few pixels, landing slightly tilted (it scrolls inside; the wheel scrolls it, and zooms the table
-  only at its ends). Pressing a receipt's title to edit it doesn't tear. The next roll starts a fresh tape. A torn roll is a table
-  piece; dropped on the bar it buries as "Tape: N rolls".
+  only at its ends). Pressing a receipt's title to edit it doesn't tear. The next roll starts a fresh tape.
+- **A torn roll is this page's own** (Bill, 2026-11-23: "tearing off tape should be for personal copies
+  and not shared with other peers"). It lies on this page's table and is carried, scrolled and put away
+  like a piece, but no other page sees it, the GM's included, and the GM's page puts no torn roll from
+  another page on the table. The GM's tear is as personal as anyone's: players' tapes are untouched.
+  Dropped on the bar it buries as "Tape: N rolls", on this page alone (see `boothill.md`). A torn roll
+  from before this, on the table or buried, becomes the GM's own when the GM's page loads the game or
+  restores a checkpoint, and leaves every other page.
 
 ## Taking an Attack
 

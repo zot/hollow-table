@@ -1,7 +1,7 @@
 // CRC: crc-Records.md | Test: test-Records.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAPS, check, ridOf, type Character, type Influence, type TornRoll } from './records.ts';
+import { CAPS, check, isLocal, ridOf, type Character, type Influence, type TornRoll } from './records.ts';
 import { scene } from '../store/playtest.ts';
 
 test('check takes the scene and refuses the malformed', () => {
@@ -79,4 +79,17 @@ test("a card's revealed entries and Info cards", () => {
   // R400: Info cards are texts.
   assert.ok(check(rid, { ...dev, info: ['ANY: she watches the door', ''] }));
   assert.ok(!check(rid, { ...dev, info: [['ANY']] }));
+});
+
+test("a torn roll and the Hill are this page's own records", () => {
+  // R486, R488
+  const roll: TornRoll = { kind: 'tornroll', oid: '0000000f', place: { x: 0, y: 0, z: 0, tilt: 0 }, receipts: [{ id: 'r1', at: 1, title: 'Sam #1',
+    dice: [], resolution: '', level: '', outcome: '' }] };
+  const sticky = scene().find(r => r.kind === 'sticky')!;
+  assert.ok(check('t:0000000f', roll), 'a torn roll under t:');
+  assert.equal(check(`t:${sticky.oid}`, sticky), false, 'a sticky under t: is refused');
+  const burial = { name: 'Tape: 1 rolls, last Sam #1', records: [roll] };
+  assert.ok(check('hill', { hill: [{ yard: 'Graveyard 1', burial }] }));
+  assert.equal(check('hill', { hill: [{ burial }] }), false, 'an own burial names its graveyard');
+  assert.deepEqual(['book', 'tape', 'hill', 't:0000000f', 'o:0000000f', 'yards'].map(isLocal), [true, true, true, true, false, false]);
 });

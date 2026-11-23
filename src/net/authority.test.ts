@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { TOMBS, ridOf, type Book, type Character, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type Yards } from '../model/records.ts';
+import { TOMBS, ridOf, type Book, type Character, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type TornRoll, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
 import { burialOf, bury } from '../rules/yards.ts';
@@ -444,4 +444,37 @@ test("a rename goes through the GM's page, and its answer comes back", async () 
   assert.equal((game.get('book') as Book).claims.Dee, 'b-dana');
   const claims = room.log.filter(m => m.kind === 'claims').at(-1)!.body as { claims: Record<string, string> };
   assert.equal(claims.claims.Dee, 'b-dana', 'the new claims went out');
+});
+
+const torn = (oid: string, title: string): TornRoll => ({ kind: 'tornroll', oid, place: { x: 0, y: 0, z: 0, tilt: 0 },
+  receipts: [{ id: oid, at: 1, title, dice: [], resolution: '', level: '', outcome: '' }] });
+
+test('a torn roll put on the table is refused', () => {
+  // R486: even under o:, the GM's page takes no torn roll from another page.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const sticky = game.get(STICKY) as Sticky, roll = torn('00a00001', 'Dana, roll 1');
+  const got = judge(game, { s: 1, base: 0, dels: [], puts: [
+    { rid: ridOf(roll.oid), rec: roll }, { rid: STICKY, rec: { ...sticky, text: 'moved' } }] }, 'Dana');
+  assert.deepEqual(got.refused, [ridOf(roll.oid)], 'the torn roll refused');
+  assert.deepEqual(got.puts.map(p => p.rid), [STICKY], 'the sticky taken');
+});
+
+test("a torn roll and the Hill never leave the GM's page", async () => {
+  // R486: the GM's own torn roll and its Hill go out in no batch and no catch-up.
+  const { room, game, got } = await table();
+  const sticky = game.get(STICKY) as Sticky, mine = torn('0000a001', 'Devreux, secret roll'), buried = torn('0000a002', 'Devreux, buried roll');
+  game.change(w => {
+    w.put('t:' + mine.oid, mine);
+    w.put('hill', { hill: [{ yard: 'Graveyard 1', burial: { name: 'Tape: 1 rolls', records: [buried] } }] });
+    w.put(STICKY, { ...sticky, text: 'moved' });
+  });
+  await room.settle();
+  got.get('dana')!.link.send('sync', {});
+  await room.settle();
+  const dana = got.get('dana')!, sent = JSON.stringify([dana.public.map(b => [b.puts, b.dels]), dana.mine]);
+  assert.ok(dana.public.length >= 2, 'a batch and a catch-up went');
+  assert.ok(sent.includes('moved'), 'the sticky went');
+  assert.ok(!sent.includes('t:') && !sent.includes('"hill"') && !sent.includes('Devreux, secret roll') && !sent.includes('Devreux, buried roll'),
+    'no torn roll, no Hill');
 });

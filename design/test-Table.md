@@ -273,7 +273,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 19
 **Fire alarm:** never apply markOlder on opening (drop the call in main); red: no Field on Sam's card
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-23 — re-pulled after R483-R485 (main changed): rang, no Field on Sam's card (Chromium); restored clean *Earlier —* 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), no Field on Sam's card; restored clean *Earlier —* 2026-11-22 — re-pulled after R472 (main changed): rang (Chromium), no Field on Sam's card; restored clean *Earlier —* 2026-11-16 — rang (Chromium): no Field on Sam's card; restored clean
+**Pulled:** 2026-11-23 — re-pulled after R487 (the GM's load changed): rang, no Field on Sam's card (Chromium); restored clean *Earlier —* 2026-11-23 — re-pulled after R483-R485 (main changed): rang, no Field on Sam's card (Chromium); restored clean *Earlier —* 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), no Field on Sam's card; restored clean *Earlier —* 2026-11-22 — re-pulled after R472 (main changed): rang (Chromium), no Field on Sam's card; restored clean *Earlier —* 2026-11-16 — rang (Chromium): no Field on Sam's card; restored clean
 ## Test: the die toggles the roll row
 **Purpose:** R381, R382, R353 on the GM's page: Beauford's die brings his row up; Tricky -Min puts its card in Main; clicking the Base starts the row fresh, the card gone; the die again puts the row away, the card with it
 **Input:** Beauford's die; Tricky -Min; the Base; Tricky -Min again; the die
@@ -315,8 +315,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 23
 **Fire alarm:** put the table away by burying it (drop the `connections` branch of putAway); red: Boot Hill's badge counts it
 **Inject:** src/ui/drag.ts:putAway
-**Pulled:** 2026-11-18 — rang (Chromium): Boot Hill's badge counted the table, 1 for none; restored clean
-
+**Pulled:** 2026-11-23 — re-pulled after R488 (putAway changed): rang, Boot Hill's badge counted the table (Chromium); restored clean *Earlier —* 2026-11-18 — rang (Chromium): Boot Hill's badge counted the table, 1 for none; restored clean
 ## Test: the GM keeps Opinion Records
 **Purpose:** R419, R421, R422, R424-R426, R428: the menu's "Opinion of" lists Sam; picked, a pink record of Sam slides out after the Info cards, its first line "➔ Sam (Connection …)"; written, its cell in the Connection Table follows; leaving it works Professional Respect out again; a second card in the same group shows the same record; emptied, it is buried as "Devreux: Opinion of Sam", and undo brings it back
 **Input:** the GM's table; Devreux's ▾, "Opinion of", Sam; the record's text; Professional Respect's Composure deleted and the table clicked; the Connection Table out; Devreux and a new GM card both in a group; the record emptied and the table clicked; Ctrl+Z

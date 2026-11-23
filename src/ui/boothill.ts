@@ -1,10 +1,10 @@
-// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289, R295, R404, R405, R428
+// CRC: crc-BootHillView.md | R118, R120, R121, R122, R123, R124, R125, R289, R295, R404, R405, R428, R488, R489
 // Boot Hill at the bar's right end: the gravestone with its badge, and the graveyard list under it.
 // The rules are Yards' (pure); this draws them, digs up at the press, and arms deleting forever.
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type Burial, type Character, type Connections, type Oid, type Opinion, type PieceRecord, type Yards } from '../model/records.ts';
-import { empty, exhume, forget, forgetAll, lastCard, next, prev, raised, rename, withInfo, type At } from '../rules/yards.ts';
+import { ridFor, ridOf, type Burial, type Character, type Connections, type Hill, type Oid, type Opinion, type PieceRecord, type Yards } from '../model/records.ts';
+import { empty, exhume, exhumeOwn, forget, forgetAll, forgetOwn, forgetOwnIn, lastCard, next, ownIn, prev, raised, rename, withInfo, type At } from '../rules/yards.ts';
 import { rowOf, synced, tableOf } from '../rules/connections.ts';
 import { Doom } from './doom.ts';
 import { gesture, type PointerLike } from './gesture.ts';
@@ -71,9 +71,9 @@ export class BootHillView {
     this.#panel.append(nav, this.#items);
     root.append(this.#panel);
 
-    const browse = (f: (y: Yards, cur: number) => { yards: Yards; cur: number }) => {
+    const browse = (f: (y: Yards, cur: number) => { yards: Yards; cur: number }, hill?: Hill) => {
       const b = f(this.#yards(), this.#cur());
-      this.#w.game.change(x => x.put('yards', b.yards));
+      this.#w.game.change(x => { x.put('yards', b.yards); if (hill) x.put('hill', hill); });
       this.#w.setCur(b.cur);
       this.render();
     };
@@ -89,7 +89,9 @@ export class BootHillView {
     // R125: two shift-clicks on the name delete everything in this graveyard.
     gesture(this.#name, { shift: e => {
       (e as Event).preventDefault?.();
-      if (this.#yards().yards[this.#cur()]?.items.length) this.#dooms.arm(this.#name, 'Delete everything here? Shift-click again', () => browse(forgetAll));
+      // R489: this page's own buried tapes here go too.
+      if (this.#yards().yards[this.#cur()]?.items.length || this.#own().length) this.#dooms.arm(this.#name, 'Delete everything here? Shift-click again',
+        () => browse(forgetAll, forgetOwnIn(this.#hill(), this.#yards(), this.#cur())));
     } });
     // R289: a press anywhere else closes the list.
     doc.addEventListener('pointerdown', e => {
@@ -97,17 +99,21 @@ export class BootHillView {
       this.#w.setOpen(false);
       this.render();
     }, true);
-    w.game.listen(rids => { if (rids.has('yards')) this.render(); });
+    w.game.listen(rids => { if (rids.has('yards') || rids.has('hill')) this.render(); });
     this.render();
   }
 
   #yards(): Yards { return (this.#w.game.get('yards') as Yards | undefined) ?? empty(); }
   #cur(): number { return Math.min(this.#w.cur(), this.#yards().yards.length - 1); }
+  /** R488: this page's own burials, never sent. */
+  #hill(): Hill { return (this.#w.game.get('hill') as Hill | undefined) ?? { hill: [] }; }
+  /** R489: the Hill's indices of those the graveyard browsed shows. */
+  #own(): number[] { return ownIn(this.#hill(), this.#yards(), this.#cur()); }
 
   // R289: the badge counts every graveyard; the stone fades when nothing is buried.
   render(): void {
     const y = this.#yards(), cur = this.#cur(), g = y.yards[cur]!, doc = this.#panel.ownerDocument;
-    const total = y.yards.reduce((n, x) => n + x.items.length, 0);
+    const total = y.yards.reduce((n, x) => n + x.items.length, 0) + this.#hill().hill.length;   // R488
     this.#badge.textContent = total ? String(total) : '';
     this.#stone.classList.toggle('empty', !total);
     this.#panel.hidden = !this.#w.open();
@@ -115,7 +121,8 @@ export class BootHillView {
     if (doc.activeElement !== this.#name && this.#dooms.armed !== this.#name) this.#name.value = g.name;
     if (this.#dooms.armed && this.#dooms.armed !== this.#name) this.#dooms.drop();
     // R289: oldest first; an empty graveyard says so.
-    if (!g.items.length) {
+    const own = this.#own(), hill = this.#hill();
+    if (!g.items.length && !own.length) {
       const p = doc.createElement('p');
       p.textContent = 'Nothing is buried here.';
       this.#items.replaceChildren(p);
@@ -135,6 +142,19 @@ export class BootHillView {
           const f = forget(this.#yards(), this.#cur(), { yard: this.#cur(), item });
           this.#w.game.change(x => x.put('yards', f.yards));
           this.#w.setCur(f.cur);
+          this.render();
+        }),
+      });
+      return b;
+    }), ...own.map(k => {
+      // R488: this page's own buried tape, after the graveyard's shared burials.
+      const b = doc.createElement('button');
+      b.textContent = hill.hill[k]!.burial.name;
+      b.title = 'Your own: drag this back onto the table. Shift-click or long-press twice to delete it forever.';
+      gesture(b, {
+        drag: (_down, move) => this.#digUpOwn(k, move),
+        shift: () => this.#dooms.arm(b, 'Delete forever? Shift-click again', () => {
+          this.#w.game.change(x => x.put('hill', forgetOwn(this.#hill(), k)));
           this.render();
         }),
       });
@@ -202,12 +222,26 @@ export class BootHillView {
     if (!recs.length) return;
     this.#w.game.change(x => {
       x.put('yards', dug.yards);
-      for (const r of recs) x.put(ridOf(r.oid), r);
+      for (const r of recs) x.put(ridFor(r), r);
     });
     this.#w.setCur(dug.cur);
     this.#w.setOpen(false);
     this.render();
     // It came up under the pointer, so it is carried from here, not from the press in the list.
+    this.#w.carry(recs[0]!, e, e);
+  }
+
+  // R488: this page's own buried tape comes up as its torn roll, this page's alone.
+  #digUpOwn(k: number, e: PointerLike): void {
+    const dug = exhumeOwn(this.#hill(), k);
+    const recs = raised(dug.records, this.#w.toWorld(e.clientX, e.clientY), this.#w.top());
+    if (!recs.length) return;
+    this.#w.game.change(x => {
+      x.put('hill', dug.hill);
+      for (const r of recs) x.put(ridFor(r), r);
+    });
+    this.#w.setOpen(false);
+    this.render();
     this.#w.carry(recs[0]!, e, e);
   }
 

@@ -9,12 +9,12 @@ your peer and also don't affect what other peers see."
 
 - [x] ~~**Item 6 — a copy of the table per name.**~~ **LANDED (2026-11-23 — `#55`.)** First: two names in one browser
       share one copy today, tape and all. Each name gets its own.
-- [ ] **Item 1 — a torn tape is this page's own.** **OPEN (not queued.)** Torn off, it stays on the page
-      that tore it and never reaches another page.
+- [x] ~~**Item 1 — a torn tape is this page's own.**~~ **LANDED (2026-11-23 — `#56`.)** Torn off, it stays on the page
+      that tore it and never reaches another page, nor does its burial in Boot Hill (Item 3, folded in).
 - [ ] **Item 2 — what you tore stays torn.** **OPEN (not queued.)** Receipts you tore off don't come back to
       your tape, through a reload or the late page's catch-up.
-- [ ] **Item 3 — burying your own torn tape.** **OPEN (not queued.)** Where a personal torn tape goes when
-      dropped on the bar, given Boot Hill is the table's.
+- [x] ~~**Item 3 — burying your own torn tape.**~~ **MOVED (2026-11-23 — into Item 1.)** Where a personal torn
+      tape goes when dropped on the bar, given Boot Hill is the table's.
 - [x] ~~**Item 4 — the catch-up without the GM's tear.**~~ **ANSWERED (2026-11-23 — keep it: a new page gets
       the public view of what hangs on the GM's tape.)**
 - [x] ~~**Item 5 — a roll the GM throws away.**~~ **ANSWERED (2026-11-23 — the GM's tear is personal, so
@@ -52,6 +52,22 @@ DECIDED (Bill, 2026-11-23), on Daneel's questions when the carve started:
 - **Old torn rolls leave players' pages** ("Off players' pages"): when the GM's page loads a game, each torn
   roll on the table becomes the GM's own local one and is removed from every other page.
 
+DECIDED (Bill, 2026-11-23), on Daneel's questions when Item 1 started:
+
+- **Item 3 is folded into Item 1** ("Fold Item 3 in"): a torn roll made local while its burial still went
+  out whole in Boot Hill would leak by another door, so the burial is kept on the burying page in the same
+  item.
+- **Old buried tapes move to the GM's own Boot Hill** ("Move to GM's own"): when the GM's page loads a game,
+  each torn tape buried in the shared Boot Hill becomes a burial on the GM's page alone, as the torn rolls on
+  the table do, and leaves every other page's Boot Hill.
+- **A page's own buried tape shows in the graveyard it went to** ("In the graveyard it went to"): listed in
+  the graveyard being browsed when it was buried, after the shared burials, on that page alone. If no
+  graveyard has that name any more, it shows in the first one.
+
+Daneel's reading, on the build: a torn roll on this page is a record of its own kind of rid (`t:` and its
+oid, beside the table's `o:`), kept off the wire as the tape is, and the GM's page refuses a torn roll put
+on the table by any page.
+
 ## Built
 
 - **Item 6, as `#55`** (2026-11-23; R483–R485, R140 and R458 retired): `GameStore.copyFor(room, user, own,
@@ -60,21 +76,26 @@ DECIDED (Bill, 2026-11-23), on Daneel's questions when the carve started:
   kept under the copy's id. The Ledger's Tables joined says each copy's name ("Dana at …"). In a fresh
   browser no name holds the browser's key, so every copy goes by its user id.
 
+- **Item 1, as `#56`** (2026-11-23; R486–R489, Item 3 folded in): a torn roll is `t:<oid>`, and
+  `Records.isLocal` (`book`, `tape`, `hill`, every `t:`) replaces the `LOCAL` set on every wire path:
+  Authority's batches and catch-up, Copy's taking and sending, and Moves' carries. The GM's page refuses a
+  torn roll put on the table (`judge`). Dropped on the bar, a torn roll is buried in this page's `hill`
+  record under the graveyard's name (`Yards.buryOwn`); Boot Hill lists those after the graveyard's shared
+  burials (`Yards.ownIn`, the first graveyard taking any whose name is gone), counts them, digs them up
+  and deletes them. `Yards.ownTorn` makes the torn rolls and buried tapes shared before the GM's own when
+  the GM's page loads a game, and `ownedTorn` does the same to a checkpoint before a restore loads it;
+  the full table every arriving player gets removes them from players' pages. `deletion.spec` buries a
+  sticky now, a torn roll no longer being shared.
+
 ## Where it stands
 
 Checked 2026-11-23, in the code:
 
 - **The tape is local.** It is the `tape` record, which never goes over the wire (`LOCAL` in
   `src/net/authority.ts`), with one exception: the late page's catch-up (`specs/rolls.md`, R465, R466).
-- **A tear makes a shared piece.** Dragging the tape puts a `tornroll` record (`torn()` in
-  `src/ui/tape.ts`) holding the tape's receipts as that page has them, and empties the tape. A `tornroll` is
-  an ordinary table piece: it goes to every page, and dropped on the bar it is buried in Boot Hill, which
-  every page shares, as "Tape: N rolls".
-- **Nothing redacts a torn roll.** `redact` in `src/rules/visibility.ts` has no case for `tornroll`, so a
-  torn roll reaches every page as the tearing page held it. The GM's tape holds each roll's full receipt
-  (the late page's catch-up maps it to the GM's kept `full` view), and private rolls print on it, so a GM
-  who tears their tape sends every page what its receipts show. Read from the code, not yet reproduced in a
-  browser. Item 1 ends it.
+- **A tear is this page's own** (Item 1): the torn roll is `t:<oid>`, never sent, and its burial is kept in
+  the page's `hill`. Before Item 1 a torn roll was an ordinary `o:` piece that reached every page unredacted
+  (`redact` has no `tornroll` case), the GM's private rolls with it, and was buried in the shared Boot Hill.
 - **A torn tape comes back.** A page whose tape is empty asks the GM's page once when it first hears from
   it; a page that tore its tape and reloads asks again and gets the table's view of every roll still on the
   GM's tape, its own included (`specs/rolls.md`: "A page that tore its own tape and reloads asks again, its
@@ -88,4 +109,5 @@ Checked 2026-11-23, in the code:
 
 ## Open for the talk
 
-- How a page remembers what it tore, so the catch-up skips it: by receipt id, or by the newest roll torn.
+- How a page remembers what it tore, so the catch-up skips it: by receipt id, or by the newest roll torn
+  (Item 2).

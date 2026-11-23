@@ -34,8 +34,7 @@ End's two presses and the Ledger's page are the views' (test-Table); this drives
 **Alarm:** 2
 **Fire alarm:** Take the book back on restore (load the checkpoint's records as they are): Dana's claim and gv 7 are lost
 **Inject:** src/store/gamestore.ts:restore
-**Pulled:** 2026-11-12 — rang: the restore wrote the book as well as meta and tape (`gamestore.test.ts:85`)
-
+**Pulled:** 2026-11-23 — re-pulled after R487 (restore changed): rang, the checkpoint's book came back; restored clean *Earlier —* 2026-11-12 — rang: the restore wrote the book as well as meta and tape (`gamestore.test.ts:85`)
 ## Test: games and copies
 **Purpose:** a list of games each with its own table; a player's copy is never listed or last
 **Input:** create two games, change one, open the other and back; make a copy for a room; New game

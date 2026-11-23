@@ -1,5 +1,5 @@
 # Build
-**Requirements:** R196, R197, R198, R199, R200, R201, R297, R303, R305, R452, R476, R483
+**Requirements:** R196, R197, R198, R199, R200, R201, R297, R303, R305, R452, R476, R483, R487
 
 How the sources become the page, and how the page is published and tested.
 
@@ -38,7 +38,8 @@ How the sources become the page, and how the page is published and tested.
   merge commit, as its committer's clock read it), uploaded and deployed by GitHub's Pages
   actions. Served at `https://zot.github.io/hollow-table/`. The committed `dist/` (just "dev") is
   what local serving and the specs use.
-- main (`src/main.ts`): assembles the page. The plain page is the GM's: GameStore opens its game, and
+- main (`src/main.ts`): assembles the page. The plain page is the GM's: GameStore opens its game, makes the torn rolls
+  shared before this its own (Yards.ownTorn, R487), and
   `open()` makes (or reopens) this game's room: Wire, Presence, Authority, Rolls, ImageExchange.
   An invite makes a player: its name's copy of the room's table (GameStore.copyFor, R483), Wire, Copy, Presence,
   Rolls, ImageExchange. The tab id is kept in sessionStorage; a native passed as a callback is

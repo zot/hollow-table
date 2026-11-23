@@ -1,5 +1,5 @@
 # GameStore
-**Requirements:** R129, R130, R131, R133, R134, R135, R137, R483, R141, R291, R292, R418, R454, R455, R457, R485, R459
+**Requirements:** R129, R130, R131, R133, R134, R135, R137, R483, R141, R291, R292, R418, R454, R455, R457, R485, R459, R487
 
 The browser's games: the list, each game's records, checkpoints, and the write-through that keeps
 them current. Talks to the database only through Db.
@@ -41,7 +41,8 @@ them current. Talks to the database only through Db.
 - checkpoints(): the open game's, newest first, for the Ledger.
 - restore(id): checkpoints the current table first (automatic, named by beforeRestoring), then loads
   the checkpoint into Game. The book (claims, the table's version gv, tombstones) is not taken
-  back: the current one is kept.
+  back: the current one is kept. Torn rolls shared before are made this page's own first
+  (Yards.ownedTorn, R487).
 - beforeRestoring(name) (R292): "Before restoring “X”", or "Before undoing “X”" when X was itself
   one, so the names never nest.
 - status() (R291): "Saving…", "Not saved: " and why the last save failed, or "Saved 18:36:31", for

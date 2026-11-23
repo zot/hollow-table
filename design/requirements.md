@@ -302,6 +302,8 @@
 - **R441:** On the GM's tape a receipt with an untransferred transfer carries Transfer, which opens the NPC's Resources that can be transferred; picking one moves the Levels on both cards in one change on the GM's page, once, and every tape's receipt then reads "Transfer: <Resource>, <N> Levels from <NPC>", and "<N> extra Levels improve <NPC>'s Opinions" when there are extra Levels.
 - **R465:** The tape is each page's own and doesn't go over the wire, except that a page coming late is sent the table's view of what hangs on the GM's tape (R466).
 - **R466:** A page whose tape is empty asks the GM's page once, when it first hears from it; the GM's page answers it alone with the table's view of each roll on its own tape, from its kept rolls (private ones and ones no longer kept left out); the page takes it only from the GM's browser and adds those receipts below what it has, newest first.
+- **R486:** A torn roll is this page's own: no other page receives it, the GM's included, and the GM's page puts no torn roll from another page on the table.
+- **R487:** A torn roll from before, on the table or buried in Boot Hill, becomes the GM's own when the GM's page loads the game or restores a checkpoint, and leaves every other page.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md
@@ -319,6 +321,8 @@
 - **R125:** Shift-clicking an item, or a graveyard's name, twice deletes it (or all of that graveyard) forever; the first arms it red and says so, reverting after 3 s.
 - **R405:** Dragging a buried Info card out of the Boot Hill list puts it back on its NPC, at its place and slid out, and closes the list; while its NPC is not on the table it stays buried.
 - **R406:** A viewer other than the GM sees a buried Info card as "GM card", with none of its words, its NPC or its place, and only the GM can bring it back or delete it.
+- **R488:** A torn roll dropped on the bar is buried on this page alone, in the graveyard being browsed: listed after that graveyard's other burials and counted in the badge, shown in no other page's Boot Hill, and dug up or deleted forever only there.
+- **R489:** A page's buried tape whose graveyard name no graveyard has shows in the first graveyard, and deleting everything in a graveyard deletes this page's buried tapes there too.
 
 ## Feature: games and your seat
 **Source:** specs/games.md

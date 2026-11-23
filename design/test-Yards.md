@@ -70,3 +70,25 @@ record moved alike at z 77; the sticky at 80, 36, z 3; nothing
 **Fire alarm:** put a card back last, ignoring its place (withInfo pushes); red: `['a', 'b', 'ANY: old']`
 **Inject:** src/rules/yards.ts:withInfo
 **Pulled:** 2026-11-18 — rang: the card came back last, `['a', 'b', 'ANY: old']`; restored clean
+
+## Test: this page's own burials, in the graveyard they went to
+**Purpose:** R488, R489: buryOwn keeps a burial under its graveyard's name; ownIn lists those of the graveyard browsed, and in the first graveyard those whose name no graveyard has; exhumeOwn and forgetOwn take one out; forgetOwnIn takes those shown in a graveyard
+**Input:** graveyards "Graveyard 1" and "Saloon"; a tape buried in "Saloon", one in "Gone", one in "Graveyard 1"; ownIn for each graveyard; the "Saloon" one exhumed; forgetOwnIn on the first graveyard
+**Expected:** ownIn "Saloon" [0]; ownIn the first [1, 2]; the exhumed burial's records, two left; forgetOwnIn the first leaves only the "Saloon" one
+**Refs:** crc-Yards.md
+**Code:** `src/rules/yards.test.ts`
+**Alarm:** 6
+**Fire alarm:** list only exact names in ownIn (no first-graveyard fallback); red: the "Gone" tape isn't listed anywhere
+**Inject:** src/rules/yards.ts:ownIn
+**Pulled:** 2026-11-23 — rang: with no first-graveyard fallback the "Gone" tape was listed nowhere; restored clean
+
+## Test: torn rolls shared before become the GM's own
+**Purpose:** R487: ownTorn moves each `o:` torn roll to `t:`, and each burial holding only torn rolls into Hill under its graveyard's name; any other burial stays; a second pass has nothing to move
+**Input:** a table with a sticky and an `o:` torn roll; Boot Hill "Graveyard 1" holding a sticky's burial and a tape's burial, "Saloon" a tape's burial
+**Expected:** the `o:` roll deleted and put under `t:`; yards left with the sticky's burial alone; Hill the two tapes, under "Graveyard 1" and "Saloon"; the second pass changes nothing
+**Refs:** crc-Yards.md
+**Code:** `src/rules/yards.test.ts`
+**Alarm:** 7
+**Fire alarm:** leave the yards alone in ownTorn; red: the buried tapes stay in the shared Boot Hill
+**Inject:** src/rules/yards.ts:ownTorn
+**Pulled:** 2026-11-23 — rang: with the yards left alone the buried tapes stayed in the shared Boot Hill; restored clean

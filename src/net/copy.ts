@@ -1,12 +1,12 @@
-// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R483, R484, R171, R172, R173, R189, R443, R361, R381
+// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R483, R484, R171, R172, R173, R189, R443, R361, R381, R486
 // A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 // page answers them, whether it took them or not. Pending changes survive the GM's absence and a
 // reload, and go again until answered.
 
 import type { Game } from '../model/game.ts';
-import { isPiece, type Rec, type Rid } from '../model/records.ts';
+import { isLocal, isPiece, type Rec, type Rid } from '../model/records.ts';
 import type { Clock, KeyValue } from '../store/gamestore.ts';
-import { LOCAL, type Batch, type Del, type Edit, type Put, type Sealed } from './authority.ts';
+import { type Batch, type Del, type Edit, type Put, type Sealed } from './authority.ts';
 import { sealedRecs } from './envelope.ts';
 import type { Link, Peer } from './link.ts';
 import type { Sealer } from './seal.ts';
@@ -179,14 +179,14 @@ export class Copy {
     const now: Put[] = [], gone: Rid[] = [];
     for (const d of dels) {
       const by = d.by ?? gmTab;
-      if (!this.#takes(d.rid, by, d.s)) continue;
+      if (isLocal(d.rid) || !this.#takes(d.rid, by, d.s)) continue;
       if (held(d.rid)) { this.#deferred.set(d.rid, { del: d, by }); continue; }
       this.#w.stamps.mark(d.rid, by, d.s);
       gone.push(d.rid);
     }
     for (const p of puts) {
       const by = p.by ?? gmTab;
-      if (LOCAL.has(p.rid) || !this.#takes(p.rid, by, p.s)) continue;
+      if (isLocal(p.rid) || !this.#takes(p.rid, by, p.s)) continue;
       if (held(p.rid)) { this.#deferred.set(p.rid, { put: p, by }); continue; }
       this.#w.stamps.mark(p.rid, by, p.s);
       now.push(p);

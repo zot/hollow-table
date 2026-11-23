@@ -1,8 +1,8 @@
 // CRC: crc-Yards.md | Test: test-Yards.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Character, PieceRecord, Yards } from '../model/records.ts';
-import { bury, burialOf, buryInfo, empty, exhume, lastCard, withInfo, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
+import type { Character, Hill, PieceRecord, Rec, Rid, Sticky, TornRoll, Yards } from '../model/records.ts';
+import { bury, burialOf, buryInfo, buryOwn, empty, exhume, exhumeOwn, forgetOwnIn, lastCard, ownIn, ownTorn, withInfo, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -104,4 +104,42 @@ test('an Info card is buried with its place and words, and comes back there', ()
   assert.deepEqual(withInfo({ ...c, info: ['a', 'b'] }, dug.info!), { character: { ...c, info: ['a', 'ANY: old', 'b'] }, k: 1 });
   assert.deepEqual(withInfo({ ...c, info: undefined }, dug.info!), { character: { ...c, info: ['ANY: old'] }, k: 0 });
   assert.equal('info' in exhume(empty(), 0, { yard: 0, item: 0 }), false);
+});
+
+const roll = (oid: string, title: string): TornRoll => ({ kind: 'tornroll', oid, place: { x: 0, y: 0, z: 0, tilt: 0 },
+  receipts: [{ id: oid, at: 1, title, dice: [], resolution: '', level: '', outcome: '' }] });
+
+test("this page's own burials, in the graveyard they went to", () => {
+  // R488, R489
+  const y: Yards = { yards: [{ name: 'Graveyard 1', named: false, items: [] }, { name: 'Saloon', named: true, items: [] }] };
+  let h: Hill = { hill: [] };
+  h = buryOwn(h, 'Saloon', [roll('a0000001', 'one')], 'Tape: 1 rolls, last one');
+  h = buryOwn(h, 'Gone', [roll('a0000002', 'two')], 'Tape: 1 rolls, last two');
+  h = buryOwn(h, 'Graveyard 1', [roll('a0000003', 'three')], 'Tape: 1 rolls, last three');
+  assert.deepEqual(ownIn(h, y, 1), [0], "Saloon's own");
+  assert.deepEqual(ownIn(h, y, 0), [1, 2], "the first: its own, and the one whose graveyard is gone");
+  const dug = exhumeOwn(h, 0);
+  assert.equal((dug.records[0] as TornRoll).receipts[0]!.title, 'one');
+  assert.equal(dug.hill.hill.length, 2);
+  assert.deepEqual(forgetOwnIn(h, y, 0).hill.map(o => o.yard), ['Saloon'], 'emptying the first leaves Saloon\'s');
+});
+
+test('torn rolls shared before become the GM\'s own', () => {
+  // R487
+  const sticky: Sticky = { kind: 'sticky', oid: '00000008', place: { x: 0, y: 0, z: 0, tilt: 0 }, text: 'hi' };
+  const old = roll('0000000f', 'on the table');
+  const all: [Rid, Rec][] = [['o:00000008', sticky], ['o:0000000f', old]];
+  const y: Yards = { yards: [
+    { name: 'Graveyard 1', named: false, items: [{ name: 'Note: hi', records: [sticky] }, { name: 'Tape: 1 rolls', records: [roll('00000010', 'buried')] }] },
+    { name: 'Saloon', named: true, items: [{ name: 'Tape: 1 rolls', records: [roll('00000011', 'there')] }] }] };
+  const { puts, dels } = ownTorn(all, y, undefined);
+  assert.deepEqual(dels, ['o:0000000f']);
+  const put = new Map(puts);
+  assert.ok(put.has('yards') && put.has('hill'), 'the buried tapes leave the shared Boot Hill');
+  assert.deepEqual(put.get('t:0000000f'), old, 'moved under t:');
+  assert.deepEqual((put.get('yards') as Yards).yards.map(g => g.items.map(b => b.name)), [['Note: hi'], []], 'the sticky stays shared');
+  assert.deepEqual((put.get('hill') as Hill).hill.map(o => [o.yard, (o.burial.records[0] as TornRoll).receipts[0]!.title]),
+    [['Graveyard 1', 'buried'], ['Saloon', 'there']]);
+  const again = ownTorn([['o:00000008', sticky], ['t:0000000f', old]], put.get('yards') as Yards, put.get('hill') as Hill);
+  assert.deepEqual(again, { puts: [], dels: [] }, 'a second pass has nothing to move');
 });

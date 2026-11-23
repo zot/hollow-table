@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R339, R341-343, R318, R331, R332, R334, R335, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -75,7 +75,8 @@ stickies, loose text, images, torn rolls and reference cards.
 - marks look printed at rest (R245): the highlights show only while the piece is being written on,
   the same moment its pens are out (CSS on the piece); a Damage entry fills only once named (R263).
 - image: from BlobStore by hash; striped and marked missing with why when absent.
-- tornroll: its receipts, scrolling inside (the wheel scrolls it rather than zooming).
+- tornroll: its receipts, scrolling inside (the wheel scrolls it rather than zooming); its element
+  carries its `t:` rid (Records.ridFor, R486).
 - reference: the static "How to play the table" and actions cards.
 - records (R419, R426): an NPC's pink Opinion Records follow its Info cards in the slide-out, those
   of its row (its group's, for a member), alphabetical by their character's name, each tab that name;
