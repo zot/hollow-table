@@ -1,11 +1,11 @@
-// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R382, R281, R346, R307, R308, R316, R345, R351, R353, R375, R430, R431, R439, R441
+// CRC: crc-Rolls.md | Seq: seq-roll.md#1, seq-roll.md#1.2, seq-roll.md#1.3, seq-roll.md#1.4, seq-roll.md#1.5, seq-roll.md#1.6, seq-roll.md#1.7, seq-roll.md#1.8, seq-roll.md#2 | R97, R98, R100, R101, R102, R103, R104, R105, R106, R107, R108, R278, R317, R382, R281, R346, R307, R308, R316, R345, R351, R353, R375, R430, R431, R439, R441, R490, R491
 // Rolling at a table. Every roll resolves on the GM's page, which holds everything: a player's Roll
 // sends a request that names things, never numbers, and the GM's page looks the numbers up, rolls by
 // the book (Hollow Folks, IV. Dice & Resolution) and sends the result. Each page prints on its own
 // tape what its person may know.
 
 import type { Game, Writer } from '../model/game.ts';
-import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opinion, type Opponent, type PieceRecord, type Receipt, type RollType, type Rows, type Tape, type World } from '../model/records.ts';
+import { GM, KEPT, PLAYER_OIDS, ROWS, WORLD, isAttack, isPiece, newestRoll, oidOf, ridOf, type Attack, type Book, type Character, type KeptRoll, type Damage, type NameRow, type Die, type Influence, type Meta, type Oid, type Opinion, type Opponent, type PieceRecord, type Receipt, type RollType, type Rows, type Tape, type World } from '../model/records.ts';
 import { d6, roll as rollDice, levelName, type Rng } from '../rules/dice.ts';
 import { awaits, level, reacted, reactionOf, recordOf, synced, tableOf } from '../rules/connections.ts';
 import { givable, transfer as give } from '../rules/request.ts';
@@ -304,8 +304,8 @@ export class Rolls {
       for (const kind of ['hello', 'here'] as const) link.on(kind, (_: never, from: Peer) => {
         if (from.browser !== w.gmBrowser) return;
         this.#gmPeer = from;
-        // R466: a page come late, its tape empty, asks once for what hangs on the GM's tape.
-        if (this.#askedTape || this.#tape().length) return;
+        // R490: a page arriving asks once each load for what hangs on the GM's tape.
+        if (this.#askedTape) return;
         this.#askedTape = true;
         link.send('tape', {}, from.tab);
       });
@@ -318,7 +318,7 @@ export class Rolls {
   /** This page's tape, newest first. */
   #tape(): Receipt[] { return (this.#w.game.get('tape') as Tape | undefined)?.receipts ?? []; }
 
-  // R466: the table's view of each roll on the GM's own tape, newest first, from its
+  // R490: the table's view of each roll on the GM's own tape, newest first, from its
   // kept rolls: a private roll, or one no longer kept, is left out.
   #history(tab: string): void {
     const kept = (this.#w.game.get('book') as Book | undefined)?.kept ?? [];
@@ -326,11 +326,15 @@ export class Rolls {
     this.#w.link!.send('tape', { receipts }, tab);
   }
 
-  // R466: what hung on the GM's tape goes below what this page has (it's older), each receipt once.
+  // R490, R491: of what hangs on the GM's tape, only the rolls newer than the newest this tape has held, each
+  // once, merged in by when they were rolled: a new copy takes all, a page back takes what it missed, and
+  // what it tore stays torn.
   #hung(receipts: Receipt[]): void {
-    const mine = this.#tape(), have = new Set(mine.map(r => r.id));
-    const older = receipts.filter(r => !have.has(r.id));
-    if (older.length) this.#w.game.change(w => w.put('tape', { receipts: [...mine, ...older] }));
+    const tape = this.#w.game.get('tape') as Tape | undefined, mine = tape?.receipts ?? [], have = new Set(mine.map(r => r.id));
+    const newest = newestRoll(tape), missed = receipts.filter(r => r.at > newest && !have.has(r.id));
+    if (!missed.length) return;
+    const all = [...mine, ...missed].sort((a, b) => b.at - a.at);
+    this.#w.game.change(w => w.put('tape', { ...tape, receipts: all }));
   }
 
   idle(): Promise<void> { return this.#work; }
@@ -373,7 +377,7 @@ export class Rolls {
     const at = tape.receipts.findIndex(x => x.id === r.id);
     const receipts = tape.receipts.filter(x => x.id !== r.id);
     receipts.splice(Math.max(at, 0), 0, r);
-    game.change(w => w.put('tape', { receipts }));
+    game.change(w => w.put('tape', { ...tape, receipts }));
   }
 
   // ---- the GM's page ----

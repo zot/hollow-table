@@ -1,5 +1,5 @@
 # Rolls
-**Requirements:** R382, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375, R430, R431, R439, R441, R465, R466
+**Requirements:** R382, R97, R100-104, R106-108, R278, R279, R281, R307, R308, R313, R314, R317, R326, R330, R336, R337, R340, R345, R346, R351, R353, R375, R430, R431, R439, R441, R465, R490, R491
 
 Rolling at a table: every roll resolves on the GM's page, and each page prints what its person may
 know.
@@ -17,10 +17,11 @@ know.
 - lastRoll: sender tab → the last roll number heard.
 
 ## Does
-- (R466) a page come late: a player's page whose tape is empty asks the GM's page (`tape`) once, when it
-  first hears from it; the GM's page answers that tab with the table's view (`kept[].table`) of each roll
-  on its own tape, private and no-longer-kept ones left out; the player's page takes it only from the GM's
-  browser and adds what it hasn't got below its own receipts.
+- (R490) a page arriving: a player's page asks the GM's page (`tape`) once each load, when it first
+  hears from it; the GM's page answers that tab with the table's view (`kept[].table`) of each roll on
+  its own tape, private and no-longer-kept ones left out; the player's page takes it only from the GM's
+  browser and adds the receipts newer than its tape's newest roll (Records.newestRoll, R491: so a new
+  copy takes all, and what it tore stays torn), each once, in order of when they were rolled.
 - left(tab): Presence's word that a tab has gone; if it was the GM's page, the next request says
   nobody can roll at once (R103).
 - request(intent): a player's Roll: an `intent` naming the character, the action, the opponent and

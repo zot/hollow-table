@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -216,8 +216,13 @@ export type KeptRoll = {
 /** The most rolls the book keeps, oldest dropped first. */
 export const KEPT = 200;
 export const TOMBS = 3000;
-/** Each page's own; only a page come late is sent the table's view of the GM's (R465, R466). */
-export type Tape = { receipts: Receipt[] };
+/** Each page's own; only a page arriving is sent the table's view of the GM's (R465, R490). R491: `last`, the GM's
+ * time of the newest roll it held before a tear. */
+export type Tape = { receipts: Receipt[]; last?: number };
+/** R491: the GM's time of the newest roll the tape has held (a roll's receipt is stamped by the GM's page); 0 for none. */
+export function newestRoll(tape: Tape | undefined): number {
+  return Math.max(tape?.last ?? 0, ...(tape?.receipts ?? []).filter(r => r.id.startsWith('roll-')).map(r => r.at));
+}
 
 export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill;
 
@@ -332,7 +337,7 @@ const SINGLETONS: Record<string, Shape> = {
       floor: int(0, Number.MAX_SAFE_INTEGER),
       kept: list(fields({ character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },
         { tab: str(CAPS.id), sealKey: str(CAPS.text), priv: oneOf(true) }), KEPT) }),
-  tape: fields({ receipts: list(receipt, 10_000) }),
+  tape: fields({ receipts: list(receipt, 10_000) }, { last: int(0, Number.MAX_SAFE_INTEGER) }),
 };
 
 /**

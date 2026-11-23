@@ -16,6 +16,9 @@ var isAttack = (t) => ATTACKS.includes(t);
 var WORLD = "world";
 var KEPT = 200;
 var TOMBS = 3e3;
+function newestRoll(tape) {
+  return Math.max(tape?.last ?? 0, ...(tape?.receipts ?? []).filter((r) => r.id.startsWith("roll-")).map((r) => r.at));
+}
 var PLAYER_OIDS = 1048576;
 function isPiece(rid2) {
   return rid2.startsWith("o:");
@@ -202,7 +205,7 @@ var SINGLETONS = {
       ), KEPT)
     }
   ),
-  tape: fields({ receipts: list(receipt, 1e4) })
+  tape: fields({ receipts: list(receipt, 1e4) }, { last: int(0, Number.MAX_SAFE_INTEGER) })
 };
 function check(rid2, value2) {
   if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2);
@@ -3092,7 +3095,7 @@ var BODIES = {
   claim: fields({ name, why: whyOrNull }),
   // R446: who holds each name, from the GM's page: name → browser id.
   claims: fields({ claims: dict(str(CAPS.id)) }),
-  // R466: a page come late asks (no receipts), and the GM's page answers with the table's view of its tape.
+  // R490: a page arriving asks (no receipts), and the GM's page answers with the table's view of its tape.
   tape: fields({}, { receipts: list(receipt, KEPT) }),
   // R469: a player's new name, and the GM's page's answer (why null: taken).
   rename: fields({ to: name }, { why: whyOrNull })
@@ -4452,7 +4455,7 @@ var Rolls = class {
       for (const kind of ["hello", "here"]) link.on(kind, (_, from) => {
         if (from.browser !== w.gmBrowser) return;
         this.#gmPeer = from;
-        if (this.#askedTape || this.#tape().length) return;
+        if (this.#askedTape) return;
         this.#askedTape = true;
         link.send("tape", {}, from.tab);
       });
@@ -4466,7 +4469,7 @@ var Rolls = class {
   #tape() {
     return this.#w.game.get("tape")?.receipts ?? [];
   }
-  // R466: the table's view of each roll on the GM's own tape, newest first, from its
+  // R490: the table's view of each roll on the GM's own tape, newest first, from its
   // kept rolls: a private roll, or one no longer kept, is left out.
   #history(tab2) {
     const kept = this.#w.game.get("book")?.kept ?? [];
@@ -4476,11 +4479,15 @@ var Rolls = class {
     });
     this.#w.link.send("tape", { receipts }, tab2);
   }
-  // R466: what hung on the GM's tape goes below what this page has (it's older), each receipt once.
+  // R490, R491: of what hangs on the GM's tape, only the rolls newer than the newest this tape has held, each
+  // once, merged in by when they were rolled: a new copy takes all, a page back takes what it missed, and
+  // what it tore stays torn.
   #hung(receipts) {
-    const mine = this.#tape(), have = new Set(mine.map((r) => r.id));
-    const older = receipts.filter((r) => !have.has(r.id));
-    if (older.length) this.#w.game.change((w) => w.put("tape", { receipts: [...mine, ...older] }));
+    const tape = this.#w.game.get("tape"), mine = tape?.receipts ?? [], have = new Set(mine.map((r) => r.id));
+    const newest = newestRoll(tape), missed = receipts.filter((r) => r.at > newest && !have.has(r.id));
+    if (!missed.length) return;
+    const all2 = [...mine, ...missed].sort((a, b) => b.at - a.at);
+    this.#w.game.change((w) => w.put("tape", { ...tape, receipts: all2 }));
   }
   idle() {
     return this.#work;
@@ -4527,7 +4534,7 @@ var Rolls = class {
     const at3 = tape.receipts.findIndex((x) => x.id === r.id);
     const receipts = tape.receipts.filter((x) => x.id !== r.id);
     receipts.splice(Math.max(at3, 0), 0, r);
-    game.change((w) => w.put("tape", { receipts }));
+    game.change((w) => w.put("tape", { ...tape, receipts }));
   }
   // ---- the GM's page ----
   // R103, R104: with no table the GM's page rolls for itself; a private roll sends nothing.
@@ -15525,7 +15532,7 @@ function rangeOf(text, p) {
 // src/ui/tape.ts
 var EMPTY = { receipts: [] };
 function retitled(tape, id, title) {
-  return { receipts: tape.receipts.map((r) => r.id === id ? { ...r, title } : r) };
+  return { ...tape, receipts: tape.receipts.map((r) => r.id === id ? { ...r, title } : r) };
 }
 function torn2(tape, oid, place3) {
   return { kind: "tornroll", oid, place: place3, receipts: tape.receipts };
@@ -15676,7 +15683,7 @@ var TapeView = class {
       const roll3 = torn2(tape, oid, { x: Math.round(at3.x), y: Math.round(at3.y), z: 0, tilt: 0 }), rid2 = ridFor(roll3);
       this.#w.game.change((w) => {
         w.put(rid2, roll3);
-        w.put("tape", EMPTY);
+        w.put("tape", { receipts: [], last: newestRoll(tape) });
       });
       this.#el.classList.remove("raised");
       this.#w.carry(rid2, e, ev);

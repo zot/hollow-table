@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { WORLD, damageSlots, ridOf, type Rows, type Character, type Connections, type Opinion, type Roller, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
+import { WORLD, damageSlots, newestRoll, ridOf, type Rows, type Character, type Connections, type Opinion, type Roller, type Chip, type Influence, type Meta, type Receipt, type Tape } from '../model/records.ts';
 import { pages, waitsIn } from '../rules/absorb.ts';
 import { Rolls, choose, diceOnly, levelWords, outcomeWords, resolve, rowWords, WAIT_MS, type Intent } from './rolls.ts';
 import { ADV } from '../rules/odds.ts';
@@ -497,7 +497,7 @@ test('a Request transfers a Resource', async () => {
 });
 
 test('a page that comes late gets what hangs on the GM\'s tape, as the table saw it', async () => {
-  // R465, R466: two rolls; then Eve's page joins with an empty tape, asks once, and gets both as Ann saw them.
+  // R465, R490: two rolls; then Eve's new page joins, asks once, and gets both as Ann saw them.
   const t = await table(faces(4, 3, 5, 2));
   await t.hello();
   assert.equal(await ask(t, infer()), null);
@@ -516,4 +516,39 @@ test('a page that comes late gets what hangs on the GM\'s tape, as the table saw
   // The GM tears the tape: a later page gets nothing of it.
   t.page('gm').game.change(w => w.put('tape', { receipts: [] }));
   assert.deepEqual(await late('fay'), []);
+});
+
+test('a returning page takes only what it missed, and what it tore stays torn', async () => {
+  // R490, R491: Eve's copy remembers the newest roll its tape held, through a tear.
+  const t = await table(faces(4, 3, 5, 2, 6, 1));
+  await t.hello();
+  const game = new Game(), tape = () => game.get('tape') as Tape | undefined;
+  /** Eve's page loads (on her one copy, `game`) and arrives; it returns her link, to leave by. */
+  const arrive = async (tab: string) => {
+    const sealer = await Sealer.make(), link = t.room.link({ tab, browser: 'b-eve', sealKey: sealer.pub });
+    const rolls = new Rolls({ game, sealer, clock: fakeClock().clock, rng: faces(), link, session: memoryStorage(), gm: false, gmBrowser: 'b-gm',
+      whoIs: () => null });
+    t.room.watch(() => rolls.idle());
+    await t.hello();
+    return link;
+  };
+  const first = await arrive('eve1');
+  t.advance(1000);
+  assert.equal(await ask(t, infer()), null);
+  t.advance(1000);
+  assert.equal(await ask(t, infer()), null);
+  assert.equal(tape()?.receipts.length, 2, 'Eve saw both rolls');
+  const second = tape()!.receipts[0]!.at;
+  // Eve tears her tape, as TapeView does, and loads again.
+  game.change(w => w.put('tape', { receipts: [], last: newestRoll(tape()) }));
+  await first.leave();
+  const again = await arrive('eve2');
+  assert.deepEqual(tape()?.receipts, [], 'what she tore stays torn');
+  assert.equal(tape()?.last, second);
+  // Away while Dana rolls a third time; back, she takes only that one.
+  await again.leave();
+  t.advance(1000);
+  assert.equal(await ask(t, infer()), null);
+  await arrive('eve3');
+  assert.deepEqual(tape()?.receipts.map(r => r.title), [t.tape('ann')[0]!.title], 'only the roll she missed');
 });

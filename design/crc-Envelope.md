@@ -1,5 +1,5 @@
 # Envelope
-**Requirements:** R109, R177, R296, R299, R314, R326, R345, R376, R361, R429, R446, R466, R469
+**Requirements:** R109, R177, R296, R299, R314, R326, R345, R376, R361, R429, R446, R469, R490
 
 Every message's shape, checked field by field before anyone reads it. A message that fails any check
 is dropped whole.
@@ -7,7 +7,7 @@ is dropped whole.
 ## Knows
 - Kinds: `hello`, `here`, `bye`, `recs` (a batch from the GM's page), `sync` (ask for the whole
   table), `edit` (a player's change), `move`, `intent` (a roll request), `roll` (a roll's result),
-  `crit` (a CRIT choice), `refuse`, `claim`, `claims` (who holds each name, from the GM's page, R446), `tape` (a page come late asking, and the GM's page answering with receipts, R466), `rename` (a player's new name, and the GM's page's answer, R469).
+  `crit` (a CRIT choice), `refuse`, `claim`, `claims` (who holds each name, from the GM's page, R446), `tape` (a page arriving asking, and the GM's page answering with receipts, R490), `rename` (a player's new name, and the GM's page's answer, R469).
 - Each kind's body shape, built from the same combinators as `Records.check`. They are provisional
   where the module that owns the kind hasn't landed: `recs` `{g, full, puts: [{rid, s, rec, by?}],
   dels: [{rid, s, by?}], sealed: {tab: box of {g, puts, dels?}}}`, `edit` `{box}`, `move` `{s, items: [{rid, x, y, z,

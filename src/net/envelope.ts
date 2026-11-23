@@ -1,4 +1,4 @@
-// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R376, R429, R446, R466, R469
+// CRC: crc-Envelope.md | R109, R177, R296, R299, R346, R314, R319, R326, R376, R429, R446, R469, R490
 // Every message's shape, checked field by field before anyone reads it. A peer is hostile until
 // proven otherwise: a message that fails any check is dropped whole, and nothing in one is ever
 // parsed as markup.
@@ -61,7 +61,7 @@ const BODIES: Record<Kind, Shape> = {
   claim: fields({ name, why: whyOrNull }),
   // R446: who holds each name, from the GM's page: name → browser id.
   claims: fields({ claims: dict(str(CAPS.id)) }),
-  // R466: a page come late asks (no receipts), and the GM's page answers with the table's view of its tape.
+  // R490: a page arriving asks (no receipts), and the GM's page answers with the table's view of its tape.
   tape: fields({}, { receipts: list(receipt, KEPT) }),
   // R469: a player's new name, and the GM's page's answer (why null: taken).
   rename: fields({ to: name }, { why: whyOrNull }),

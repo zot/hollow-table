@@ -1,8 +1,8 @@
-// CRC: crc-Tape.md, crc-Drag.md, crc-BootHillView.md, crc-Authority.md, crc-Copy.md, crc-Build.md | Test: test-Network.md | R486, R487, R488, R489
+// CRC: crc-Tape.md, crc-Drag.md, crc-BootHillView.md, crc-Authority.md, crc-Copy.md, crc-Build.md | Test: test-Network.md | R486, R487, R488, R489, R490, R491
 // A torn tape is the page's own: torn, buried, dug up and deleted on that page alone; and torn rolls
 // shared by builds before this become the GM's own when the GM's page loads the game.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, dragFromTo, gmTable, hook, join, kinds, openTable, rec } from './page.ts';
+import { at, barMiddle, dragFromTo, gmTable, hook, join, kinds, openTable, rec, synced } from './page.ts';
 
 const roll = (page: Page) => hook(page, h => h.rolls.roll({ pool: '00000003', action: '', vs: null, defend: 'mental', hand: { yellows: 0, bonus: 0 } }));
 const round = (page: Page) => rec(page, 'meta').then(m => m?.round ?? 0);
@@ -73,6 +73,19 @@ test('a torn tape and its burial stay on the page that tore it', async ({ browse
   await gm.locator('#graves .yname').click({ modifiers: ['Shift'] });
   await expect(gm.locator('#graves .items')).toHaveText('Nothing is buried here.');
   expect((await rec(gm, 'hill')).hill).toHaveLength(0);
+
+  // R490, R491: the GM rolls, Dana tears it off and reloads; what she tore stays torn (it still hangs on
+  // the GM's tape), and the next roll prints alone.
+  await roll(gm);
+  await expect(dana.locator('#tape .strip > *')).toHaveCount(1, { timeout: 15_000 });
+  await tear(dana);
+  await hook(dana, h => h.store.save());
+  await dana.reload();
+  await synced(dana, gm);
+  await roll(gm);
+  await expect(dana.locator('#tape .strip > *')).toHaveCount(1, { timeout: 15_000 });
+  await dana.waitForTimeout(1000);
+  await expect(dana.locator('#tape .strip > *')).toHaveCount(1);
 });
 
 test("torn rolls shared before leave the players' pages", async ({ browser }) => {

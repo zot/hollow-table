@@ -320,16 +320,15 @@ by the drop
 **Pulled:** 2026-11-23 — rang: both names opened m-<room> (Chromium), and with the id checks left out, Dana reloaded with Sam's receipt on her tape; restored clean
 
 ## Test: a torn tape and its burial stay on the page that tore it
-**Purpose:** R486, R488, R489: the GM's torn roll and Dana's never reach the other page; buried, each is listed and counted on its own page's Boot Hill alone, digs up there as a torn roll, and goes when its graveyard is emptied
+**Purpose:** R486, R488-R491: the GM's torn roll and Dana's never reach the other page; buried, each is listed and counted on its own page's Boot Hill alone, digs up there as a torn roll, and goes when its graveyard is emptied
 **Input:** the GM rolls twice and tears the tape onto the table; Dana rolls and tears hers; the GM drops its torn roll on the bar; the GM digs it up and buries it again; the GM empties the graveyard
-**Expected:** each page holds only its own torn roll, under `t:`; the GM's Boot Hill lists "Tape: 2 rolls" with badge 1, Dana's lists nothing and her page holds no receipt of the GM's; dug up, the GM's table has its torn roll back; emptied, the GM's Hill is empty
+**Expected:** each page holds only its own torn roll, under `t:`; the GM's Boot Hill lists "Tape: 2 rolls" with badge 1, Dana's lists nothing and her page holds no receipt of the GM's; dug up, the GM's table has its torn roll back; emptied, the GM's Hill is empty; the GM rolls, Dana tears it off and reloads, and the GM rolls again: her tape holds the new roll alone (R490, R491)
 **Refs:** crc-Tape.md, crc-Drag.md, crc-BootHillView.md, crc-Authority.md, crc-Copy.md
 **Code:** `tests/tapes.spec.ts`
 **Alarm:** 27
 **Fire alarm:** tear onto `o:` (ridOf) in TapeView; red: Dana's page holds the GM's torn roll
 **Inject:** src/ui/tape.ts:TapeView
-**Pulled:** 2026-11-23 — rang: torn onto `o:`, Dana's page held the GM's torn roll (Chromium); restored clean
-
+**Pulled:** 2026-11-23 — re-pulled after R491 (TapeView's tear changed): rang, torn onto `o:`, Dana's page held the GM's torn roll (Chromium); restored clean. A tear without `last` also failed it: Dana's torn roll came back after her reload *Earlier —* 2026-11-23 — rang: torn onto `o:`, Dana's page held the GM's torn roll (Chromium); restored clean
 ## Test: torn rolls shared before leave the players' pages
 **Purpose:** R487: a game holding an `o:` torn roll and a tape buried in the shared Boot Hill, loaded by the GM's page, keeps them as the GM's own, and Dana's page loses them
 **Input:** the GM's page writes an `o:` torn roll and a tape's burial into `yards`, as builds before this did, and Dana sees both; the GM's page reloads

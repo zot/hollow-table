@@ -230,3 +230,4 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T54: R164 retired by R474 (players have a key per name; the GM keeps the browser's (prototype Item 49))
 - T55: R140 retired by R483 (a copy per room and name (Bill 11-23: Copy per name))
 - T56: R458 retired by R485 (Tables joined names whose copy each is (Bill 11-23: Copy per name))
+- T57: R466 retired by R490 (Item 2 of the tapes carve: a page asks on each arrival and takes only what is newer than its tape's newest)

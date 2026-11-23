@@ -11,7 +11,7 @@ your peer and also don't affect what other peers see."
       share one copy today, tape and all. Each name gets its own.
 - [x] ~~**Item 1 — a torn tape is this page's own.**~~ **LANDED (2026-11-23 — `#56`.)** Torn off, it stays on the page
       that tore it and never reaches another page, nor does its burial in Boot Hill (Item 3, folded in).
-- [ ] **Item 2 — what you tore stays torn.** **OPEN (not queued.)** Receipts you tore off don't come back to
+- [x] ~~**Item 2 — what you tore stays torn.**~~ **LANDED (2026-11-23 — `#57`.)** Receipts you tore off don't come back to
       your tape, through a reload or the late page's catch-up.
 - [x] ~~**Item 3 — burying your own torn tape.**~~ **MOVED (2026-11-23 — into Item 1.)** Where a personal torn
       tape goes when dropped on the bar, given Boot Hill is the table's.
@@ -68,6 +68,19 @@ Daneel's reading, on the build: a torn roll on this page is a record of its own 
 oid, beside the table's `o:`), kept off the wire as the tape is, and the GM's page refuses a torn roll put
 on the table by any page.
 
+DECIDED (Bill, 2026-11-23), on Daneel's questions when Item 2 started:
+
+- **The page decides, per copy** ("The page, per copy"): nothing new on the wire, and the GM's page keeps no
+  list of who has caught up. A page that asked for more would only refill its own tape with what every
+  page saw.
+- **A returning page fills in what it missed** ("No, fill in what was missed"): a page back after a reload
+  or an absence gets the rolls made while it was gone, but never the ones it tore.
+
+Daneel's reading, on the build: each copy's tape remembers the GM's time of the newest roll it has held,
+kept through a tear. On each arrival the page asks, and takes only the receipts newer than that; a new
+copy remembers none and takes all that hangs on the GM's tape. A roll made while the page was away and
+since torn from the GM's tape can't come back (Item 4).
+
 ## Built
 
 - **Item 6, as `#55`** (2026-11-23; R483–R485, R140 and R458 retired): `GameStore.copyFor(room, user, own,
@@ -86,6 +99,11 @@ on the table by any page.
   the GM's page loads a game, and `ownedTorn` does the same to a checkpoint before a restore loads it;
   the full table every arriving player gets removes them from players' pages. `deletion.spec` buries a
   sticky now, a torn roll no longer being shared.
+- **Item 2, as `#57`** (2026-11-23; R490, R491, R466 retired): the tape record keeps `last`, the GM's time
+  of the newest roll it held before a tear (`newestRoll`, read from `roll-` receipts, which the GM's page
+  stamps), and every write of the tape keeps it. A player's page asks for the catch-up each load, when it
+  first hears from the GM's page, and `#hung` takes only the receipts newer than its tape's newest, merged
+  by time. Nothing changed on the wire or on the GM's page.
 
 ## Where it stands
 
@@ -96,10 +114,9 @@ Checked 2026-11-23, in the code:
 - **A tear is this page's own** (Item 1): the torn roll is `t:<oid>`, never sent, and its burial is kept in
   the page's `hill`. Before Item 1 a torn roll was an ordinary `o:` piece that reached every page unredacted
   (`redact` has no `tornroll` case), the GM's private rolls with it, and was buried in the shared Boot Hill.
-- **A torn tape comes back.** A page whose tape is empty asks the GM's page once when it first hears from
-  it; a page that tore its tape and reloads asks again and gets the table's view of every roll still on the
-  GM's tape, its own included (`specs/rolls.md`: "A page that tore its own tape and reloads asks again, its
-  tape being empty").
+- **A torn tape stays torn** (Item 2): a page asks on each arrival and takes only the rolls newer than the
+  newest its tape has held, so a new copy catches up, a page back fills in what it missed, and what it tore
+  never returns.
 - **Two names in one browser shared one copy** until Item 6: a player's copy was `m-<room>`, so the names
   in one browser wrote the same `tape` record. Reproduced 2026-11-23 while building Item 6: with copies
   keyed by room, Dana reloaded with Sam's receipt on her tape.
@@ -109,5 +126,4 @@ Checked 2026-11-23, in the code:
 
 ## Open for the talk
 
-- How a page remembers what it tore, so the catch-up skips it: by receipt id, or by the newest roll torn
-  (Item 2).
+- None left for Item 2: a copy remembers the newest roll it has held (Item 2's decisions).

@@ -243,7 +243,7 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Pulled:** 2026-11-19 — rang: Saloon Gossip moved to Beauford too (a first test, transferring Money again, stayed silent: the rule alone refuses it, so the test now tries another Resource); restored clean
 
 ## Test: a page that comes late gets what hangs on the GM's tape, as the table saw it
-**Purpose:** R465, R466: a page whose tape is empty asks once and gets the table's view of each roll on the GM's tape; once the GM tears it, nothing
+**Purpose:** R465, R490: a new page asks once and gets the table's view of each roll on the GM's tape; once the GM tears it, nothing
 **Input:** two rolls of Dana's at the table; then Eve's page joins and hears the GM; the GM tears its tape; then Fay's page joins
 **Expected:** Eve's tape equals Ann's, both receipts, newest first; Fay's tape is empty
 **Refs:** crc-Rolls.md, crc-Envelope.md
@@ -252,3 +252,14 @@ Green", Level "3 + 5 + 1 + 1 bonus"; the note titled with the text, outcome `mis
 **Fire alarm:** answer with the GM's own receipts (`k.full`), not the table's view; red: Eve's tape isn't Ann's
 **Inject:** src/net/rolls.ts:Rolls
 **Pulled:** 2026-11-19 — rang: Eve's tape held the GM's own receipts, not the table's view; restored clean
+
+## Test: a returning page takes only what it missed, and what it tore stays torn
+**Purpose:** R490, R491: a page arriving again takes only the rolls newer than the newest its tape has held; a tear keeps that newest, so torn rolls never come back
+**Input:** two rolls of Dana's with Eve's page at the table; Eve tears her tape; Eve's page loads again (the same copy) and arrives; then Eve's page leaves, Dana rolls a third time, and Eve's page arrives again
+**Expected:** Eve's tape empty after the tear and after arriving again, its `last` the second roll's time; after the third roll, Eve's tape holds only the third
+**Refs:** crc-Rolls.md, crc-Tape.md, crc-Records.md
+**Code:** `src/net/rolls.test.ts`
+**Alarm:** 22
+**Fire alarm:** take every receipt the GM's page sends, ignoring the tape's newest (drop the filter in #hung); red: Eve's torn receipts come back
+**Inject:** src/net/rolls.ts:#hung
+**Pulled:** 2026-11-23 — rang: with every receipt taken, Eve's torn receipts came back; restored clean

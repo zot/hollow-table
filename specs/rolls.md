@@ -266,12 +266,14 @@ this section and the book disagree, the book wins and this section is wrong.
   receipt slides in; rolled up, it leaves a sliver to pull it down by. **The tape is each page's own**:
   a page's tape never goes over the wire, with one exception, below.
 - **A page that comes late reads what hangs on the GM's tape** (Bill, 11-19: "What hangs on the GM's
-  tape", "The table's view only", "Like any receipt"). A page whose tape is empty asks the GM's page
-  once, when it first hears from it, and gets the table's view of each roll still on the GM's tape
-  (since the GM last tore it), its own earlier rolls too; they print like any receipt, under any rolls
-  it has seen since. Private rolls never go, and the GM's page keeps the last 200 rolls, so a tape
-  longer than that comes back only as far as they go. A page that tore its own tape and reloads asks
-  again, its tape being empty.
+  tape", "The table's view only", "Like any receipt"). Each time a page arrives (when it first hears
+  from the GM's page after loading) it reads the table's view of each roll still on the GM's tape (since
+  the GM last tore it), its own rolls too, and **takes only the rolls newer than the newest its tape has
+  held** (Bill, 2026-11-23: "No, fill in what was missed"). A new name, never at this table, takes them
+  all; a page back after a reload or an absence takes the rolls made while it was gone; **what a page
+  tore stays torn**, as its tape remembers the newest roll it held. They print like any receipt, in
+  order of when they were rolled. Private rolls never go, and the GM's page keeps the last 200 rolls, so
+  a tape comes back only as far as they go.
 - The tape lies under the table's pieces. A new roll or a press raises it; pressing anything else
   lowers it. The register's paper roll rolls it up to a sliver and back.
 - **Dragging the tape tears off the whole roll** as one strip onto the table, once the drag has gone
