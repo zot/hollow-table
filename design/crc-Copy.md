@@ -1,12 +1,12 @@
 # Copy
-**Requirements:** R140, R171, R172, R173, R189, R443, R361
+**Requirements:** R483, R484, R171, R172, R173, R189, R443, R361
 
 A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 page answers them.
 
 ## Knows
 - synced: whether the whole table has arrived since joining or since the GM's page came back.
-- seen: the version it has seen everything up to (localStorage, per room).
+- seen: the version it has seen everything up to (localStorage, per copy, `hollow.seen.<game id>`, R484).
 - lastG: the last batch version heard.
 - pending: rid → `{s, at, tries, base, group}` (sessionStorage, per tab and room).
 - RESEND_MS 3 s, TRIES 5, ASK_MS 3 s, GAP_MS 1.5 s, AWAY_MS 25 s.

@@ -1,4 +1,4 @@
-// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R140, R171, R172, R173, R189, R443, R361, R381
+// CRC: crc-Copy.md | Seq: seq-join.md#1.11, seq-sync.md#1.7, seq-sync.md#1.8, seq-sync.md#1.9, seq-sync.md#1.10, seq-sync.md#1.11, seq-edit.md#1.1, seq-edit.md#1.2, seq-edit.md#1.3, seq-edit.md#1.8, seq-edit.md#2.1, seq-edit.md#2.2 | R483, R484, R171, R172, R173, R189, R443, R361, R381
 // A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 // page answers them, whether it took them or not. Pending changes survive the GM's absence and a
 // reload, and go again until answered.
@@ -22,9 +22,11 @@ export type CopyWith = {
   game: Game; stamps: Stamps; sealer: Sealer; link: Link; clock: Clock;
   /** sessionStorage: pending changes are per tab. */
   session: KeyValue;
-  /** localStorage: the version seen is the copy's, per room. */
+  /** localStorage: the version seen is the copy's (R484). */
   local: KeyValue;
   room: string;
+  /** The copy's game id: the version seen is kept under it (R484). */
+  copy: string;
   /** The GM's browser id, from the invite's `gm=`. */
   gm: string;
   /** Whether this page holds a piece (in hand, or being written in): what arrives for it waits. */
@@ -57,7 +59,7 @@ export class Copy {
     for (const kind of ['hello', 'here'] as const) w.link.on(kind, (_: never, from: Peer) => { if (from.browser === w.gm) this.heardGm(from); });
   }
 
-  get #seenKey() { return `hollow.seen.${this.#w.room}`; }
+  get #seenKey() { return `hollow.seen.${this.#w.copy}`; }
   get #pendingKey() { return `hollow.pending.${this.#w.room}`; }
   #read(s: KeyValue, k: string): string | null { try { return s.getItem(k); } catch { return null; } }
   #write(s: KeyValue, k: string, v: string): void { try { s.setItem(k, v); } catch { /* blocked */ } }

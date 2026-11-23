@@ -1,4 +1,4 @@
-// CRC: crc-Ledger.md | R132, R133, R134, R139, R141, R291, R457, R458
+// CRC: crc-Ledger.md | R132, R133, R134, R139, R141, R291, R457, R485
 // The Ledger: a green cloth-bound book between the register and Boot Hill, opening to a ruled page
 // with the game's name, the save status, the actions written on it, the checkpoints and the games.
 // The words are pure (stamp, offer, named, newGame); the view draws the page and does the asking.
@@ -24,7 +24,7 @@ export function named(answer: string | null): string | null {
 export function newGame(now: number): string { return `New game ${stamp(now)}`; }
 
 export type LedgerWith = {
-  /** A player's copy: the name, the status, Export and Tables joined (R141, R458). */
+  /** A player's copy: the name, the status, Export and Tables joined (R141, R485). */
   player: boolean;
   now: () => number;
   round: () => number;
@@ -37,7 +37,7 @@ export type LedgerWith = {
   /** R457: deleting forever a game or copy (never the open one), or a checkpoint; each frees unused images. */
   forget: (id: string) => Promise<void>;
   forgetCheckpoint: (id: string) => Promise<void>;
-  /** R458: this browser's copies of tables it joined. */
+  /** R485: this browser's copies of tables it joined. */
   joined: () => Promise<GameInfo[]>;
   restore: (id: string) => Promise<void>;
   /** Puts another game on the table (this one is saved first). */
@@ -182,12 +182,13 @@ export class LedgerView {
       }
       parts.push(el('h4', '', 'Checkpoints'), list, el('h4', '', 'Games'), gl);
     }
-    // R458: the copies of tables this browser joined, deletable; not the one on the table.
+    // R485: the copies of tables this browser joined, deletable; not the one on the table.
     if (joined.length) {
       const jl = el('div', 'entries');
       for (const g of joined) {
-        const here = g.id === cur.id, b = this.#entry(g.name, g.opened, `entry joined${here ? ' current' : ''}`,
-          here ? 'The table you are playing at' : `This browser's copy of a table it joined (room ${g.name}). Shift-click twice to delete it forever.`);
+        // R485: whose copy each is, by the name it was joined as.
+        const here = g.id === cur.id, b = this.#entry(g.as ? `${g.as} at ${g.name}` : g.name, g.opened, `entry joined${here ? ' current' : ''}`,
+          here ? 'The table you are playing at' : `This browser's copy of a table it joined (room ${g.name}${g.as ? `, as ${g.as}` : ''}). Shift-click twice to delete it forever.`);
         if (!here) doomable(b, null, () => w.forget(g.id));
         else (b as HTMLButtonElement).disabled = true;
         jl.append(b);

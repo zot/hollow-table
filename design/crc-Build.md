@@ -1,5 +1,5 @@
 # Build
-**Requirements:** R196, R197, R198, R199, R200, R201, R297, R303, R305, R452, R476
+**Requirements:** R196, R197, R198, R199, R200, R201, R297, R303, R305, R452, R476, R483
 
 How the sources become the page, and how the page is published and tested.
 
@@ -40,7 +40,7 @@ How the sources become the page, and how the page is published and tested.
   what local serving and the specs use.
 - main (`src/main.ts`): assembles the page. The plain page is the GM's: GameStore opens its game, and
   `open()` makes (or reopens) this game's room: Wire, Presence, Authority, Rolls, ImageExchange.
-  An invite makes a player: its copy of the room's table (GameStore.copyFor), Wire, Copy, Presence,
+  An invite makes a player: its name's copy of the room's table (GameStore.copyFor, R483), Wire, Copy, Presence,
   Rolls, ImageExchange. The tab id is kept in sessionStorage; a native passed as a callback is
   called detached. Moves is wired with Drag, among the views.
 - testHook: with `?test`, the page exposes one object, `window.hollow`, whose `ready` holds the

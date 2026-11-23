@@ -49,7 +49,7 @@ async function table() {
     const sealer = await Sealer.make();
     const link = room.link({ tab, browser: `b-${tab}`, sealKey: sealer.pub });
     const stamps = new Stamps(st.session);
-    const copy = new Copy({ game, stamps, sealer, link, clock, session: st.session, local: st.local, room: 'r1', gm: 'b-gm' });
+    const copy = new Copy({ game, stamps, sealer, link, clock, session: st.session, local: st.local, room: 'r1', copy: 'm-r1', gm: 'b-gm' });
     players.set(tab, { game, copy, sealKey: sealer.pub, stamps });
     gm.authority.join(tab, name(tab), `b-${tab}`, sealer.pub);
     copy.start();
@@ -60,7 +60,7 @@ async function table() {
   await gmLoad();
   /** Time passes a second at a time, the room settling after each. */
   const seconds = async (n: number) => { for (let i = 0; i < n; i++) { advance(TICK_MS); await room.settle(); } };
-  return { room, gm, players, gmLoad, playerLoad, seconds, advance };
+  return { room, gm, players, storage, gmLoad, playerLoad, seconds, advance, clock };
 }
 
 const text = (game: Game) => (game.get(STICKY) as Sticky).text;
@@ -252,4 +252,21 @@ test("a stale copy's change to a piece the GM changed since", async () => {
   assert.equal(text(dana().game), "The GM's rewrite", 'and reaches her page');
   assert.equal((t.gm.game.get(ridOf(SAM)) as Character).card.x, (dana().game.get(ridOf(SAM)) as Character).card.x, 'Sam, unchanged by the GM, takes her move');
   assert.deepEqual(dana().copy.pending(), []);  assert.equal((t.gm.game.get('book') as Book).last?.[ridOf(SAM)]?.by, 'dana', "the book says whose change Sam's was");
+});
+
+test("the version seen is the copy's own", async () => {
+  // R484: kept under the copy's id, so another name's copy in the same browser starts from nothing.
+  const t = await table();
+  await t.playerLoad('dana');
+  await t.room.settle();
+  write(t.gm.game, 'a change, so the version moves');
+  await t.room.settle();
+  const { local, session } = t.storage.get('dana')!, dana = t.players.get('dana')!.copy;
+  assert.ok(dana.seen > 0);
+  assert.equal(local.getItem('hollow.seen.m-r1'), String(dana.seen), "kept under the copy's id");
+  assert.equal(local.getItem('hollow.seen.r1'), null, 'not under the room');
+  const sealer = await Sealer.make(), game = new Game();
+  const sam = new Copy({ game, stamps: new Stamps(session), sealer, link: t.room.link({ tab: 'sam', browser: 'b-sam', sealKey: sealer.pub }),
+    clock: t.clock, session, local, room: 'r1', copy: 'm-r1.b-sam', gm: 'b-gm' });
+  assert.equal(sam.seen, 0, "Sam's copy in the same browser doesn't take Dana's");
 });

@@ -175,4 +175,3 @@ them. Nothing to install, no local-network grant, no daemon.
 
 - A player's roll requests go in the clear.
 - No TURN server, so some pairs can't connect (symmetric NAT).
-- Whether a roll the GM throws away should leave players' tapes too.

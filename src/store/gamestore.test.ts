@@ -136,10 +136,29 @@ test('games and copies', async () => {
   assert.deepEqual((await store.list()).map(g => g.name), ['Second table', PLAYTEST]);
 
   advance(1000);
-  const copy = await store.copyFor('room-1');
+  const copy = await store.copyFor('room-1', 'u-dana', true, 'Dana');
   assert.equal(copy.id, 'm-room-1');
   assert.equal(storage.data.get(LAST), second.id, 'the copy is never last');
   assert.deepEqual((await store.list()).map(g => g.name), ['Second table', PLAYTEST], 'nor listed');
+});
+
+test('a copy per name', async () => {
+  // R483: the name keeping the browser's key keeps the copy from before; another name in this browser
+  // has its own, by its user id, which a rename keeps. R485: the copy says the name it was joined as.
+  const { clock } = fakeClock(), store = new GameStore(new MemoryDb(), clock, memoryStorage());
+  await store.start();
+  assert.equal((await store.copyFor('room-1', 'u-dana', true, 'Dana')).id, 'm-room-1');
+  roll(store);
+  const hers = store.game.get('tape') as Tape;
+  await store.save();
+  const sam = await store.copyFor('room-1', 'u-sam', false, 'Sam');
+  assert.equal(sam.id, 'm-room-1.u-sam');
+  assert.notDeepEqual(store.game.get('tape'), hers, "Sam's copy doesn't hold Dana's tape");
+  assert.equal((await store.copyFor('room-1', 'u-sam', false, 'Samuel')).id, sam.id, 'a rename keeps the copy');
+  assert.equal(store.current?.as, 'Samuel');
+  await store.copyFor('room-1', 'u-dana', true, 'Dana');
+  assert.deepEqual(store.game.get('tape'), hers, "Dana's copy still has hers");
+  assert.deepEqual((await store.joined()).map(g => g.as).sort(), ['Dana', 'Samuel']);
 });
 
 test("a restore's checkpoint names never nest", () => {
@@ -202,7 +221,7 @@ test('the browser is asked to keep the storage once, after the first save', asyn
 
 test('deleting games, copies and checkpoints, and the images still used', async () => {
   // R457: forget a game or a copy with its records and checkpoints, never the open one; forget a checkpoint.
-  // R458: the copies of joined tables listed. R459: every image a game, copy or checkpoint uses.
+  // R485: the copies of joined tables listed. R459: every image a game, copy or checkpoint uses.
   const db = new MemoryDb(), { clock, advance } = fakeClock();
   const store = new GameStore(db, clock, memoryStorage());
   const here = await store.start();
@@ -215,7 +234,7 @@ test('deleting games, copies and checkpoints, and the images still used', async 
   advance(10);
   const other = await store.add('Other', [[ridOf('0000000c'), img('0000000c', 'b'.repeat(64))]]);
   advance(10);
-  const copy = await store.copyFor('room-1');   // opens the copy
+  const copy = await store.copyFor('room-1', 'u-dana', true, 'Dana');   // opens the copy
   await store.open(here.id);
   assert.deepEqual((await store.images()).sort(), ['a'.repeat(64), 'b'.repeat(64)], 'a in a checkpoint, b in another game');
   assert.deepEqual((await store.joined()).map(g => g.id), [copy.id], 'the copy is listed as joined');

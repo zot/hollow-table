@@ -65,8 +65,11 @@ Every piece of state says which tier it's in.
 
 ## A player's copy
 
-- A player's page keeps its copy of the table in its own database, per room, so a reload shows the
-  table at once. Its Ledger hides Checkpoint, Import, New game and the game list: the GM checkpoints
+- A player's page keeps its copy of the table in its own database, per room and per name (Bill, 11-23:
+  "Copy per name"), so a reload shows the table at once, and two names seated from one browser never
+  share a tape, a torn tape or a secret. A name's copy goes with it through a rename. The copy a browser
+  kept before each name had its own goes to the name that keeps the browser's key. The version a copy
+  has seen is the copy's own. Its Ledger hides Checkpoint, Import, New game and the game list: the GM checkpoints
   and restores. The copy never becomes the browser's own game.
 
 ## Deleting
@@ -76,7 +79,8 @@ Every piece of state says which tier it's in.
   reverting after 3 s; a second deletes it, with everything it holds. **The game on the table can't be
   deleted** ("No, only the others"): open another first.
 - **Tables joined** ("List them, deletable"; on both Ledgers, Bill, 11-19): the Ledger lists the copies
-  this browser keeps of tables it joined as a player, the room and when it was last opened, deletable
+  this browser keeps of tables it joined as a player, the room, the name it was joined as, and when it
+  was last opened, deletable
   the same way; not the one being played.
 - **Images go when nothing uses them** ("Automatically"): after any deletion, and after End's
   checkpoints are pruned, an image no game, copy or checkpoint in this browser uses is freed.

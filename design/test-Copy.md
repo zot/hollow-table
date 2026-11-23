@@ -21,7 +21,7 @@
 **Alarm:** 1
 **Fire alarm:** Clear a pending change on any version of the piece from the GM, not only its answer: the catch-up's old sticky replaces Dana's text and the GM never gets it (step 5)
 **Inject:** src/net/copy.ts:Copy
-**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the catch-up's old sticky replaced Dana's text (Lost once) *Earlier —* 2026-11-12 — rang: at step 5 the GM's page never got `While you were out`
+**Pulled:** 2026-11-23 — re-pulled after R483-R485 (Copy changed): rang, pending until answered failed; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the catch-up's old sticky replaced Dana's text (Lost once) *Earlier —* 2026-11-12 — rang: at step 5 the GM's page never got `While you were out`
 ## Test: catch-up and gaps
 **Purpose:** a full table removes what the GM doesn't have, except pending new pieces; a gap asks
 again; one player's catch-up doesn't count as a missed batch for another
@@ -34,7 +34,7 @@ both players synced with the same sticky
 **Alarm:** 2
 **Fire alarm:** Let a full table take away pending new pieces too: Dana's own sticky is gone
 **Inject:** src/net/copy.ts:Copy
-**Pulled:** 2026-11-13 — re-pulled after the carry rewrite: rang, the full table took away Dana's own pending sticky *Earlier —* 2026-11-12 — rang: Dana's own pending sticky was taken away by the full table
+**Pulled:** 2026-11-23 — re-pulled after R483-R485 (Copy changed): rang, catch-up and gaps failed; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the full table took away Dana's own pending sticky *Earlier —* 2026-11-12 — rang: Dana's own pending sticky was taken away by the full table
 ## Test: deletions, the book, and silence
 **Purpose:** the GM's page tombs deletions and dates Boot Hill; a deletion after a drag is not stale
 end to end; a player's page sends nothing before the table arrives; 25 s of silence counts as the
@@ -63,3 +63,14 @@ GM's page coming back
 **Fire alarm:** take a piece another tab changed since the copy (drop the `stale` check from judge's puts): the sticky's old text replaces the GM's rewrite
 **Inject:** src/net/authority.ts:judge
 **Pulled:** 2026-11-19 — re-pulled after R464 (judge changed): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge changed): rang, the GM's text was lost to her stale move; restored clean *Earlier —* 2026-11-19 — rang: the sticky's old text replaced the GM's rewrite; restored clean
+
+## Test: the version seen is the copy's own
+**Purpose:** R484: the version a copy has seen is kept under the copy's id, so another name's copy in the same browser starts from nothing
+**Input:** Dana's copy syncs, and the GM's page changes a piece; a Copy for Sam over the same localStorage
+**Expected:** `hollow.seen.m-r1` holds Dana's version and `hollow.seen.r1` nothing; Sam's copy has seen 0
+**Refs:** crc-Copy.md
+**Code:** `src/net/copy.test.ts`
+**Alarm:** 5
+**Fire alarm:** keep the version seen per room again (`hollow.seen.<room>`); red: Sam's copy starts at Dana's version
+**Inject:** src/net/copy.ts:Copy
+**Pulled:** 2026-11-23 — rang: the version went under hollow.seen.r1, not the copy's id, so Sam's copy would start at Dana's; restored clean

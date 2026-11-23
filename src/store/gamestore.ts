@@ -1,4 +1,4 @@
-// CRC: crc-GameStore.md | Seq: seq-save.md#1.5, seq-restore.md#1.1 | R129, R130, R131, R133, R134, R135, R137, R140, R141
+// CRC: crc-GameStore.md | Seq: seq-save.md#1.5, seq-restore.md#1.1 | R129, R130, R131, R133, R134, R135, R137, R483, R141
 // The browser's games: the list, each game's records, its checkpoints, and the write-through that
 // keeps them current. Reaches the database only through Db; the clock and localStorage are passed in.
 
@@ -7,7 +7,7 @@ import type { Rec, Rid } from '../model/records.ts';
 import type { Db, Tx } from './db.ts';
 import { PLAYTEST, playtest, singletons } from './playtest.ts';
 
-export type GameInfo = { id: string; name: string; made: number; opened: number; copyOf?: string };
+export type GameInfo = { id: string; name: string; made: number; opened: number; copyOf?: string; as?: string };
 export type Checkpoint = { id: string; name: string; at: number; auto: boolean; records: Record<Rid, Rec> };
 export type CheckpointInfo = Omit<Checkpoint, 'records'>;
 export type Clock = { now(): number; setTimeout(fn: () => void, ms: number): unknown; clearTimeout(h: unknown): void };
@@ -122,13 +122,19 @@ export class GameStore {
     await this.#db.tx(['games'], 'readwrite', t => t.put('games', cur.id, this.current));
   }
 
-  // R140, R141: a player's copy, per room; never listed, never the last game.
-  /** Opens this page's copy of a room's table, making an empty one the first time. */
-  async copyFor(room: string): Promise<GameInfo> {
-    const id = `m-${room}`;
+  // R483, R141: a player's copy, per room and name; never listed, never the last game. The name keeping
+  // the browser's key (`own`) keeps the copy from before names had their own; any other is keyed by its
+  // user id, which a rename keeps. R485: `as` is the name it was joined as, kept up to date.
+  /** Opens a name's copy of a room's table, making an empty one the first time. */
+  async copyFor(room: string, user: string, own: boolean, as: string): Promise<GameInfo> {
+    const id = own ? `m-${room}` : `m-${room}.${user}`;
     const have = await this.#db.tx(['games'], 'readonly', t => t.get<GameInfo>('games', id));
     if (!have) await this.add(room, singletons(), [], room, id);
-    return this.open(id);
+    const info = await this.open(id);
+    if (info.as === as) return info;
+    this.current = { ...info, as };
+    await this.#db.tx(['games'], 'readwrite', t => t.put('games', id, this.current));
+    return this.current;
   }
 
   // Seq: seq-save.md#1.5, seq-save.md#1.5.1
@@ -223,7 +229,7 @@ export class GameStore {
     return this.#savedAt === null ? 'Saved' : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
   }
 
-  // R458: the copies this browser keeps of tables it joined as a player.
+  // R485: the copies this browser keeps of tables it joined as a player.
   /** The copies of joined tables, newest opened first. */
   async joined(): Promise<GameInfo[]> {
     const all = await this.#db.tx(['games'], 'readonly', t => t.all<GameInfo>('games'));

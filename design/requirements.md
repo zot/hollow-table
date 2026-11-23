@@ -339,13 +339,16 @@
 - **R137:** End makes a checkpoint automatically; automatic checkpoints keep the newest 20 and named ones are kept.
 - **R138:** Export writes one readable `.glimmer.json` holding the game, its checkpoints and each image once.
 - **R139:** Import always makes a new game, adding "(imported)" to a name already taken.
-- **R140:** A player's page keeps its copy of the table per room, so a reload shows it at once.
+- **~~R140:~~** (Retired T55 — see R483) A player's page keeps its copy of the table per room, so a reload shows it at once.
 - **R141:** A player's Ledger hides Checkpoint, Import, New game and the game list, and the copy never becomes the browser's own game.
 - **R454:** A checkpoint the store refuses is said in the Ledger's status ("Checkpoint “name” not kept:" and why) until one is kept; End ends the conflict even when its checkpoint isn't kept.
 - **R455:** Once a game is first saved on a page, the page asks the browser to keep its storage (navigator.storage.persist), once; the Ledger says "Storage kept" or "The browser may clear this storage".
 - **R457:** In the Ledger, a first shift-click or long press on a game or a checkpoint arms it red and says so, reverting after 3 s; a second deletes it forever, a game with its records and checkpoints; the game on the table can't be armed.
-- **R458:** The Ledger, the GM's and a player's, lists "Tables joined": this browser's copies of tables it joined, each with its room and when last opened, deletable the same way, but not the one on the table.
+- **~~R458:~~** (Retired T56 — see R485) The Ledger, the GM's and a player's, lists "Tables joined": this browser's copies of tables it joined, each with its room and when last opened, deletable the same way, but not the one on the table.
 - **R459:** After a deletion, and after End's checkpoint prunes old automatic ones, every image that no game, copy or checkpoint in this browser uses, nor the table as it stands, is freed from the store.
+- **R483:** A player's page keeps its copy of the table per room and per name, keyed by the name's user id so it goes with a rename, so a reload shows it at once and two names in one browser share nothing of it; the copy kept per room before goes to the name keeping the browser's key.
+- **R484:** (inferred) The version a copy has seen is kept per copy, so a name's new copy doesn't take another name's.
+- **R485:** The Ledger, the GM's and a player's, lists "Tables joined": this browser's copies of tables it joined, each with its room, the name it was joined as, and when last opened, deletable the same way, but not the one on the table.
 
 ## Feature: ownership
 **Source:** specs/ownership.md

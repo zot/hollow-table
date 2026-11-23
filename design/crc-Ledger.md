@@ -1,12 +1,13 @@
 # Ledger
-**Requirements:** R132, R133, R134, R139, R141, R291, R455, R457, R458
+**Requirements:** R132, R133, R134, R139, R141, R291, R455, R457, R485
 
 The green cloth-bound book between the register and Boot Hill, opening to a ruled ledger page.
 
 ## Does
 - (R457) a shift-click or long press on a game (not the one on the table) or a checkpoint arms it
-  (Doom), a second deletes it, then images nothing uses are freed (R459). (R458) "Tables joined":
-  this browser's copies of tables it joined, on the GM's Ledger and a player's, deletable the same way.
+  (Doom), a second deletes it, then images nothing uses are freed (R459). (R485) "Tables joined":
+  this browser's copies of tables it joined, each with its room and the name it was joined as, on the
+  GM's Ledger and a player's, deletable the same way.
 - (R455) says whether storage is kept: "Storage kept", or "The browser may clear this storage".
 - book (R291, `src/ui/ledger.ts`): green cloth with "Ledger" up the spine, after the register and
   before Boot Hill; a click opens or closes the page, a press anywhere else closes it.

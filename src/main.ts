@@ -1,4 +1,4 @@
-// CRC: crc-Build.md | R196, R201, R476
+// CRC: crc-Build.md | R196, R201, R476, R483
 // The page's entry point: the store, this browser's identity, and, at a table, the network. The
 // plain page is the GM's and opens a table on demand; an invite makes a player, who joins with a
 // copy of the GM's table. The views attach here as they land. With `?test` the page exposes one
@@ -475,17 +475,18 @@ async function main() {
   }
 
   if (invited) {
-    // R476, R140: a player, joining with a copy of the GM's table, kept per room. The name is the tab's,
-    // asked when the tab has none; R475: it joins with that name's key, R477: the browser's name from
-    // before keeping the browser's own.
-    await store.copyFor(invited.room);
+    // R476: a player, the name the tab's, asked when the tab has none; R475: it joins with that name's
+    // key, R477: the browser's name from before keeping the browser's own. R483: with that name's copy of
+    // the GM's table, kept per room and name; the name keeping the browser's key keeps the copy from before.
     const last = local('hollow.name'), held = await Identity.held(db, last);
     const name = session('hollow.name') ?? session('hollow.name', askName(held, last)) ?? 'Player';
     local('hollow.name', name);
-    const game: Game = store.game, identity = await Identity.player(db, name);
+    const identity = await Identity.player(db, name), own = identity.id === (await Identity.load(db)).id;
+    const { id: copyId } = await store.copyFor(invited.room, identity.id, own, name);
+    const game: Game = store.game;
     const wire = new Wire(invited.room, { identity, sealer, tab, relay });
     // Copy only asks what's held when a message arrives, after Moves is made.
-    const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm,
+    const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, copy: copyId, gm: invited.gm,
       held: rid => moves.holds(rid) });
     let hands: Hands | undefined;
     const moves = new Moves({ stamps, tab, send: m => { void wire.send('move', m); }, shared: shared(game), place: cs => shown(hands, cs), timers: clock, schedule: frame });

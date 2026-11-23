@@ -228,3 +228,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T52: R165 retired by R470 (Trystero 0.27 proves the keys (prototype Item 48); the sealing key now travels as R471)
 - T53: R155 retired by R476 (invites name a player per tab (prototype Item 49))
 - T54: R164 retired by R474 (players have a key per name; the GM keeps the browser's (prototype Item 49))
+- T55: R140 retired by R483 (a copy per room and name (Bill 11-23: Copy per name))
+- T56: R458 retired by R485 (Tables joined names whose copy each is (Bill 11-23: Copy per name))

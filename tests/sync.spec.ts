@@ -1,4 +1,4 @@
-// CRC: crc-Wire.md | Test: test-Network.md | R140, R141, R156, R157, R158, R159, R161, R162, R166, R172, R173, R297, R475, R476
+// CRC: crc-Wire.md | Test: test-Network.md | R483, R141, R156, R157, R158, R159, R161, R162, R166, R172, R173, R297, R475, R476, R485
 // Two pages find each other through the local relay, prove who they are, and sync both ways.
 import { expect, test, type Page } from '@playwright/test';
 import { gmTable, hook, join, open, records, synced } from './page.ts';
@@ -35,7 +35,7 @@ test('join and sync', async ({ browser }) => {
   await expect(dana.locator('#bar .folks .tag.gm')).toHaveClass(/\blive\b/);
   expect(await hook(gm, h => h.store.game.get('book').claims.Dana)).toBe(await hook(dana, h => h.identity.id));
 
-  // The player's Ledger is a copy: no checkpoints, no game list (R141); only the tables joined (R458).
+  // The player's Ledger is a copy: no checkpoints, no game list (R141); only the tables joined (R485).
   await dana.locator('#ledgerbtn').click();
   await expect(dana.locator('#ledger .copy')).toBeVisible();
   await expect(dana.locator('#ledger h4')).toHaveText(['Tables joined']);
@@ -62,7 +62,7 @@ test('join and sync', async ({ browser }) => {
   await expect.poll(async () => JSON.stringify((await recOf(dana, DEVREUX)).pool), { timeout: 15_000 }).toBe(JSON.stringify(devreux.pool));
   expect(await recOf(gm, DEVREUX)).toEqual(devreux);
 
-  // Dana reloads: her copy shows at once, then syncs (R140).
+  // Dana reloads: her copy shows at once, then syncs (R483).
   await expect.poll(async () => (await records(dana)).saved.includes(`"${STICKY}"`), { timeout: 5_000, message: "Dana's copy is saved" }).toBe(true);
   await open(dana, invite);
   expect(await recOf(dana, STICKY), await hook(dana, h => `held: ${h.store.game.all().map(([r]: [string]) => r).join()} game ${h.store.current.id}`)).toBeTruthy();
@@ -79,7 +79,7 @@ test('join and sync', async ({ browser }) => {
 });
 
 test("a player's Ledger lists the tables joined, and deletes the others", async ({ browser }) => {
-  // R457, R458: the one being played can't be armed; another copy goes with two shift-clicks.
+  // R457, R485: the one being played can't be armed; another copy goes with two shift-clicks.
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
   await hook(dana, h => h.store.add('room-old', undefined, [], 'room-old'));
@@ -128,3 +128,32 @@ test('two tabs of one browser are two players, and a reload keeps the tab\'s nam
   expect(reasked).toBe(false);
 });
 
+
+test('two names in one browser keep copies of their own', async ({ browser }) => {
+  // R483: each name its own copy; R485: the Ledger names whose copy each is.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const sam = await dana.context().newPage();
+  sam.on('dialog', d => { void d.accept('Sam'); });
+  await open(sam, invite);
+  await synced(sam, gm);
+  const copyOf = (p: Page) => hook(p, h => h.store.current.id as string);
+  const [d, s] = [await copyOf(dana), await copyOf(sam)];
+  const room = new URL(invite, 'http://x').searchParams.get('room')!;
+  // A fresh browser has no copy from before, so each copy goes by its name's user id.
+  expect(d).toBe(`m-${room}.${await hook(dana, h => h.identity.id as string)}`);
+  expect(s).toBe(`m-${room}.${await hook(sam, h => h.identity.id as string)}`);
+  // Sam's page writes its tape; Dana reloads into her own copy, without it.
+  await hook(sam, async h => {
+    const r = { id: 'r-sam', at: 1, title: 'Sam alone', dice: [{ c: 'W', v: 4, added: false, dropped: false }], resolution: '4', level: 'Minor', outcome: 'success' };
+    h.store.game.change((w: any) => w.put('tape', { receipts: [r] }));
+    await h.store.save();
+  });
+  await dana.reload();
+  await dana.waitForFunction(() => (window as any).hollow?.ready);
+  expect(await copyOf(dana)).toBe(d);
+  expect(await hook(dana, h => JSON.stringify(h.store.game.get('tape')))).not.toContain('Sam alone');
+  await expect(dana.locator('#tape')).not.toContainText('Sam alone');
+  await dana.locator('#ledgerbtn').click();
+  await expect(dana.locator('#ledger .entry.joined')).toHaveText([/Dana at |Sam at /, /Dana at |Sam at /]);
+});

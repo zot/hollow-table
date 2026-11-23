@@ -3465,7 +3465,7 @@ var Copy = class {
     });
   }
   get #seenKey() {
-    return `hollow.seen.${this.#w.room}`;
+    return `hollow.seen.${this.#w.copy}`;
   }
   get #pendingKey() {
     return `hollow.pending.${this.#w.room}`;
@@ -16997,13 +16997,19 @@ var GameStore = class {
     this.current = { ...cur, name: name2 };
     await this.#db.tx(["games"], "readwrite", (t) => t.put("games", cur.id, this.current));
   }
-  // R140, R141: a player's copy, per room; never listed, never the last game.
-  /** Opens this page's copy of a room's table, making an empty one the first time. */
-  async copyFor(room2) {
-    const id = `m-${room2}`;
+  // R483, R141: a player's copy, per room and name; never listed, never the last game. The name keeping
+  // the browser's key (`own`) keeps the copy from before names had their own; any other is keyed by its
+  // user id, which a rename keeps. R485: `as` is the name it was joined as, kept up to date.
+  /** Opens a name's copy of a room's table, making an empty one the first time. */
+  async copyFor(room2, user, own2, as) {
+    const id = own2 ? `m-${room2}` : `m-${room2}.${user}`;
     const have = await this.#db.tx(["games"], "readonly", (t) => t.get("games", id));
     if (!have) await this.add(room2, singletons(), [], room2, id);
-    return this.open(id);
+    const info = await this.open(id);
+    if (info.as === as) return info;
+    this.current = { ...info, as };
+    await this.#db.tx(["games"], "readwrite", (t) => t.put("games", id, this.current));
+    return this.current;
   }
   // Seq: seq-save.md#1.5, seq-save.md#1.5.1
   /** Writes what changed now, in one transaction: only records that differ from what's stored. */
@@ -17098,7 +17104,7 @@ var GameStore = class {
     if (this.#pending.size) return "Saving\u2026";
     return this.#savedAt === null ? "Saved" : `Saved ${new Date(this.#savedAt).toTimeString().slice(0, 8)}`;
   }
-  // R458: the copies this browser keeps of tables it joined as a player.
+  // R485: the copies this browser keeps of tables it joined as a player.
   /** The copies of joined tables, newest opened first. */
   async joined() {
     const all2 = await this.#db.tx(["games"], "readonly", (t) => t.all("games"));
@@ -17469,10 +17475,10 @@ var LedgerView = class {
       const jl = el4("div", "entries");
       for (const g of joined) {
         const here2 = g.id === cur.id, b = this.#entry(
-          g.name,
+          g.as ? `${g.as} at ${g.name}` : g.name,
           g.opened,
           `entry joined${here2 ? " current" : ""}`,
-          here2 ? "The table you are playing at" : `This browser's copy of a table it joined (room ${g.name}). Shift-click twice to delete it forever.`
+          here2 ? "The table you are playing at" : `This browser's copy of a table it joined (room ${g.name}${g.as ? `, as ${g.as}` : ""}). Shift-click twice to delete it forever.`
         );
         if (!here2) doomable(b, null, () => w.forget(g.id));
         else b.disabled = true;
@@ -18975,11 +18981,12 @@ async function main() {
     return { version: "dev", date: "", role: "old" };
   }
   if (invited) {
-    await store.copyFor(invited.room);
     const last = local("hollow.name"), held = await Identity.held(db, last);
     const name2 = session("hollow.name") ?? session("hollow.name", askName(held, last)) ?? "Player";
     local("hollow.name", name2);
-    const game2 = store.game, identity2 = await Identity.player(db, name2);
+    const identity2 = await Identity.player(db, name2), own2 = identity2.id === (await Identity.load(db)).id;
+    const { id: copyId } = await store.copyFor(invited.room, identity2.id, own2, name2);
+    const game2 = store.game;
     const wire = new Wire(invited.room, { identity: identity2, sealer, tab: tab2, relay });
     const copy = new Copy({
       game: game2,
@@ -18990,6 +18997,7 @@ async function main() {
       session: sessionStorage,
       local: localStorage,
       room: invited.room,
+      copy: copyId,
       gm: invited.gm,
       held: (rid2) => moves2.holds(rid2)
     });
