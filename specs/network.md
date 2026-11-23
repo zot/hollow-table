@@ -174,7 +174,5 @@ them. Nothing to install, no local-network grant, no daemon.
 ## Not yet
 
 - A player's roll requests go in the clear.
-- A stale copy's changes to pieces the GM has changed (not deleted) still win.
 - No TURN server, so some pairs can't connect (symmetric NAT).
-- A tape history for latecomers.
 - Whether a roll the GM throws away should leave players' tapes too.
