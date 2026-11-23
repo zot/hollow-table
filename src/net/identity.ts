@@ -1,17 +1,19 @@
-// CRC: crc-Identity.md | Seq: seq-join.md#1.2 | R164, R470
-// This browser's lasting identity: an ECDSA P-256 key pair made once and kept, the private half
-// non-extractable. Trystero proves it: the key is brought to Trystero, and the browser id is the user
-// id Trystero derives from the public key, so it survives reloads, and names and the invite's `gm=`
-// hold across them.
+// CRC: crc-Identity.md | Seq: seq-join.md#1.2 | R470, R474, R475, R477, R478
+// A page's lasting identity: an ECDSA P-256 key pair made once and kept, the private half
+// non-extractable. The GM's page uses the browser's own key; each player name has its own, so one
+// browser seats several players, a tab each. Trystero proves it: the key is brought to Trystero, and
+// the id is the user id Trystero derives from the public key, so it survives reloads, and names and the
+// invite's `gm=` hold across them.
 
 import type { UserIdentity } from '@trystero-p2p/nostr';
-import type { Db } from '../store/db.ts';
+import type { Db, Key } from '../store/db.ts';
 
 /** A browser id: Trystero's user id, 22 base62 characters. Any other shape is from before (R472, R473). */
 export const ID = /^[0-9A-Za-z]{22}$/;
 /** A raw P-256 public key in base64url: 65 bytes, 87 characters. */
 export const PUB = /^[\w-]{87}$/;
 const ALG = { name: 'ECDSA', namedCurve: 'P-256' } as const, SIG = { name: 'ECDSA', hash: 'SHA-256' } as const;
+const ME = 'me', PLAYER = 'player';
 const BASE62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 // R470: Trystero's user id for a key, written out as Trystero derives it: base62 of the SHA-256 of
@@ -35,14 +37,47 @@ export class Identity {
     this.#jwk = jwk;
   }
 
-  // R164: made on first use and kept; a page without a database keeps it for this load only.
-  /** This browser's identity, from the `identity` store. */
-  static async load(db: Db | null): Promise<Identity> {
-    const kept = db && await db.tx(['identity'], 'readonly', t => t.get<CryptoKeyPair>('identity', 'me'));
+  // R474, R475: made on first use and kept; a page without a database keeps it for this load only.
+  /** The browser's own identity, or with `key` a player name's, from the `identity` store. */
+  static async load(db: Db | null, key: Key = ME): Promise<Identity> {
+    const kept = db && await db.tx(['identity'], 'readonly', t => t.get<CryptoKeyPair>('identity', key));
     const pair = kept ?? await crypto.subtle.generateKey(ALG, false, ['sign', 'verify']) as CryptoKeyPair;
-    if (db && !kept) await db.tx(['identity'], 'readwrite', t => t.put('identity', 'me', pair));
+    if (db && !kept) await db.tx(['identity'], 'readwrite', t => t.put('identity', key, pair));
     const { x, y } = await crypto.subtle.exportKey('jwk', pair.publicKey);
     return new Identity(await userIdOf(x!, y!), pair.privateKey, { kty: 'EC', crv: 'P-256', x, y });
+  }
+
+  // R475: a player name's identity, made the first time the name is taken here.
+  /** The identity of the player name `name` in this browser. */
+  static player(db: Db | null, name: string): Promise<Identity> {
+    return Identity.load(db, [PLAYER, name]);
+  }
+
+  // R477: the first time, with no names held, the name from before names were per tab takes a copy of
+  // the browser's own key pair, so its id and its claims hold.
+  /** The player names this browser holds. */
+  static async held(db: Db | null, before: string | null): Promise<string[]> {
+    if (!db) return [];
+    return db.tx(['identity'], 'readwrite', async t => {
+      const names = (await t.keys('identity', PLAYER)).map(k => (k as [string, string])[1]);
+      if (names.length || !before) return names;
+      const me = await t.get<CryptoKeyPair>('identity', ME);
+      if (!me) return [];
+      await t.put('identity', [PLAYER, before], me);
+      return [before];
+    });
+  }
+
+  // R478: a rename taken moves the name's key pair to the new name, so its id holds.
+  /** Move the player name `from`'s key pair to `to`. */
+  static async renamed(db: Db | null, from: string, to: string): Promise<void> {
+    if (!db) return;
+    await db.tx(['identity'], 'readwrite', async t => {
+      const pair = await t.get<CryptoKeyPair>('identity', [PLAYER, from]);
+      if (!pair) return;
+      await t.put('identity', [PLAYER, to], pair);
+      await t.del('identity', [PLAYER, from]);
+    });
   }
 
   // Seq: seq-join.md#1.2 | R470: what Trystero proves this browser with; the private half stays here.

@@ -46,7 +46,7 @@ while the first browser now reads "not yours", and the new holder's page bars th
 **Alarm:** 17
 **Fire alarm:** take `claims` from any page, not only the GM's browser; red: the impostor's empty claims take the bar off its tag on Dana's page
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the bar left the impostor's tag; restored clean *Earlier —* 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R447 (main changed): rang, the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
+**Pulled:** 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), the bar left the impostor's tag; restored clean *Earlier —* 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the bar left the impostor's tag; restored clean *Earlier —* 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — re-pulled after R447 (main changed): rang, the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's empty claims took the bar off its tag on Dana's page (Chromium); restored clean
 ## Test: a page that was away can't bring back what was buried
 **Purpose:** stale copies can't resurrect
 **Input:** Dana's page leaves the room; the GM buries the big sticky (which no one had changed since
@@ -77,7 +77,7 @@ one: the GM's page has it; Ann joins later and has both; an image nobody has is 
 **Alarm:** 3
 **Fire alarm:** The GM's page doesn't watch for images: Dana's image never reaches the GM
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), Dana's image never reached the GM's page; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the GM's page never got the blue image (Chromium) *Earlier —* 2026-11-13 — rang: Dana's image never reached the GM's page (Chromium)
+**Pulled:** 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), Dana's image never reached the GM; restored clean *Earlier —* 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), Dana's image never reached the GM's page; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, the GM's page never got the blue image (Chromium) *Earlier —* 2026-11-13 — rang: Dana's image never reached the GM's page (Chromium)
 ## Test: rolls at the table
 **Purpose:** rolls resolve on the GM's page; each page prints what it may know
 **Expected:**
@@ -93,7 +93,7 @@ one: the GM's page has it; Ann joins later and has both; an image nobody has is 
 **Alarm:** 4
 **Fire alarm:** Don't tell Rolls when the GM's page has gone: Dana's page keeps waiting on it
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the spec timed out with Dana's page waiting on the gone GM; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept waiting on the GM's gone page (Chromium) *Earlier —* 2026-11-13 — rang: Dana's page kept waiting on the GM's gone page instead of saying nobody can roll (Chromium)
+**Pulled:** 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), Dana's page said the GM's page didn't answer, not that nobody can roll; restored clean *Earlier —* 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the spec timed out with Dana's page waiting on the gone GM; restored clean *Earlier —* 2026-11-13 — re-pulled after the carry rewrite: rang, Dana's page kept waiting on the GM's gone page (Chromium) *Earlier —* 2026-11-13 — rang: Dana's page kept waiting on the GM's gone page instead of saying nobody can roll (Chromium)
 ## Test: one carry, shown alike
 **Purpose:** R298–R301: what one page carries shows lifted on another, aimed there, and is saved only
 by the drop
@@ -247,7 +247,7 @@ by the drop
 **Alarm:** 18
 **Fire alarm:** take a `claim` from any page (drop the GM's-browser check); red: Dana's tag reads "not yours"
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), Dana's tag read "not yours"; restored clean *Earlier —* 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean
+**Pulled:** 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), Dana's tag read "not yours"; restored clean *Earlier —* 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), Dana's tag read "not yours"; restored clean *Earlier —* 2026-11-19 — re-pulled after R469 (main gained the rename): rang (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the impostor's forged claim made Dana's tag read "not yours" (Chromium); restored clean
 ## Test: a player's Ledger lists the tables joined, and deletes the others
 **Purpose:** R457, R458: a player's Ledger lists this browser's copies of joined tables; the one being played can't be armed, another goes with two shift-clicks
 **Input:** Dana joins; her browser also keeps a copy `room-old`; her Ledger opened; `room-old` shift-clicked twice
@@ -288,9 +288,9 @@ by the drop
 **Refs:** crc-Folks.md, crc-Authority.md, crc-Claims.md
 **Code:** `tests/away.spec.ts`
 **Alarm:** 22
-**Fire alarm:** reload without saving the new name (drop `local('hollow.name', to)`); red: the page comes back as Dana
+**Fire alarm:** reload without saving the new name as the tab's (drop `session('hollow.name', to)`); red: the page comes back as Dana
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the page came back as Dana; restored clean *Earlier —* 2026-11-19 — rang (Chromium): the page came back as Dana; restored clean
+**Pulled:** 2026-11-23 — re-pulled after R476, the injection now the tab's name (the name is the tab's): rang (Chromium), the page came back as Dana; restored clean *Earlier —* 2026-11-22 — re-pulled after R472/R473 (main changed): rang (Chromium), the page came back as Dana; restored clean *Earlier —* 2026-11-19 — rang (Chromium): the page came back as Dana; restored clean
 ## Test: an invite from before Trystero proved ids opens no table
 **Purpose:** R473: an old invite is neither the GM's page nor a player's, and says what to do
 **Expected:** a page opened by an invite whose `gm=` is a 20-character id shows "Ask the GM for a new link", its role is `old`, and there is no table
@@ -299,4 +299,13 @@ by the drop
 **Alarm:** 24
 **Fire alarm:** let an old invite fall through to the player's page; red: no message, the page tries to join a room
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-22 — rang (Chromium): falling through, no old-invite message was shown; restored clean
+**Pulled:** 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), falling through, no old-invite message was shown; restored clean *Earlier —* 2026-11-22 — rang (Chromium): falling through, no old-invite message was shown; restored clean
+## Test: two tabs of one browser are two players
+**Purpose:** R475, R476: a name is the tab's, with its own key, so one browser seats two players; a reload keeps the tab's name without asking, and a new tab offers the names held
+**Expected:** in one browser, a tab arriving as Dana and another as Sam both show on the GM's page, each with its own id; the second tab's prompt lists Dana; Dana's tab reloads as Dana without being asked
+**Refs:** crc-Identity.md, crc-Presence.md, seq-join.md
+**Code:** `tests/sync.spec.ts`
+**Alarm:** 25
+**Fire alarm:** keep the tab's name in localStorage instead of sessionStorage; red: the second tab is never asked and comes as Dana
+**Inject:** src/main.ts:main
+**Pulled:** 2026-11-23 — re-pulled after the simplifier (the injected line changed): rang (Chromium), the second tab was never asked; restored clean *Earlier —* 2026-11-23 — rang (Chromium): with the name in localStorage, the second tab was never asked; restored clean

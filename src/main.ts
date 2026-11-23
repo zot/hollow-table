@@ -1,4 +1,4 @@
-// CRC: crc-Build.md | R155, R196, R201
+// CRC: crc-Build.md | R196, R201, R476
 // The page's entry point: the store, this browser's identity, and, at a table, the network. The
 // plain page is the GM's and opens a table on demand; an invite makes a player, who joins with a
 // copy of the GM's table. The views attach here as they land. With `?test` the page exposes one
@@ -70,6 +70,11 @@ function tabId(session: KeyValue): string {
 /** A localStorage value, set first when given; null when storage is blocked. */
 function local(key: string, value?: string): string | null {
   try { if (value !== undefined) localStorage.setItem(key, value); return localStorage.getItem(key); } catch { return null; }
+}
+
+/** A sessionStorage value (this tab's), set first when given; null when storage is blocked. */
+function session(key: string, value?: string): string | null {
+  try { if (value !== undefined) sessionStorage.setItem(key, value); return sessionStorage.getItem(key); } catch { return null; }
 }
 
 /** The move actor's next pass: the next animation frame, or 100 ms, whichever comes first (a hidden tab gets no frames). */
@@ -403,8 +408,10 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
 }
 
 // R294: arriving by an invite asks for a name until one that isn't "GM" is given; cancel is "Player".
-function askName(): string {
-  for (;;) { const n = arrivalName(prompt('Your name at the table')); if (n) return n; }
+// R476: it lists the names this browser holds, offering the last one used.
+function askName(held: string[], last: string | null): string {
+  const ask = held.length ? `Your name at the table\nYours in this browser: ${held.join(', ')}` : 'Your name at the table';
+  for (;;) { const n = arrivalName(prompt(ask, last ?? undefined), held); if (n) return n; }
 }
 
 // R163, R293: this page's tag: lit while live, "offline" with why.
@@ -453,7 +460,7 @@ async function main() {
   // R455: once a game is first saved, the browser is asked to keep this storage.
   const store = new GameStore(db, clock, localStorage, async () => !!navigator.storage?.persist && (await navigator.storage.persisted() || await navigator.storage.persist()));
   const blobs = new BlobStore(db, measure);
-  const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
+  const sealer = await Sealer.make();
   const tab = tabId(sessionStorage), invited = fromUrl(location.search);
   // R297: a page opened with the test hook may be told to meet through the specs' local relay.
   const relay = new URLSearchParams(location.search).has('test') ? local('hollow.relay') ?? undefined : undefined;
@@ -468,9 +475,14 @@ async function main() {
   }
 
   if (invited) {
-    // R155, R140: a player, joining with a copy of the GM's table, kept per room.
+    // R476, R140: a player, joining with a copy of the GM's table, kept per room. The name is the tab's,
+    // asked when the tab has none; R475: it joins with that name's key, R477: the browser's name from
+    // before keeping the browser's own.
     await store.copyFor(invited.room);
-    const game: Game = store.game, name = local('hollow.name') ?? local('hollow.name', askName())!;
+    const last = local('hollow.name'), held = await Identity.held(db, last);
+    const name = session('hollow.name') ?? session('hollow.name', askName(held, last)) ?? 'Player';
+    local('hollow.name', name);
+    const game: Game = store.game, identity = await Identity.player(db, name);
     const wire = new Wire(invited.room, { identity, sealer, tab, relay });
     // Copy only asks what's held when a message arrives, after Moves is made.
     const copy = new Copy({ game, stamps, sealer, link: wire, clock, session: sessionStorage, local: localStorage, room: invited.room, gm: invited.gm,
@@ -495,8 +507,10 @@ async function main() {
       if (b.why) { say(b.why); return; }
       const to = b.to.trim(), id = store.current!.id;
       saveSeat(localStorage, id, to, loadSeat(localStorage, id, name));
+      session('hollow.name', to);
       local('hollow.name', to);
-      location.reload();
+      // R478: the name's key goes with it, so the id holds.
+      void Identity.renamed(db, name, to).then(() => location.reload());
     });
     const rename = () => {
       const answer = prompt('Your name at the table', name);
@@ -521,6 +535,8 @@ async function main() {
   }
 
   // The GM's page: the game is here; a table opens on demand, in the room remembered for this game.
+  // R474: it uses the browser's own key.
+  const identity = await Identity.load(db);
   await store.start();
   const game: Game = store.game;
   // R380: an older game's Fields and Skills, marked the first time the GM's page opens it.

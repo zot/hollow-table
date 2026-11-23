@@ -359,7 +359,7 @@
 - **~~R152:~~** (Retired T24 — see R357) To others, a hidden character's card and drawer cards are face-down, and its pool chips lose their names on hover.
 - **R153:** Only a real GM has the "You are" chooser, as a thing at the table; it lists the GM, the players present and the defaults, and stays while the GM views as a player.
 - **R154:** A player's page has no chooser and is fixed to that player.
-- **R155:** The plain page is the GM's; an invite makes a player, named once per browser.
+- **~~R155:~~** (Retired T53 — see R476) The plain page is the GM's; an invite makes a player, named once per browser.
 - **R356:** A character's name and place, its drawer's card count, its sheet's shape, and the contributions in its pool are public.
 - **R357:** To others, a hidden character's card and its drawer's cards are face-down.
 - **R358:** A contribution is an Influence put in a pool by someone other than its character's owner: a chip whose `by` is not the owner, or a card whose home character has another owner; contributions are the public mat, seen by everyone, a card from a hidden character face-down with its value.
@@ -391,6 +391,7 @@
 - **R467:** A rename is refused, saying why, for a blank name, one over 32 characters, "GM" or "open", or a name another browser holds or any other character's owner, all compared without case; the renamer's own name in another case is theirs.
 - **R468:** A rename taken moves the claim to the new name and rewrites, in one change, the owner of each character the renamer owned and the `by` of each chip they put; printed receipts keep the old name.
 - **R469:** Clicking their own name in the bar, a player asks for a new name, which goes to the GM's page as `rename`; the GM's page answers that page (taken, or refused and why); taken, the page saves the name, moves its seat and reloads as it; refused, or with the GM's page away, the page's own tag says why.
+- **R478:** A rename taken moves the name's key to the new name, so the page's id holds.
 
 ## Feature: the network
 **Source:** specs/network.md
@@ -405,7 +406,7 @@
 - **R294:** Copy invite says "Copied" for about a second, or shows the link if the clipboard refuses; arriving by an invite asks for a name until one that isn't "GM" is given (cancel gives "Player").
 - **R162:** A page that connects is greeted and answers; a connection that closes counts as leaving.
 - **R163:** A page is live while a relay or a peer is reachable, offline (with why) after 15 s with neither, and keeps trying.
-- **R164:** Each browser makes a non-extractable signing key pair once and keeps it; its id derives from the public key and survives reloads.
+- **~~R164:~~** (Retired T54 — see R474) Each browser makes a non-extractable signing key pair once and keeps it; its id derives from the public key and survives reloads.
 - **~~R165:~~** (Retired T52 — see R470) Before a page is let in, both sides prove their browsers' keys and vouch for their sealing keys; a bad signature is refused.
 - **R166:** The first browser to claim a name holds it.
 - **R167:** A page claiming a held name from another browser sees only what anyone sees, has its changes, moves and roll requests refused, and is shown a "not yours" chip that says why.
@@ -459,6 +460,10 @@
 - **R471:** A page's first message over a proven connection says its sealing key and its tab; a page counts as at the table only once it has arrived.
 - **R472:** When the GM's page loads a game, claims made under ids from before Trystero proved them are cleared.
 - **R473:** An invite carrying an id from before Trystero proved them opens no table: it says the link is old and to ask the GM for a new one.
+- **R474:** The GM's page uses the browser's own key, a non-extractable signing key pair made once and kept; its id derives from the public key and survives reloads.
+- **R475:** Each player name a browser takes has its own non-extractable signing key pair, made when the name is first taken there and kept; a page of that name uses it, so its id survives reloads and two tabs of one name are one player.
+- **R476:** The plain page is the GM's, and an invite makes a player, whose name is the tab's: a reload keeps it without asking; arriving by an invite in a new tab asks, listing the names this browser holds; one of those, in any case, is that name, and any other is a new name.
+- **R477:** The name a browser had before names were per tab keeps the browser's own key, becoming the first name it holds, so its id and claims hold.
 
 ## Feature: connections
 **Source:** specs/connections.md

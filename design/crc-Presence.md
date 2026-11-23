@@ -1,12 +1,12 @@
 # Presence
-**Requirements:** R155, R157, R158, R159, R161, R162, R163, R293, R294, R473
+**Requirements:** R157, R158, R159, R161, R162, R163, R293, R294, R473, R476
 
 Who's at the table, and the room itself.
 
 ## Knows
 - role: the GM (a plain page) or a player (an invite, carrying `room` and `gm`).
 - room: `<label>-<128-bit hex>`; the GM's is remembered per game (seat tier), never put in the URL.
-- name: a player's, asked once per browser.
+- name: a player's, the tab's (R476).
 - people: tab → `{name, role, browser}`, and when each tab was last heard.
 - status: off, live, or offline with why.
 

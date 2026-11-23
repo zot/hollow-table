@@ -41,7 +41,17 @@ arrival is asked again for "GM" or blank, cancel is "Player"
 **Alarm:** 3
 **Fire alarm:** Let an arrival be called GM: `arrivalName('GM')` is `GM`
 **Inject:** src/ui/folks.ts:arrivalName
-**Pulled:** 2026-11-13 — rang: `arrivalName('GM')` gave `GM`
+**Pulled:** 2026-11-23 — re-pulled after R476 (arrivalName takes held names): rang, `arrivalName('GM')` gave `GM`; restored clean *Earlier —* 2026-11-13 — rang: `arrivalName('GM')` gave `GM`
+## Test: an arrival picks a held name in any case
+**Purpose:** R476: a name this browser holds, typed in any case, is that name as held; any other is a new name
+**Input:** arrivalName of " fred " with Fred held, of "Sam" with Fred held, of "GM" with Fred held
+**Expected:** `Fred`, `Sam`, ask again
+**Refs:** crc-Folks.md
+**Code:** `src/ui/folks.test.ts`
+**Alarm:** 7
+**Fire alarm:** compare held names with case; red: " fred " gives `fred`, a second name beside Fred
+**Inject:** src/ui/folks.ts:arrivalName
+**Pulled:** 2026-11-23 — rang: compared with case, " fred " gave `fred` beside Fred; restored clean
 
 ## Test: whom "You are" offers
 **Purpose:** R153: the GM, the players present, the owners and the defaults, never open

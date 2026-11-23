@@ -42,12 +42,14 @@ export function gmName(answer: string | null, was: string): string {
   return answer === null ? was : answer.trim().slice(0, NAME_MAX) || 'GM';
 }
 
-// R294: arriving by an invite asks until the name isn't "GM" (or blank); cancel is "Player".
+// R294: arriving by an invite asks until the name isn't "GM" (or blank); cancel is "Player". R476: a
+// name this browser holds, in any case, is that name as held.
 /** The name an answer gives, or null to ask again. */
-export function arrivalName(answer: string | null): string | null {
+export function arrivalName(answer: string | null, held: string[] = []): string | null {
   if (answer === null) return 'Player';
   const name = answer.trim().slice(0, NAME_MAX);
-  return name && name !== 'GM' ? name : null;
+  if (!name || name === 'GM') return null;
+  return held.find(h => h.toLowerCase() === name.toLowerCase()) ?? name;
 }
 
 // R153: the GM's "You are" cycles through the GM, the players present and the defaults.

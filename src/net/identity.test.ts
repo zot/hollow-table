@@ -21,3 +21,19 @@ test("a browser's id is Trystero's for its key", async () => {
   assert.deepEqual(t.signPubJwk, theirs.signPubJwk);
   assert.ok(await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pair.publicKey, await t.sign(payload) as Uint8Array<ArrayBuffer>, payload), 'signs with the kept key');
 });
+
+test('each player name has its own key', async () => {
+  // R475, R477, R478: the name from before keeps the browser's own key; a new name gets its own; a
+  // rename moves the name's key.
+  const db = new MemoryDb(), me = await Identity.load(db);
+  assert.deepEqual(await Identity.held(db, 'Dana'), ['Dana']);
+  assert.equal((await Identity.player(db, 'Dana')).id, me.id, "the name from before keeps the browser's id");
+  const sam = await Identity.player(db, 'Sam');
+  assert.notEqual(sam.id, me.id);
+  assert.equal((await Identity.player(db, 'Sam')).id, sam.id, 'a name keeps its key');
+  assert.deepEqual((await Identity.held(db, 'Dana')).sort(), ['Dana', 'Sam']);
+  await Identity.renamed(db, 'Sam', 'Sue');
+  assert.equal((await Identity.player(db, 'Sue')).id, sam.id, 'a rename moves the key');
+  assert.deepEqual((await Identity.held(db, 'Dana')).sort(), ['Dana', 'Sue']);
+  assert.deepEqual(await Identity.held(new MemoryDb(), null), [], 'no names held, and none from before');
+});

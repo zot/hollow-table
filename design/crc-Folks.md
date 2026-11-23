@@ -1,5 +1,5 @@
 # Folks
-**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445, R446, R447, R469
+**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445, R446, R447, R469, R476
 
 The people in the bar: a name tag each, the GM's invite, and the real GM's "You are".
 
@@ -18,7 +18,8 @@ The people in the bar: a name tag each, the GM's invite, and the real GM's "You 
   name another browser holds is `impostor`, drawn barred: a band from the tag's upper right corner to
   its lower left; only the GM's page also makes it red and clickable.
 - gmName(answer, was): the GM's rename: 32 characters at most, blank is "GM", cancel keeps it.
-- arrivalName(answer): an invited page's name: asked again for "GM" or blank; cancel is "Player".
+- arrivalName(answer, held): an invited page's name: asked again for "GM" or blank; cancel is
+  "Player"; one of the names this browser holds, in any case, is that name as held (R476).
 - viewAsChoices(present, owners): the GM, the players present, every character's owner and the
   defaults "Player 1", "Player 2", never open.
 - FolksView: draws the tags once a second and when anything changed. The GM's own tag asks for a

@@ -42,6 +42,13 @@ test('names: the GM blank is "GM"; an arrival asks until it isn\'t "GM"', () => 
   assert.equal(arrivalName(' Sam '), 'Sam');
 });
 
+test('an arrival picks a held name in any case', () => {
+  // R476: a held name typed in any case is that name as held; any other is a new name.
+  assert.equal(arrivalName(' fred ', ['Fred']), 'Fred');
+  assert.equal(arrivalName('Sam', ['Fred']), 'Sam');
+  assert.equal(arrivalName('GM', ['Fred']), null);
+});
+
 test('"You are" offers the GM, the players present and the defaults, never open', () => {
   // R153.
   assert.deepEqual(viewAsChoices(['Sam'], ['GM', 'open', 'Ann', 'Sam']), ['GM', 'Sam', 'Ann', 'Player 1', 'Player 2']);

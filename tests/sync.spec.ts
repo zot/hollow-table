@@ -1,4 +1,4 @@
-// CRC: crc-Wire.md | Test: test-Network.md | R140, R141, R155, R156, R157, R158, R159, R161, R162, R166, R172, R173, R297
+// CRC: crc-Wire.md | Test: test-Network.md | R140, R141, R156, R157, R158, R159, R161, R162, R166, R172, R173, R297, R475, R476
 // Two pages find each other through the local relay, prove who they are, and sync both ways.
 import { expect, test, type Page } from '@playwright/test';
 import { gmTable, hook, join, open, records, synced } from './page.ts';
@@ -103,3 +103,28 @@ test('an invite from before Trystero proved ids opens no table, and says to ask 
   expect(await page.evaluate(() => (window as unknown as { hollow: { ready: Promise<{ role: string }> } }).hollow.ready.then(h => h.role))).toBe('old');
   await expect(page.locator('#table')).toHaveCount(0);
 });
+
+test('two tabs of one browser are two players, and a reload keeps the tab\'s name', async ({ browser }) => {
+  // R475, R476: a name is the tab's, with its own key; a new tab offers the names this browser holds.
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  const sam = await dana.context().newPage();
+  let asked = '';
+  sam.on('dialog', d => { asked = d.message(); void d.accept('Sam'); });
+  await open(sam, invite);
+  await synced(sam, gm);
+  expect(asked).toContain('Dana');
+  const ids = await Promise.all([dana, sam].map(p => hook(p, h => h.identity.id as string)));
+  expect(ids[0]).not.toBe(ids[1]);
+  await expect(gm.locator('#bar span.tag', { hasText: 'Dana' })).toHaveCount(1);
+  await expect(gm.locator('#bar span.tag', { hasText: 'Sam' })).toHaveCount(1);
+  // A reload keeps the tab's name without asking.
+  let reasked = false;
+  dana.on('dialog', () => { reasked = true; });
+  await dana.reload();
+  await dana.waitForFunction(() => (window as any).hollow?.ready);
+  expect(await hook(dana, h => h.identity.id as string)).toBe(ids[0]);
+  await expect(dana.locator('#bar span.tag.you')).toHaveText('Dana');
+  expect(reasked).toBe(false);
+});
+

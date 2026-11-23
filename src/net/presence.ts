@@ -1,4 +1,4 @@
-// CRC: crc-Presence.md | Seq: seq-join.md#1.8, seq-join.md#1.9 | R155, R157, R158, R159, R161, R162, R163, R293
+// CRC: crc-Presence.md | Seq: seq-join.md#1.8, seq-join.md#1.9 | R157, R158, R159, R161, R162, R163, R293, R476
 // Who's at the table, and the room itself. The room's name is the capability: whoever has the
 // invite can join, and nobody else hears anything.
 
@@ -34,7 +34,7 @@ export function invite(base: string, room: string, gm: string): string {
 
 const ROOM = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/, OLD = /^[\w-]{20}$/;
 
-// R155: the plain page is the GM's; an invite makes a player. R473: an invite naming the GM by an id
+// R476: the plain page is the GM's; an invite makes a player. R473: an invite naming the GM by an id
 // from before Trystero proved them is `old`, not the GM's page.
 /** What a page's URL makes it: a player, with the room and the GM's browser; `old`; or null (the GM). */
 export function fromUrl(search: string): { room: string; gm: string } | 'old' | null {

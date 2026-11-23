@@ -273,7 +273,7 @@ pool's labels selects as text but the build stamp
 **Alarm:** 19
 **Fire alarm:** never apply markOlder on opening (drop the call in main); red: no Field on Sam's card
 **Inject:** src/main.ts:main
-**Pulled:** 2026-11-22 — re-pulled after R472 (main changed): rang (Chromium), no Field on Sam's card; restored clean *Earlier —* 2026-11-16 — rang (Chromium): no Field on Sam's card; restored clean
+**Pulled:** 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), no Field on Sam's card; restored clean *Earlier —* 2026-11-22 — re-pulled after R472 (main changed): rang (Chromium), no Field on Sam's card; restored clean *Earlier —* 2026-11-16 — rang (Chromium): no Field on Sam's card; restored clean
 ## Test: the die toggles the roll row
 **Purpose:** R381, R382, R353 on the GM's page: Beauford's die brings his row up; Tricky -Min puts its card in Main; clicking the Base starts the row fresh, the card gone; the die again puts the row away, the card with it
 **Input:** Beauford's die; Tricky -Min; the Base; Tricky -Min again; the die

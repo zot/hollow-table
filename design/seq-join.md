@@ -21,6 +21,9 @@ Player page                 Wire (player)          Relays          Wire (GM)    
 1.12.1 <--------------claims (who holds each name), to this tab only--------------------------|
 ```
 
+- Before step 1, the player's page takes its name: the tab's own across a reload, or else asked,
+  listing the names this browser holds (R476); it joins with that name's key (R475), the GM's page with
+  the browser's own (R474).
 - At step 1.2, Trystero signs a transcript binding the room, both peer ids, both nonces, both DTLS
   fingerprints and both browsers' user ids, with each side's connection key and browser key (R470).
 - At step 1.6, a page whose proof failed, or whose `hi` is malformed, never joins; every later

@@ -98,7 +98,8 @@ The die by the character's name shows GM, open, or the player.
 - **Real identity is separate from who you're viewing as.** Only a real GM gets the "You are"
   chooser (a thing at the table, not a dropdown), which lists the GM, the players present, and the defaults, and keeps it while viewing as
   a player. A player's page has none and is fixed to that player.
-- The plain page is the GM's. An invite link makes a player, named once per browser.
+- The plain page is the GM's. An invite link makes a player, named per tab, so one browser can seat
+  several players, a tab each (Bill, 11-22).
 
 ## Renaming
 
@@ -111,5 +112,5 @@ The die by the character's name shows GM, open, or the player.
   says why and the name stays.
 - **The GM's page decides it**, holding the claims: with it away, the tag says so ("No, it says why").
 - **Taken, the page reloads as the new name** ("It reloads as the new name").
-- Owners are names, so a rename rewrites them; every tab of a browser is the same player (per-tab
-  players are prototype Item 49).
+- Owners are names, so a rename rewrites them. The name's key goes with it, so its id holds. Another tab
+  still on the old name takes it as a new name when it reloads.

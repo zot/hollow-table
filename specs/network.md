@@ -10,7 +10,9 @@ them. Nothing to install, no local-network grant, no daemon.
 - **Copy invite** copies a link carrying the room and the GM's browser id, and says "Copied" for about a
   second (if the clipboard refuses, the link is shown to copy by hand). Shift-clicking it closes
   the table. Arriving by an invite asks for your name until you give one that isn't "GM" (cancel
-  gives "Player"). The GM's own URL is never rewritten (reloading an invite would demote the GM); the
+  gives "Player"), listing the names this browser already holds (Bill, 11-22: "Offer held names"): one
+  of those, in any case, is that name, and any other is a new one. The name is the tab's: a reload keeps
+  it without asking, and a new tab asks. The GM's own URL is never rewritten (reloading an invite would demote the GM); the
   GM's room is remembered per game.
 - The page pins a list of relays that answered, the same on every page, so any two pages share them.
 - **Relays come and go, so the list is tended by hand** (Bill, 11-19: "Swap it, add a probe"):
@@ -34,8 +36,14 @@ them. Nothing to install, no local-network grant, no daemon.
 
 ## Identity
 
-- Each browser makes a signing key pair once and keeps it (the private half can't be exported). The
-  browser's id comes from its public key, so it survives reloads.
+- **The GM's page uses the browser's key; each player name has a key of its own** (Bill, 11-22: "GM
+  stays per browser"). A browser makes a signing key pair once for itself, and one for each player name
+  it takes, and keeps them (the private halves can't be exported). A page's id comes from the key it
+  uses, so it survives reloads, and two tabs of one name are one player (Bill, 11-22: "Allow: one
+  player"). Below, a browser's id is the id of the key a page brings: two names in one browser are two
+  ids, as two people at the table.
+- **The name a browser had before names were per tab keeps the browser's key** (Bill, 11-22: "Keeps the
+  'me' key"): it becomes the first name the browser holds, so its id and its claims at tables hold.
 - **Before a page is let in, both sides prove their browsers' keys.** Trystero does the proving
   (Bill, 11-21: "Trystero's userId", with the key "Ours, via a loader"): our key is handed to it, a
   browser's id is the user id it derives from that key, and its handshake binds the room, both
@@ -64,8 +72,8 @@ them. Nothing to install, no local-network grant, no daemon.
   its secrets; a page of that name on the browser that held it gets the tag. Whether a page is
   "not yours" is the GM's page's word alone: a page takes it only from the GM's browser, so no other
   page can make it read "not yours", or clear it.
-- A browser profile is a person. Clearing site data makes you someone new; the GM hands your name
-  over.
+- A browser profile holds its names and their keys. Clearing site data makes them new; the GM hands each
+  name over.
 
 ## The GM's page holds the game
 

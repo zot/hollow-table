@@ -2844,6 +2844,8 @@ var ID = /^[0-9A-Za-z]{22}$/;
 var PUB = /^[\w-]{87}$/;
 var ALG = { name: "ECDSA", namedCurve: "P-256" };
 var SIG = { name: "ECDSA", hash: "SHA-256" };
+var ME = "me";
+var PLAYER = "player";
 var BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 async function userIdOf(x, y) {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`trystero:uid:v1:${x}.${y}`)));
@@ -2863,14 +2865,44 @@ var Identity = class _Identity {
     this.#key = key;
     this.#jwk = jwk;
   }
-  // R164: made on first use and kept; a page without a database keeps it for this load only.
-  /** This browser's identity, from the `identity` store. */
-  static async load(db) {
-    const kept = db && await db.tx(["identity"], "readonly", (t) => t.get("identity", "me"));
+  // R474, R475: made on first use and kept; a page without a database keeps it for this load only.
+  /** The browser's own identity, or with `key` a player name's, from the `identity` store. */
+  static async load(db, key = ME) {
+    const kept = db && await db.tx(["identity"], "readonly", (t) => t.get("identity", key));
     const pair = kept ?? await crypto.subtle.generateKey(ALG, false, ["sign", "verify"]);
-    if (db && !kept) await db.tx(["identity"], "readwrite", (t) => t.put("identity", "me", pair));
+    if (db && !kept) await db.tx(["identity"], "readwrite", (t) => t.put("identity", key, pair));
     const { x, y } = await crypto.subtle.exportKey("jwk", pair.publicKey);
     return new _Identity(await userIdOf(x, y), pair.privateKey, { kty: "EC", crv: "P-256", x, y });
+  }
+  // R475: a player name's identity, made the first time the name is taken here.
+  /** The identity of the player name `name` in this browser. */
+  static player(db, name2) {
+    return _Identity.load(db, [PLAYER, name2]);
+  }
+  // R477: the first time, with no names held, the name from before names were per tab takes a copy of
+  // the browser's own key pair, so its id and its claims hold.
+  /** The player names this browser holds. */
+  static async held(db, before2) {
+    if (!db) return [];
+    return db.tx(["identity"], "readwrite", async (t) => {
+      const names = (await t.keys("identity", PLAYER)).map((k) => k[1]);
+      if (names.length || !before2) return names;
+      const me = await t.get("identity", ME);
+      if (!me) return [];
+      await t.put("identity", [PLAYER, before2], me);
+      return [before2];
+    });
+  }
+  // R478: a rename taken moves the name's key pair to the new name, so its id holds.
+  /** Move the player name `from`'s key pair to `to`. */
+  static async renamed(db, from, to) {
+    if (!db) return;
+    await db.tx(["identity"], "readwrite", async (t) => {
+      const pair = await t.get("identity", [PLAYER, from]);
+      if (!pair) return;
+      await t.put("identity", [PLAYER, to], pair);
+      await t.del("identity", [PLAYER, from]);
+    });
   }
   // Seq: seq-join.md#1.2 | R470: what Trystero proves this browser with; the private half stays here.
   /** This browser's identity as Trystero takes it. */
@@ -11876,8 +11908,8 @@ var extractPluginSlots = (use, initialRoomId, identity) => {
   return [rolesSlot, scaleSlot];
 };
 var isRoomLeavingOrLeft = (state) => state.phase === "leaving" || state.phase === "left";
-var isPendingDirectSession = (session) => session.phase === "direct-pending" || session.phase === "virtual-upgrading";
-var hasVirtualSession = (session) => session.phase === "virtual-only" || session.phase === "virtual-upgrading";
+var isPendingDirectSession = (session2) => session2.phase === "direct-pending" || session2.phase === "virtual-upgrading";
+var hasVirtualSession = (session2) => session2.phase === "virtual-only" || session2.phase === "virtual-upgrading";
 var createRoomWithBridge = (onPeer, onPeerLeave, onSelfLeave, roomOptions = {}) => {
   const { endpointIdentity, clientId, appId = "", roomId: initialRoomId = "", password = "", maxUsers, identity, maxReceiveBytes, onBeforeLeave } = roomOptions;
   if (maxUsers !== void 0 && !isPosSafeInt(maxUsers)) throw posSafeIntErr("maxUsers");
@@ -12035,10 +12067,10 @@ var createRoomWithBridge = (onPeer, onPeerLeave, onSelfLeave, roomOptions = {}) 
   const isPeerActive = (id) => isActiveEntry(peerEntries.get(id));
   const hasAnyPeer = (id) => peerEntries.has(id);
   const getDirectPeer = (id, includePending = false) => {
-    const session = peerEntries.get(id)?.session;
-    if (!session || session.phase === "virtual-only") return;
-    if (session.phase === "direct-active") return session.peer;
-    return includePending ? session.peer : void 0;
+    const session2 = peerEntries.get(id)?.session;
+    if (!session2 || session2.phase === "virtual-only") return;
+    if (session2.phase === "direct-active") return session2.peer;
+    return includePending ? session2.peer : void 0;
   };
   const getPeerIds = (includePending = false) => {
     const ids = [];
@@ -12199,19 +12231,19 @@ var createRoomWithBridge = (onPeer, onPeerLeave, onSelfLeave, roomOptions = {}) 
     }
   });
   const getEntryTransport = (id, includePending) => {
-    const session = peerEntries.get(id)?.session;
-    if (!session) return;
-    switch (session.phase) {
+    const session2 = peerEntries.get(id)?.session;
+    if (!session2) return;
+    switch (session2.phase) {
       case "direct-active":
-        return session.transport;
+        return session2.transport;
       case "direct-pending":
-        return includePending ? session.transport : void 0;
+        return includePending ? session2.transport : void 0;
       case "virtual-upgrading":
-        return includePending ? session.transport : session.virtual;
+        return includePending ? session2.transport : session2.virtual;
       case "virtual-only":
-        return session.virtual;
+        return session2.virtual;
       default:
-        return unreachable(session);
+        return unreachable(session2);
     }
   };
   const { makeAction, makeInternalAction, makeInternalRequestAction, handleData, clearPeer: clearActionPeer, clearListeners: clearActionListeners } = createActionManager({
@@ -12366,8 +12398,8 @@ var createRoomWithBridge = (onPeer, onPeerLeave, onSelfLeave, roomOptions = {}) 
       for (const id of getPeerIds(true)) hs.clearPeer(id, roomLeftErr);
       emitLeave();
       const leaveTargets = scaleProvider ? getDirectPeerIds(false).filter((id) => {
-        const session = peerEntries.get(id)?.session;
-        return session && session.phase !== "virtual-only" && session.transport.isOpen;
+        const session2 = peerEntries.get(id)?.session;
+        return session2 && session2.phase !== "virtual-only" && session2.transport.isOpen;
       }) : void 0;
       const hasOpenPeers = peerEntries.size > 0 && (!leaveTargets || leaveTargets.length > 0);
       const controller = new AbortController();
@@ -16423,10 +16455,11 @@ var NAME_MAX = 32;
 function gmName(answer, was) {
   return answer === null ? was : answer.trim().slice(0, NAME_MAX) || "GM";
 }
-function arrivalName(answer) {
+function arrivalName(answer, held = []) {
   if (answer === null) return "Player";
   const name2 = answer.trim().slice(0, NAME_MAX);
-  return name2 && name2 !== "GM" ? name2 : null;
+  if (!name2 || name2 === "GM") return null;
+  return held.find((h) => h.toLowerCase() === name2.toLowerCase()) ?? name2;
 }
 function viewAsChoices(present, owners) {
   return [.../* @__PURE__ */ new Set(["GM", ...present, ...owners, "Player 1", "Player 2"])].filter((n) => n !== "open");
@@ -18364,16 +18397,16 @@ async function measure(blob) {
   image2.close();
   return size;
 }
-function tabId(session) {
+function tabId(session2) {
   let tab2 = null;
   try {
-    tab2 = session.getItem("hollow.tab");
+    tab2 = session2.getItem("hollow.tab");
   } catch {
   }
   if (!tab2) {
     tab2 = `t-${[...crypto.getRandomValues(new Uint8Array(8))].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
     try {
-      session.setItem("hollow.tab", tab2);
+      session2.setItem("hollow.tab", tab2);
     } catch {
     }
   }
@@ -18383,6 +18416,14 @@ function local(key, value2) {
   try {
     if (value2 !== void 0) localStorage.setItem(key, value2);
     return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function session(key, value2) {
+  try {
+    if (value2 !== void 0) sessionStorage.setItem(key, value2);
+    return sessionStorage.getItem(key);
   } catch {
     return null;
   }
@@ -18771,9 +18812,11 @@ ${groupOf(c.front) ?? ""}`, seen3 = /* @__PURE__ */ new Map();
   });
   return { table, drag, bar, hands };
 }
-function askName() {
+function askName(held, last) {
+  const ask = held.length ? `Your name at the table
+Yours in this browser: ${held.join(", ")}` : "Your name at the table";
   for (; ; ) {
-    const n = arrivalName(prompt("Your name at the table"));
+    const n = arrivalName(prompt(ask, last ?? void 0), held);
     if (n) return n;
   }
 }
@@ -18827,7 +18870,7 @@ async function main() {
   const db = await IdbDb.open();
   const store = new GameStore(db, clock, localStorage, async () => !!navigator.storage?.persist && (await navigator.storage.persisted() || await navigator.storage.persist()));
   const blobs = new BlobStore(db, measure);
-  const [identity, sealer] = await Promise.all([Identity.load(db), Sealer.make()]);
+  const sealer = await Sealer.make();
   const tab2 = tabId(sessionStorage), invited = fromUrl(location.search);
   const relay = new URLSearchParams(location.search).has("test") ? local("hollow.relay") ?? void 0 : void 0;
   const stamps = new Stamps(sessionStorage);
@@ -18841,8 +18884,11 @@ async function main() {
   }
   if (invited) {
     await store.copyFor(invited.room);
-    const game2 = store.game, name2 = local("hollow.name") ?? local("hollow.name", askName());
-    const wire = new Wire(invited.room, { identity, sealer, tab: tab2, relay });
+    const last = local("hollow.name"), held = await Identity.held(db, last);
+    const name2 = session("hollow.name") ?? session("hollow.name", askName(held, last)) ?? "Player";
+    local("hollow.name", name2);
+    const game2 = store.game, identity2 = await Identity.player(db, name2);
+    const wire = new Wire(invited.room, { identity: identity2, sealer, tab: tab2, relay });
     const copy = new Copy({
       game: game2,
       stamps,
@@ -18885,8 +18931,9 @@ async function main() {
       }
       const to = b.to.trim(), id = store.current.id;
       save(localStorage, id, to, load(localStorage, id, name2));
+      session("hollow.name", to);
       local("hollow.name", to);
-      location.reload();
+      void Identity.renamed(db, name2, to).then(() => location.reload());
     });
     const rename3 = () => {
       const answer = prompt("Your name at the table", name2);
@@ -18913,8 +18960,9 @@ async function main() {
       ...notYours !== null && { notYours },
       ...said !== null && clock.now() < saidUntil && { said }
     }), people: () => here(presence), held: (n) => claims[n], rename: rename3 });
-    return { version: "dev", date: "", role: "player", tab: tab2, identity, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
+    return { version: "dev", date: "", role: "player", tab: tab2, identity: identity2, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }
+  const identity = await Identity.load(db);
   await store.start();
   const game = store.game;
   const older = markOlder(game);

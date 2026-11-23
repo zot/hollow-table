@@ -2,7 +2,7 @@
 **Source:** crc-Identity.md
 
 ## Test: a browser's id is Trystero's for its key
-**Purpose:** R164, R470: the id this browser gives Trystero is the one Trystero derives from the key, so a brought identity is accepted, and it signs with the kept key
+**Purpose:** R474, R470: the id this browser gives Trystero is the one Trystero derives from the key, so a brought identity is accepted, and it signs with the kept key
 **Input:** an extractable key pair kept in the `identity` store; Trystero's `importUserIdentity` of the same key
 **Expected:** the id has Identity's ID shape and equals Trystero's user id; the same store gives the same id, another browser another; `trystero()` carries that id and public key, and its signature verifies with the kept key
 **Refs:** crc-Identity.md, seq-join.md
@@ -11,6 +11,17 @@
 **Fire alarm:** derive the id under another domain tag (`trystero:uid:v2:`); red: the id is not Trystero's
 **Inject:** src/net/identity.ts:userIdOf
 **Pulled:** 2026-11-22 — rang: under `trystero:uid:v2:` the id was not Trystero's user id; restored clean
+
+## Test: each player name has its own key
+**Purpose:** R475, R477, R478: a browser holds a key per player name; the name it had before keeps the browser's own key; a rename moves the name's key
+**Input:** a database with the browser's own key and no names; held with the name from before ("Dana"); player "Dana", "Sam", "Sam" again; renamed "Sam" to "Sue"
+**Expected:** held is `Dana`, and Dana's id is the browser's own; Sam's id is another, the same again; held is Dana and Sam; after the rename, Sue's id is Sam's and held is Dana and Sue; with no names held and none from before, held is empty
+**Refs:** crc-Identity.md
+**Code:** `src/net/identity.test.ts`
+**Alarm:** 6
+**Fire alarm:** give the name from before a new key instead of a copy of the browser's own; red: Dana's id is not the browser's
+**Inject:** src/net/identity.ts:Identity
+**Pulled:** 2026-11-23 — rang: with a new key for the name from before, Dana's id was not the browser's; restored clean
 
 ## Test: a box opens only for what it was made for
 **Purpose:** the additional data binds what, from and to
