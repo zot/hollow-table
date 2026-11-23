@@ -12,6 +12,8 @@ the negative rows of the Con/Wis table. Opened by Bill, 2026-11-23, from gaps O2
       scene?" in the Round's window.
 - [ ] **Item 3 — the Round's tab, pointed like a register's flag.** **OPEN (not queued.)**
 - [ ] **Item 4 — the negative rows of the Con/Wis table.** **OPEN (not queued.)** Gap O3.
+- [x] ~~**Item 5 — End's tooltip says how to end only the Conflict.**~~ **LANDED (2026-11-23 — `#59`.)** At Round 0, ▲ to
+      Round 1 first, then End.
 
 ## Decisions
 
@@ -42,6 +44,10 @@ DECIDED (Bill, 2026-11-23), on Daneel's questions when the carve started:
   Read from the export's flattened row, which holds "Worth only 1" once at −1 and twice at −2 in the order
   Mild, Min, Sig, Absorption; the PDF wasn't readable here.
 
+DECIDED (Bill, 2026-11-23), after Item 1: "In Round 0, to end the conflict but not the scene, the GM can
+raise it to Round 1 and then end it", noted on End's tooltip ("Yes, let's do the tooltip"), not on the
+"End scene?" tab, which holds two words and rises only after the first press (Item 5).
+
 ## Built
 
 - **Item 1, as `#58`** (2026-11-23; R492, gap O2 resolved): the register arms with "End scene?" when the
@@ -49,6 +55,8 @@ DECIDED (Bill, 2026-11-23), on Daneel's questions when the carve started:
   nothing), and the second press checkpoints "End of scene" and runs `ended(game, true)`: all that ending a
   Conflict does, and every character's Motivations recharged by `Tap.rechargeMotives` (R262, uncalled
   until now).
+- **Item 5, as `#59`** (2026-11-23; R493): End's tooltip adds "(▲ to Round 1 first to end only the
+  Conflict)"; the register's browser test checks it, and fails with the hint removed.
 
 ## Where it stands
 

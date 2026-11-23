@@ -1,4 +1,4 @@
-// CRC: crc-Register.md | R99, R112, R115, R116, R117, R262, R284, R338, R344, R492
+// CRC: crc-Register.md | R99, R112, R115, R116, R117, R262, R284, R338, R344, R492, R493
 // The cash register in the bar: the Round in its glass, ▲ ▼, End, and the tape's paper roll. The
 // decisions are pure (stepped, ended); the view draws the register and asks before End.
 
@@ -84,7 +84,9 @@ export class RegisterView {
     roll.title = 'Roll the tape up, or down again';
     up.title = 'The next Round';
     down.title = 'The Round before';
-    end.title = 'End the Conflict: Round to 0, Biases, Afflictions and Injuries recharged, the used piles emptied. At Round 0, end the scene: Motivations recharged too';
+    // R493: how to end only the Conflict at Round 0.
+    end.title = 'End the Conflict: Round to 0, Biases, Afflictions and Injuries recharged, the used piles emptied. '
+      + 'At Round 0, end the scene: Motivations recharged too (▲ to Round 1 first to end only the Conflict)';
     keys.append(up, down, end);
     this.#el.append(el('span', 'rslot'), win, keys, roll);
     bar.append(this.#el);

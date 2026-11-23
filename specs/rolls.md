@@ -359,3 +359,5 @@ table: if it succeeds, the NPC accepts.
   3 s it checkpoints the game as "End of scene" and does all that ending a Conflict does (the books end
   Damage, Convictions, Burdens and CRIT! at a Scene's end too), and every Motivation recharges, its
   parentheses removed ("Every scene (keep 11-12)"). Opinion Records keep theirs until an Event's end.
+  To end only the Conflict at Round 0, the GM steps to Round 1 first, and End's tooltip says so (Bill,
+  2026-11-23: "Yes, let's do the tooltip").

@@ -1,5 +1,5 @@
 # Register
-**Requirements:** R99, R112, R115-117, R262, R284, R338, R344, R454, R492
+**Requirements:** R99, R112, R115-117, R262, R284, R338, R344, R454, R492, R493
 
 The cash register: the Round, and End.
 
@@ -19,7 +19,7 @@ The cash register: the Round, and End.
   Injuries recharged (Tap.recharge), used piles emptied (plain cards home, tapped cards gone), used marks
   cleared, CRIT! Influences cleared wherever they are. With the Round at 0 (R492) the tab says "End
   scene?" and the second press ends the scene (ended(game, true)) after a checkpoint named "End of
-  scene".
+  scene". End's tooltip says so, and that ▲ to Round 1 first ends only the Conflict (R493).
 
 ## Collaborators
 - Game, GameStore (the checkpoint), Tap (recharge, Motivations at a scene's end, and cards tapped from Mild at End), Absorb (Mild slots at End), Tape

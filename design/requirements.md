@@ -307,6 +307,7 @@
 - **R490:** Each time a page first hears from the GM's page after loading, it asks once; the GM's page answers it alone with the table's view of each roll on its own tape, from its kept rolls (private ones and ones no longer kept left out); the page takes it only from the GM's browser and adds the receipts newer than the newest its tape has held, in order of when they were rolled.
 - **R491:** A tape remembers the GM's time of the newest roll it has held, through a tear: a page's torn rolls are never refilled, and a new copy, holding none, takes all.
 - **R492:** With the Round at 0, End raises "End scene?" in place of "End conflict?"; the second press within 3 s checkpoints the game as "End of scene", does all that ending a Conflict does (R117), and recharges every character's Motivations (R262).
+- **R493:** End's tooltip says that at Round 0 it ends the scene, and that stepping to Round 1 first ends only the Conflict.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

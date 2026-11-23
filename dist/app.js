@@ -15759,7 +15759,7 @@ var RegisterView = class {
     roll3.title = "Roll the tape up, or down again";
     up.title = "The next Round";
     down.title = "The Round before";
-    end.title = "End the Conflict: Round to 0, Biases, Afflictions and Injuries recharged, the used piles emptied. At Round 0, end the scene: Motivations recharged too";
+    end.title = "End the Conflict: Round to 0, Biases, Afflictions and Injuries recharged, the used piles emptied. At Round 0, end the scene: Motivations recharged too (\u25B2 to Round 1 first to end only the Conflict)";
     keys2.append(up, down, end);
     this.#el.append(el4("span", "rslot"), win, keys2, roll3);
     bar.append(this.#el);

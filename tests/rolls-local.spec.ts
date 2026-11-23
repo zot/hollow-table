@@ -203,7 +203,9 @@ test('the tape, and the register', async ({ page }) => {
   await page.locator('.register .key.end').click();
   await expect.poll(async () => (await rec(page, 'meta')).round).toBe(0);
   await expect(page.locator('.register .rtab')).toHaveText('0');
-  // R492: at Round 0, End offers to end the scene, and ends it after an "End of scene" checkpoint.
+  // R492: at Round 0, End offers to end the scene, and ends it after an "End of scene" checkpoint; R493: its
+  // tooltip says how to end only the Conflict.
+  await expect(page.locator('.register .key.end')).toHaveAttribute('title', /Round 1 first to end only the Conflict/);
   await expect(page.locator('.register')).not.toHaveClass(/\barmed\b/);
   await page.locator('.register .key.end').click();
   await expect(page.locator('.register .tab')).toHaveText('End scene?');

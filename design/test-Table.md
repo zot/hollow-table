@@ -460,9 +460,9 @@ pool's labels selects as text but the build stamp
 **Pulled:** 2026-11-23 — rang: the piece was left about 812 table units off its finger as the view slid (Chromium); restored clean
 
 ## Test: End at Round 0 ends the scene
-**Purpose:** R492: at Round 0 End's tab says "End scene?", and the second press checkpoints "End of scene"; at Round 2 it says "End conflict?"
+**Purpose:** R492, R493: at Round 0 End's tab says "End scene?", and the second press checkpoints "End of scene"; at Round 2 it says "End conflict?"
 **Input:** the GM's page at Round 2 presses End twice (the Round goes to 0); then presses End twice again
-**Expected:** "End conflict?" at Round 2; "End scene?" at Round 0; a checkpoint named "End of scene"
+**Expected:** "End conflict?" at Round 2; End's tooltip says ▲ to Round 1 first ends only the Conflict (R493); "End scene?" at Round 0; a checkpoint named "End of scene"
 **Refs:** crc-Register.md
 **Code:** `tests/rolls-local.spec.ts`
 **Alarm:** 37
