@@ -200,6 +200,13 @@ test('the tape, and the register', async ({ page }) => {
   await expect(page.locator('.register')).toHaveClass(/\barmed\b/);
   expect((await rec(page, 'meta')).round).toBe(2);
   await expect(page.locator('.register .tab')).toHaveText('End conflict?');
+  // R494: shift-clicked, the raised tab lowers at once and ends nothing; End again is a fresh first press.
+  await page.locator('.register .tab').click({ modifiers: ['Shift'] });
+  await expect(page.locator('.register')).not.toHaveClass(/\barmed\b/, { timeout: 1000 });   // well before End's 3 s
+  expect((await rec(page, 'meta')).round).toBe(2);
+  await page.locator('.register .key.end').click();
+  await expect(page.locator('.register')).toHaveClass(/\barmed\b/);
+  expect((await rec(page, 'meta')).round).toBe(2);
   await page.locator('.register .key.end').click();
   await expect.poll(async () => (await rec(page, 'meta')).round).toBe(0);
   await expect(page.locator('.register .rtab')).toHaveText('0');

@@ -8,7 +8,7 @@ the negative rows of the Con/Wis table. Opened by Bill, 2026-11-23, from gaps O2
 
 - [x] ~~**Item 1 — End scene.**~~ **LANDED (2026-11-23 — `#58`.)** Gap O2. At Round 0, End offers to end the scene, and
       ending it recharges Motivations.
-- [ ] **Item 2 — shift-click cancels an armed End.** **OPEN (not queued.)** On "End conflict?" or "End
+- [x] ~~**Item 2 — shift-click cancels an armed End.**~~ **LANDED (2026-11-23 — `#60`.)** On "End conflict?" or "End
       scene?" in the Round's window.
 - [ ] **Item 3 — the Round's tab, pointed like a register's flag.** **OPEN (not queued.)**
 - [ ] **Item 4 — the negative rows of the Con/Wis table.** **OPEN (not queued.)** Gap O3.
@@ -26,7 +26,8 @@ its glass case).
   place of "End conflict?", and pressing it again within 3 s ends the scene. Otherwise End ends the
   Conflict, as it does now.
 - **Shift-click cancels** (Item 2): shift-clicking the raised "End conflict?" or "End scene?" tab lowers it
-  and ends nothing. A long press does the same, as every shift-click has one (R14).
+  and ends nothing. A long press does the same, as every shift-click has one (R14). Bill, 2026-11-23: "This
+  is just a short-cut to avoid waiting for the timeout -- a QoL thing for GMs".
 - **The Round's tab is pointed** (Item 3): as the flags in the picture, a white card whose top edge rises
   to a point in the middle, a gable, with the number below (confirmed below).
 
@@ -55,6 +56,9 @@ raise it to Round 1 and then end it", noted on End's tooltip ("Yes, let's do the
   nothing), and the second press checkpoints "End of scene" and runs `ended(game, true)`: all that ending a
   Conflict does, and every character's Motivations recharged by `Tap.rechargeMotives` (R262, uncalled
   until now).
+- **Item 2, as `#60`** (2026-11-23; R494): the raised tab takes Gesture's shift (a shift-click or long
+  press) and lowers at once, ending nothing; its tooltip says so. The register's browser test checks it
+  lowers within 1 s, well before End's own 3 s.
 - **Item 5, as `#59`** (2026-11-23; R493): End's tooltip adds "(▲ to Round 1 first to end only the
   Conflict)"; the register's browser test checks it, and fails with the hint removed.
 

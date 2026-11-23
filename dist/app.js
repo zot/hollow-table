@@ -15768,6 +15768,13 @@ var RegisterView = class {
     const step = (by) => w.game.change((x) => x.put("meta", stepped(w.game.get("meta"), by)));
     gesture(up, { click: () => step(1) });
     gesture(down, { click: () => step(-1) });
+    const lower = () => {
+      clearTimeout(this.#armed);
+      this.#armed = null;
+      this.#el.classList.remove("armed");
+    };
+    confirm2.title = "Shift-click or long-press to cancel";
+    gesture(confirm2, { shift: lower });
     gesture(end, { click: () => {
       const round = w.game.get("meta").round;
       if (this.#armed === null) {
@@ -15780,9 +15787,7 @@ var RegisterView = class {
         }, END_MS);
         return;
       }
-      clearTimeout(this.#armed);
-      this.#armed = null;
-      this.#el.classList.remove("armed");
+      lower();
       const scene2 = this.#scene, end2 = () => w.game.change(ended(w.game, scene2));
       void w.checkpoint?.(scene2 ? "End of scene" : `End of conflict, round ${round}`).then(end2, end2);
     } });

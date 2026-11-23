@@ -469,3 +469,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** always arm with "End conflict?"; red: the tab says "End conflict?" at Round 0
 **Inject:** src/ui/register.ts:RegisterView
 **Pulled:** 2026-11-23 — rang: always armed with "End conflict?", the tab said so at Round 0 (Chromium); restored clean
+
+## Test: a shift-click on End's raised tab cancels it
+**Purpose:** R494: the raised tab, shift-clicked, lowers at once and ends nothing
+**Input:** the GM's page at Round 2 presses End, then shift-clicks the raised "End conflict?" tab, then presses End once
+**Expected:** the register armed, then not armed within 1 s (well before End's 3 s) with the Round still 2, then armed again (a fresh first press)
+**Refs:** crc-Register.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 38
+**Fire alarm:** give the tab no shift gesture; red: the register stays armed after the shift-click
+**Inject:** src/ui/register.ts:RegisterView
+**Pulled:** 2026-11-23 — rang: with no shift gesture on the tab, the register stayed armed past 1 s (Chromium); restored clean. A first pull was silent: the check waited 5 s, and End's 3 s timer lowered the tab inside that; the check now waits 1 s

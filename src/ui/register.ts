@@ -1,4 +1,4 @@
-// CRC: crc-Register.md | R99, R112, R115, R116, R117, R262, R284, R338, R344, R492, R493
+// CRC: crc-Register.md | R99, R112, R115, R116, R117, R262, R284, R338, R344, R492, R493, R494
 // The cash register in the bar: the Round in its glass, ▲ ▼, End, and the tape's paper roll. The
 // decisions are pure (stepped, ended); the view draws the register and asks before End.
 
@@ -95,6 +95,10 @@ export class RegisterView {
     const step = (by: 1 | -1) => w.game.change(x => x.put('meta', stepped(w.game.get('meta') as Meta, by)));
     gesture(up, { click: () => step(1) });
     gesture(down, { click: () => step(-1) });
+    const lower = () => { clearTimeout(this.#armed as number); this.#armed = null; this.#el.classList.remove('armed'); };
+    // R494: a shift-click or long press on the raised tab lowers it at once, ending nothing.
+    confirm.title = 'Shift-click or long-press to cancel';
+    gesture(confirm, { shift: lower });
     // R116: End asks first: the orange tab rises; a second press within 3 s ends the Conflict, or, R492,
     // at Round 0, the scene.
     gesture(end, { click: () => {
@@ -106,9 +110,7 @@ export class RegisterView {
         this.#armed = setTimeout(() => { this.#armed = null; this.#el.classList.remove('armed'); }, END_MS);
         return;
       }
-      clearTimeout(this.#armed as number);
-      this.#armed = null;
-      this.#el.classList.remove('armed');
+      lower();
       // R454: End ends whether or not its checkpoint is kept; a refused one is said in the Ledger.
       const scene = this.#scene, end = () => w.game.change(ended(w.game, scene));
       void w.checkpoint?.(scene ? 'End of scene' : `End of conflict, round ${round}`).then(end, end);
