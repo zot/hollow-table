@@ -309,6 +309,7 @@
 - **R492:** With the Round at 0, End raises "End scene?" in place of "End conflict?"; the second press within 3 s checkpoints the game as "End of scene", does all that ending a Conflict does (R117), and recharges every character's Motivations (R262).
 - **R493:** End's tooltip says that at Round 0 it ends the scene, and that stepping to Round 1 first ends only the Conflict.
 - **R494:** A shift-click or long press on the raised "End conflict?" or "End scene?" tab lowers it at once and ends nothing: no checkpoint, the Round unchanged.
+- **R495:** The Round's tab is a white card shaped like a cash register's number flag: a flat top on rounded shoulders that curves up, concave, to a small tip in the middle, the number below.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md

@@ -346,7 +346,8 @@ table: if it succeeds, the NPC accepts.
 ## The register
 
 - A cash register in the bar keeps the **Round**: a pop-up tab with a bold number in a glass case,
-  ▲ ▼ keys, and **End**. The Round runs from 0 to 99; when it changes, the tab drops and comes back
+  ▲ ▼ keys, and **End**. The tab is a white card shaped like a cash register's number flag: a flat top on rounded shoulders that curves up, concave, to a small tip in the middle (Bill, 2026-11-23, from a photo of a "$1"
+  flag: "Yes, use it"). The Round runs from 0 to 99; when it changes, the tab drops and comes back
   up with the new number.
 - **End** ends the Conflict. Pressing it raises an orange "End conflict?" tab; press again within 3 s
   to end it. End resets the Round to 0, recharges Damage (Convictions and Burdens too), clears every Mild

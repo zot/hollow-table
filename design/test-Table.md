@@ -480,3 +480,14 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** give the tab no shift gesture; red: the register stays armed after the shift-click
 **Inject:** src/ui/register.ts:RegisterView
 **Pulled:** 2026-11-23 — rang: with no shift gesture on the tab, the register stayed armed past 1 s (Chromium); restored clean. A first pull was silent: the check waited 5 s, and End's 3 s timer lowered the tab inside that; the check now waits 1 s
+
+## Test: the Round's card is shaped like a register's number flag
+**Purpose:** R495: the Round's white card is clipped to the flag's shape: a flat top on rounded shoulders that curves up, concave, to a small tip in the middle
+**Input:** the GM's page, the register showing Round 0
+**Expected:** the card's computed `clip-path` is the flag's path, its tip at the middle of the top (19, 0) and its shoulders 5.5 px down
+**Refs:** crc-Register.md
+**Code:** `tests/rolls-local.spec.ts`
+**Alarm:** 39
+**Fire alarm:** drop the card's `clip-path`; red: the card has none
+**Inject:** src/ui/theme.css
+**Pulled:** 2026-11-23 — rang: with the card's clip-path dropped, its computed clip was none (Chromium); restored clean

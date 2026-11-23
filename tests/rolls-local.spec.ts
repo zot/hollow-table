@@ -191,6 +191,8 @@ test('the tape, and the register', async ({ page }) => {
   await dragFromTo(page, t.x, t.y, mid.x, mid.y);
   // R488: on this page's own Hill.
   expect(JSON.stringify(await rec(page, 'hill'))).toContain('Tape: 5 rolls, last Devreux, roll 5');
+  // R495: the Round's card is shaped like a register's number flag: shoulders 5.5 px down, a tip at the middle.
+  expect(await page.locator('.register .rtab').evaluate(e => getComputedStyle(e).clipPath)).toMatch(/^path\(.*5\.5 3 5\.5 .*19 -0\.4 /);
   // R115, R116, R284: ▲ steps the Round; End once raises the tab and changes nothing; twice ends
   // the Conflict: Round 0.
   await page.locator('.register .key.up').click();

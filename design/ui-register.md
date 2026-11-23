@@ -1,10 +1,10 @@
 # UI: the register and the tape
-**Requirements:** R97, R105, R110, R112, R113, R115, R116
+**Requirements:** R97, R105, R110, R112, R113, R115, R116, R495
 
 ```
    ┌──oak──────────────────────────┐
    │ ▭slot  ┌glass┐  (▲)(▼)   ◎roll│     the Round as a pop-up tab in the glass;
-   │        │ ☞ 2 │   [End]        │     End raises an orange "End conflict?" tab
+   │        │ ⌂ 2 │   [End]        │     End raises an orange "End conflict?" tab
    └────────┴─────┴────────────────┘
       ┌tape──────────────────────┐
       │ Devreux, roll 3  19:36:44│      newest first; about three show, the rest scroll
@@ -21,4 +21,5 @@
       └╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲╱╲┘
 ```
 
+- The Round's card is shaped like a cash register's number flag: a flat top on rounded shoulders that curves up, concave, to a small tip in the middle (R495).
 - Refs: crc-Register.md, crc-Tape.md

@@ -10,7 +10,7 @@ the negative rows of the Con/Wis table. Opened by Bill, 2026-11-23, from gaps O2
       ending it recharges Motivations.
 - [x] ~~**Item 2 — shift-click cancels an armed End.**~~ **LANDED (2026-11-23 — `#60`.)** On "End conflict?" or "End
       scene?" in the Round's window.
-- [ ] **Item 3 — the Round's tab, pointed like a register's flag.** **OPEN (not queued.)**
+- [x] ~~**Item 3 — the Round's tab, pointed like a register's flag.**~~ **LANDED (2026-11-23 — `#61`.)**
 - [ ] **Item 4 — the negative rows of the Con/Wis table.** **OPEN (not queued.)** Gap O3.
 - [x] ~~**Item 5 — End's tooltip says how to end only the Conflict.**~~ **LANDED (2026-11-23 — `#59`.)** At Round 0, ▲ to
       Round 1 first, then End.
@@ -28,8 +28,8 @@ its glass case).
 - **Shift-click cancels** (Item 2): shift-clicking the raised "End conflict?" or "End scene?" tab lowers it
   and ends nothing. A long press does the same, as every shift-click has one (R14). Bill, 2026-11-23: "This
   is just a short-cut to avoid waiting for the timeout -- a QoL thing for GMs".
-- **The Round's tab is pointed** (Item 3): as the flags in the picture, a white card whose top edge rises
-  to a point in the middle, a gable, with the number below (confirmed below).
+- **The Round's tab is pointed** (Item 3): as the flags in the picture, with the number below (settled
+  below).
 
 DECIDED (Bill, 2026-11-23), on Daneel's questions when the carve started:
 
@@ -39,7 +39,9 @@ DECIDED (Bill, 2026-11-23), on Daneel's questions when the carve started:
   (Bunkum), and CRIT! lasts "until the end of the Scene" (Hollow Folks). Motivations recharge every scene,
   Bill's 11-12 ruling kept over Bunkum's "At the end of the Event" (R262); Opinion Records keep their
   parentheses until an Event's end, which the table doesn't have yet.
-- **The Round's tab has a pointed top, a gable** ("Pointed top (a gable)", Item 3).
+- **The Round's tab has a pointed top** ("Pointed top (a gable)", Item 3). Built first as a straight gable,
+  then, from a closer photo of a "$1" flag Bill sent, redrawn as the flag is: a flat top on rounded shoulders that curves up, concave, to a small tip in the middle (Bill,
+  2026-11-23: "Yes, use it").
 - **The negative rows: Mild, then Mild and Min** ("Mild, then Mild and Min", Item 4). At Con or Wis −1 a
   Mild Slot of that column absorbs only 1 point, not 2; at −2 its Mild and Min Slots each absorb only 1.
   Read from the export's flattened row, which holds "Worth only 1" once at −1 and twice at −2 in the order
@@ -59,6 +61,10 @@ raise it to Round 1 and then end it", noted on End's tooltip ("Yes, let's do the
 - **Item 2, as `#60`** (2026-11-23; R494): the raised tab takes Gesture's shift (a shift-click or long
   press) and lowers at once, ending nothing; its tooltip says so. The register's browser test checks it
   lowers within 1 s, well before End's own 3 s.
+- **Item 3, as `#61`** (2026-11-23; R495): the Round's card is clipped by a `path()` drawn for its fixed
+  38 px width: rounded shoulders, a concave rise and a small tip in the middle, after the "$1" flag; no new
+  element. Tried live in the browser, "0" and "99" both fit in the glass. The register's browser test checks
+  the card's clip.
 - **Item 5, as `#59`** (2026-11-23; R493): End's tooltip adds "(▲ to Round 1 first to end only the
   Conflict)"; the register's browser test checks it, and fails with the hint removed.
 
