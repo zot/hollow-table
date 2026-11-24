@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500, R524, R525, R532, R533, R536, R542
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500, R524, R525, R532, R533, R536, R542, R550
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -245,9 +245,13 @@ export function newestRoll(tape: Tape | undefined): number {
 // R524, R525: this page's own drawers (the GM's saved with the game, a player's with their copy).
 export type Drawer = 'characters' | 'npcs' | 'papers';
 export type Filed = { drawer: Drawer; name: string; records: PieceRecord[] };
-export type Desk = { desk: Filed[] };
+// R550: the desks, each its name, whether it was named, and what is filed in it. A desk record from
+// before held one desk's entries (`OldDesk`); Drawers.desksOf reads either.
+export type OneDesk = { name: string; named: boolean; items: Filed[] };
+export type Desk = { desks: OneDesk[] };
+export type OldDesk = { desk: Filed[] };
 
-export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill | Desk | Tied;
+export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill | Desk | OldDesk | Tied;
 
 // Player-made characters number from here up, so they can't collide with the GM's.
 export const PLAYER_OIDS = 0x100000;
@@ -355,11 +359,13 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
 const piece: Shape = v => obj(v) && typeof v.kind === 'string' && Object.hasOwn(PIECES, v.kind)
   && PIECES[v.kind as PieceRecord['kind']](v);
 
+const filedEntry = fields({ drawer: oneOf('characters', 'npcs', 'papers'), name: str(CAPS.name), records: list(piece) });
 const burial = fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid });
 const SINGLETONS: Record<string, Shape> = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool, items: list(burial) }), 100) }),
   hill: fields({ hill: list(fields({ yard: str(CAPS.name), burial }), 10_000) }),
-  desk: fields({ desk: list(fields({ drawer: oneOf('characters', 'npcs', 'papers'), name: str(CAPS.name), records: list(piece) }), 10_000) }),
+  desk: v => fields({ desks: list(fields({ name: str(CAPS.name), named: bool, items: list(filedEntry, 10_000) }), 100) })(v)
+    || fields({ desk: list(filedEntry, 10_000) })(v),   // R550: one from before
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1000, 1000) }),
   rows: fields({ rows: dict(fields({ pool: isOid, action: str(CAPS.name), opponent: (v: unknown) => v === null || v === WORLD || isOid(v),

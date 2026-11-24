@@ -1,5 +1,5 @@
 # Desk
-**Requirements:** R512-517, R520, R526, R527, R529, R530, R546-548
+**Requirements:** R512-517, R520, R526, R527, R529, R530, R546-548, R551-554, R556
 
 The desk on the bar (`carves/organizing.md`): a little roll-top right after the wordmark, its
 pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
@@ -39,6 +39,11 @@ the drawers showing below the pigeonholes.
 - search line (R546-R548): an input at the top of the open desk's drawers; while it has the caret or
   holds words it lists Drawers.search's results, each its name and its drawer's label, dragged out as
   from a drawer; none says "Nothing found."
+- desk nav (R551-R553): on the GM's page ‹, the open desk's name (an input, "Unnamed desk") and ›
+  above the search line; the drawers list the open desk's (the seat's `desk.cur`). None on a player's.
+- the board (R554): `.deskboard`, hung below the desk while a piece that would be filed is over it and
+  there is more than one desk: a `.deskrow` per desk, the open one first, each with `data-desk`, its
+  roll-top and its name; Drag lights the row under the pointer.
 
 ## Collaborators
 - Bar: makes it, in the bar after the wordmark, and passes its callbacks through.

@@ -184,11 +184,13 @@ var PIECES = {
   )
 };
 var piece = (v) => obj(v) && typeof v.kind === "string" && Object.hasOwn(PIECES, v.kind) && PIECES[v.kind](v);
+var filedEntry = fields({ drawer: oneOf("characters", "npcs", "papers"), name: str(CAPS.name), records: list(piece) });
 var burial = fields({ name: str(CAPS.name), records: list(piece) }, { info: fields({ oid: isOid, k: int(0, 20), text: marked }), gm: isOid });
 var SINGLETONS = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool, items: list(burial) }), 100) }),
   hill: fields({ hill: list(fields({ yard: str(CAPS.name), burial }), 1e4) }),
-  desk: fields({ desk: list(fields({ drawer: oneOf("characters", "npcs", "papers"), name: str(CAPS.name), records: list(piece) }), 1e4) }),
+  desk: (v) => fields({ desks: list(fields({ name: str(CAPS.name), named: bool, items: list(filedEntry, 1e4) }), 100) })(v) || fields({ desk: list(filedEntry, 1e4) })(v),
+  // R550: one from before
   meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1e3, 1e3) }),
   rows: fields({ rows: dict(fields(
@@ -1172,18 +1174,55 @@ function drawerOf(piece2, gm) {
   }
   return isPaper(piece2) ? "papers" : null;
 }
+var NUMBERED2 = /^Desk (\d+)$/;
+var blank = (name2) => ({ name: name2, named: false, items: [] });
 function emptyDesk() {
-  return { desk: [] };
+  return { desks: [blank("Desk 1")] };
 }
-function filed(desk, drawer2, records3, name2) {
-  return { desk: [...desk.desk, { drawer: drawer2, name: name2, records: records3 }] };
+function desksOf(rec) {
+  if (!rec) return emptyDesk();
+  if ("desk" in rec) return { desks: [{ ...blank("Desk 1"), items: rec.desk }] };
+  return rec.desks.length ? rec : emptyDesk();
 }
-function takeOut(desk, k) {
-  return { desk: { desk: desk.desk.filter((_, i) => i !== k) }, records: desk.desk[k]?.records ?? [] };
+var withDesk = (d, at3, one) => ({ desks: d.desks.map((x, i) => i === at3 ? one : x) });
+function filed(d, at3, drawer2, records3, name2) {
+  const one = d.desks[at3];
+  return withDesk(d, at3, { ...one, items: [...one.items, { drawer: drawer2, name: name2, records: records3 }] });
 }
-function inDrawer(desk, drawer2) {
-  return (desk?.desk ?? []).flatMap((entry, k) => entry.drawer === drawer2 ? [{ k, entry }] : []);
+function takeOut(d, at3, k) {
+  const one = d.desks[at3];
+  if (!one) return { desk: d, records: [] };
+  return { desk: withDesk(d, at3, { ...one, items: one.items.filter((_, i) => i !== k) }), records: one.items[k]?.records ?? [] };
 }
+function inDrawer(d, at3, drawer2) {
+  return (d.desks[at3]?.items ?? []).flatMap((entry, k) => entry.drawer === drawer2 ? [{ k, entry }] : []);
+}
+function nextName2(d) {
+  const ns = d.desks.flatMap((x) => {
+    const m = NUMBERED2.exec(x.name);
+    return m ? [Number(m[1])] : [];
+  });
+  return `Desk ${Math.max(0, ...ns) + 1}`;
+}
+var vacant2 = (x) => !x.items.length && !x.named;
+function sweep2(d, at3, cur) {
+  if (d.desks.length < 2 || !vacant2(d.desks[at3])) return { desk: d, cur };
+  const desk = { desks: d.desks.filter((_, i) => i !== at3) };
+  return { desk, cur: Math.min(cur > at3 ? cur - 1 : cur, desk.desks.length - 1) };
+}
+function deskNext(d, cur) {
+  if (cur < d.desks.length - 1) return sweep2(d, cur, cur + 1);
+  if (vacant2(d.desks[cur])) return { desk: d, cur };
+  return { desk: { desks: [...d.desks, blank(nextName2(d))] }, cur: cur + 1 };
+}
+function deskPrev(d, cur) {
+  return cur > 0 ? sweep2(d, cur, cur - 1) : { desk: d, cur };
+}
+function deskRename(d, cur, name2) {
+  const n = name2.trim();
+  return sweep2(withDesk(d, cur, { ...d.desks[cur], name: n, named: n !== "" }), cur, cur);
+}
+var deskName = (one) => one.name || "Unnamed desk";
 function wordsOf(r) {
   const plain2 = (m) => m.replace(/<[^>]*>/g, "");
   switch (r.kind) {
@@ -1198,10 +1237,10 @@ function wordsOf(r) {
       return "";
   }
 }
-function search(desk, query) {
+function search(d, query) {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   const byName = (a, b) => a.entry.name.localeCompare(b.entry.name, void 0, { sensitivity: "base" });
-  const all2 = (desk?.desk ?? []).map((entry, k) => ({ k, entry })).sort(byName);
+  const all2 = d.desks.flatMap((one, at3) => one.items.map((entry, k) => ({ at: at3, k, entry }))).sort(byName);
   if (!words.length) return all2;
   const has = (text) => {
     const t = text.toLowerCase();
@@ -1582,7 +1621,7 @@ function groupChooser(text, w, gmCard) {
 function canSee(viewer, character2) {
   return !!viewer?.gm || character2.owner === OPEN || !!viewer && character2.owner === viewer.name;
 }
-var blank = (text) => text.replace(/[^\n]/g, "");
+var blank2 = (text) => text.replace(/[^\n]/g, "");
 function blankInfo(info, shown3) {
   const keep2 = new Set(clues(info).filter((e) => shown3.has(e.key)).map((e) => e.line));
   return info.split("\n").map((l, k) => keep2.has(k) ? l : "").join("\n");
@@ -1602,7 +1641,7 @@ function blankFront(c) {
   return out.join("\n");
 }
 var blankBack = (b) => ({
-  notes: blank(b.notes),
+  notes: blank2(b.notes),
   absorb: { bias: 0, affliction: 0, injury: 0 },
   damage: damageSlots((d, r) => ({ name: "", boxes: b.damage[d][r].boxes.map(() => false), spent: [] }))
 });
@@ -3383,8 +3422,8 @@ function renamed(game, from, to) {
         const y = r;
         w.put(rid2, { ...y, yards: y.yards.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i, records: i.records.map((x) => follow(x)) })) })) });
       } else if (rid2 === "desk") {
-        const d = r;
-        w.put(rid2, { desk: d.desk.map((e) => ({ ...e, records: e.records.map((x) => follow(x)) })) });
+        const d = desksOf(r);
+        w.put(rid2, { desks: d.desks.map((one) => ({ ...one, items: one.items.map((e) => ({ ...e, records: e.records.map((x) => follow(x)) })) })) });
       } else {
         const f = follow(r);
         if (f !== r) w.put(rid2, f);
@@ -16233,6 +16272,10 @@ var DeskView = class {
   #searching = false;
   /** What render redraws: the drawer fronts and the list below them. */
   #body;
+  /** R551: the open desk's name, between its arrows (the GM's). */
+  #name;
+  /** R554: the board of desks hung below the desk while a piece would be filed. */
+  #board;
   #image;
   #imageSays;
   #file;
@@ -16265,7 +16308,31 @@ var DeskView = class {
     this.#find.addEventListener("focus", searching);
     this.#find.addEventListener("input", searching);
     this.#body = el4("div", "drawerbody");
+    this.#name = doc.createElement("input");
+    this.#name.className = "dname";
+    this.#name.spellcheck = false;
+    this.#name.placeholder = "Unnamed desk";
+    this.#name.setAttribute("aria-label", "Desk name");
+    if (w.gm) {
+      const nav = el4("div", "desknav");
+      const back3 = el4("button", "deskprev", "\u2039", "The desk before"), on = el4("button", "desknext", "\u203A", "The next desk, or a new one");
+      const browse = (f) => {
+        const b = f(w.filed(), this.#cur());
+        w.setDesks(b.desk, b.cur);
+        this.render();
+      };
+      back3.addEventListener("click", () => browse(deskPrev));
+      on.addEventListener("click", () => browse(deskNext));
+      this.#name.addEventListener("input", () => {
+        const d = w.filed(), cur = this.#cur(), n = this.#name.value;
+        w.setDesks({ desks: d.desks.map((x, i) => i === cur ? { ...x, name: n, named: n.trim() !== "" } : x) }, cur);
+      });
+      this.#name.addEventListener("change", () => browse((d, cur) => deskRename(d, cur, this.#name.value)));
+      nav.append(back3, this.#name, on);
+      this.#drawers.append(nav);
+    }
     this.#drawers.append(this.#find, this.#body);
+    this.#board = el4("div", "deskboard");
     this.#strip.append(holes, this.#drawers);
     let image2 = null;
     for (const [what, cls, text, title] of w.gm ? [...HOLES, LINKS] : HOLES) {
@@ -16288,7 +16355,7 @@ var DeskView = class {
       this.#pickAt = null;
       if (files.length) w.images(files, to?.at ?? null, !!to?.carry && files.length === 1);
     });
-    this.el.append(this.#strip, this.#file);
+    this.el.append(this.#strip, this.#board, this.#file);
     this.el.addEventListener("pointerdown", (ev) => {
       if (!this.#drawers.contains(ev.target)) this.#press(ev);
     });
@@ -16305,6 +16372,10 @@ var DeskView = class {
     this.#image.title = r ? r.why : this.#imageSays.title;
     this.el.classList.toggle("refused", !!r);
   }
+  /** R552: the open desk's index, within the desks there are. */
+  #cur() {
+    return Math.max(0, Math.min(this.#w.cur(), this.#w.filed().desks.length - 1));
+  }
   // R526: the open desk's drawers: a front each, a brass pull and its label; the one pulled out lists
   // what is filed in it, oldest first, by name; an entry dragged out comes back (R527).
   /** Draws the drawers from the page's desk record. */
@@ -16317,6 +16388,17 @@ var DeskView = class {
       if (title) e.title = title;
       return e;
     };
+    const desks = this.#w.filed(), cur = this.#cur(), several = desks.desks.length > 1;
+    if (doc.activeElement !== this.#name) this.#name.value = desks.desks[cur]?.name ?? "";
+    this.el.classList.toggle("several", several);
+    const order2 = [cur, ...desks.desks.map((_, i) => i).filter((i) => i !== cur)];
+    this.#board.replaceChildren(...order2.map((i) => {
+      const row2 = make4("div", "deskrow"), name2 = deskName(desks.desks[i]);
+      row2.dataset.desk = String(i);
+      row2.dataset.name = name2;
+      row2.append(make4("span", "minitop"), make4("span", "holder", name2));
+      return row2;
+    }));
     const fronts = make4("div", "fronts");
     for (const d of drawers(this.#w.gm)) {
       const front = make4("button", `drawerfront${this.#pulled === d ? " pulled" : ""}`, "", `${LABEL[d]}: click to pull it out`);
@@ -16329,19 +16411,19 @@ var DeskView = class {
       });
       fronts.append(front);
     }
-    const entry = (k, name2, drawer2) => {
+    const entry = (at3, k, name2, drawer2) => {
       const b = make4("button", "", name2, "Drag this back onto the table");
-      if (drawer2) b.append(make4("span", "where", LABEL[drawer2]));
+      if (drawer2) b.append(make4("span", "where", several ? `${deskName(desks.desks[at3])}: ${LABEL[drawer2]}` : LABEL[drawer2]));
       gesture(b, { drag: (_down, move) => {
         this.#show(false);
-        this.#w.takeOut(k, move);
+        this.#w.takeOut(at3, k, move);
       } });
       return b;
     };
     if (this.#searching) {
-      const list3 = make4("div", "filed found"), hits = search(this.#w.filed(), this.#find.value);
+      const list3 = make4("div", "filed found"), hits = search(desks, this.#find.value);
       if (!hits.length) list3.append(make4("p", "", this.#find.value.trim() ? "Nothing found." : "Nothing filed here."));
-      for (const { k, entry: e } of hits) list3.append(entry(k, e.name, e.drawer));
+      for (const { at: at3, k, entry: e } of hits) list3.append(entry(at3, k, e.name, e.drawer));
       this.#body.replaceChildren(fronts, list3);
       return;
     }
@@ -16349,10 +16431,10 @@ var DeskView = class {
       this.#body.replaceChildren(fronts);
       return;
     }
-    const list2 = make4("div", "filed"), filed2 = inDrawer(this.#w.filed(), this.#pulled);
+    const list2 = make4("div", "filed"), filed2 = inDrawer(desks, cur, this.#pulled);
     list2.dataset.drawer = this.#pulled;
     if (!filed2.length) list2.append(make4("p", "", "Nothing filed here."));
-    for (const { k, entry: e } of filed2) list2.append(entry(k, e.name));
+    for (const { k, entry: e } of filed2) list2.append(entry(cur, k, e.name));
     this.#body.replaceChildren(fronts, list2);
   }
   /** The strip shown (a press or the open desk) or hidden; `open` keeps it until a press elsewhere. */
@@ -16872,7 +16954,7 @@ var BarView = class {
     const mark2 = el4("div", "wordmark", "Hollow");
     mark2.append(el4("span", "stamp version", w.version, "Which version this is: a release's tag, or dev"));
     if (w.date) mark2.append(el4("span", "stamp date", w.date, "When it was released (on the test rig, when it was published)"));
-    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut });
+    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut, cur: w.cur, setDesks: w.setDesks });
     const chips = el4("div", "supplychips", "", "Influence chips: drag one out");
     for (const sign2 of [1, -1]) for (const points3 of [2, 4, 6, 1]) {
       const c = el4("div", `supply chip ${sign2 > 0 ? "pos" : "neg"}${points3 === 1 ? " one" : ""}`, chipFace({ sign: sign2, points: points3 }));
@@ -17915,6 +17997,7 @@ function fresh2() {
     viewAs: null,
     tapeUp: false,
     boothill: { cur: 0, open: false },
+    desk: { cur: 0 },
     open: { used: [], piles: [], slots: [], columns: [], info: [] },
     types: {}
   };
@@ -17934,6 +18017,7 @@ function load(storage, game, viewer) {
     ...saved,
     view: isObject(saved.view) ? { x: 0, y: 0, zoom: 1, ...saved.view } : null,
     boothill: { ...base.boothill, ...isObject(saved.boothill) ? saved.boothill : {} },
+    desk: { ...base.desk, ...isObject(saved.desk) ? saved.desk : {} },
     open: { ...base.open, ...isObject(saved.open) ? saved.open : {} },
     types: isObject(saved.types) ? saved.types : {}
   };
@@ -18289,13 +18373,13 @@ var Drag = class {
       pace.cancel();
       keepOut();
       last = c.frame(e.clientX, e.clientY);
-      const file = !put2 && !!c.files && this.#overDesk(doc, e.clientX, e.clientY);
+      const file = !put2 && !!c.files && this.#overDesk(doc, e.clientX, e.clientY), into = file ? this.#deskAt(doc, e.clientX, e.clientY) : null;
       const away = put2 || !file && this.#overBar(doc, e.clientY);
       this.#lightBar(doc, null, null, false, null);
       doc.body.classList.remove("dragging", "tapping");
       hands.drop(hand, [], true);
       moves?.drop([item2(last)]);
-      const change3 = c.drop(last, away, z, file);
+      const change3 = c.drop(last, away, z, into);
       table.still(() => {
         if (change3) game.change(change3);
       });
@@ -18336,7 +18420,7 @@ var Drag = class {
       // R19, R519: a fresh supply is never made, so never filed.
       files: this.#fresh.has(rid2) ? null : drawerOf(rec, this.#w.gm),
       drop: (last, away, z, file) => {
-        if (file) return this.#file(rec);
+        if (file !== null) return this.#file(rec, file);
         if (away) return this.#putAway(rec);
         return this.#drop(rec, "card", from, last, z, last.aim);
       },
@@ -18364,8 +18448,8 @@ var Drag = class {
       buries: !this.#fresh.has(rid2),
       files: this.#fresh.has(rid2) ? null : drawerOf(c, this.#w.gm),
       drop: (last, over, z, file) => {
-        away = over || file;
-        if (file) return this.#file(c);
+        away = over || file !== null;
+        if (file !== null) return this.#file(c, file);
         if (over) return this.#putAway(c);
         return this.#drop(c, "pool", c.pool, last, z);
       },
@@ -18488,10 +18572,19 @@ var Drag = class {
     const bar = doc.getElementById("bar");
     return !!bar && cy < bar.getBoundingClientRect().bottom;
   }
-  // R519: the desk on the bar, by the pointer.
+  // R519, R554: the desk on the bar, by the pointer, and the board of desks while it hangs below it.
   #overDesk(doc, cx, cy) {
-    const r = doc.querySelector("#bar .desk")?.getBoundingClientRect();
-    return !!r && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    const inside = (r) => !!r && r.width > 0 && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    return inside(doc.querySelector("#bar .desk")?.getBoundingClientRect()) || inside(doc.querySelector("#bar .deskboard")?.getBoundingClientRect());
+  }
+  /** This page's desks (its `desk` record). */
+  #desks() {
+    return desksOf(this.#w.game.get("desk"));
+  }
+  // R555: the desk a piece let go here is filed in: the board's row under the pointer, else the open desk.
+  #deskAt(doc, cx, cy) {
+    const row2 = cx === null || cy === null ? null : doc.elementFromPoint(cx, cy)?.closest(".deskrow");
+    return row2 ? Number(row2.dataset.desk) : Math.max(0, Math.min(this.#w.desk(), this.#desks().desks.length - 1));
   }
   // R288, R520: over the bar it is red, with the graveyard it would be buried in; over the desk, with
   // the drawer it would be filed in instead.
@@ -18503,18 +18596,23 @@ var Drag = class {
     bar.classList.toggle("bury", over && buries && !file);
     bar.dataset.yard = `\u2192 ${this.#w.yard().name || "Unnamed graveyard"}`;
     desk?.classList.toggle("file", file);
-    if (desk && files) desk.dataset.drawer = `\u2192 ${LABEL[files]}`;
+    const at3 = file ? this.#deskAt(doc, cx, cy) : -1;
+    for (const row2 of doc.querySelectorAll("#bar .deskrow")) row2.classList.toggle("over", Number(row2.dataset.desk) === at3);
+    if (desk && files) {
+      const all2 = this.#desks(), one = all2.desks[at3];
+      desk.dataset.drawer = `\u2192 ${all2.desks.length > 1 && one ? `${deskName(one)}: ` : ""}${LABEL[files]}`;
+    }
   }
   // R519, R523: filed in its drawer with what a burial would take, and gone from the table.
-  #file(rec) {
+  #file(rec, at3) {
     const { game, gm } = this.#w, drawer2 = drawerOf(rec, gm);
     if (!drawer2) return () => {
     };
     const all2 = game.all().map(([, r]) => r).filter((r) => "kind" in r);
     const { shared: shared2, own: own2 } = putAway(rec, all2), recs = [...shared2, ...own2];
-    const d = game.get("desk") ?? emptyDesk();
+    const d = this.#desks();
     return (w) => {
-      w.put("desk", filed(d, drawer2, recs, graveName(rec)));
+      w.put("desk", filed(d, at3, drawer2, recs, graveName(rec)));
       for (const r of recs) w.del(ridFor(r));
     };
   }
@@ -19659,9 +19757,15 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       else drag?.start(rid2, e, e, loose);
     },
     // R526, R527: this page's drawers; an entry taken out comes back under the pointer with all it took, carried.
-    filed: () => game.get("desk"),
-    takeOut: (k, move) => {
-      const out = takeOut(game.get("desk") ?? emptyDesk(), k);
+    filed: () => desksOf(game.get("desk")),
+    // R551, R552: the desks browsed as graveyards are; which is open is the GM's seat.
+    cur: () => seat.desk.cur,
+    setDesks: (desks, cur) => {
+      game.change((w) => w.put("desk", desks));
+      keep2({ ...seat, desk: { cur } });
+    },
+    takeOut: (at3, k, move) => {
+      const out = takeOut(desksOf(game.get("desk")), at3, k);
       const recs = raised(out.records, table.toWorld(move.clientX, move.clientY), topZ());
       if (!recs.length) return;
       game.change((w) => {
@@ -19817,7 +19921,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
   };
   const hands = new Hands({ game, table });
   table.after = () => hands.react();
-  drag = new Drag({ game, table, hands, hand, moves, mint: mint2, schedule: frame, yard, who: () => viewer?.name, gm });
+  drag = new Drag({ game, table, hands, hand, moves, mint: mint2, schedule: frame, yard, desk: () => seat.desk.cur, who: () => viewer?.name, gm });
   const tape = new TapeView(document.getElementById("table"), {
     game,
     viewer,

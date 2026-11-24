@@ -105,7 +105,34 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 /* R520: over the desk, the drawer a piece would be filed in. */
 #bar .desk.file .desktop, #bar .desk.file .rolltop { outline: 2px solid #d9b45a; }
 #bar .desk.file::after { content: attr(data-drawer); position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-  white-space: nowrap; margin-top: 2px; font: 12px var(--mono); color: #f3e9d8; }
+  white-space: nowrap; margin-top: 2px; font: 12px var(--mono); color: #f3e9d8; z-index: 61; }
+/* R551, R553: the GM's desks, browsed as graveyards: ‹, the open desk's name in its brass holder, ›. */
+#bar .desknav { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+#bar .desknav button { width: 30px; height: 30px; border: 0; border-radius: 4px; background: #4a3121; color: #f3e9d8;
+  font: 700 20px/1 var(--hand); cursor: pointer; }
+#bar .desknav button:hover { background: #5a3d2a; }
+#bar .desknav .dname { flex: 1; min-width: 0; text-align: center; font: 700 19px/1.3 var(--hand); color: var(--ink);
+  background: var(--paper); border: 0; border-radius: 2px; padding: 1px 8px; outline: none;
+  box-shadow: 0 0 0 2px #c9a24e, 0 0 0 3px #7d6129; user-select: text; -webkit-user-select: text; }
+#bar .desknav .dname::placeholder { color: #9a8a74; }
+/* R554: carrying a piece to be filed, with several desks, a walnut board hangs from the desk's foot (no gap
+   to cross, the hint on its top edge): a row each,
+   a little roll-top and its name in a brass holder; the row under the piece rolls its lid up. */
+#bar .deskboard { display: none; position: absolute; top: 100%; left: -14px; z-index: 60; padding: 22px 6px 6px;
+  background: linear-gradient(#5a3d2a, #3e2c22); border: 2px solid #2b1e17; border-radius: 4px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.5); width: max-content; min-width: 170px; }
+#bar .desk.file.several .deskboard { display: block; }
+#bar .deskrow { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px 0 6px; border-radius: 3px; }
+#bar .deskrow + .deskrow { border-top: 1px solid rgba(0,0,0,.35); }
+#bar .deskrow.over { background: rgba(217,180,90,.18); }
+#bar .deskrow .minitop { position: relative; width: 30px; height: 26px; flex: none; border-radius: 2px;
+  background: linear-gradient(#a0714b, #7a5337); }
+#bar .deskrow .minitop::before { content: ""; position: absolute; left: 3px; right: 3px; top: 1px; height: 12px;
+  border-radius: 8px 8px 1px 1px; background: repeating-linear-gradient(180deg, #8f6444 0 2px, #6e4b33 2px 3px);
+  transform-origin: top; transition: transform .15s; }
+#bar .deskrow.over .minitop::before { transform: scaleY(.25); }
+#bar .deskrow .holder { font: 700 17px/1.2 var(--hand); color: var(--ink); background: var(--paper); padding: 2px 8px;
+  border-radius: 2px; box-shadow: 0 0 0 2px #c9a24e, 0 0 0 3px #7d6129; white-space: nowrap; }
 #bar .hole { width: 84px; height: 60px; display: grid; place-items: center; border-radius: 10px 10px 2px 2px;
   background: #3b2719; box-shadow: inset 0 4px 7px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.12); }
 #bar .hole:hover { background: #4d3423; }

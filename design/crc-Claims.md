@@ -1,5 +1,5 @@
 # Claims
-**Requirements:** R166-169, R467, R468, R472, R507, R528
+**Requirements:** R166-169, R467, R468, R472, R507, R528, R550
 
 On the GM's page: which browser holds which name. A page claiming a name another browser holds is
 nobody until the GM hands the name over.
@@ -23,6 +23,7 @@ nobody until the GM hands the name over.
 - why(name): what the "not yours" chip says; Authority sends it to that tab as a `claim`.
 - Every page bars the tag of a page whose name another browser holds, and the GM's strip marks it in
   red too (Folks, R445).
+- a rename rewrites the renamer's name in every one of the GM's desks (R528, R550).
 
 ## Collaborators
 - Game (book), Wire

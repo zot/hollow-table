@@ -44,3 +44,25 @@
 **Fire alarm:** drop the sort by name: the empty search lists in the order filed
 **Inject:** src/rules/drawers.ts:search
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: without the sort by name, 'searching the desk' failed (the empty search in filing order); restored clean
+
+## Test: the GM's desks, browsed as graveyards
+**Purpose:** R551, R556: › makes "Desk N" one past the highest, but not past an empty, nameless desk; a renamed desk keeps its name; an empty, nameless desk goes when left; the only one is kept; search reads every desk.
+**Input:** an empty desk; one with a note filed; › and renames and ‹ through Desk 1, Act 2 and a new Desk 2; a note in Desk 1 mentioning Devreux, Devreux filed in Act 2.
+**Expected:** as each step states; "devreux" finds Devreux in desk 1 by name, then the note in desk 0.
+**Refs:** crc-Drawers.md
+**Code:** src/rules/drawers.test.ts
+**Alarm:** 5
+**Fire alarm:** let › make a new desk past an empty, nameless one: the first step makes Desk 2
+**Inject:** src/rules/drawers.ts:deskNext
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with deskNext making a desk past an empty nameless one, 'the GM's desks, browsed as graveyards' failed; restored clean
+
+## Test: a desk from before reads as one desk
+**Purpose:** R550: the one-list `desk` record #65 saved reads as one nameless "Desk 1"; none, or an empty list of desks, reads as the empty desk.
+**Input:** `{ desk: [Devreux] }`, undefined, `{ desks: [] }`.
+**Expected:** Desk 1 holding Devreux; the empty desk twice.
+**Refs:** crc-Drawers.md
+**Code:** src/rules/drawers.test.ts
+**Alarm:** 6
+**Fire alarm:** read only the new shape: the old record has no desks
+**Inject:** src/rules/drawers.ts:desksOf
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: reading only the new shape, 'a desk from before reads as one desk' failed; restored clean

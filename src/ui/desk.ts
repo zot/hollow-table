@@ -1,11 +1,11 @@
-// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548
+// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548, R551, R552, R553, R554, R556
 // The desk on the bar: a little roll-top whose pigeonholes hold the paper supplies. A press opens the
 // strip of pigeonholes and follows the pointer: dragged across them it holds each one's piece small,
 // dragged out it hands the piece to the page to make and carry, and let go it decides what the
 // release means (release, pure).
 
 import { gesture, type PointerLike } from './gesture.ts';
-import { LABEL, drawers, inDrawer, search } from '../rules/drawers.ts';
+import { LABEL, deskName, deskNext, deskPrev, deskRename, drawers, inDrawer, search } from '../rules/drawers.ts';
 import type { Desk, Drawer } from '../model/records.ts';
 
 /** What a pigeonhole holds. */
@@ -22,10 +22,13 @@ export type DeskWith = {
   take: (what: Exclude<Paper, 'image'>, down: PointerLike, move: PointerLike, mode: Mode) => void;
   /** R515: picked images, landing at `at` (null: the middle of the view); one alone carried with no button held when `carry`. */
   images: (files: File[], at: At | null, carry: boolean) => void;
-  /** R526: this page's drawers (its `desk` record). */
-  filed: () => Desk | undefined;
-  /** R527: entry `k` taken out of the desk under the pointer, and carried. */
-  takeOut: (k: number, move: PointerLike) => void;
+  /** R526, R550: this page's desks (its `desk` record). */
+  filed: () => Desk;
+  /** R527: entry `k` of desk `at` taken out under the pointer, and carried. */
+  takeOut: (at: number, k: number, move: PointerLike) => void;
+  /** R552: the desk open (the GM's seat), and the desks changed with the one open after. */
+  cur: () => number;
+  setDesks: (desks: Desk, cur: number) => void;
 };
 
 /** What letting go means (R513-R516). */
@@ -86,6 +89,10 @@ export class DeskView {
   #searching = false;
   /** What render redraws: the drawer fronts and the list below them. */
   #body: HTMLElement;
+  /** R551: the open desk's name, between its arrows (the GM's). */
+  #name: HTMLInputElement;
+  /** R554: the board of desks hung below the desk while a piece would be filed. */
+  #board: HTMLElement;
   #image: HTMLElement;
   #imageSays: { text: string; title: string };
   #file: HTMLInputElement;
@@ -117,7 +124,32 @@ export class DeskView {
     this.#find.addEventListener('focus', searching);
     this.#find.addEventListener('input', searching);
     this.#body = el('div', 'drawerbody');
+    // R551, R553: on the GM's page ‹, the open desk's name and ›, browsed as Boot Hill's graveyards are.
+    this.#name = doc.createElement('input');
+    this.#name.className = 'dname';
+    this.#name.spellcheck = false;
+    this.#name.placeholder = 'Unnamed desk';
+    this.#name.setAttribute('aria-label', 'Desk name');
+    if (w.gm) {
+      const nav = el('div', 'desknav');
+      const back = el('button', 'deskprev', '‹', 'The desk before'), on = el('button', 'desknext', '›', 'The next desk, or a new one');
+      const browse = (f: (d: Desk, cur: number) => { desk: Desk; cur: number }) => {
+        const b = f(w.filed(), this.#cur());
+        w.setDesks(b.desk, b.cur);
+        this.render();
+      };
+      back.addEventListener('click', () => browse(deskPrev));
+      on.addEventListener('click', () => browse(deskNext));
+      this.#name.addEventListener('input', () => {
+        const d = w.filed(), cur = this.#cur(), n = this.#name.value;
+        w.setDesks({ desks: d.desks.map((x, i) => (i === cur ? { ...x, name: n, named: n.trim() !== '' } : x)) }, cur);
+      });
+      this.#name.addEventListener('change', () => browse((d, cur) => deskRename(d, cur, this.#name.value)));
+      nav.append(back, this.#name, on);
+      this.#drawers.append(nav);
+    }
     this.#drawers.append(this.#find, this.#body);
+    this.#board = el('div', 'deskboard');
     this.#strip.append(holes, this.#drawers);
     let image: HTMLElement | null = null;
     for (const [what, cls, text, title] of w.gm ? [...HOLES, LINKS] : HOLES) {
@@ -142,7 +174,7 @@ export class DeskView {
       // Files given the input with no release (a test, say) land in the middle of the view.
       if (files.length) w.images(files, to?.at ?? null, !!to?.carry && files.length === 1);
     });
-    this.el.append(this.#strip, this.#file);
+    this.el.append(this.#strip, this.#board, this.#file);
     this.el.addEventListener('pointerdown', ev => { if (!this.#drawers.contains(ev.target as Node)) this.#press(ev); });
     this.render();
     // R516: an open desk closes on a press anywhere else.
@@ -158,6 +190,9 @@ export class DeskView {
     this.el.classList.toggle('refused', !!r);
   }
 
+  /** R552: the open desk's index, within the desks there are. */
+  #cur(): number { return Math.max(0, Math.min(this.#w.cur(), this.#w.filed().desks.length - 1)); }
+
   // R526: the open desk's drawers: a front each, a brass pull and its label; the one pulled out lists
   // what is filed in it, oldest first, by name; an entry dragged out comes back (R527).
   /** Draws the drawers from the page's desk record. */
@@ -170,6 +205,18 @@ export class DeskView {
       if (title) e.title = title;
       return e;
     };
+    const desks = this.#w.filed(), cur = this.#cur(), several = desks.desks.length > 1;
+    if (doc.activeElement !== this.#name) this.#name.value = desks.desks[cur]?.name ?? '';
+    // R554: the board: a row per desk, the open one first, each a little roll-top and its name.
+    this.el.classList.toggle('several', several);
+    const order = [cur, ...desks.desks.map((_, i) => i).filter(i => i !== cur)];
+    this.#board.replaceChildren(...order.map(i => {
+      const row = make('div', 'deskrow'), name = deskName(desks.desks[i]!);
+      row.dataset.desk = String(i);
+      row.dataset.name = name;
+      row.append(make('span', 'minitop'), make('span', 'holder', name));
+      return row;
+    }));
     const fronts = make('div', 'fronts');
     for (const d of drawers(this.#w.gm)) {
       const front = make('button', `drawerfront${this.#pulled === d ? ' pulled' : ''}`, '', `${LABEL[d]}: click to pull it out`);
@@ -178,17 +225,18 @@ export class DeskView {
       front.addEventListener('click', () => { this.#pulled = this.#pulled === d ? null : d; this.#searching = false; this.render(); });
       fronts.append(front);
     }
-    // R527, R548: an entry, dragged out, comes back under the pointer; a search's shows its drawer.
-    const entry = (k: number, name: string, drawer?: Drawer) => {
+    // R527, R548, R556: an entry, dragged out, comes back under the pointer; a search's shows its drawer,
+    // and its desk when there are several.
+    const entry = (at: number, k: number, name: string, drawer?: Drawer) => {
       const b = make('button', '', name, 'Drag this back onto the table');
-      if (drawer) b.append(make('span', 'where', LABEL[drawer]));
-      gesture(b, { drag: (_down, move) => { this.#show(false); this.#w.takeOut(k, move); } });
+      if (drawer) b.append(make('span', 'where', several ? `${deskName(desks.desks[at]!)}: ${LABEL[drawer]}` : LABEL[drawer]));
+      gesture(b, { drag: (_down, move) => { this.#show(false); this.#w.takeOut(at, k, move); } });
       return b;
     };
     if (this.#searching) {
-      const list = make('div', 'filed found'), hits = search(this.#w.filed(), this.#find.value);
+      const list = make('div', 'filed found'), hits = search(desks, this.#find.value);
       if (!hits.length) list.append(make('p', '', this.#find.value.trim() ? 'Nothing found.' : 'Nothing filed here.'));
-      for (const { k, entry: e } of hits) list.append(entry(k, e.name, e.drawer));
+      for (const { at, k, entry: e } of hits) list.append(entry(at, k, e.name, e.drawer));
       this.#body.replaceChildren(fronts, list);
       return;
     }
@@ -196,10 +244,10 @@ export class DeskView {
       this.#body.replaceChildren(fronts);
       return;
     }
-    const list = make('div', 'filed'), filed = inDrawer(this.#w.filed(), this.#pulled);
+    const list = make('div', 'filed'), filed = inDrawer(desks, cur, this.#pulled);
     list.dataset.drawer = this.#pulled;
     if (!filed.length) list.append(make('p', '', 'Nothing filed here.'));
-    for (const { k, entry: e } of filed) list.append(entry(k, e.name));
+    for (const { k, entry: e } of filed) list.append(entry(cur, k, e.name));
     this.#body.replaceChildren(fronts, list);
   }
 

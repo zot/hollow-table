@@ -1,4 +1,4 @@
-// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136, R364, R397
+// CRC: crc-Seat.md | Seq: seq-restore.md#1.6 | R127, R128, R136, R364, R397, R552
 // Your seat at the table: how you're looking, kept per game and per viewer in localStorage, never
 // checkpointed, exported or sent. Every read and write survives a blocked or empty storage.
 
@@ -16,6 +16,8 @@ export type Seat = {
   viewAs: string | null;
   tapeUp: boolean;
   boothill: { cur: number; open: boolean };
+  /** R552: the GM's desk open. */
+  desk: { cur: number };
   /** Opened things, each named by the oid it belongs to: used piles and piles by oid, slots as
    * `<oid>:<slot>`, card columns as `<oid>:<damage>`, the Info card slid out as `<oid>:<k>` (R397). */
   open: { used: Oid[]; piles: Oid[]; slots: string[]; columns: string[]; info: string[] };
@@ -28,7 +30,7 @@ export const seatKey = (game: string, viewer: string) => `hollow.seat.${game}.${
 export function fresh(): Seat {
   return {
     view: null, viewAs: null, tapeUp: false,
-    boothill: { cur: 0, open: false }, open: { used: [], piles: [], slots: [], columns: [], info: [] }, types: {},
+    boothill: { cur: 0, open: false }, desk: { cur: 0 }, open: { used: [], piles: [], slots: [], columns: [], info: [] }, types: {},
   };
 }
 
@@ -45,6 +47,7 @@ export function load(storage: KeyValue, game: string, viewer: string): Seat {
     ...base, ...saved,
     view: isObject(saved.view) ? { x: 0, y: 0, zoom: 1, ...saved.view } : null,
     boothill: { ...base.boothill, ...(isObject(saved.boothill) ? saved.boothill : {}) },
+    desk: { ...base.desk, ...(isObject(saved.desk) ? saved.desk : {}) },
     open: { ...base.open, ...(isObject(saved.open) ? saved.open : {}) },
     types: isObject(saved.types) ? saved.types as Seat['types'] : {},
   } as Seat;

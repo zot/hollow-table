@@ -77,7 +77,7 @@ test('a docket: made, filled, moved within, taken out, tied and filed', async ({
   await dragFromTo(page, g2.x, g2.y, desk.x, desk.y);
   await expect.poll(() => rec(page, D)).toBeUndefined();
   expect(await rec(page, A)).toBeUndefined();
-  expect((await rec(page, 'desk')).desk.map((e: any) => [e.name, e.records.length])).toEqual([['Docket: Clues', 2]]);
+  expect((await rec(page, 'desk')).desks[0].items.map((e: any) => [e.name, e.records.length])).toEqual([['Docket: Clues', 2]]);
   await page.mouse.click(desk.x, desk.y);
   await page.locator('#bar .drawerfront[data-drawer="papers"]').click();
   await expect(page.locator('#bar .filed button')).toHaveText(['Docket: Clues']);

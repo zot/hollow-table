@@ -43,6 +43,29 @@ The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/o
   2026-11-24: "Back to its player"), owned as when it was filed.
 - **Dropped back on the desk** it is filed again; on the rest of the bar, buried.
 
+## The GM's desks
+
+From `carves/organizing.md`, Item 6 (Bill, 2026-11-23: "why not more desks, just like graveyards. We
+could show arrows and a desk name when you click it to expand"; "Same rules"; "GM's desks only").
+
+- **The GM can keep several desks, as Boot Hill keeps graveyards.** The open desk shows ‹, the desk's
+  name and › above its drawers. › past the last desk makes a new one, numbered one past the highest
+  "Desk N"; the name is written in place, and erasing it leaves the desk nameless; an empty, nameless
+  desk goes when you leave it; there is always at least one. Which desk is open is the GM's own view,
+  like the graveyard browsed, and flipping through them shows only their drawers.
+- **Every desk has the same pigeonholes**; only its drawers differ. **A player has one desk**, with no
+  arrows and no name.
+- **Filing goes by a list** (Bill, 2026-11-24: "When there's more than one desk, let's pop down a list of
+  desks so if the GM drops on the desk it goes into the first one, but they can drag down to drop into
+  another desk"). With more than one desk, carrying a piece that would be filed over the desk hangs a
+  walnut board below it, a row per desk: let go on the desk and the piece is filed in the first, or
+  drag down the board and let go on another. The first is the desk open now ("Yes, the current desk"),
+  then the rest in order. Each row is a miniature roll-top and its name in a small brass label holder,
+  at least 44 px high; the row under the piece rolls its lid up, and down again when the piece leaves.
+  The "→" hint names the desk and the drawer: "→ Act 2: NPCs".
+- **Search reads every desk**, and with more than one a result says its desk and drawer ("Act 2:
+  NPCs").
+
 ## Finding
 
 From `carves/organizing.md`, Item 5 (Bill, 2026-11-24: "words too for a typed-in search but we should
@@ -56,6 +79,7 @@ also have a way to present a list of names to the GM", and "Empty search shows i
   found."
 - **With nothing typed, it is the list of names**: every name filed, in every drawer, alphabetical.
   Clearing what was typed brings the whole list back.
-- **Each result says its drawer** ("NPCs") and drags out as from its drawer.
+- **Each result says its drawer** ("NPCs"), and its desk too when there is more than one, and drags out
+  as from its drawer.
 - **A page searches only its own desk**, so a player finds only what they filed.
 

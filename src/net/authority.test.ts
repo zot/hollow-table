@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../model/game.ts';
-import { TOMBS, ridOf, type Book, type Character, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type TornRoll, type Yards } from '../model/records.ts';
+import { TOMBS, ridOf, type Book, type Character, type Desk, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type TornRoll, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
 import { burialOf, bury } from '../rules/yards.ts';
@@ -563,5 +563,13 @@ test("a rename follows into the GM's drawers", () => {
   const sam = game.get(ridOf(SAM)) as Character;
   game.change(w => { w.del(ridOf(SAM)); w.put('desk', { desk: [{ drawer: 'characters', name: sam.name, records: [sam] }] }); });
   game.change(renamed(game, 'Dana', 'Dee'));
-  assert.equal(((game.get('desk') as { desk: { records: Character[] }[] }).desk[0]!.records[0]!).owner, 'Dee');
+  // R550: a desk from before is read as one desk, and written back as the list of desks.
+  type Desks = { desks: { items: { records: Character[] }[] }[] };
+  assert.equal((game.get('desk') as Desks).desks[0]!.items[0]!.records[0]!.owner, 'Dee');
+  // In every one of the GM's desks.
+  const now = game.get('desk') as Desk;
+  const other = { name: 'Act 2', named: true, items: [{ drawer: 'characters' as const, name: sam.name, records: [{ ...sam, owner: 'Dee' }] }] };
+  game.change(w => w.put('desk', { desks: [...now.desks, other] }));
+  game.change(renamed(game, 'Dee', 'Dot'));
+  assert.deepEqual((game.get('desk') as Desks).desks.map(d => d.items[0]!.records[0]!.owner), ['Dot', 'Dot']);
 });

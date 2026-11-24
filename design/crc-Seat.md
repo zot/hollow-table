@@ -1,5 +1,5 @@
 # Seat
-**Requirements:** R127, R128, R136, R271, R364, R381, R397
+**Requirements:** R127, R128, R136, R271, R364, R381, R397, R552
 
 Your seat at the table: everything about how you're looking, kept per game and per viewer, never
 checkpointed, exported or sent.
@@ -22,6 +22,7 @@ checkpointed, exported or sent.
   open piles, slots, columns and Info cards of vanished pieces; the graveyard browsed is kept within
   the yards. A seat saved by an older page sheds the roll row it carried, the row being the game's
   (R381).
+- desk.cur (R552): the GM's desk open, kept like the graveyard browsed.
 
 ## Collaborators
 - Game: to prune against.

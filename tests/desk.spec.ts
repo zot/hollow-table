@@ -1,4 +1,4 @@
-// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R529, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527, R546, R547, R548, R549
+// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R529, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527, R546, R547, R548, R549, R551, R552, R553, R554, R555, R556
 // The desk on the bar: its pigeonholes hold the paper supplies; a press takes one out, small while
 // over the strip; let go in a pigeonhole it follows the pointer until the next press.
 import { expect, test, type Page } from '@playwright/test';
@@ -170,7 +170,7 @@ test('the GM files an NPC, and Dana loses it', async ({ browser }) => {
   await gm.mouse.up();
   await expect.poll(() => rec(gm, DEVREUX)).toBeUndefined();
   const desk1 = await rec(gm, 'desk');
-  expect(desk1.desk.map((e: any) => [e.drawer, e.records.length])).toEqual([['npcs', had + 1]]);
+  expect(desk1.desks[0].items.map((e: any) => [e.drawer, e.records.length])).toEqual([['npcs', had + 1]]);
   expect(await cards(gm)).toBe(0);
   // R524: Dana's page holds nothing of it, and no desk.
   await expect.poll(() => rec(dana, DEVREUX), { timeout: 15_000 }).toBeUndefined();
@@ -186,7 +186,7 @@ test('the GM files an NPC, and Dana loses it', async ({ browser }) => {
   await gm.mouse.up();
   await expect.poll(() => rec(gm, DEVREUX).then(r => !!r)).toBe(true);
   expect(await cards(gm)).toBe(had);
-  expect((await rec(gm, 'desk')).desk).toEqual([]);
+  expect((await rec(gm, 'desk')).desks[0].items).toEqual([]);
   await expect.poll(() => rec(dana, DEVREUX).then(r => !!r), { timeout: 15_000 }).toBe(true);
   await expect.poll(() => cards(dana), { timeout: 15_000 }).toBe(had);
 });
@@ -199,6 +199,8 @@ test("a player's drawer is her own", async ({ browser }) => {
   await dana.mouse.click(desk.x, desk.y);
   await expect(dana.locator('#bar .drawerfront')).toHaveCount(1);
   await expect(dana.locator('#bar .drawerfront')).toHaveAttribute('data-drawer', 'papers');
+  // R553: one desk, no arrows and no name.
+  await expect(dana.locator('#bar .desknav')).toHaveCount(0);
   await dana.mouse.click(5, 300);
   // R525: her sticky, filed, leaves every table and is in her desk alone, through a reload.
   const to = await openTable(dana);
@@ -210,11 +212,11 @@ test("a player's drawer is her own", async ({ browser }) => {
   await expect(dana.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Papers');
   await dana.mouse.up();
   await expect.poll(() => rec(gm, `o:${oid}`), { timeout: 15_000 }).toBeUndefined();
-  expect((await rec(dana, 'desk')).desk.map((e: any) => e.records[0].oid)).toEqual([oid]);
+  expect((await rec(dana, 'desk')).desks[0].items.map((e: any) => e.records[0].oid)).toEqual([oid]);
   expect(await rec(gm, 'desk')).toBeUndefined();
   await expect.poll(async () => (await records(dana)).saved, { timeout: 5_000 }).toContain('"desk"');
   await dana.reload();
-  await expect.poll(async () => (await rec(dana, 'desk'))?.desk.length, { timeout: 15_000 }).toBe(1);
+  await expect.poll(async () => (await rec(dana, 'desk'))?.desks[0].items.length, { timeout: 15_000 }).toBe(1);
   // R521: her character over her desk is buried, as anywhere on the bar.
   await fromDesk(dana, 'character', 700, 560);
   const mine = (await kinds(dana, 'character')).find(([, r]) => r.owner === 'Dana')![0];
@@ -225,7 +227,7 @@ test("a player's drawer is her own", async ({ browser }) => {
   await expect(dana.locator('#bar .desk')).not.toHaveClass(/\bfile\b/);
   await dana.mouse.up();
   await expect.poll(() => rec(dana, mine)).toBeUndefined();
-  expect((await rec(dana, 'desk')).desk).toHaveLength(1);
+  expect((await rec(dana, 'desk')).desks[0].items).toHaveLength(1);
   await expect.poll(async () => JSON.stringify(await rec(gm, 'yards')), { timeout: 15_000 }).toContain(mine.slice(2));
 });
 
@@ -257,7 +259,7 @@ test('the search line finds what is filed, and lists every name', async ({ brows
   await lift(gm, entry, to, { x: 10, y: 10 });
   await gm.mouse.up();
   await expect.poll(() => rec(gm, DEVREUX).then(r => !!r)).toBe(true);
-  expect((await rec(gm, 'desk')).desk.map((e: any) => e.name)).toEqual(['Note: buy rope']);
+  expect((await rec(gm, 'desk')).desks[0].items.map((e: any) => e.name)).toEqual(['Note: buy rope']);
   // R549: Dana's search reads her own desk, which holds nothing.
   const dd = await middle(dana, '#bar .desk');
   await dana.mouse.click(dd.x, dd.y);
@@ -265,3 +267,47 @@ test('the search line finds what is filed, and lists every name', async ({ brows
   await expect(dana.locator('#bar .filed button')).toHaveCount(0);
   await expect(dana.locator('#bar .filed p')).toHaveText('Nothing filed here.');
 });
+
+test("the GM's desks: browsed, named, and filed into by the board", async ({ page }) => {
+  await open(page);
+  const desk = await middle(page, '#bar .desk');
+  // R551, R552: the open desk shows its name between arrows; › past a named desk makes one numbered past
+  // the highest "Desk N" in use: none is left once Desk 1 is Act 1, so it is Desk 1 again.
+  await page.mouse.click(desk.x, desk.y);
+  await expect(page.locator('#bar .desknav .dname')).toHaveValue('Desk 1');
+  await page.locator('#bar .desknav .dname').fill('Act 1');
+  await page.locator('#bar .desknav .dname').press('Enter');
+  await page.locator('#bar .desknext').click();
+  await expect(page.locator('#bar .desknav .dname')).toHaveValue('Desk 1');
+  await page.locator('#bar .desknav .dname').fill('Act 2');
+  await page.locator('#bar .desknav .dname').press('Enter');
+  await expect.poll(async () => (await rec(page, 'desk')).desks.map((d: any) => d.name)).toEqual(['Act 1', 'Act 2']);
+  await page.mouse.click(5, 400);
+  // R554, R555: carried over the desk, the board hangs below it, the open desk first; over the desk the
+  // hint names it, and dragged down onto Act 1's row, that one.
+  const name = await middle(page, `.obj.pool[data-rid="${DEVREUX}"] .name`);
+  await lift(page, name, desk);
+  await expect(page.locator('#bar .deskboard')).toBeVisible();
+  await expect(page.locator('#bar .deskrow .holder')).toHaveText(['Act 2', 'Act 1']);
+  await expect(page.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Act 2: NPCs');
+  const row = await middle(page, '#bar .deskrow[data-desk="0"]');
+  await page.mouse.move(desk.x, row.y - 30, { steps: 4 });
+  await page.mouse.move(row.x, row.y, { steps: 6 });
+  await expect(page.locator('#bar .deskrow[data-desk="0"]')).toHaveClass(/\bover\b/);
+  await expect(page.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Act 1: NPCs');
+  await page.mouse.up();
+  await expect.poll(() => rec(page, DEVREUX)).toBeUndefined();
+  expect((await rec(page, 'desk')).desks.map((d: any) => d.items.map((e: any) => e.name))).toEqual([['Devreux'], []]);
+  await expect(page.locator('#bar .deskboard')).toBeHidden();
+  // R552: Act 2 is still the one open; its NPCs drawer is empty. R556: search finds Devreux in Act 1.
+  await page.mouse.click(desk.x, desk.y);
+  await expect(page.locator('#bar .desknav .dname')).toHaveValue('Act 2');
+  await page.locator('#bar .search').click();
+  await expect(page.locator('#bar .filed button')).toHaveText(['DevreuxAct 1: NPCs']);
+  // R551: ‹ goes back to Act 1, whose NPCs drawer holds it.
+  await page.locator('#bar .deskprev').click();
+  await expect(page.locator('#bar .desknav .dname')).toHaveValue('Act 1');
+  await page.locator('#bar .drawerfront[data-drawer="npcs"]').click();
+  await expect(page.locator('#bar .filed button')).toHaveText(['Devreux']);
+});
+

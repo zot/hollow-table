@@ -15,7 +15,7 @@ Opened by Bill, 2026-11-23, and worked out with Daneel over 2026-11-23 and 24.
 - [x] ~~**Item 3 — drawers and filing.**~~ **LANDED (2026-11-24 — `#65`.)** After Items 1 and 2.
 - [x] ~~**Item 4 — dockets.**~~ **LANDED (2026-11-24 — `#66`.)** After Item 3.
 - [x] ~~**Item 5 — search and the list of names.**~~ **LANDED (2026-11-24 — `#67`.)** After Item 3.
-- [ ] **Item 6 — the GM's desks.** **OPEN (not queued.)** After Item 3.
+- [x] ~~**Item 6 — the GM's desks.**~~ **LANDED (2026-11-24 — `#68`.)** After Item 3.
 - [ ] **Item 7 — desktops and the knife switch.** **OPEN (not queued.)** After Item 6.
 
 ## What the table has today
@@ -329,6 +329,10 @@ DECIDED (Bill, 2026-11-24): "When there's more than one desk, let's pop down a l
 drops on the desk it goes into the first one, but they can drag down to drop into another desk"; the
 first is the one set out ("Yes, the current desk"); its look as drawn ("Yes, let's record that design").
 The hint naming desk and drawer, and identical pigeonholes: "These are all good".
+
+Specified in `specs/desk.md`, *The GM's desks*, as R550–R556 (#68). Until Item 7 sets a desk out, the
+board's first desk is the one open, as Bill put it ("Yes, the current desk"); the knife switch's mark
+comes with Item 7. A desk saved before #68 (one list of entries) reads as "Desk 1".
 
 ## Item 7
 

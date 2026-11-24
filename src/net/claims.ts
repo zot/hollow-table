@@ -4,7 +4,8 @@
 // live in the book, saved with the game; the book is never sent, but who holds each name goes to every
 // page as `claims` (Authority, R446).
 
-import { GM, OPEN, isPaper, type Book, type Desk, type Rec, type Yards } from '../model/records.ts';
+import { GM, OPEN, isPaper, type Book, type Desk, type OldDesk, type Rec, type Yards } from '../model/records.ts';
+import { desksOf } from '../rules/drawers.ts';
 import type { Game, Writer } from '../model/game.ts';
 import { ID } from './identity.ts';
 
@@ -77,9 +78,9 @@ export function renamed(game: Game, from: string, to: string): (w: Writer) => vo
         const y = r as Yards;
         w.put(rid, { ...y, yards: y.yards.map(g => ({ ...g, items: g.items.map(i => ({ ...i, records: i.records.map(x => follow(x) as typeof x) })) })) });
       } else if (rid === 'desk') {
-        // R528: what the GM filed follows too.
-        const d = r as Desk;
-        w.put(rid, { desk: d.desk.map(e => ({ ...e, records: e.records.map(x => follow(x) as typeof x) })) });
+        // R528, R550: what the GM filed, in every desk, follows too.
+        const d = desksOf(r as Desk | OldDesk);
+        w.put(rid, { desks: d.desks.map(one => ({ ...one, items: one.items.map(e => ({ ...e, records: e.records.map(x => follow(x) as typeof x) })) })) });
       } else {
         const f = follow(r);
         if (f !== r) w.put(rid, f);

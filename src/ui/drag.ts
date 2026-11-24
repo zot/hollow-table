@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543, R554, R555
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -10,7 +10,7 @@ import type { Item } from '../rules/pool.ts';
 import { gapAt } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
 import { bury, buryOwn, empty, graveName, putAway } from '../rules/yards.ts';
-import { LABEL, drawerOf, emptyDesk, filed } from '../rules/drawers.ts';
+import { LABEL, deskName, desksOf, drawerOf, filed } from '../rules/drawers.ts';
 import type { Aim, MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
 import type { Hands } from './hands.ts';
@@ -27,6 +27,8 @@ export type DragWith = {
   who: () => string | undefined;
   /** The graveyard being browsed (the Seat), where a put-away piece is buried (R122, R288). */
   yard: () => { cur: number; name: string };
+  /** R552: the desk open, the board's first (the GM's seat). */
+  desk: () => number;
   /** R521: whether this is the GM's page, whose desk files characters too. */
   gm: boolean;
 };
@@ -48,8 +50,8 @@ type Carry = {
   buries: boolean;
   /** The pointing hand on the whole page (R221). */
   pointing?: boolean;
-  /** What the drop changes, from the last frame; `away` is over the bar, `file` over the desk (R519). */
-  drop: (last: Frame, away: boolean, z: number, file: boolean) => Change | null;
+  /** What the drop changes, from the last frame; `away` is over the bar, `file` the desk it is filed in (R519, R555). */
+  drop: (last: Frame, away: boolean, z: number, file: number | null) => Change | null;
   /** R519, R520: the drawer it files in over the desk, or none (then the desk is the bar). */
   files?: Drawer | null;
   done?: () => void;
@@ -118,14 +120,14 @@ export class Drag {
       keepOut();
       last = c.frame(e.clientX, e.clientY);
       // R513: Esc takes a loose piece back as a press on the bar would. R519: over the desk, filed.
-      const file = !put && !!c.files && this.#overDesk(doc, e.clientX, e.clientY);
+      const file = !put && !!c.files && this.#overDesk(doc, e.clientX, e.clientY), into = file ? this.#deskAt(doc, e.clientX, e.clientY) : null;
       const away = put || (!file && this.#overBar(doc, e.clientY));
       this.#lightBar(doc, null, null, false, null);
       doc.body.classList.remove('dragging', 'tapping');
       hands.drop(hand, [], true);
       // R300: the drop is a move; its change goes out right after it.
       moves?.drop([item(last)]);
-      const change = c.drop(last, away, z, file);
+      const change = c.drop(last, away, z, into);
       // R217, R226: drawn where it was let go, without gliding there.
       table.still(() => { if (change) game.change(change); });
       moves?.release(c.rid);
@@ -167,7 +169,7 @@ export class Drag {
       // R19, R519: a fresh supply is never made, so never filed.
       files: this.#fresh.has(rid) ? null : drawerOf(rec, this.#w.gm),
       drop: (last, away, z, file) => {
-        if (file) return this.#file(rec);
+        if (file !== null) return this.#file(rec, file);
         if (away) return this.#putAway(rec);
         return this.#drop(rec, 'card', from, last, z, last.aim);
       },
@@ -195,8 +197,8 @@ export class Drag {
       buries: !this.#fresh.has(rid),
       files: this.#fresh.has(rid) ? null : drawerOf(c, this.#w.gm),
       drop: (last, over, z, file) => {
-        away = over || file;
-        if (file) return this.#file(c);
+        away = over || file !== null;
+        if (file !== null) return this.#file(c, file);
         if (over) return this.#putAway(c);
         return this.#drop(c, 'pool', c.pool, last, z);
       },
@@ -318,10 +320,19 @@ export class Drag {
     return !!bar && cy < bar.getBoundingClientRect().bottom;
   }
 
-  // R519: the desk on the bar, by the pointer.
+  // R519, R554: the desk on the bar, by the pointer, and the board of desks while it hangs below it.
   #overDesk(doc: Document, cx: number, cy: number): boolean {
-    const r = doc.querySelector('#bar .desk')?.getBoundingClientRect();
-    return !!r && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    const inside = (r: DOMRect | undefined) => !!r && r.width > 0 && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+    return inside(doc.querySelector('#bar .desk')?.getBoundingClientRect()) || inside(doc.querySelector('#bar .deskboard')?.getBoundingClientRect());
+  }
+
+  /** This page's desks (its `desk` record). */
+  #desks(): Desk { return desksOf(this.#w.game.get('desk') as Desk | undefined); }
+
+  // R555: the desk a piece let go here is filed in: the board's row under the pointer, else the open desk.
+  #deskAt(doc: Document, cx: number | null, cy: number | null): number {
+    const row = cx === null || cy === null ? null : (doc.elementFromPoint(cx, cy) as HTMLElement | null)?.closest<HTMLElement>('.deskrow');
+    return row ? Number(row.dataset.desk) : Math.max(0, Math.min(this.#w.desk(), this.#desks().desks.length - 1));
   }
   // R288, R520: over the bar it is red, with the graveyard it would be buried in; over the desk, with
   // the drawer it would be filed in instead.
@@ -333,18 +344,24 @@ export class Drag {
     bar.classList.toggle('bury', over && buries && !file);
     bar.dataset.yard = `→ ${this.#w.yard().name || 'Unnamed graveyard'}`;
     desk?.classList.toggle('file', file);
-    if (desk && files) desk.dataset.drawer = `→ ${LABEL[files]}`;
+    // R554, R555: the row under the pointer rolls its lid up; the hint names the desk too when there are several.
+    const at = file ? this.#deskAt(doc, cx, cy) : -1;
+    for (const row of doc.querySelectorAll<HTMLElement>('#bar .deskrow')) row.classList.toggle('over', Number(row.dataset.desk) === at);
+    if (desk && files) {
+      const all = this.#desks(), one = all.desks[at];
+      desk.dataset.drawer = `→ ${all.desks.length > 1 && one ? `${deskName(one)}: ` : ''}${LABEL[files]}`;
+    }
   }
 
   // R519, R523: filed in its drawer with what a burial would take, and gone from the table.
-  #file(rec: PieceRecord): Change {
+  #file(rec: PieceRecord, at: number): Change {
     const { game, gm } = this.#w, drawer = drawerOf(rec, gm);
     if (!drawer) return () => {};
     const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
     const { shared, own } = putAway(rec, all), recs = [...shared, ...own];
-    const d = (game.get('desk') as Desk | undefined) ?? emptyDesk();
+    const d = this.#desks();
     return w => {
-      w.put('desk', filed(d, drawer, recs, graveName(rec)));
+      w.put('desk', filed(d, at, drawer, recs, graveName(rec)));
       for (const r of recs) w.del(ridFor(r));
     };
   }

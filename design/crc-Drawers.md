@@ -1,5 +1,5 @@
 # Drawers
-**Requirements:** R519, R521, R523-525, R527, R546, R547, R549
+**Requirements:** R519, R521, R523-525, R527, R546, R547, R549-551, R556
 
 The desk's drawers, pure: which drawer a piece files in, filing it, and taking it out again. Like
 Yards, but each page's own (`desk`, Records.isLocal) and never shared.
@@ -21,6 +21,12 @@ Yards, but each page's own (`desk`, Records.isLocal) and never shared.
   no words, every entry by name.
 - wordsOf(record) (R546): the plain words on a filed record: a sticky's or loose text's text, a
   character's front, back notes and Info cards, a docket's name; marks left out.
+- desksOf(record) (R550): the desks of a `desk` record, reading one from before (a single list) as one
+  nameless "Desk 1"; none, one empty "Desk 1".
+- filed(desks, at, drawer, records, name) and takeOut(desks, at, k) (R523, R527): as before, in desk `at`.
+- deskNext, deskPrev, deskRename (R551): as Yards' next, prev and rename, for desks: a new one "Desk N"
+  one past the highest, an empty nameless one swept when left, the only one kept.
+- search(desks, query) (R546, R556): every desk's entries, each with its desk's index.
 
 ## Collaborators
 - Records: the `desk` record and its pieces.

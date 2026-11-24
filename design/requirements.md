@@ -573,6 +573,13 @@
 - **R547:** With nothing typed, the search line, while it has the caret, lists every filed entry, alphabetical by name; clearing what was typed brings the whole list back.
 - **R548:** Each result shows its name and its drawer's label, and dragged a few pixels out comes back as from its drawer (R527).
 - **R549:** A page searches only its own desk record (R524, R525).
+- **R550:** The `desk` record holds a list of desks, each its name, whether it was named, and its filed entries; a player's page keeps one; a desk record from before (one list of entries) reads as one nameless desk, "Desk 1".
+- **R551:** On the GM's page the open desk shows ‹, the desk's name (written in place; "Unnamed desk" when nameless) and › above its search line; › past the last desk makes a new one named one past the highest "Desk N", unless the last is empty and nameless; ‹ at the first does nothing; erasing the name makes the desk nameless; an empty, nameless desk goes when it is left, and the only one is always kept.
+- **R552:** Which desk is open is a setting of the GM's seat (`desk.cur`), kept per game and viewer; the open desk's drawers list that desk's entries.
+- **R553:** A player's open desk shows no arrows and no name.
+- **R554:** With more than one desk, while a piece that would be filed is over the desk, a walnut board hangs below it, a row per desk, the open desk first and the rest in order, each a miniature roll-top and its name in a brass label holder, at least 44 px high; the row under the pointer rolls its lid up; while it hangs, the board counts as the desk.
+- **R555:** Let go on the desk itself, the piece is filed in the board's first desk; on a row, in that row's desk; with more than one desk the hint names the desk and the drawer ("→ Act 2: NPCs").
+- **R556:** Search reads every desk; with more than one, a result shows its desk's name and its drawer's label ("Act 2: NPCs").
 
 ## Feature: dockets
 **Source:** specs/dockets.md

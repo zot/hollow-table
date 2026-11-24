@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543, R552, R554, R555
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -87,6 +87,9 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - A card dragged alone leaves its pool from where it was drawn and is ungathered.
 - docket carry (R541, R543): a docket's label, or a press on a tied docket's pile, carries the docket; its papers follow (Hands) and the drop moves them by the same offset. A fresh docket, let go on the table, has its name selected (R532).
 - docket aim (R536, R538, R539): carried paper not aimed at a card is aimed at the docket on top whose tape, drawn without the carried paper, it touches (Dockets.aimed); let go so, it is pinned to that docket at its offset from the label; let go clear, it is loose.
+- filing among desks (R554, R555): over the desk or its hanging board, the desk is the row under the
+  pointer or else the board's first (the open desk); the hint names it and the drawer when there are
+  several.
 
 ## Collaborators
 - Game, Moves, Pool, Tap, Yards, PoolView, TableView, RollRow, Gesture
