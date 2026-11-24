@@ -589,3 +589,36 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** raise nothing (pinLine ignores its cards): the cards aren't marked during the drag
 **Inject:** src/ui/table.ts:pinLine
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with pinLine raising no cards, the thumbtack spec failed in Chromium (Devreux's card not marked raised during the tack's drag); restored clean
+
+## Test: paper pinned to a gathered card keeps its place on the card through the pool's drag
+**Purpose:** R574, R575: a sticky pinned to gathered Sam, nudged on the card, keeps its place on the card while Sam's pool is carried and after it is let go; the card's record is where it is drawn, and the sticky's place is the card's plus its pin.
+**Input:** the GM pins a sticky to Sam's card, drags it a little, then carries Sam's pool and lets go.
+**Expected:** the sticky's offset from the card within a few pixels mid-carry and after; card record equal to its drawn place; place minus card equal to the pin.
+**Refs:** crc-Drag.md
+**Code:** tests/card.spec.ts
+**Alarm:** 49
+**Fire alarm:** measure the pin from the card's record, as before (holder at the record): the sticky jumps mid-carry
+**Inject:** src/ui/drag.ts:Drag
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the pin measured from the card's record, the spec failed in Chromium mid-carry (the sticky jumped on the card); restored clean
+
+## Test: a pool's drop takes its card's paper
+**Purpose:** R574: let go, the sticky's record moved with the pool.
+**Input:** the same spec, after the drop.
+**Expected:** the sticky's place minus the card's equals its pin.
+**Refs:** crc-Drag.md
+**Code:** tests/card.spec.ts
+**Alarm:** 50
+**Fire alarm:** leave the paper behind on a pool's drop (no bringPapers in the pool branch): the sticky stays where it was
+**Inject:** src/ui/drag.ts:Drag
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the pool's drop leaving the paper, the spec failed in Chromium (the sticky's place minus the card's not its pin); restored clean
+
+## Test: a pool's drop puts its gathered card's record where it is drawn
+**Purpose:** R574: the gathered card's record follows its pool.
+**Input:** the same spec, after the drop.
+**Expected:** the card's record equals its drawn place.
+**Refs:** crc-Drag.md
+**Code:** tests/card.spec.ts
+**Alarm:** 51
+**Fire alarm:** leave the gathered card's record alone on the pool's drop: the record differs from where it is drawn
+**Inject:** src/ui/drag.ts:Drag
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the gathered card's record left alone, the spec failed in Chromium (record not where the card is drawn); restored clean

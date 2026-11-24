@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543, R562, R555, R572, R571, R573
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543, R562, R555, R572, R571, R573, R574, R575
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -193,6 +193,13 @@ export class Drag {
     return c?.kind === 'character' ? c : null;
   }
 
+  // R575: a gathered card is drawn under its pool, which its record may not say; a pin is measured from there.
+  /** Where a card is drawn on this page, in table coordinates. */
+  #spot(c: Character): { x: number; y: number } {
+    const e = c.gathered ? this.#w.table.element(ridOf(c.oid)) : undefined;
+    return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top) } : c.card;
+  }
+
   /** The middle of a card as it is drawn, in table coordinates. */
   #middle(c: Character): { x: number; y: number } {
     const b = this.#w.table.box(ridOf(c.oid));
@@ -233,7 +240,8 @@ export class Drag {
       stop();
       const card = over, now = game.get(rid) as typeof rec | undefined;
       if (!card || card.oid === from.oid || !now) return;
-      game.change(w => w.put(rid, { ...now, pin: { card: card.oid, dx: now.place.x - card.card.x, dy: now.place.y - card.card.y } }));
+      const at = this.#spot(card);   // R575
+      game.change(w => w.put(rid, { ...now, pin: { card: card.oid, dx: now.place.x - at.x, dy: now.place.y - at.y } }));
     });
   }
 
@@ -244,6 +252,8 @@ export class Drag {
     const c = game.get(rid) as Character | undefined;
     if (!c || c.kind !== 'character' || !table.pool(rid)) return;
     const p0 = table.toWorld(down.clientX, down.clientY), grip = { x: p0.x - c.pool.x, y: p0.y - c.pool.y };
+    // R574: where its card is drawn before the carry; while carried it is drawn where it is headed.
+    const spot = this.#spot(c);
     let away = false;
     this.#carry({
       rid, part: 'pool',
@@ -254,7 +264,7 @@ export class Drag {
         away = over || file !== null;
         if (file !== null) return this.#file(c, file);
         if (over) return this.#putAway(c);
-        return this.#drop(c, 'pool', c.pool, last, z);
+        return this.#drop(c, 'pool', c.pool, last, z, undefined, spot);
       },
       done: () => { if (!away) done?.(); },
       loose,
@@ -504,9 +514,10 @@ export class Drag {
   }
 
   // Seq: seq-drag.md#1.7 | R27, R32: one change: the carried part from where it started (`from`) to
-  // where it was let go (`to`); a pool's card comes too unless gathered; a card's pinned paper moves
-  // with it; paper is pinned to the card it was aimed at, or let go of one.
-  #drop(rec: PieceRecord, part: 'pool' | 'card', from: { x: number; y: number }, to: { x: number; y: number }, z: number, aim?: Aim): Change {
+  // where it was let go (`to`); a pool's card comes too (gathered, from where it is drawn, R574); a pool's
+  // or card's pinned paper moves with it; loose paper is pinned to the card it was aimed at.
+  #drop(rec: PieceRecord, part: 'pool' | 'card', from: { x: number; y: number }, to: { x: number; y: number }, z: number, aim?: Aim,
+    cardFrom?: { x: number; y: number }): Change {
     const { game } = this.#w, rid = ridFor(rec), dx = to.x - from.x, dy = to.y - from.y;
     this.#fresh.delete(rid);   // made now: later, the bar buries it
     const moved = <P extends { x: number; y: number; z: number }>(p: P): P => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
@@ -519,7 +530,14 @@ export class Drag {
     };
     return w => {
       if (rec.kind === 'character') {
-        if (part === 'pool') { w.put(rid, { ...rec, pool: moved(rec.pool), card: rec.gathered ? rec.card : moved(rec.card) }); return; }
+        // R574: a gathered card's record goes where it is drawn, moved with the pool; its paper comes too.
+        if (part === 'pool') {
+          const s = cardFrom ?? this.#spot(rec);
+          const card = rec.gathered ? { ...rec.card, x: Math.round(s.x + dx), y: Math.round(s.y + dy) } : moved(rec.card);
+          w.put(rid, { ...rec, pool: moved(rec.pool), card });
+          bringPapers(w, rec.oid);
+          return;
+        }
         w.put(rid, { ...rec, card: { ...rec.card, x: to.x, y: to.y, z }, gathered: false });
         bringPapers(w, rec.oid);
         return;
@@ -538,7 +556,7 @@ export class Drag {
       const card = this.#tackedTo(rec) ?? (aim?.card ? game.get(aim.card) as Character | undefined : undefined);
       const docket = aim?.docket ? game.get(aim.docket) as Docket | undefined : undefined;
       let holder: { oid: Oid; at: { x: number; y: number } } | null = null;
-      if (card?.kind === 'character') holder = { oid: card.oid, at: card.card };
+      if (card?.kind === 'character') holder = { oid: card.oid, at: this.#spot(card) };   // R575
       else if (docket?.kind === 'docket') holder = { oid: docket.oid, at: docket.place };
       const { pin: _old, ...loose } = rec;
       w.put(rid, holder ? { ...loose, place, pin: { card: holder.oid, dx: place.x - holder.at.x, dy: place.y - holder.at.y } } : { ...loose, place });

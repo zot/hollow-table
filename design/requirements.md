@@ -81,6 +81,8 @@
 - **R32:** Dragging a pool brings its character card; dragging the card moves it alone and ungathers it.
 - **R251:** A pool is carried by a drag from its name, its frame and slots, or its drawer; a chip or card there carries itself instead, and only the empty space beside the name passes through to the table. The pool and its card (with what is pinned to it) move by the same offset, gathered or not.
 - **R33:** A gathered card stays snapped under its drawer as the drawer grows or shrinks; Gather snaps it back; the starting scene is gathered.
+- **R574:** A pool's drop puts its gathered card's record where the card is drawn, moved by the pool's offset, and moves the paper pinned to that card by the same offset.
+- **R575:** A pin's offset from a card (pinning paper on it, re-pinning by its tack, or keeping it pinned after a drag) is measured from where the card is drawn on the page that pins it.
 - **R34:** Dropping the character supply makes a card with its pool popped out above it, linked and gathered, owned by its maker (GM-owned when the GM makes it).
 - **R35:** A new pool never pops out under the bar; with no room above, the card slides down under it.
 - **R202:** Something waiting to be filled in shrinks to its name and opens when reached for.

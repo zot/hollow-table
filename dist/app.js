@@ -18572,6 +18572,12 @@ var Drag = class {
     const c = this.#w.game.get(ridOf(rec.pin.card));
     return c?.kind === "character" ? c : null;
   }
+  // R575: a gathered card is drawn under its pool, which its record may not say; a pin is measured from there.
+  /** Where a card is drawn on this page, in table coordinates. */
+  #spot(c) {
+    const e = c.gathered ? this.#w.table.element(ridOf(c.oid)) : void 0;
+    return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top) } : c.card;
+  }
   /** The middle of a card as it is drawn, in table coordinates. */
   #middle(c) {
     const b = this.#w.table.box(ridOf(c.oid));
@@ -18617,7 +18623,8 @@ var Drag = class {
       stop();
       const card2 = over, now2 = game2.get(rid2);
       if (!card2 || card2.oid === from.oid || !now2) return;
-      game2.change((w) => w.put(rid2, { ...now2, pin: { card: card2.oid, dx: now2.place.x - card2.card.x, dy: now2.place.y - card2.card.y } }));
+      const at4 = this.#spot(card2);
+      game2.change((w) => w.put(rid2, { ...now2, pin: { card: card2.oid, dx: now2.place.x - at4.x, dy: now2.place.y - at4.y } }));
     });
   }
   // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it (Hands).
@@ -18627,6 +18634,7 @@ var Drag = class {
     const c = game2.get(rid2);
     if (!c || c.kind !== "character" || !table.pool(rid2)) return;
     const p0 = table.toWorld(down.clientX, down.clientY), grip = { x: p0.x - c.pool.x, y: p0.y - c.pool.y };
+    const spot = this.#spot(c);
     let away = false;
     this.#carry({
       rid: rid2,
@@ -18638,7 +18646,7 @@ var Drag = class {
         away = over || file !== null;
         if (file !== null) return this.#file(c, file);
         if (over) return this.#putAway(c);
-        return this.#drop(c, "pool", c.pool, last, z);
+        return this.#drop(c, "pool", c.pool, last, z, void 0, spot);
       },
       done: () => {
         if (!away) done2?.();
@@ -18886,9 +18894,9 @@ var Drag = class {
     return void 0;
   }
   // Seq: seq-drag.md#1.7 | R27, R32: one change: the carried part from where it started (`from`) to
-  // where it was let go (`to`); a pool's card comes too unless gathered; a card's pinned paper moves
-  // with it; paper is pinned to the card it was aimed at, or let go of one.
-  #drop(rec, part, from, to, z, aim2) {
+  // where it was let go (`to`); a pool's card comes too (gathered, from where it is drawn, R574); a pool's
+  // or card's pinned paper moves with it; loose paper is pinned to the card it was aimed at.
+  #drop(rec, part, from, to, z, aim2, cardFrom) {
     const { game: game2 } = this.#w, rid2 = ridFor(rec), dx = to.x - from.x, dy = to.y - from.y;
     this.#fresh.delete(rid2);
     const moved = (p) => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
@@ -18901,7 +18909,10 @@ var Drag = class {
     return (w) => {
       if (rec.kind === "character") {
         if (part === "pool") {
-          w.put(rid2, { ...rec, pool: moved(rec.pool), card: rec.gathered ? rec.card : moved(rec.card) });
+          const s = cardFrom ?? this.#spot(rec);
+          const card3 = rec.gathered ? { ...rec.card, x: Math.round(s.x + dx), y: Math.round(s.y + dy) } : moved(rec.card);
+          w.put(rid2, { ...rec, pool: moved(rec.pool), card: card3 });
+          bringPapers(w, rec.oid);
           return;
         }
         w.put(rid2, { ...rec, card: { ...rec.card, x: to.x, y: to.y, z }, gathered: false });
@@ -18922,7 +18933,7 @@ var Drag = class {
       const card2 = this.#tackedTo(rec) ?? (aim2?.card ? game2.get(aim2.card) : void 0);
       const docket = aim2?.docket ? game2.get(aim2.docket) : void 0;
       let holder = null;
-      if (card2?.kind === "character") holder = { oid: card2.oid, at: card2.card };
+      if (card2?.kind === "character") holder = { oid: card2.oid, at: this.#spot(card2) };
       else if (docket?.kind === "docket") holder = { oid: docket.oid, at: docket.place };
       const { pin: _old, ...loose } = rec;
       w.put(rid2, holder ? { ...loose, place: place3, pin: { card: holder.oid, dx: place3.x - holder.at.x, dy: place3.y - holder.at.y } } : { ...loose, place: place3 });

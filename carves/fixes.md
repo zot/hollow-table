@@ -6,7 +6,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 
 ## Status
 
-- [ ] **Item 1 — paper on a gathered card follows its pool.** **OPEN (not queued.)** Gap O16.
+- [x] ~~**Item 1 — paper on a gathered card follows its pool.**~~ **LANDED (2026-11-24 — `#73`.)** Gap O16.
 - [ ] **Item 2 — a change just before a reload is kept.** **OPEN (not queued.)** Gap O12.
 - [ ] **Item 3 — a renamed player's own notes.** **OPEN (not queued.)** Gap O14.
 - [ ] **Item 4 — digging up a burial with a note you can't read.** **OPEN (not queued.)** Gap O13.
@@ -14,7 +14,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [ ] **Item 6 — the tape spec's reload race.** **OPEN (not queued.)** Gap O15.
 - [x] ~~**Item 7 — the name above a pool, written and tied to its card.**~~ **LANDED (2026-11-24 — `#70`.)** Bill, 2026-11-24.
 - [x] ~~**Item 8 — a thumbtack on paper pinned to a card.**~~ **LANDED (2026-11-24 — `#71`.)** Bill, 2026-11-24.
-- [ ] **Item 9 — pinned paper jumps when its pool is dragged.** **OPEN (not queued.)** Bill, 2026-11-24.
+- [x] ~~**Item 9 — pinned paper jumps when its pool is dragged.**~~ **LANDED (2026-11-24 — `#72`.)** Bill, 2026-11-24.
 
 ## Item 1
 
@@ -148,6 +148,12 @@ from the card's record, but while the pool is carried, Hands holds the pinned pa
 place plus that offset, so the paper jumps by the difference; and the paper's own drag starts from its
 record. If so, Items 1 and 9 are one fix: a gathered card's record following its pool, so the record
 and the drawing agree.
+
+Checked 2026-11-24 (#72) by a probe: Sam gathered, his record at y 300 and drawn at 275; mid-carry the
+card moved 18 px and the paper 2; after the drop the card's record and the paper's stood where they were.
+One fix for Items 1 and 9: a pool's drop moves its gathered card's record to where the card was drawn,
+moved with the pool, and the paper pinned to it by the same offset; and pins are measured from where the
+card is drawn. Specified in `specs/table.md` as R574 and R575 (#72, #73); gap O16 resolved.
 
 DECIDED (Bill, 2026-11-24): the carve takes gaps O9 and O12–O16 ("Those six gaps"); O1 and O10 stay as
 gaps.

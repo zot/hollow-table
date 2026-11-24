@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567, R568, R572, R570, R571, R573
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567, R568, R572, R570, R571, R573, R574, R575
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -305,4 +305,36 @@ test('the thumbtack: pinned paper moves without coming off, and the tack moves t
   await expect.poll(pin).toBeUndefined();
   expect((await rec(page, S)).place).toEqual(lay);
   await expect(page.locator(`[data-rid="${S}"]`)).not.toHaveClass(/\btacked\b/);
+});
+
+test("paper pinned to a gathered card keeps its place on the card through the pool's drag", async ({ page }) => {
+  const { fromDesk } = await import('./page.ts');
+  await open(page);
+  const SAMCARD = `.obj.card[data-rid="${SAM}"]`, box = async (sel: string) => (await page.locator(sel).boundingBox())!;
+  expect((await rec(page, SAM)).gathered).toBe(true);
+  const c = await box(SAMCARD);
+  await fromDesk(page, 'sticky', c.x + c.width / 2, c.y + c.height / 2 + 40);
+  const S = await page.evaluate(async () => (await (window as any).hollow.ready).store.game.all().filter(([, r]: any) => r.kind === 'sticky').at(-1)[0] as string);
+  await expect.poll(async () => (await rec(page, S))?.pin?.card).toBe('00000001');
+  // The paper dragged a little on its card, then the pool carried: the paper keeps its place on the card.
+  const p = await box(`[data-rid="${S}"] .text`);
+  await dragFromTo(page, p.x + 20, p.y + 20, p.x + 60, p.y + 40);
+  const rel = async () => { const s = await box(`[data-rid="${S}"]`), k = await box(SAMCARD); return [Math.round(s.x - k.x), Math.round(s.y - k.y)]; };
+  const on = await rel();
+  const pool = await box(`${SPOOL} .slots`);
+  await page.mouse.move(pool.x + 10, pool.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(pool.x + 40, pool.y + 30, { steps: 5 });
+  // R575: mid-carry, no jump.
+  const mid = await rel();
+  // (Carried pieces are drawn 3% larger, which shifts their boxes a few pixels; the jump was 16 or more.)
+  expect(Math.abs(mid[0]! - on[0]!)).toBeLessThan(8);
+  expect(Math.abs(mid[1]! - on[1]!)).toBeLessThan(8);
+  await page.mouse.move(pool.x + 70, pool.y + 50, { steps: 5 });
+  await page.mouse.up();
+  // R574: let go, the card's record and the paper's moved with the pool: nothing left behind.
+  await expect.poll(async () => { const r = await rel(); return Math.abs(r[0]! - on[0]!) < 3 && Math.abs(r[1]! - on[1]!) < 3; }).toBe(true);
+  const sam = await rec(page, SAM), s = await rec(page, S), drawn = await page.evaluate(sel => { const e = document.querySelector(sel) as HTMLElement; return [parseFloat(e.style.left), parseFloat(e.style.top)]; }, SAMCARD);
+  expect([sam.card.x, sam.card.y]).toEqual(drawn);
+  expect([s.place.x - sam.card.x, s.place.y - sam.card.y]).toEqual([s.pin.dx, s.pin.dy]);
 });

@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543, R555, R562, R571-573
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543, R555, R562, R571-575
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -95,6 +95,10 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - startTack(rid, down, move) (R571): the tack's drag: the pin line runs to the pointer, the card under it
   lit; let go on another card, the pin moves there with the paper where it lies; anywhere else, or Esc,
   nothing changes. The paper itself doesn't move.
+- a pool's drop (R574): its gathered card's record goes where the card was drawn when the carry began,
+  moved by the pool's offset, and the paper pinned to the card moves by the same offset.
+- #spot(card) (R575): where a card is drawn on this page (a gathered card under its pool, from its
+  element; else its record); pin offsets are measured from it.
 
 ## Collaborators
 - Game, Moves, Pool, Tap, Yards, PoolView, TableView, RollRow, Gesture

@@ -334,6 +334,11 @@ italic or underline.
 - **A character is a card tied to its pool.** Dragging a pool brings its card; a card dragged on its
   own moves alone and is no longer gathered. A **gathered** card stays snapped under its drawer as
   the drawer grows or shrinks. **Gather** snaps it back. The scene starts gathered.
+- **Paper pinned to a gathered card goes with its pool** (`carves/fixes.md`, Items 1 and 9; Bill,
+  2026-11-24: "dragging the paper and then dragging the pool mat makes the paper jump up"): a pool's
+  drop moves its gathered card to where it is drawn, and the paper pinned to it with it, by the same
+  offset; and a pin is measured from where its card is drawn. So nothing jumps while the pool is
+  carried, and nothing is left behind when it is let go.
 - **A pool is carried from anywhere on it** (Bill, 11-12): its name, its frame and slots, or its
   drawer; what has a drag of its own (a chip, a card) is carried instead, and only the empty space
   beside the name passes through to the table. **The pool and its card move as a group**, by the
