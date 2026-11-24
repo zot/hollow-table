@@ -354,6 +354,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       else { die.title = r.refused; die.animate?.([{ transform: 'translateX(-3px)' }, { transform: 'translateX(3px)' }, { transform: 'none' }], 200); }
     },
     dragPool: (rid, down, move) => drag?.startPool(rid, down, move),
+    dragTack: (rid, down, move) => drag?.startTack(rid, down, move),   // R571
   });
   // R122: the graveyard being browsed, where a put-away piece goes.
   const yard = () => {

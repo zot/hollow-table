@@ -2611,7 +2611,7 @@ function make(doc, r, w) {
     }
     case "sticky":
     case "text":
-      e.append(writable(doc, "text", r.text, (s) => change(w, rid2, (c) => ({ ...c, text: s }))), tray(e));
+      e.append(writable(doc, "text", r.text, (s) => change(w, rid2, (c) => ({ ...c, text: s }))), tray(e), tack(doc, rid2, w));
       break;
     case "docket": {
       const knot = el2(doc, "button", "knot");
@@ -2636,7 +2636,7 @@ function make(doc, r, w) {
     case "image": {
       const img = doc.createElement("img");
       img.alt = "";
-      e.append(img);
+      e.append(img, tack(doc, rid2, w));
       break;
     }
     case "reference":
@@ -3108,6 +3108,19 @@ function recordGlyphs(text, rec, npc, w) {
     const words = line.textContent ?? "", r = influence(unadjusted(words));
     if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
   }
+}
+function tack(doc, rid2, w) {
+  const t = el2(doc, "button", "tack");
+  t.setAttribute("aria-label", "Thumbtack: click to unpin, drag to pin to another card");
+  t.title = "Click to take the tack out; drag it to another card to pin it there";
+  gesture(t, {
+    click: () => change(w, rid2, (c) => {
+      const { pin: _out, ...loose } = c;
+      return loose;
+    }),
+    drag: (down, move) => w.dragTack(rid2, down, move)
+  });
+  return t;
 }
 function tiedHere(game2) {
   return new Set(game2.get("tied")?.tied ?? []);
@@ -18434,6 +18447,9 @@ function leaveWriting(doc) {
   doc.getSelection?.()?.removeAllRanges();
 }
 var less = (p, g) => ({ x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) });
+function tackOn(el4, at4) {
+  return { x: at4.x + el4.offsetWidth / 2, y: at4.y };
+}
 var Drag = class {
   #w;
   constructor(w) {
@@ -18518,14 +18534,19 @@ var Drag = class {
     const named4 = rec.kind === "docket" && this.#fresh.has(rid2);
     const from = rec.kind === "character" && rec.gathered ? { ...at4, x: parseFloat(el4.style.left), y: parseFloat(el4.style.top) } : at4;
     const p0 = table.toWorld(down.clientX, down.clientY), grip = { x: p0.x - from.x, y: p0.y - from.y };
-    const pins = isPinnable(rec);
+    const pins = isPinnable(rec), held = this.#tackedTo(rec);
     this.#carry({
       rid: rid2,
       ...rec.kind === "character" && { part: "card" },
       // R538, R536, R539: paper is aimed at the card under the pointer, else at the docket on top whose
-      // tape, drawn without it, it touches.
+      // tape, drawn without it, it touches. R569: paper pinned to a card is aimed at nothing, its pin line drawn.
       frame: (cx, cy) => {
-        const f = less(table.toWorld(cx, cy), grip), card2 = pins ? this.#cardAt(el4.ownerDocument, cx, cy, el4) : void 0;
+        const f = less(table.toWorld(cx, cy), grip);
+        if (held) {
+          table.pinLine(tackOn(el4, f), this.#middle(held));
+          return f;
+        }
+        const card2 = pins ? this.#cardAt(el4.ownerDocument, cx, cy, el4) : void 0;
         if (card2) return { ...f, aim: { card: ridOf(card2.oid) } };
         const docket = pins ? aimed(table.targets(rid2), { left: f.x, top: f.y, right: f.x + el4.offsetWidth, bottom: f.y + el4.offsetHeight }) : null;
         return docket ? { ...f, aim: { docket: ridOf(docket) } } : f;
@@ -18539,6 +18560,7 @@ var Drag = class {
         return this.#drop(rec, "card", from, last, z, last.aim);
       },
       done: () => {
+        if (held) table.pinLine(null);
         const name2 = named4 && game2.get(rid2) ? table.element(rid2)?.querySelector(".dname") : null;
         if (!name2) return;
         name2.focus();
@@ -18546,6 +18568,60 @@ var Drag = class {
       },
       loose
     }, down, move);
+  }
+  // R568: the card a paper's tack holds it to, if any (a docket's paper has no tack).
+  #tackedTo(rec) {
+    if (!isPinnable(rec) || !rec.pin) return null;
+    const c = this.#w.game.get(ridOf(rec.pin.card));
+    return c?.kind === "character" ? c : null;
+  }
+  /** The middle of a card as it is drawn, in table coordinates. */
+  #middle(c) {
+    const b = this.#w.table.box(ridOf(c.oid));
+    return b ? { x: (b.left + b.right) / 2, y: (b.top + b.bottom) / 2 } : { x: c.card.x, y: c.card.y };
+  }
+  // R571: the tack's drag: the pin line from the tack runs to the pointer, the card under it lit; let go on
+  // another card, the paper is pinned there where it lies; anywhere else, or Esc, nothing changes.
+  /** Drags a pinned paper's tack. */
+  startTack(rid2, down, move) {
+    const { game: game2, table } = this.#w;
+    const rec = game2.get(rid2), el4 = table.element(rid2), from = rec && this.#tackedTo(rec);
+    if (!rec || !isPinnable(rec) || !el4 || !from) return;
+    const doc = el4.ownerDocument, tack2 = tackOn(el4, rec.place);
+    let over;
+    const light = (c) => {
+      for (const e of doc.querySelectorAll(".obj.card.over")) e.classList.remove("over");
+      if (c) table.element(ridOf(c.oid))?.classList.add("over");
+    };
+    const to = (e) => {
+      over = this.#cardAt(doc, e.clientX, e.clientY, el4);
+      light(over);
+      table.pinLine(tack2, over ? this.#middle(over) : table.toWorld(e.clientX, e.clientY));
+    };
+    const stop = () => {
+      doc.removeEventListener("keydown", key, true);
+      light(void 0);
+      table.pinLine(null);
+    };
+    let gone = false;
+    const key = (ev) => {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      gone = true;
+      stop();
+    };
+    doc.addEventListener("keydown", key, true);
+    to(move);
+    this.#follow(doc, down, (e) => {
+      if (!gone) to(e);
+    }, (e) => {
+      if (gone) return;
+      to(e);
+      stop();
+      const card2 = over, now2 = game2.get(rid2);
+      if (!card2 || card2.oid === from.oid || !now2) return;
+      game2.change((w) => w.put(rid2, { ...now2, pin: { card: card2.oid, dx: now2.place.x - card2.card.x, dy: now2.place.y - card2.card.y } }));
+    });
   }
   // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it (Hands).
   /** Carries a character's pool. */
@@ -18846,7 +18922,7 @@ var Drag = class {
         w.put(rid2, { ...rec, place: place3 });
         return;
       }
-      const card2 = aim2?.card ? game2.get(aim2.card) : void 0;
+      const card2 = this.#tackedTo(rec) ?? (aim2?.card ? game2.get(aim2.card) : void 0);
       const docket = aim2?.docket ? game2.get(aim2.docket) : void 0;
       let holder = null;
       if (card2?.kind === "character") holder = { oid: card2.oid, at: card2.card };
@@ -19226,13 +19302,14 @@ var TableView = class {
     const game2 = this.#w.game;
     for (const [rid2, r] of game2.all()) {
       const p = r, e = this.#els.get(rid2);
-      if (!e || !("pin" in p)) continue;
+      if (!e || !isPinnable(p)) continue;
+      const holder = p.pin ? game2.get(ridOf(p.pin.card)) : void 0;
       e.classList.toggle("pinned", !!p.pin);
+      e.classList.toggle("tacked", holder?.kind === "character");
       if (!p.pin) {
         delete e.dataset.pin;
         continue;
       }
-      const holder = game2.get(ridOf(p.pin.card));
       e.dataset.pin = p.pin.card;
       let z = null;
       if (holder?.kind === "character") z = holder.card.z;
@@ -19361,6 +19438,28 @@ var TableView = class {
     const right = Math.max(...pileBoxes.map((x) => x.right)), bottom = Math.max(...pileBoxes.map((x) => x.bottom));
     const z = Math.max(0, ...papers.map((r) => parseInt(this.#els.get(r)?.style.zIndex || "0", 10)));
     Object.assign(b.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px`, zIndex: String(z + 1) });
+  }
+  // R569, R571: the pin line, from a tack to a card's middle (or the pointer), over everything.
+  #pin = null;
+  /** Draws the pin line between two table points, or takes it away. */
+  pinLine(from, to) {
+    if (!from || !to) {
+      this.#pin?.ownerSVGElement?.remove();
+      this.#pin = null;
+      return;
+    }
+    if (!this.#pin) {
+      const doc = this.#world.ownerDocument, svg = doc.createElementNS(SVG, "svg");
+      svg.classList.add("pinline");
+      this.#pin = doc.createElementNS(SVG, "line");
+      svg.append(this.#pin);
+      this.#world.append(svg);
+    }
+    const l = this.#pin, f = (n) => String(Math.round(n));
+    l.setAttribute("x1", f(from.x));
+    l.setAttribute("y1", f(from.y));
+    l.setAttribute("x2", f(to.x));
+    l.setAttribute("y2", f(to.y));
   }
   /** Screen to table coordinates, for drops. */
   toWorld(clientX, clientY) {
@@ -20037,7 +20136,9 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
         die3.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "none" }], 200);
       }
     },
-    dragPool: (rid2, down, move) => drag?.startPool(rid2, down, move)
+    dragPool: (rid2, down, move) => drag?.startPool(rid2, down, move),
+    dragTack: (rid2, down, move) => drag?.startTack(rid2, down, move)
+    // R571
   });
   const yard = () => {
     const y = game2.get("yards") ?? empty(), cur = Math.min(seat.boothill.cur, y.yards.length - 1);

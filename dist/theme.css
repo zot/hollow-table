@@ -578,6 +578,18 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .obj.piled * { pointer-events: none; }
 .obj.piled > .readers, .obj.piled > .foldpick, .obj.piled > .readmenu { display: none; }
 
+/* ---- R568-R571: the thumbtack on paper pinned to a card, and the pin line ---- */
+.tack { display: none; position: absolute; top: -8px; left: 50%; width: 16px; height: 16px; margin-left: -8px; padding: 0;
+  border: 0; border-radius: 50%; cursor: pointer; z-index: 2; touch-action: none;
+  background: radial-gradient(circle at 35% 32%, #fbe7a1 0 2px, #d9b45a 3px, #9a7426 7px, #6b4f18 8px);
+  filter: drop-shadow(1px 3px 1.5px rgba(0,0,0,.45)); }
+.obj.tacked > .tack { display: block; }
+.obj.piled > .tack { display: none; }
+.tack:focus-visible { outline: 2px solid var(--amber); }
+.pinline { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 3000000; }
+.pinline line { stroke: #ffd36b; stroke-width: 3; stroke-dasharray: 8 6; stroke-linecap: round; vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
+
 /* ---- loose handwriting on the table ---- */
 .loose { font: 600 22px/1.2 var(--hand); color: #f3e9d8; min-width: 80px; padding: 2px 6px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
 .loose .text { outline: none; white-space: pre-wrap; }

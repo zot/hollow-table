@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567, R568, R569, R570, R571
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -243,4 +243,57 @@ test("a player can't write a name or card that isn't theirs", async ({ browser }
   await expect(dana.locator(`${SPOOL} .hd .name`)).toHaveAttribute('contenteditable', 'false', { timeout: 15_000 });
   await expect(dana.locator(`${CARD} .front .text`)).toHaveAttribute('contenteditable', 'false');
   await expect(gm.locator(`${SPOOL} .hd .name`)).toHaveAttribute('contenteditable', 'true');
+});
+
+test('the thumbtack: pinned paper moves without coming off, and the tack moves the pin', async ({ page }) => {
+  const { fromDesk, openTable } = await import('./page.ts');
+  await open(page);
+  const SAMCARD = `.obj.card[data-rid="${SAM}"]`, DEVCARD = `.obj.card[data-rid="${DEVREUX}"]`;
+  const mid = async (sel: string) => { const b = (await page.locator(sel).boundingBox())!; return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+  // R568: a sticky let go on Sam's card pins to it and shows its tack.
+  const sam = await mid(SAMCARD);
+  await fromDesk(page, 'sticky', sam.x, sam.y + 40);
+  const S = await page.evaluate(async () => {
+    const h = await (window as any).hollow.ready;
+    return h.store.game.all().filter(([, r]: [string, any]) => r.kind === 'sticky').at(-1)[0] as string;
+  });
+  const pin = async () => (await rec(page, S))?.pin;
+  await expect.poll(async () => (await pin())?.card).toBe('00000001');
+  await expect(page.locator(`[data-rid="${S}"].tacked .tack`)).toBeVisible();
+  // R569: dragged off the card it stays pinned to Sam, at its new offset, the pin line showing while carried.
+  const before = await pin(), s = await mid(`[data-rid="${S}"] .text`), to = await openTable(page);
+  await page.mouse.move(s.x, s.y);
+  await page.mouse.down();
+  await page.mouse.move(s.x + 20, s.y + 20, { steps: 3 });
+  await page.mouse.move(to.x, to.y, { steps: 8 });
+  await expect(page.locator('.pinline line')).toHaveCount(1);
+  await page.mouse.up();
+  await expect.poll(async () => { const p = await pin(); return [p?.card, p?.dx === before.dx]; }).toEqual(['00000001', false]);
+  await expect(page.locator('.pinline')).toHaveCount(0);
+  // R571: its tack dragged to Devreux's card moves the pin there; the sticky stays where it lies.
+  const lay = (await rec(page, S)).place, tack = async () => mid(`[data-rid="${S}"] .tack`);
+  let t = await tack();
+  const dev = await mid(DEVCARD);
+  await dragFromTo(page, t.x, t.y, dev.x, dev.y);
+  await expect.poll(async () => (await pin())?.card).toBe('00000003');
+  expect((await rec(page, S)).place).toEqual(lay);
+  // Let go on the table, or Esc mid-drag: nothing changes.
+  t = await tack();
+  const open2 = await openTable(page);
+  await dragFromTo(page, t.x, t.y, open2.x, open2.y);
+  expect((await pin())?.card).toBe('00000003');
+  t = await tack();
+  await page.mouse.move(t.x, t.y);
+  await page.mouse.down();
+  await page.mouse.move(sam.x, sam.y, { steps: 8 });
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  expect((await pin()).card).toBe('00000003');
+  await expect(page.locator('.pinline')).toHaveCount(0);
+  // R570: a click takes the tack out; the sticky lies loose where it is.
+  t = await tack();
+  await page.mouse.click(t.x, t.y);
+  await expect.poll(pin).toBeUndefined();
+  expect((await rec(page, S)).place).toEqual(lay);
+  await expect(page.locator(`[data-rid="${S}"]`)).not.toHaveClass(/\btacked\b/);
 });

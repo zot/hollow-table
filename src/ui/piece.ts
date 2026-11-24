@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486, R496, R500, R503, R504, R505, R532, R533, R542, R566, R567
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486, R496, R500, R503, R504, R505, R532, R533, R542, R566, R567, R568, R570, R571
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, dockets, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -40,6 +40,8 @@ export type PieceWith = {
   setSlid: (out: Set<string>) => void;
   /** Starts carrying this piece (Drag). */
   drag: (rid: string, down: PointerLike, move: PointerLike) => void;
+  /** R571: a drag on a pinned paper's tack (Drag). */
+  dragTack: (rid: string, down: PointerLike, move: PointerLike) => void;
   /** Starts carrying a tap glyph, `<character oid>:<source>` (Drag). */
   dragGlyph: (source: string, down: PointerLike, move: PointerLike) => boolean;
   /** An action's die (R76): false when this page can't roll for the character. */
@@ -233,7 +235,7 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       break;
     }
     case 'sticky': case 'text':
-      e.append(writable(doc, 'text', r.text, s => change<Sticky | Text>(w, rid, c => ({ ...c, text: s }))), tray(e));
+      e.append(writable(doc, 'text', r.text, s => change<Sticky | Text>(w, rid, c => ({ ...c, text: s }))), tray(e), tack(doc, rid, w));
       break;
     case 'docket': {
       // R532, R542: the knot ties and unties it on this page; the name is written in place.
@@ -254,7 +256,7 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
     case 'image': {
       const img = doc.createElement('img');
       img.alt = '';
-      e.append(img);
+      e.append(img, tack(doc, rid, w));
       break;
     }
     case 'reference': e.append(...reference(doc, r)); break;
@@ -753,6 +755,19 @@ function recordGlyphs(text: HTMLElement, rec: Opinion, npc: Character, w: PieceW
     const words = line.textContent ?? '', r = influence(unadjusted(words));
     if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
   }
+}
+
+// R568, R570, R571: the thumbtack, shown while the paper is pinned to a card (TableView marks it): a
+// click takes it out, the paper lying loose where it is; a drag moves the pin (Drag).
+function tack(doc: Document, rid: Rid, w: PieceWith): HTMLElement {
+  const t = el(doc, 'button', 'tack');
+  t.setAttribute('aria-label', 'Thumbtack: click to unpin, drag to pin to another card');
+  t.title = 'Click to take the tack out; drag it to another card to pin it there';
+  gesture(t, {
+    click: () => change<Sticky | Text | Image>(w, rid, c => { const { pin: _out, ...loose } = c; return loose; }),
+    drag: (down, move) => w.dragTack(rid, down, move),
+  });
+  return t;
 }
 
 /** R542: the dockets tied on this page. */

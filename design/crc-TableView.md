@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R569, R571
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -73,6 +73,8 @@ DOM a view of the records.
 - tapes(leads) (R534, R539, R542): draws each docket's red tape in one SVG layer under the pieces, round its label and the papers pinned to it that this page holds (Dockets.tapeOf, Dockets.path), leaving out a carried paper unless it is aimed at that docket; on a tied docket, round the pile, with the cross and bow drawn over it.
 - tied piles (R542, R543): a tied docket's papers are drawn at Dockets.pile, marked piled (their insides take no presses), and a press on one carries the docket.
 - box(rid) (R537): a drawn piece's box in table coordinates, for the touch test.
+- tacked (R568): pinned paper whose holder is a card is marked `tacked`, so its tack shows.
+- pinLine(from, to) (R569, R571): one dashed amber line in table coordinates, over the pieces, or none.
 
 ## Collaborators
 - Game, Seat, PieceView, PoolView, Drag

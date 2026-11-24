@@ -86,7 +86,7 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
   pointing hand; the paper's margins, and text not being written in, keep the open hand. An
   Influence card's name, written in place, always shows the I-beam.
 - While you carry something, the place it would land lights up: the slot, the chip a +1 would
-  ride, the card a sticky would pin to, the drawer a card would go home to. Over the bar it says
+  ride, the card a loose sticky would pin to, the drawer a card would go home to. Over the bar it says
   whether letting go puts it away or buries it.
 - Picking something up leaves any writing and clears the text selection.
 - **Select-all takes the whole of what you're writing** (Bill, 11-19: "Both, as one item"): Ctrl+A,
@@ -213,6 +213,19 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
   (Bill, 11-12): it is always drawn on it, and rises with it while the card is carried or written on.
   It goes with its card on every page that holds it, even when whoever moved the card can't read it.
   Paper can also be bundled on a docket (`dockets.md`).
+- **A thumbtack holds pinned paper** (`carves/fixes.md`, Item 8; Bill, 2026-11-24: "there's no
+  indication of whether a card it pinned -- let's add a thumbtack", since "they had thumbtacks but not
+  pushpins back then"). Paper pinned to a card shows a tack at its top middle, a brass head with its
+  shadow; paper in a docket shows none, its red tape says so.
+- **Dragging pinned paper only moves it** ("we should make dragging the paper simply reposition it
+  instead of unfastening it"): wherever it's let go, it stays pinned to its card, even over another card
+  or a docket's tape. While it's carried, the **pin line** runs from its tack to its card's center
+  ("Dragging a pinned card should show the pin line"), drawn like the line a roll row aims with, in
+  its amber ("Pin lines should be the same amber").
+- **The tack** pins, unpins and moves the pin. A click takes it out, and the paper lies loose where it
+  is. A press shows the pin line; dragged, the line follows the pointer and the card under it lights;
+  let go on another card, the paper is pinned to that one where it lies; let go on the table, or Esc,
+  nothing changes. Loose paper let go on a card still pins to it and gets a tack.
 
 ## Card text
 

@@ -534,3 +534,36 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** make the front writable whenever its face shows (ignore mayWrite): Dana's page lets her write Sam's card
 **Inject:** src/ui/piece.ts:update
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with the front writable whenever its face shows, the spec failed in Chromium (open Sam's front writable on Dana's page); restored clean
+
+## Test: the thumbtack
+**Purpose:** R568-R571: a sticky dropped on a card is tacked; dragged far it stays pinned at the new offset, the pin line showing while carried; its tack dragged to another card moves the pin, dragged to the table or cancelled with Esc changes nothing; clicked, it unpins.
+**Input:** the GM drops a sticky on Sam's card, drags it off the card, drags its tack to Devreux's card, drags the tack to the table, presses Esc during a tack drag, then clicks the tack.
+**Expected:** tacked and pinned to Sam; still pinned to Sam, the pin line shown mid-carry and gone after; pinned to Devreux with the sticky unmoved; unchanged; unchanged; loose, no tack.
+**Refs:** crc-Drag.md, crc-PieceView.md, crc-TableView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 44
+**Fire alarm:** let a drag of pinned paper unpin it as before (drop it loose): the sticky dragged off Sam's card comes off
+**Inject:** src/ui/drag.ts:Drag
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with a drag of pinned paper unpinning it as before, the thumbtack spec failed in Chromium on its assertion (pin lost after the drag off Sam's card); first pull rang only by a TypeError on the missing pin, so the spec's check was tightened and pulled again; restored clean
+
+## Test: the tack moves the pin, and only on a card
+**Purpose:** R571: a tack let go on the table changes nothing.
+**Input:** the thumbtack spec's tack drag to the table.
+**Expected:** still pinned to Devreux.
+**Refs:** crc-Drag.md
+**Code:** tests/card.spec.ts
+**Alarm:** 45
+**Fire alarm:** let a tack let go anywhere unpin the paper: the pin is gone after the drag to the table
+**Inject:** src/ui/drag.ts:Drag
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with a tack let go anywhere unpinning, the thumbtack spec failed in Chromium (no pin after the drag to the table); restored clean
+
+## Test: a click on the tack unpins
+**Purpose:** R570: a click, with no drag, takes the tack out and the paper lies loose where it is.
+**Input:** the thumbtack spec's last step.
+**Expected:** no pin, the place unchanged, no tack.
+**Refs:** crc-PieceView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 46
+**Fire alarm:** make the tack's click do nothing: the sticky stays pinned to Devreux
+**Inject:** src/ui/piece.ts:tack
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the tack's click doing nothing, the thumbtack spec failed in Chromium (still pinned at the end); restored clean

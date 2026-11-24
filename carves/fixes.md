@@ -13,6 +13,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [ ] **Item 5 — a refused Attack says why.** **OPEN (not queued.)** Gap O9.
 - [ ] **Item 6 — the tape spec's reload race.** **OPEN (not queued.)** Gap O15.
 - [x] ~~**Item 7 — the name above a pool, written and tied to its card.**~~ **LANDED (2026-11-24 — `#70`.)** Bill, 2026-11-24.
+- [x] ~~**Item 8 — a thumbtack on paper pinned to a card.**~~ **LANDED (2026-11-24 — `#71`.)** Bill, 2026-11-24.
 
 ## Item 1
 
@@ -90,6 +91,44 @@ NPC's name above its pool**, as now, and leaves its card's first line alone ("ye
 
 Specified in `specs/table.md` (the name above a pool) and `specs/ownership.md` (who writes a character)
 as R565–R567 (#70).
+
+## Item 8
+
+Bill (2026-11-24): "there's no indication of whether a card it pinned -- let's add a thumbtack as a card
+item (apparently they had thumbtacks but not pushpins back then)". The period holds: "thumb-tack" is
+American English from the 1880s, the pushpin with its handle from 1900 (from memory, unverified).
+
+Paper pinned to a card (a sticky, loose text or an image) shows a thumbtack where it's pinned, so
+pinned paper reads as pinned and loose paper lying over a card as loose.
+
+DECIDED (Bill, 2026-11-24), on Daneel's three questions: **the tack sits at the paper's top middle**, a
+brass head with its shadow, the same on every kind of paper ("yes"); **paper in a docket has no tack**,
+its red tape says so ("right"); **the tack is how paper is unpinned** ("the tack gives us a way to unpin
+the paper").
+
+DECIDED (Bill, 2026-11-24): "Once we have thumbtacks, we should make dragging the paper simply reposition
+it instead of unfastening it. Pressing on the tack should show a line to center of the card it's
+attached to and dragging it should let you connect to a different card or, if dragged to the table
+itself, cancel the drag (esc also cancels)." And on Daneel's four questions: **a click on the tack
+unpins** the paper where it lies ("yes"); **loose paper dropped on a card still pins to it**, gaining a
+tack ("yes"); **a tack goes only to cards**, never to a docket ("right"); **pinned paper dragged over a
+docket's tape stays on its card** ("right"). "Dragging a pinned card should show the pin line to the
+card it's attached to", and "Pin lines should be the same amber color we're using for drop borders".
+
+- **Dragging pinned paper repositions it** and it stays pinned, wherever it's let go; while it's
+  carried, the pin line runs from its tack to the center of its card.
+- **A press on the tack** shows the pin line; **dragged**, the line follows the pointer, and let go on
+  another card the paper is pinned there; let go on the table, or Esc, nothing changes. **A click**
+  (no drag) takes the tack out and the paper lies loose where it is.
+- **The pin line is the aiming line's amber**, `#ffd36b`: the color of the dashed line a roll row's aim
+  draws to the pool it points at, and of the dashed box round that pool (Bill, 2026-11-24, by a
+  screenshot of an aim at "Name", after Daneel had read "drop borders" as `--amber`, `#f0a040`, the
+  opponent's ring). Daneel's reading: drawn like that line too, 3 px and dashed, with its shadow, since
+  both say "this points at that".
+
+Specified in `specs/table.md` (a thumbtack holds pinned paper) as R568–R571 (#71). Found while building:
+paper whose pin was taken out kept its "pinned" mark on the page (the redraw skipped paper with no `pin`
+at all), from before; fixed with the tack's own mark.
 
 ## Decisions
 

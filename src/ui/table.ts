@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486, R534, R535, R537, R539, R542, R543
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486, R534, R535, R537, R539, R542, R543, R568, R569, R571
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -382,10 +382,12 @@ export class TableView {
     const game = this.#w.game;
     for (const [rid, r] of game.all()) {
       const p = r as PieceRecord, e = this.#els.get(rid);
-      if (!e || !('pin' in p)) continue;
+      if (!e || !isPinnable(p)) continue;   // paper whose pin was taken out has no `pin`: its marks go too
+      const holder = p.pin ? game.get(ridOf(p.pin.card)) as Character | Docket | undefined : undefined;
       e.classList.toggle('pinned', !!p.pin);
+      // R568: pinned to a card, the paper shows its tack.
+      e.classList.toggle('tacked', holder?.kind === 'character');
       if (!p.pin) { delete e.dataset.pin; continue; }
-      const holder = game.get(ridOf(p.pin.card)) as Character | Docket | undefined;
       e.dataset.pin = p.pin.card;
       let z: number | null = null;
       if (holder?.kind === 'character') z = holder.card.z;
@@ -501,6 +503,22 @@ export class TableView {
     const right = Math.max(...pileBoxes.map(x => x.right)), bottom = Math.max(...pileBoxes.map(x => x.bottom));
     const z = Math.max(0, ...papers.map(r => parseInt(this.#els.get(r)?.style.zIndex || '0', 10)));
     Object.assign(b.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px`, zIndex: String(z + 1) });
+  }
+
+  // R569, R571: the pin line, from a tack to a card's middle (or the pointer), over everything.
+  #pin: SVGLineElement | null = null;
+  /** Draws the pin line between two table points, or takes it away. */
+  pinLine(from: Pt | null, to?: Pt): void {
+    if (!from || !to) { this.#pin?.ownerSVGElement?.remove(); this.#pin = null; return; }
+    if (!this.#pin) {
+      const doc = this.#world.ownerDocument, svg = doc.createElementNS(SVG, 'svg');
+      svg.classList.add('pinline');
+      this.#pin = doc.createElementNS(SVG, 'line');
+      svg.append(this.#pin);
+      this.#world.append(svg);
+    }
+    const l = this.#pin, f = (n: number) => String(Math.round(n));
+    l.setAttribute('x1', f(from.x)); l.setAttribute('y1', f(from.y)); l.setAttribute('x2', f(to.x)); l.setAttribute('y2', f(to.y));
   }
 
   /** Screen to table coordinates, for drops. */
