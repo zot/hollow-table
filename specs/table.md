@@ -103,10 +103,12 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 
 The bar runs along the top. It holds:
 
-- **Supplies**: a character, a sticky note, loose text, an image, the "How to play the table"
-  reference card, and chips (2, 4, 6 and +1 in each color); on the GM's bar, the Connection Table
-  (see `connections.md`). Drag one onto the table to take one; dropped back on the bar, nothing is
-  made.
+- **The desk** (`carves/organizing.md`, Item 2), right after the wordmark: its pigeonholes hold the
+  paper supplies, a character, a sticky note, loose text, an image and the "How to play the table"
+  reference card, and on the GM's desk the Connection Table (see `connections.md`). Taken from a
+  pigeonhole, one is made; dropped back on the bar, nothing is.
+- **Chips** (2, 4, 6 and +1 in each color) stay on the bar, outside the desk (Bill, 2026-11-23: "Chips
+  stay out"). Drag one onto the table to take one; dropped back on the bar, nothing is made.
 - The **Opposition** button and the brass tray it slides out, the world's number (see `rolls.md`,
   *The world as opposition*).
 - The people at the table (see `network.md`).
@@ -116,16 +118,34 @@ The bar runs along the top. It holds:
 wordmark, with the version under it and the date under that (Bill, 11-13: a release shows its tag,
 `v0.1.0`, and its day, `Nov 13, 2026`; the test rig shows "dev" and when it was published; a page
 built locally just "dev"). They are the one thing in the bar you can select, to copy into a bug
-report; the paper supplies, a character as a little stack of white card, a note as a yellow square,
-"Aa" for loose text, and an image; the chips, 2, 4, 6 and +1 in each color, in a grid of two rows
+report; the desk, a little roll-top; the chips, 2, 4, 6 and +1 in each color, in a grid of two rows
 (the +1 smaller); the Opposition button, a small brass plate; the people; "You are" (the GM's); then
 the register, the Ledger and Boot Hill.
-- **Taking a supply**: the piece is made and in your hand the moment you press, its middle under the
-  pointer. Loose text starts as "Write here". The image supply opens a file picker; the image lands
-  in the middle of the view, several a step apart.
-- **An image the browser won't keep is said on the image supply** (Bill, 11-19: "On the image
-  supply"): when the browser's storage is full, the supply turns red and reads "storage full" (or
-  "not added", for another reason), its tooltip saying why, until an image is added.
+- **Pressing the desk shows its pigeonholes** (Bill, 2026-11-23): a strip opens below it, one pigeonhole
+  for each paper supply, each holding its supply drawn small: a character as a little stack of white
+  card, a note as a yellow square, "Aa" for loose text, an image, the reference card, and on the GM's
+  the Connection Table.
+- **Dragging across the pigeonholes** puts each one's piece in your hand, small; **dragging out of the
+  strip** makes it, its full size, its middle under the pointer, carried as any piece is. Loose text
+  starts as "Write here".
+- **Letting go in a pigeonhole makes it too** (Bill, 2026-11-23: "releasing inside the strip makes the
+  item and starts moving it around on the tabletop, releasing it with a mousedown"): it follows the
+  pointer with no button held, and the next press puts it down where it is. A press on the bar instead,
+  or Esc, takes it back unmade. The wheel and a pinch still zoom with it under the pointer, and a press
+  on another piece puts yours down there rather than picking that one up.
+- **On touch** a piece let go in its pigeonhole lands just below the strip, ready to drag (Bill: "Just
+  below the strip"), since a lifted finger leaves nothing to follow.
+- **The image pigeonhole opens a file picker**: let go in it, the picker opens, and a chosen image
+  comes carried as above, several a step apart; dragged out, the small image follows the pointer and
+  letting go on the table opens the picker, the image landing there (Bill, 2026-11-24: "Picker on
+  drop"). A cancelled picker makes nothing.
+- **Clicking the desk** (pressing it and letting go without moving) opens the whole desk, the
+  pigeonholes staying open until a press elsewhere; its drawers come with `carves/organizing.md`,
+  Item 3.
+- **An image the browser won't keep is said on the image pigeonhole** (Bill, 11-19: "On the image
+  supply"): when the browser's storage is full, it turns red and reads "storage full" (or "not added",
+  for another reason), its tooltip saying why, until an image is added; while it does, the desk on the
+  bar is edged red too.
 - **Over the bar**, anything you carry turns the bar red; if letting go would bury it, "→" and the
   current graveyard's name show by the gravestone. Plain chips, +1s and the reference card vanish
   there; an Influence card goes home to its drawer.
@@ -185,7 +205,7 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
 - **Sticky note**: yellow, handwritten, edited in place. It comes in two sizes: the note from the
   supply, and a **big sticky** (330 by 300) for the GM's long notes (Bill, 11-12).
 - **Loose text**: handwriting straight on the table.
-- **Image**: dropped from the bar's image supply (a file picker), or **image files dropped from the
+- **Image**: taken from the desk's image pigeonhole (a file picker), or **image files dropped from the
   desktop onto the table**, each where it was dropped, several stepped a little apart (Bill, 11-12).
   Images belong to the game and survive a reload.
 - Stickies, text and images can pin to a card and travel with it. **Pinned paper lies on its card**
@@ -290,6 +310,6 @@ italic or underline.
   drawer; what has a drag of its own (a chip, a card) is carried instead, and only the empty space
   beside the name passes through to the table. **The pool and its card move as a group**, by the
   same offset, whether the card is gathered or not.
-- Dropping the bar's **character** supply pops its pool out above the new card, linked and
+- Taking the desk's **character** supply pops its pool out above the new card, linked and
   gathered, owned by whoever made it (the GM's are GM-owned). A pool never pops out under the bar:
   with no room above, the card slides down under it.

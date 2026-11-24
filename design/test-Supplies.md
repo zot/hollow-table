@@ -2,7 +2,7 @@
 **Source:** crc-Bar.md
 
 ## Test: what a supply makes
-**Purpose:** R287: a supply's piece has its middle at the pointer; R34: a character is its maker's,
+**Purpose:** R512: a supply's piece has its middle at the pointer; R34: a character is its maker's,
 its pool above its card, gathered; loose text starts "Write here"
 **Input:** a character made by Dana at 500, 400; one by the GM; a sticky at 115, 75; loose text; the
 How-to card; a red +1 chip at 21, 21

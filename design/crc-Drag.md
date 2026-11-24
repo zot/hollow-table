@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -45,15 +45,19 @@ Lifting, carrying and dropping, and deciding what a drop means.
   - an Influence card anywhere else: home (a tap may stay loose);
   - the Base on a character: aim (RollRow);
   - otherwise: placed where dropped.
-- supplies: dragging a supply makes its piece under the pointer; a new character pops its pool out
-  above the card, or the card slides below the bar if there's no room.
+- supplies: a supply taken from the desk is made under the pointer (Desk); a new character pops its
+  pool out above the card, or the card slides below the bar if there's no room.
+- loose (R513): start, startPool and startItem may carry with no button held, from a pointer
+  position: the piece follows every pointer move until the next press, which is taken (its default
+  prevented and kept from what lies under it) and puts the piece down there, or puts it away over the
+  bar; Esc puts it away (a fresh supply is never made, R19). Zooming keeps it under the pointer.
 - tear: dragging the tape tears off the whole roll as a torn-roll piece.
 - exhume: dragging a name out of Boot Hill brings its records back under the pointer.
 
 - startPool(rid): from its name, frame or drawer (R251), a pool carries its card (and what is pinned
   to it) by the same offset, gathered or not (Hands); the drop saves both places.
 - startItem(rid) (R220, R243): the chip or card itself is lifted (TableView.lift), found by its rid
-  when the press was elsewhere (a chip just taken from the bar was pressed on the supply, R287): taken out of its
+  when the press was elsewhere (a chip just taken from the bar was pressed on the supply): taken out of its
   slot, drawer, pile or the table into the table's world layer, where the zoom applies to it as to
   everything else, and held there until let go. It keeps the spot it was pressed; a card stays a
   card in hand, and while the pointer is over a pool's slots it is drawn as a chip centred on the

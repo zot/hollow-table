@@ -6687,10 +6687,10 @@ var createRelayScopedStore = () => {
 var relayLeaseReleases = /* @__PURE__ */ new WeakMap();
 var releaseRelayLease = (leaseTarget) => {
   if (leaseTarget && typeof leaseTarget === "object") {
-    const release = relayLeaseReleases.get(leaseTarget);
-    if (release) {
+    const release2 = relayLeaseReleases.get(leaseTarget);
+    if (release2) {
       relayLeaseReleases.delete(leaseTarget);
-      release();
+      release2();
     }
   }
 };
@@ -15981,6 +15981,183 @@ var RegisterView = class {
   }
 };
 
+// src/ui/desk.ts
+function release(l) {
+  if (l.imageOut || l.hole === "image") return "picker";
+  if (l.hole) return l.touch ? "below" : "loose";
+  if (!l.moved && l.onDesk) return l.open ? "close" : "open";
+  return "close";
+}
+var HOLES = [
+  ["character", "supply card", "character", "A new character: card and pool"],
+  ["sticky", "supply note", "note", "Sticky note"],
+  ["text", "supply aa", "Aa", "Write on the table"],
+  ["image", "supply image", "image", "Add an image"],
+  ["howto", "supply howto", "how to play", 'The "How to play the table" card']
+];
+var LINKS = ["connections", "supply links", "connections", "The Connection Table: how the characters view each other"];
+var CLICK = 4;
+var BELOW = 110;
+var DeskView = class {
+  el;
+  #w;
+  #strip;
+  #image;
+  #imageSays;
+  #file;
+  /** Where picked images go, and whether one is carried. */
+  #pickAt = null;
+  #open = false;
+  constructor(doc, w) {
+    this.#w = w;
+    const el4 = (tag, cls, text = "", title = "") => {
+      const e = doc.createElement(tag);
+      e.className = cls;
+      e.textContent = text;
+      if (title) e.title = title;
+      return e;
+    };
+    this.el = el4("div", "desk", "", "The desk: press for paper; click to open it");
+    this.el.append(el4("div", "rolltop"), el4("div", "desktop"));
+    this.#strip = el4("div", "pigeonholes");
+    let image2 = null;
+    for (const [what, cls, text, title] of w.gm ? [...HOLES, LINKS] : HOLES) {
+      const hole = el4("div", "hole", "", title), icon = el4("div", cls, text);
+      hole.dataset.paper = what;
+      hole.append(icon);
+      this.#strip.append(hole);
+      if (what === "image") image2 = icon;
+    }
+    this.#image = image2 ?? el4("div", "supply image");
+    this.#imageSays = { text: this.#image.textContent ?? "", title: this.#image.title };
+    this.#file = doc.createElement("input");
+    this.#file.type = "file";
+    this.#file.accept = "image/*";
+    this.#file.multiple = true;
+    this.#file.hidden = true;
+    this.#file.addEventListener("change", () => {
+      const files = [...this.#file.files ?? []], to = this.#pickAt;
+      this.#file.value = "";
+      this.#pickAt = null;
+      if (files.length) w.images(files, to?.at ?? null, !!to?.carry && files.length === 1);
+    });
+    this.el.append(this.#strip, this.#file);
+    this.el.addEventListener("pointerdown", (ev) => this.#press(ev));
+    doc.addEventListener("pointerdown", (ev) => {
+      if (this.#open && !this.el.contains(ev.target)) this.#show(false);
+    }, true);
+  }
+  // R517: the image pigeonhole says the browser won't keep an image, and the desk is edged red.
+  /** Marks the image pigeonhole refused (`label`, and `why` on hover), or plain again with null. */
+  refused(r) {
+    this.#image.classList.toggle("refused", !!r);
+    this.#image.textContent = r ? r.label : this.#imageSays.text;
+    this.#image.title = r ? r.why : this.#imageSays.title;
+    this.el.classList.toggle("refused", !!r);
+  }
+  /** The strip shown (a press or the open desk) or hidden; `open` keeps it until a press elsewhere. */
+  #show(on, open = false) {
+    this.#open = on && open;
+    this.el.classList.toggle("pressed", on);
+    this.el.classList.toggle("open", this.#open);
+  }
+  #holeAt(x, y) {
+    const e = this.el.ownerDocument.elementFromPoint(x, y);
+    const hole = e?.closest(".hole");
+    return hole && this.el.contains(hole) ? hole.dataset.paper : null;
+  }
+  #inside(x, y) {
+    return [this.el, this.#strip].some((e) => {
+      const r = e.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    });
+  }
+  // R511-R516: the press, followed until it is let go or hands its piece over.
+  #press(down) {
+    if (down.button !== 0) return;
+    down.preventDefault();
+    const doc = this.el.ownerDocument, open = this.#open;
+    this.#show(true, open);
+    let moved = false, held = this.#holeAt(down.clientX, down.clientY), imageOut = false;
+    let ghost = null;
+    const hold = (what, at3) => {
+      if (what && ghost?.dataset.paper !== what) {
+        ghost?.remove();
+        const icon = this.#strip.querySelector(`[data-paper="${what}"] > *`);
+        ghost = icon.cloneNode(true);
+        ghost.classList.add("ghost");
+        ghost.dataset.paper = what;
+        this.el.append(ghost);
+      }
+      if (ghost) {
+        ghost.style.left = `${at3.clientX}px`;
+        ghost.style.top = `${at3.clientY}px`;
+      }
+    };
+    const stop = () => {
+      doc.removeEventListener("pointermove", move);
+      doc.removeEventListener("pointerup", up);
+      doc.removeEventListener("pointercancel", cancel);
+      ghost?.remove();
+    };
+    const move = (ev) => {
+      const e = ev;
+      if (e.pointerId !== down.pointerId) return;
+      if (Math.hypot(e.clientX - down.clientX, e.clientY - down.clientY) > CLICK) moved = true;
+      if (imageOut) {
+        hold("image", e);
+        return;
+      }
+      const h = this.#holeAt(e.clientX, e.clientY);
+      if (h) held = h;
+      if (!this.#inside(e.clientX, e.clientY) && held) {
+        if (held === "image") {
+          imageOut = true;
+          hold("image", e);
+          return;
+        }
+        stop();
+        this.#show(false);
+        this.#w.take(held, down, e, "press");
+        return;
+      }
+      hold(held, e);
+    };
+    const up = (ev) => {
+      const e = ev;
+      if (e.pointerId !== down.pointerId) return;
+      stop();
+      const hole = imageOut ? null : this.#holeAt(e.clientX, e.clientY);
+      const r = release({ moved, onDesk: !hole && this.el.contains(e.target), hole, imageOut, touch: e.pointerType === "touch", open });
+      if (r === "open") {
+        this.#show(true, true);
+        return;
+      }
+      const under = this.#strip.getBoundingClientRect().bottom;
+      this.#show(false);
+      const paper = hole;
+      if (r === "picker") {
+        this.#pickAt = { at: { clientX: e.clientX, clientY: e.clientY }, carry: !imageOut };
+        this.#file.click();
+      } else if (r === "loose") this.#w.take(paper, e, e, "loose");
+      else if (r === "below") {
+        const at3 = { clientX: e.clientX, clientY: under + BELOW };
+        this.#w.take(paper, at3, at3, "below");
+      }
+    };
+    const cancel = (ev) => {
+      if (ev.pointerId === down.pointerId) {
+        stop();
+        this.#show(false);
+      }
+    };
+    doc.addEventListener("pointermove", move);
+    doc.addEventListener("pointerup", up);
+    doc.addEventListener("pointercancel", cancel);
+    hold(held, down);
+  }
+};
+
 // src/ui/pool.ts
 var MAT_W = 430;
 var SLOT_W = 72;
@@ -16364,13 +16541,6 @@ function showGap(drawer2, at3, animate = true) {
 }
 
 // src/ui/bar.ts
-var PAPER = [
-  ["character", "supply card", "character", "A new character: card and pool"],
-  ["sticky", "supply note", "note", "Sticky note"],
-  ["text", "supply aa", "Aa", "Write on the table"],
-  ["howto", "supply howto", "how to play", 'The "How to play the table" card']
-];
-var CONNECTIONS = ["connections", "supply links", "connections", "The Connection Table: how the characters view each other"];
 var BarView = class {
   /** R347: where the Opposition button and its tray go (TrayView). */
   oppo;
@@ -16378,15 +16548,12 @@ var BarView = class {
   folks;
   /** Where the GM's "You are" goes. */
   youAre;
-  /** The image supply, and what it says when it's plain. */
-  #image;
-  #imageSays = { text: "", title: "" };
-  // R453: an image the browser won't keep is said on the image supply until one is added.
-  /** Marks the image supply refused (`label`, and `why` on hover), or plain again with null. */
+  /** R509: the desk, after the wordmark. */
+  desk;
+  // R517: an image the browser won't keep is said on the desk's image pigeonhole until one is added.
+  /** Marks the image pigeonhole refused (`label`, and `why` on hover), or plain again with null. */
   refused(r) {
-    this.#image.classList.toggle("refused", !!r);
-    this.#image.textContent = r ? r.label : this.#imageSays.text;
-    this.#image.title = r ? r.why : this.#imageSays.title;
+    this.desk.refused(r);
   }
   constructor(bar, w) {
     const doc = bar.ownerDocument, el4 = (tag, cls, text = "", title = "") => {
@@ -16399,44 +16566,21 @@ var BarView = class {
     const mark2 = el4("div", "wordmark", "Hollow");
     mark2.append(el4("span", "stamp version", w.version, "Which version this is: a release's tag, or dev"));
     if (w.date) mark2.append(el4("span", "stamp date", w.date, "When it was released (on the test rig, when it was published)"));
-    const take2 = (e, what) => e.addEventListener("pointerdown", (ev) => {
-      if (ev.button !== 0) return;
-      ev.preventDefault();
-      w.take(what, ev);
-    });
-    const paper = ([what, cls, text, title]) => {
-      const e = el4("div", cls, text, title);
-      take2(e, what);
-      return e;
-    };
-    const papers = PAPER.map(paper);
-    if (w.gm) {
-      const refs = el4("div", "refs");
-      refs.append(papers.pop(), paper(CONNECTIONS));
-      papers.push(refs);
-    }
-    const image2 = el4("div", "supply image", "image", "Add an image"), file = doc.createElement("input");
-    this.#image = image2;
-    this.#imageSays = { text: image2.textContent ?? "", title: image2.title };
-    file.type = "file";
-    file.accept = "image/*";
-    file.multiple = true;
-    file.hidden = true;
-    file.addEventListener("change", () => {
-      w.images([...file.files ?? []]);
-      file.value = "";
-    });
-    image2.addEventListener("click", () => file.click());
+    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images });
     const chips = el4("div", "supplychips", "", "Influence chips: drag one out");
     for (const sign2 of [1, -1]) for (const points3 of [2, 4, 6, 1]) {
       const c = el4("div", `supply chip ${sign2 > 0 ? "pos" : "neg"}${points3 === 1 ? " one" : ""}`, chipFace({ sign: sign2, points: points3 }));
-      take2(c, { sign: sign2, points: points3 });
+      c.addEventListener("pointerdown", (ev) => {
+        if (ev.button !== 0) return;
+        ev.preventDefault();
+        w.take({ sign: sign2, points: points3 }, ev, ev, "press");
+      });
       chips.append(c);
     }
     this.oppo = el4("div", "oppo");
     this.folks = el4("div", "folks");
     this.youAre = el4("div", "youare");
-    bar.replaceChildren(mark2, ...papers, image2, file, chips, this.oppo, this.folks, this.youAre);
+    bar.replaceChildren(mark2, this.desk.el, chips, this.oppo, this.folks, this.youAre);
   }
 };
 
@@ -17831,12 +17975,12 @@ var Drag = class {
       pace.to(at3);
       pace.flush();
     });
-    this.#follow(doc, down, to, (e) => {
+    const end = (e, put2 = false) => {
       off();
       pace.cancel();
       keepOut();
       last = c.frame(e.clientX, e.clientY);
-      const away = this.#overBar(doc, e.clientY);
+      const away = put2 || this.#overBar(doc, e.clientY);
       this.#lightBar(doc, null, false);
       doc.body.classList.remove("dragging", "tapping");
       hands.drop(hand, [], true);
@@ -17848,12 +17992,14 @@ var Drag = class {
       moves?.release(c.rid);
       table.render([c.rid]);
       c.done?.();
-    });
+    };
+    if (c.loose) this.#loose(doc, move, to, end);
+    else this.#follow(doc, down, to, end);
   }
   // Seq: seq-drag.md#1.2 | R27, R32, R222: paper, or a character's card (what's pinned to it follows,
   // Hands); paper is aimed at the card it would pin to.
-  /** Carries a piece from the press that started it, and what's pinned to it. */
-  start(rid2, down, move) {
+  /** Carries a piece from the press that started it (or, `loose`, with no button held), and what's pinned to it. */
+  start(rid2, down, move, loose = false) {
     const { game, table } = this.#w;
     const rec = game.get(rid2), at3 = rec && placeOf(rec), el4 = table.element(rid2);
     if (!rec || !at3 || !el4) return;
@@ -17868,12 +18014,13 @@ var Drag = class {
         return card2 ? { ...f, aim: { card: ridOf(card2.oid) } } : f;
       },
       buries: rec.kind !== "reference" && rec.kind !== "connections" && !this.#fresh.has(rid2),
-      drop: (last, away, z) => away ? this.#putAway(rec) : this.#drop(rec, "card", from, last, z, last.aim)
+      drop: (last, away, z) => away ? this.#putAway(rec) : this.#drop(rec, "card", from, last, z, last.aim),
+      loose
     }, down, move);
   }
   // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it (Hands).
   /** Carries a character's pool. */
-  startPool(rid2, down, move, done2) {
+  startPool(rid2, down, move, done2, loose = false) {
     const { game, table } = this.#w;
     const c = game.get(rid2);
     if (!c || c.kind !== "character" || !table.pool(rid2)) return;
@@ -17890,7 +18037,8 @@ var Drag = class {
       },
       done: () => {
         if (!away) done2?.();
-      }
+      },
+      loose
     }, down, move);
   }
   // Seq: seq-drag.md#1.2 | R220, R287: the chip or card itself, found by its rid when the press was
@@ -18032,6 +18180,41 @@ var Drag = class {
       }
       for (const r of [...shared2, ...own2]) w.del(ridFor(r));
     };
+  }
+  // R513: a loose carry follows every pointer move until the next press, which it takes (no piece under
+  // it is picked up, no key under it pressed, nor its click), or Esc, which puts the piece away.
+  /** Follows the pointer with no button held until the next press or Esc. */
+  #loose(doc, from, onMove, onEnd) {
+    let at3 = from;
+    const swallow = (ev) => {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+    };
+    const stop = () => {
+      doc.removeEventListener("pointermove", move, true);
+      doc.removeEventListener("pointerdown", press, true);
+      doc.removeEventListener("keydown", key, true);
+    };
+    const move = (ev) => {
+      at3 = ev;
+      onMove(at3);
+    };
+    const press = (ev) => {
+      swallow(ev);
+      stop();
+      doc.addEventListener("click", swallow, { capture: true, once: true });
+      doc.addEventListener("pointerup", () => setTimeout(() => doc.removeEventListener("click", swallow, true), 0), { capture: true, once: true });
+      onEnd(ev);
+    };
+    const key = (ev) => {
+      if (ev.key !== "Escape") return;
+      swallow(ev);
+      stop();
+      onEnd(at3, true);
+    };
+    doc.addEventListener("pointermove", move, true);
+    doc.addEventListener("pointerdown", press, true);
+    doc.addEventListener("keydown", key, true);
   }
   /** Follows one pointer on the document until it lets go. */
   #follow(doc, down, onMove, onUp) {
@@ -18887,14 +19070,16 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
   };
   const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ("kind" in r ? placeOf(r) : null)?.z ?? 0));
   const maker2 = viewer?.gm ? GM : viewer?.name;
-  const addImage = (file, at3) => void blobs.add(file).then(({ blob, w: iw, h }) => {
+  const addImage = (file, at3) => blobs.add(file).then(({ blob, w: iw, h }) => {
     const oid = mint2()();
     const image2 = { kind: "image", oid, place: { ...at3, z: topZ(), tilt: 0 }, blob, w: iw, h, ...maker2 && { by: maker2 } };
     game.change((wr) => wr.put(ridOf(oid), image2));
     bar.refused(null);
+    return ridOf(oid);
   }, (e) => {
     const full = e?.name === "QuotaExceededError", said = e instanceof Error ? e.message : String(e);
     bar.refused(full ? { label: "storage full", why: `${file.name} not added: this browser's storage is full (${said})` } : { label: "not added", why: `${file.name} not added: ${said}` });
+    return void 0;
   });
   const made = (what, oid, at3) => {
     switch (what) {
@@ -18911,21 +19096,22 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
         return newChip(oid, what.sign, what.points, at3);
     }
   };
-  const takeTable = (e) => {
+  const takeTable = (e, mode) => {
     const at3 = table.toWorld(e.clientX, e.clientY), place3 = { x: Math.round(at3.x - 40), y: Math.round(at3.y - 20), z: topZ(), tilt: 0 };
     const found = game.all().find(([, r]) => r.kind === "connections");
     if (found) {
       const { away: _away, ...t2 } = found[1];
       game.change((w) => w.put(found[0], { ...t2, place: place3 }));
-      drag?.start(found[0], e, e);
+      if (mode !== "below") drag?.start(found[0], e, e, mode === "loose");
       return;
     }
     const oid = mint2()(), rid2 = ridOf(oid);
     let t = newConnections(oid, place3);
     for (const [, r] of game.all()) if (r.kind === "character") t = keep(t, r, mint2()());
     game.change((w) => w.put(rid2, t));
+    if (mode === "below") return;
     drag?.fresh(rid2);
-    drag?.start(rid2, e, e);
+    drag?.start(rid2, e, e, mode === "loose");
   };
   const clearOfBar = (rid2) => {
     const c = game.get(rid2), bar2 = document.getElementById("bar");
@@ -18938,21 +19124,34 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     version: "dev",
     date: "",
     gm,
-    take: (what, e) => {
+    // R512-R514: made at the pointer and carried on the press or loose, or put just below the strip.
+    take: (what, down, e, mode) => {
       if (what === "connections") {
-        takeTable(e);
+        takeTable(e, mode);
         return;
       }
       const oid = mint2()(), rid2 = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
       game.change((w) => w.put(rid2, rec));
+      if (mode === "below") {
+        if (rec.kind === "character") clearOfBar(rid2);
+        return;
+      }
       drag?.fresh(rid2);
-      if (rec.kind === "character") drag?.startPool(rid2, e, e, () => clearOfBar(rid2));
-      else if (rec.kind === "chip") drag?.startItem(rid2, e, e);
-      else drag?.start(rid2, e, e);
+      const loose = mode === "loose";
+      if (rec.kind === "character") drag?.startPool(rid2, e, e, () => clearOfBar(rid2), loose);
+      else if (rec.kind === "chip") drag?.startItem(rid2, down, e);
+      else drag?.start(rid2, e, e, loose);
     },
-    images: (files) => {
-      const r = document.getElementById("table").getBoundingClientRect(), c = table.toWorld(r.left + r.width / 2, r.top + r.height / 2);
-      files.forEach((f, i) => addImage(f, { x: Math.round(c.x - 120 + i * 24), y: Math.round(c.y - 100 + i * 24) }));
+    // R515: picked images land at the pointer, a step apart; one alone let go in its pigeonhole is carried loose.
+    images: (files, at3, carry) => {
+      const r = document.getElementById("table").getBoundingClientRect();
+      const to = at3 ?? { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }, c = table.toWorld(to.clientX, to.clientY);
+      files.forEach((f, i) => void addImage(f, { x: Math.round(c.x - 120 + i * 24), y: Math.round(c.y - 80 + i * 24) }).then((rid2) => {
+        if (!rid2 || !carry || !at3) return;
+        const p = { clientX: at3.clientX, clientY: at3.clientY };
+        drag?.fresh(rid2);
+        drag?.start(rid2, p, p, true);
+      }));
     }
   });
   const table = new TableView(document.getElementById("table"), document.getElementById("world"), {

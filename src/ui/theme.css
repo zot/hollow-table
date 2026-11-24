@@ -57,7 +57,32 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 }
 #bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
 #bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; text-align: center; margin-top: 2px; user-select: text; -webkit-user-select: text; cursor: text; }
-/* R304: the supplies: paper you take from a stack, and the chips in two rows. */
+/* R509-R511: the desk, a little roll-top after the wordmark; pressed, its pigeonholes open below the bar,
+   each holding its paper supply drawn small. R510: the chips in two rows on the bar itself. */
+#bar .desk { position: relative; width: 66px; height: 58px; flex: none; cursor: grab; touch-action: none; }
+#bar .desk .rolltop { position: absolute; left: 5px; right: 5px; top: 3px; height: 24px; border-radius: 16px 16px 2px 2px;
+  background: repeating-linear-gradient(180deg, #8f6444 0 3px, #6e4b33 3px 4px); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
+#bar .desk .desktop { position: absolute; left: 0; right: 0; top: 27px; height: 29px; border-radius: 2px;
+  background: linear-gradient(#a0714b, #7a5337); box-shadow: 0 2px 0 rgba(0,0,0,.45); }
+/* Two drawers with brass pulls. */
+#bar .desk .desktop::before, #bar .desk .desktop::after { content: ""; position: absolute; top: 9px; width: 22px; height: 11px;
+  border: 1px solid rgba(0,0,0,.35); border-radius: 1px; background: radial-gradient(circle at 50% 50%, #d9b45a 0 2px, transparent 2.5px); }
+#bar .desk .desktop::before { left: 6px; } #bar .desk .desktop::after { right: 6px; }
+#bar .desk:hover .rolltop, #bar .desk.pressed .rolltop { background: repeating-linear-gradient(180deg, #9d7050 0 3px, #7a5439 3px 4px); }
+/* R517: a refused image edges the desk red. */
+#bar .desk.refused .desktop, #bar .desk.refused .rolltop { outline: 2px solid var(--chip-neg); }
+#bar .pigeonholes { display: none; position: absolute; top: calc(100% + 19px); left: -12px; z-index: 50; gap: 6px; padding: 8px;
+  background: linear-gradient(#8a5e3f, #6e4a31); border: 3px solid #4a3121; border-top-width: 5px; border-radius: 4px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.5); }
+#bar .desk.pressed .pigeonholes { display: flex; }
+#bar .hole { width: 84px; height: 60px; display: grid; place-items: center; border-radius: 10px 10px 2px 2px;
+  background: #3b2719; box-shadow: inset 0 4px 7px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.12); }
+#bar .hole:hover { background: #4d3423; }
+#bar .hole .supply { pointer-events: none; }
+/* R511: the piece held small, under the pointer, while the desk is pressed. */
+#bar .ghost { position: fixed; z-index: 1000; pointer-events: none; transform: translate(-50%, -50%) rotate(-3deg);
+  box-shadow: 0 6px 12px rgba(0,0,0,.45); opacity: .95; }
+#bar .ghost.aa { box-shadow: none; text-shadow: 0 2px 4px rgba(0,0,0,.7); }
 #bar .supply { cursor: grab; display: grid; place-items: center; text-align: center; touch-action: none; flex: none; }
 #bar .supply.card { width: 68px; height: 40px; background: #fff; color: #222; border: 1px solid #888; border-radius: 7px; font: 700 15px var(--hand);
   box-shadow: 2px 2px 0 #ddd, 4px 4px 0 #bbb; }
@@ -109,7 +134,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 .icard .flag[role=button], .chip .flag[role=button] { cursor: pointer; }
 .icard .flagmenu, .chip .flagmenu { position: absolute; top: 14px; right: 0; display: flex; gap: 4px; background: #fbfaf6; border: 1px solid #c9bfa6; padding: 3px; z-index: 5; }
 .icard .flagact, .chip .flagact { font: 11px var(--mono); }
-/* R453: the image supply, when the browser wouldn't keep an image. */
+/* R517: the image pigeonhole, when the browser wouldn't keep an image. */
 #bar .supply.image.refused { background: var(--chip-neg); color: #fff; }
 /* R445: an impostor's tag is barred on every page: a bar sinister, its upper right corner to its lower left. */
 #bar .tag.impostor { background-image: linear-gradient(to bottom right, transparent calc(50% - 1.5px), #e8d9b8 calc(50% - 1.5px), #e8d9b8 calc(50% + 1.5px), transparent calc(50% + 1.5px)); }
@@ -774,11 +799,9 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 /* R332: a Field is bold, at rest and while written on, to tell it from its Skills. */
 .front .text .fld { font-weight: 700; }
 
-/* R407, R408, R411, R417: the Connection Table, a ruled sheet behind the GM's screen; its supply on the GM's bar. */
+/* R407, R518, R411, R417: the Connection Table, a ruled sheet behind the GM's screen; its supply in the GM's desk. */
 #bar .supply.links { width: 60px; height: 30px; background: var(--paper); color: #222; border: 1px solid #888; border-radius: 3px;
   font: 9px/1.1 var(--mono); }
-#bar .refs { display: flex; flex-direction: column; gap: 4px; flex: none; }
-#bar .refs .supply.howto { height: 30px; }
 .obj.connections { background: var(--paper); color: var(--ink); padding: 10px 12px 12px; border-radius: 3px;
   box-shadow: 0 2px 6px rgba(0,0,0,.35); cursor: grab; }
 .conn { border-collapse: collapse; font: 13px var(--mono); }

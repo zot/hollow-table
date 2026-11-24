@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -47,6 +47,8 @@ type Carry = {
   /** What the drop changes, from the last frame; `away` is over the bar. */
   drop: (last: Frame, away: boolean, z: number) => Change | null;
   done?: () => void;
+  /** R513: carried with no button held, until the next press (or Esc). */
+  loose?: boolean;
 };
 
 /** How far into a tapped card its glyph's centre sits, the name after it (R225). */
@@ -107,12 +109,13 @@ export class Drag {
     pace.flush();
     // R482: a pinch moves the table under a still finger; the piece stays glued to it (R216).
     const off = table.onView(() => { pace.to(at); pace.flush(); });
-    this.#follow(doc, down, to, e => {
+    const end = (e: PointerLike, put = false) => {
       off();
       pace.cancel();
       keepOut();
       last = c.frame(e.clientX, e.clientY);
-      const away = this.#overBar(doc, e.clientY);
+      // R513: Esc takes a loose piece back as a press on the bar would.
+      const away = put || this.#overBar(doc, e.clientY);
       this.#lightBar(doc, null, false);
       doc.body.classList.remove('dragging', 'tapping');
       hands.drop(hand, [], true);
@@ -124,13 +127,14 @@ export class Drag {
       moves?.release(c.rid);
       table.render([c.rid]);   // nothing changed: back where its record says
       c.done?.();
-    });
+    };
+    if (c.loose) this.#loose(doc, move, to, end); else this.#follow(doc, down, to, end);
   }
 
   // Seq: seq-drag.md#1.2 | R27, R32, R222: paper, or a character's card (what's pinned to it follows,
   // Hands); paper is aimed at the card it would pin to.
-  /** Carries a piece from the press that started it, and what's pinned to it. */
-  start(rid: Rid, down: PointerLike, move: PointerLike): void {
+  /** Carries a piece from the press that started it (or, `loose`, with no button held), and what's pinned to it. */
+  start(rid: Rid, down: PointerLike, move: PointerLike, loose = false): void {
     const { game, table } = this.#w;
     const rec = game.get(rid) as PieceRecord | undefined, at = rec && placeOf(rec), el = table.element(rid);
     if (!rec || !at || !el) return;
@@ -146,12 +150,13 @@ export class Drag {
       },
       buries: rec.kind !== 'reference' && rec.kind !== 'connections' && !this.#fresh.has(rid),
       drop: (last, away, z) => away ? this.#putAway(rec) : this.#drop(rec, 'card', from, last, z, last.aim),
+      loose,
     }, down, move);
   }
 
   // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it (Hands).
   /** Carries a character's pool. */
-  startPool(rid: Rid, down: PointerLike, move: PointerLike, done?: () => void): void {
+  startPool(rid: Rid, down: PointerLike, move: PointerLike, done?: () => void, loose = false): void {
     const { game, table } = this.#w;
     const c = game.get(rid) as Character | undefined;
     if (!c || c.kind !== 'character' || !table.pool(rid)) return;
@@ -163,6 +168,7 @@ export class Drag {
       buries: !this.#fresh.has(rid),
       drop: (last, over, z) => { away = over; return over ? this.#putAway(c) : this.#drop(c, 'pool', c.pool, last, z); },
       done: () => { if (!away) done?.(); },
+      loose,
     }, down, move);
   }
 
@@ -310,6 +316,37 @@ export class Drag {
       }
       for (const r of [...shared, ...own]) w.del(ridFor(r));
     };
+  }
+
+  // R513: a loose carry follows every pointer move until the next press, which it takes (no piece under
+  // it is picked up, no key under it pressed, nor its click), or Esc, which puts the piece away.
+  /** Follows the pointer with no button held until the next press or Esc. */
+  #loose(doc: Document, from: PointerLike, onMove: (e: PointerLike) => void, onEnd: (e: PointerLike, put?: boolean) => void): void {
+    let at = from;
+    const swallow = (ev: Event) => { ev.preventDefault(); ev.stopImmediatePropagation(); };
+    const stop = () => {
+      doc.removeEventListener('pointermove', move, true);
+      doc.removeEventListener('pointerdown', press, true);
+      doc.removeEventListener('keydown', key, true);
+    };
+    const move = (ev: Event) => { at = ev as PointerLike; onMove(at); };
+    const press = (ev: Event) => {
+      swallow(ev);
+      stop();
+      // The press's own up and click are this carry's too.
+      doc.addEventListener('click', swallow, { capture: true, once: true });
+      doc.addEventListener('pointerup', () => setTimeout(() => doc.removeEventListener('click', swallow, true), 0), { capture: true, once: true });
+      onEnd(ev as PointerLike);
+    };
+    const key = (ev: Event) => {
+      if ((ev as KeyboardEvent).key !== 'Escape') return;
+      swallow(ev);
+      stop();
+      onEnd(at, true);
+    };
+    doc.addEventListener('pointermove', move, true);
+    doc.addEventListener('pointerdown', press, true);
+    doc.addEventListener('keydown', key, true);
   }
 
   /** Follows one pointer on the document until it lets go. */

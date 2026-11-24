@@ -1,32 +1,26 @@
-// CRC: crc-Bar.md | R9, R18, R19, R20, R287, R304, R305, R347, R408
-// The bar along the top: the wordmark and build stamp, the supplies, the chips, and room for the
-// people and "You are"; the register, the Ledger and Boot Hill append themselves at its right end.
+// CRC: crc-Bar.md | R9, R19, R20, R305, R347, R509, R510, R517, R518
+// The bar along the top: the wordmark and build stamp, the desk with the paper supplies, the chips,
+// and room for the people and "You are"; the register, the Ledger and Boot Hill append themselves at
+// its right end.
 
 import type { Sign } from '../model/records.ts';
+import { DeskView, type At, type Mode, type Paper } from './desk.ts';
+import type { PointerLike } from './gesture.ts';
 import { chipFace } from './pool.ts';
 
-export type Supply = 'character' | 'sticky' | 'text' | 'howto' | 'connections' | { sign: Sign; points: number };
+export type Supply = Exclude<Paper, 'image'> | { sign: Sign; points: number };
 
 export type BarWith = {
   /** The version (a release's tag, or "dev") and the date (a release's day, the test rig's publish time, or none). */
   version: string;
   date: string;
-  /** R408: the GM's bar has the Connection Table's supply. */
+  /** R518: the GM's desk has the Connection Table's pigeonhole. */
   gm: boolean;
-  /** A supply pressed: made and taken into the hand at once (R287). */
-  take: (what: Supply, down: PointerEvent) => void;
-  /** Images picked from the image supply's file picker. */
-  images: (files: File[]) => void;
+  /** A supply taken: made and carried (R512-R514); a chip is made and lifted at the press. */
+  take: (what: Supply, down: PointerLike, move: PointerLike, mode: Mode) => void;
+  /** R515: images picked from the image pigeonhole's file picker, landing at `at`. */
+  images: (files: File[], at: At | null, carry: boolean) => void;
 };
-
-const PAPER: [Supply, string, string, string][] = [
-  ['character', 'supply card', 'character', 'A new character: card and pool'],
-  ['sticky', 'supply note', 'note', 'Sticky note'],
-  ['text', 'supply aa', 'Aa', 'Write on the table'],
-  ['howto', 'supply howto', 'how to play', 'The "How to play the table" card'],
-];
-// R408: the GM's alone.
-const CONNECTIONS: [Supply, string, string, string] = ['connections', 'supply links', 'connections', 'The Connection Table: how the characters view each other'];
 
 export class BarView {
   /** R347: where the Opposition button and its tray go (TrayView). */
@@ -35,17 +29,12 @@ export class BarView {
   readonly folks: HTMLElement;
   /** Where the GM's "You are" goes. */
   readonly youAre: HTMLElement;
-  /** The image supply, and what it says when it's plain. */
-  #image!: HTMLElement;
-  #imageSays = { text: '', title: '' };
+  /** R509: the desk, after the wordmark. */
+  readonly desk: DeskView;
 
-  // R453: an image the browser won't keep is said on the image supply until one is added.
-  /** Marks the image supply refused (`label`, and `why` on hover), or plain again with null. */
-  refused(r: { label: string; why: string } | null): void {
-    this.#image.classList.toggle('refused', !!r);
-    this.#image.textContent = r ? r.label : this.#imageSays.text;
-    this.#image.title = r ? r.why : this.#imageSays.title;
-  }
+  // R517: an image the browser won't keep is said on the desk's image pigeonhole until one is added.
+  /** Marks the image pigeonhole refused (`label`, and `why` on hover), or plain again with null. */
+  refused(r: { label: string; why: string } | null): void { this.desk.refused(r); }
 
   constructor(bar: HTMLElement, w: BarWith) {
     const doc = bar.ownerDocument, el = (tag: string, cls: string, text = '', title = '') => {
@@ -55,41 +44,27 @@ export class BarView {
       if (title) e.title = title;
       return e;
     };
-    // R304, R305: the wordmark, the version under it and the date under that, the bar's one
+    // R305, R510: the wordmark, the version under it and the date under that, the bar's one
     // selectable text.
     const mark = el('div', 'wordmark', 'Hollow');
     mark.append(el('span', 'stamp version', w.version, 'Which version this is: a release\'s tag, or dev'));
     if (w.date) mark.append(el('span', 'stamp date', w.date, 'When it was released (on the test rig, when it was published)'));
-    const take = (e: HTMLElement, what: Supply) => e.addEventListener('pointerdown', ev => {
-      if (ev.button !== 0) return;
-      ev.preventDefault();
-      w.take(what, ev);
-    });
-    const paper = ([what, cls, text, title]: [Supply, string, string, string]) => { const e = el('div', cls, text, title); take(e, what); return e; };
-    const papers: HTMLElement[] = PAPER.map(paper);
-    // R408: on the GM's bar the Connection Table's supply stacks under the "How to play" card, so the
-    // bar keeps its width.
-    if (w.gm) { const refs = el('div', 'refs'); refs.append(papers.pop()!, paper(CONNECTIONS)); papers.push(refs); }
-    // R287: the image supply opens a file picker.
-    const image = el('div', 'supply image', 'image', 'Add an image'), file = doc.createElement('input');
-    this.#image = image;
-    this.#imageSays = { text: image.textContent ?? '', title: image.title };
-    file.type = 'file';
-    file.accept = 'image/*';
-    file.multiple = true;
-    file.hidden = true;
-    file.addEventListener('change', () => { w.images([...(file.files ?? [])]); file.value = ''; });
-    image.addEventListener('click', () => file.click());
-    // R18, R304: chips 2, 4, 6 and +1 of each color, in two rows.
+    // R509: the desk holds the paper supplies.
+    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images });
+    // R509, R510: chips 2, 4, 6 and +1 of each color, in two rows, on the bar itself.
     const chips = el('div', 'supplychips', '', 'Influence chips: drag one out');
     for (const sign of [1, -1] as const) for (const points of [2, 4, 6, 1]) {
       const c = el('div', `supply chip ${sign > 0 ? 'pos' : 'neg'}${points === 1 ? ' one' : ''}`, chipFace({ sign, points }));
-      take(c, { sign, points });
+      c.addEventListener('pointerdown', ev => {
+        if (ev.button !== 0) return;
+        ev.preventDefault();
+        w.take({ sign, points }, ev, ev, 'press');
+      });
       chips.append(c);
     }
     this.oppo = el('div', 'oppo');
     this.folks = el('div', 'folks');
     this.youAre = el('div', 'youare');
-    bar.replaceChildren(mark, ...papers, image, file, chips, this.oppo, this.folks, this.youAre);
+    bar.replaceChildren(mark, this.desk.el, chips, this.oppo, this.folks, this.youAre);
   }
 }

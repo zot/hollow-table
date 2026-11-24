@@ -6,9 +6,9 @@ Player 1, Beauford: Player 2, Devreux: GM; the big sticky; the reference card). 
 carried with the mouse, as a person does; measurements wait for the web fonts.
 
 ## Test: characters and pools
-**Purpose:** the bar's supplies; making, carrying, burying and digging up characters; the strips
+**Purpose:** the bar's desk and chips (R509); making, carrying, burying and digging up characters; the strips
 **Expected:**
-- the bar holds character, note, text, image and how-to supplies, eight chips, Boot Hill and the register;
+- the bar holds the desk (its six pigeonholes on the GM's page), eight chips, Boot Hill and the register, and no paper supply of its own;
   under the wordmark, a local build says just "dev" (R305)
 - a character dropped on the table: its pool above its card, gathered, the GM's; one dropped near
   the top lies below the bar; one dropped back on the bar is never made
@@ -307,8 +307,8 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/boothill.ts:undoCard
 **Pulled:** 2026-11-18 — re-pulled after undoCard took records too; rang (Chromium): the card did not come back after Ctrl+Z; restored clean *Earlier —* 2026-11-18 — rang (Chromium): the card did not come back after Ctrl+Z; restored clean
 ## Test: the GM keeps the Connection Table
-**Purpose:** R407–R409, R411, R412, R414, R416, R417: the GM's bar has the supply; taken, the table shows the seeded rows in order, an X where a row meets itself, the book's Levels, and Sam and Beauford's columns after the thick line; a cell set from its chooser; the `(` chooser writes a group onto Devreux's first line and its row appears; put away on the bar, nothing is buried, and the supply brings the same table back; taken again while out, the same table moves
-**Input:** the GM's table; the Connection Table supply dragged out; Eliza's cell under Obed, "+Sig"; Devreux's first line, typing ` (` then "Unton folk" and Enter; the table dropped on the bar; the supply dragged out twice
+**Purpose:** R407, R518, R409, R411, R412, R414, R416, R417: the GM's desk has the supply; taken, the table shows the seeded rows in order, an X where a row meets itself, the book's Levels, and Sam and Beauford's columns after the thick line; a cell set from its chooser; the `(` chooser writes a group onto Devreux's first line and its row appears; put away on the bar, nothing is buried, and the supply brings the same table back; taken again while out, the same table moves
+**Input:** the GM's table; the Connection Table taken from the GM's desk; Eliza's cell under Obed, "+Sig"; Devreux's first line, typing ` (` then "Unton folk" and Enter; the table dropped on the bar; the supply dragged out twice
 **Expected:** the row names Beatrice, Devreux, Eliza, Jake, Jameson, Jephthah, Maggie, Obed; Obed's row reads X under Obed and "+Sig" under Beatrice; columns Beauford, Sam after the line, empty; the cell "+Sig"; the first line ends "(Unton folk)" and a row "Unton folk" shows; after the drop no table, Boot Hill's badge unchanged; the supply's table still has "+Sig" for Eliza → Obed; one table on the table after the second take, where it was dropped
 **Refs:** crc-Connections.md, crc-Bar.md, crc-Drag.md, crc-PieceView.md
 **Code:** `tests/table.spec.ts`
@@ -394,17 +394,16 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/drag.ts:#carry
 **Pulled:** 2026-11-19 — re-pulled after the spec allowed a pixel (it flaked in Firefox, 59 for 60 in 2 of 5): rang in WebKit on gpubox, the sticky ended 62 px off; restored clean *Earlier —* 2026-11-19 — rang in WebKit on gpubox (the standing suite's Chromium and Firefox never had the bug): a carry moved the sticky 2 px, not 60; restored clean
 
-## Test: an image the browser won't keep is said on the image supply
-**Purpose:** R453: when the store refuses a new image, the image supply turns red and says why, until an image is added
+## Test: an image the browser won't keep is said on the image pigeonhole
+**Purpose:** R517: when the store refuses a new image, the image pigeonhole turns red and says why, and the desk is edged red, until an image is added
 **Input:** the page's `blobs.add` rejects with a QuotaExceededError; an image picked; then `blobs.add` as it was, and the image picked again
-**Expected:** the supply has class `refused`, reads "storage full", its title "dot.png not added: this browser's storage is full…"; then plain again, reading "image"
+**Expected:** the pigeonhole's supply and the desk have class `refused`, the supply reads "storage full", its title "dot.png not added: this browser's storage is full…"; then plain again, reading "image"
 **Refs:** crc-Bar.md
 **Code:** `tests/table.spec.ts`
 **Alarm:** 31
-**Fire alarm:** drop the refusal on the floor (addImage's rejection handler does nothing); red: the supply never turns refused
+**Fire alarm:** drop the refusal on the floor (addImage's rejection handler does nothing); red: the pigeonhole never turns refused
 **Inject:** src/main.ts:views
-**Pulled:** 2026-11-19 — rang: the image supply never turned refused (Chromium); restored clean
-
+**Pulled:** 2026-11-24 — 2026-11-24 — re-pulled after #64 (addImage changed): rang, the pigeonhole never turned refused (Chromium); restored clean *Earlier —* 2026-11-19 — rang: the image supply never turned refused (Chromium); restored clean
 ## Test: End ends when its checkpoint isn't kept
 **Purpose:** R454: End ends the conflict whether or not its checkpoint is kept
 **Input:** the store's `checkpoint` rejects with a QuotaExceededError; the Round up to 1; End pressed twice

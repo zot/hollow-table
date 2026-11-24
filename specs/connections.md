@@ -9,11 +9,11 @@ alone.
   view each other") is a sheet the GM keeps behind the screen, laid out as *A Ghoulish Problem* lays
   out *Connections in Unton*: read across, the row's Connection to the column, an X where a row meets
   itself.
-- **One per game, GM-only.** It is a supply on the GM's bar, stacked under the "How to play the table" card so the
-  bar keeps its width; players' bars don't have it. Dragged
-  out, it goes on the table; dragged from the supply again while it is out, the same table moves to
+- **One per game, GM-only.** It is a supply in a pigeonhole of the GM's desk (see `table.md`, *The bar*);
+  players' desks don't have it. Taken
+  out, it goes on the table; taken from the pigeonhole again while it is out, the same table moves to
   where it is dropped. Dropped on the bar it is **put away, not buried**: nothing goes on Boot Hill,
-  and the supply brings the same table back. Players never see it, and secrecy is on the wire: no
+  and the pigeonhole brings the same table back. Players never see it, and secrecy is on the wire: no
   player's page receives it.
 - **Every value is a Level**, as the book writes them, capitalized (Bill, 11-18: "Levels should be
   capitalized"): "+Min", "-Sig", "+Maj", "-Ext", "+Exq", and "0" for none. Clicking a cell opens a

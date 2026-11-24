@@ -204,11 +204,12 @@ test("an NPC's Info cards reach players only as torn clues", async ({ browser })
 });
 
 test('the Connection Table never reaches a player', async ({ browser }) => {
-  // R408, R410: Dana's bar has no supply; with the GM's table out, her page holds no Connection Table,
+  // R518, R410: Dana's desk has no supply; with the GM's table out, her page holds no Connection Table,
   // and her forged change to it is refused.
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
-  await expect(dana.locator('#bar .supply.links')).toHaveCount(0);
+  await expect(dana.locator('#bar .hole[data-paper="connections"]')).toHaveCount(0);
+  await expect(dana.locator('#bar .hole')).toHaveCount(5);
   const TABLE = 'o:0000000a';
   await hook(gm, new Function('h', `const t = h.store.game.get('${TABLE}'); const { away, ...out } = t; h.store.game.change(w => w.put('${TABLE}', out));`) as (h: any) => void);
   await expect(gm.locator('.obj.connections')).toHaveCount(1);

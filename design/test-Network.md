@@ -197,9 +197,9 @@ by the drop
 **Inject:** src/ui/piece.ts:infos
 **Pulled:** 2026-11-19 — re-pulled after Item 9 rewrote infos; rang (Chromium): Dana had an Info tab before anything was revealed; restored clean *Earlier —* 2026-11-18 — re-pulled after infos changed for burial; rang (Chromium): Dana had a tab before anything was revealed; restored clean *Earlier —* 2026-11-18 — rang (Chromium): Dana had a tab before anything was revealed; restored clean
 ## Test: the Connection Table never reaches a player
-**Purpose:** R410: with the table on the GM's table, Dana's page holds no Connection Table and her bar has no supply; a forged change from her is refused
+**Purpose:** R410, R518: with the table on the GM's table, Dana's page holds no Connection Table and her desk has no pigeonhole for it; a forged change from her is refused
 **Input:** the GM's table and Dana; the GM takes the Connection Table out; Dana's page sends a put of the table
-**Expected:** Dana's bar has no Connection Table supply; her page holds no record of kind `connections` and none of "Jephthah"; the GM's table keeps its Levels
+**Expected:** Dana's desk has five pigeonholes, none the Connection Table's; her page holds no record of kind `connections` and none of "Jephthah"; the GM's table keeps its Levels
 **Refs:** crc-Visibility.md, crc-Authority.md
 **Code:** `tests/secret.spec.ts`
 **Alarm:** 13

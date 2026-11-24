@@ -2,7 +2,7 @@
 // Private paper across pages: a player's note to the GM, the GM's answer on it, the GM's handout to
 // one player, and a note a player keeps to herself through a reload.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, gmTable, join, kinds, openTable, rec, records, dragFromTo } from './page.ts';
+import { at, barMiddle, fromDesk, gmTable, join, kinds, openTable, rec, records, dragFromTo } from './page.ts';
 
 const round = (page: Page) => rec(page, 'meta').then(m => m?.round ?? 0);
 
@@ -16,8 +16,8 @@ async function heard(gm: Page, ...players: Page[]) {
 /** Takes a sticky from the bar onto open table; its oid. */
 async function sticky(page: Page): Promise<string> {
   const before = new Set((await kinds(page, 'sticky')).map(([, r]) => r.oid));
-  const from = await at(page, '#bar .supply.note', 20, 20), to = await openTable(page);
-  await dragFromTo(page, from.x, from.y, to.x, to.y);
+  const to = await openTable(page);
+  await fromDesk(page, 'sticky', to.x, to.y);
   await expect.poll(async () => (await kinds(page, 'sticky')).filter(([, r]) => !before.has(r.oid)).length).toBe(1);
   return (await kinds(page, 'sticky')).find(([, r]) => !before.has(r.oid))![1].oid;
 }

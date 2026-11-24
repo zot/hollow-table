@@ -15,7 +15,7 @@ const png = (page: Page, color: string) => page.evaluate(async color => {
   return c.toDataURL('image/png').split(',')[1]!;
 }, color).then(b64 => ({ name: `${color}.png`, mimeType: 'image/png', buffer: Buffer.from(b64, 'base64') }));
 
-/** The image supply's file picker, given a file. */
+/** The image pigeonhole's file picker, given a file (landing in the middle of the view). */
 async function addImage(page: Page, color: string) {
   await page.locator('#bar input[type=file]').first().setInputFiles(await png(page, color));
 }

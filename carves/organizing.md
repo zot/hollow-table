@@ -11,7 +11,7 @@ Opened by Bill, 2026-11-23, and worked out with Daneel over 2026-11-23 and 24.
 ## Status
 
 - [x] ~~**Item 1 — private paper.**~~ **LANDED (2026-11-24 — `#63`.)** First: paper gets an owner, which Items 3 and 7 need.
-- [ ] **Item 2 — the desk and its pigeonholes.** **OPEN (not queued.)**
+- [x] ~~**Item 2 — the desk and its pigeonholes.**~~ **LANDED (2026-11-24 — `#64`.)**
 - [ ] **Item 3 — drawers and filing.** **OPEN (not queued.)** After Items 1 and 2.
 - [ ] **Item 4 — dockets.** **OPEN (not queued.)** After Item 3.
 - [ ] **Item 5 — search and the list of names.** **OPEN (not queued.)** After Item 3.
@@ -132,6 +132,8 @@ on the bar.
 - **Clicking the desk itself** (pressing and letting go without moving) opens the whole desk: the
   pigeonholes, and the drawers below them (Item 3).
 
+Specified in `specs/table.md`, *The bar*, as R509–R518 (#64), retiring R18, R287, R304, R408 and R453.
+
 ### Item 2's decisions
 
 DECIDED (Bill, 2026-11-23), on the strip: "I'd show just the pigeon holes at first, letting the user
@@ -150,6 +152,11 @@ rather than stationery. **The reference card and the Connection Table go in** ("
 
 DECIDED (Bill, 2026-11-24, "These are all good"): Esc, zooming and pressing on another piece while
 carrying, as above.
+
+DECIDED (Bill, 2026-11-24, on Daneel's question while building #64): **the image dragged out of the strip
+opens the picker where it's let go** ("Picker on drop"): the small image follows the pointer, and letting
+go on the table opens the file picker, the image landing there. A browser opens a picker only for a
+while after a press, so a very slow drag may open none.
 
 ## Item 3
 

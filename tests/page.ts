@@ -137,3 +137,17 @@ export async function openTable(page: Page): Promise<{ x: number; y: number }> {
     throw new Error('no open table in view');
   });
 }
+
+/** R511, R512: presses the desk, moves over a pigeonhole, out below the strip, and drags its supply to (x, y). */
+export async function fromDesk(page: Page, paper: string, x: number, y: number): Promise<void> {
+  const desk = await at(page, '#bar .desk', 33, 40);
+  await page.mouse.move(desk.x, desk.y);
+  await page.mouse.down();
+  const hole = (await page.locator(`#bar .hole[data-paper="${paper}"]`).boundingBox())!;
+  const strip = (await page.locator('#bar .pigeonholes').boundingBox())!;
+  await page.mouse.move(hole.x + hole.width / 2, hole.y + hole.height / 2, { steps: 4 });
+  // Out of the strip downward first, as a hand would, so a target under the strip is reached once it closes.
+  await page.mouse.move(hole.x + hole.width / 2, strip.y + strip.height + 30, { steps: 3 });
+  await page.mouse.move(x, y, { steps: 10 });
+  await page.mouse.up();
+}

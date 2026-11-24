@@ -2,7 +2,7 @@
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, dragFromTo, hook, kinds, open, rec, records } from './page.ts';
+import { at, barMiddle, dragFromTo, fromDesk, hook, kinds, open, rec, records } from './page.ts';
 
 const SAM = 'o:00000001', BEAUFORD = 'o:00000002', STICKY = 'o:00000008', CHIP = 'o:00000007';
 
@@ -16,8 +16,10 @@ const put = (page: Page, rid: string, f: string) => page.evaluate(async ([rid, f
 test.beforeEach(async ({ page }) => { await open(page); });
 
 test('the bar holds the supplies', async ({ page }) => {
-  // R18, R20, R287.
-  for (const s of ['.supply.card', '.supply.note', '.supply.aa', '.supply.image', '.supply.howto']) await expect(page.locator(`#bar ${s}`)).toBeVisible();
+  // R509, R20: the desk holds the paper supplies; the chips stay on the bar.
+  await expect(page.locator('#bar .desk')).toBeVisible();
+  await expect(page.locator('#bar > .supply')).toHaveCount(0);
+  await expect(page.locator('#bar .hole')).toHaveCount(6);
   await expect(page.locator('#bar .supplychips .chip')).toHaveCount(8);
   await expect(page.locator('#bar #boothill')).toBeVisible();
   await expect(page.locator('#bar .register')).toBeVisible();
@@ -26,9 +28,9 @@ test('the bar holds the supplies', async ({ page }) => {
 });
 
 test('a new character from the bar', async ({ page }) => {
-  const before = (await kinds(page, 'character')).length, supply = await at(page, '#bar .supply.card', 30, 20);
+  const before = (await kinds(page, 'character')).length;
   // R34: dropped on the table, a pool pops out above its card, gathered, owned by the maker.
-  await dragFromTo(page, supply.x, supply.y, 700, 560);
+  await fromDesk(page, 'character', 700, 560);
   const made = (await kinds(page, 'character')).filter(([rid]) => ![SAM, BEAUFORD, 'o:00000003'].includes(rid));
   expect(made).toHaveLength(1);
   const [rid, c] = made[0]!;
@@ -37,15 +39,15 @@ test('a new character from the bar', async ({ page }) => {
   const pool = await box(page, `.obj.pool[data-rid="${rid}"]`), card = await box(page, `.obj.card[data-rid="${rid}"]`);
   expect(pool.y + pool.height).toBeLessThanOrEqual(card.y + 1);
   // R35: one dropped near the top is moved clear of the bar.
-  await dragFromTo(page, supply.x, supply.y, 300, 100);
+  await fromDesk(page, 'character', 300, 100);
   const bar = await box(page, '#bar');
   const top = (await kinds(page, 'character')).length;
   expect(top).toBe(before + 2);
   const newest = (await kinds(page, 'character')).find(([r]) => r !== rid && ![SAM, BEAUFORD, 'o:00000003'].includes(r))![0];
   expect((await box(page, `.obj.pool[data-rid="${newest}"]`)).y).toBeGreaterThanOrEqual(bar.y + bar.height);
-  // R19: taken from the bar and dropped back on it, nothing is made.
+  // R19: taken from the desk and dropped back on the bar, nothing is made.
   const mid = await barMiddle(page);
-  await dragFromTo(page, supply.x, supply.y, mid.x, mid.y);
+  await fromDesk(page, 'character', mid.x, mid.y);
   expect((await kinds(page, 'character')).length).toBe(before + 2);
 });
 
@@ -109,8 +111,7 @@ test('put away and dug up', async ({ page }) => {
 
 test("an empty pool's strips, and a chip opening one", async ({ page }) => {
   // R31, R227: an empty pool opens Bonus, Main, Edge and Stagger; Bias, Affliction and Injury are strips.
-  const supply = await at(page, '#bar .supply.card', 30, 20);
-  await dragFromTo(page, supply.x, supply.y, 700, 560);
+  await fromDesk(page, 'character', 700, 560);
   const rid = (await kinds(page, 'character')).find(([r]) => ![SAM, BEAUFORD, 'o:00000003'].includes(r))![0];
   const pool = `.obj.pool[data-rid="${rid}"]`;
   const narrow = () => page.locator(`${pool} .slot.narrow`).evaluateAll(es => es.map(e => (e as HTMLElement).dataset.slot));
@@ -322,10 +323,9 @@ test('the GM adds, writes, buries and gets back an Info card', async ({ page }) 
 });
 
 test('the GM keeps the Connection Table', async ({ page }) => {
-  // R408: the GM's bar has the supply; R407, R416, R417: the seeded rows by name, an X where a row
+  // R518: the GM's desk has the supply; R407, R416, R417: the seeded rows by name, an X where a row
   // meets itself, the book's Levels, and the PCs' columns after the thick line.
-  const supply = await at(page, '#bar .supply.links', 20, 10);
-  await dragFromTo(page, supply.x, supply.y, 500, 420);
+  await fromDesk(page, 'connections', 500, 420);
   const sheet = page.locator('.obj.connections');
   await expect(sheet).toHaveCount(1);
   await expect(sheet.locator('th.rowname')).toHaveText(['Beatrice', 'Devreux', 'Eliza', 'Jake', 'Jameson', 'Jephthah', 'Maggie', 'Obed']);
@@ -368,12 +368,12 @@ test('the GM keeps the Connection Table', async ({ page }) => {
   await expect(page.locator('#boothill .n')).toHaveText('');
   const [rid, t] = (await kinds(page, 'connections'))[0]!;
   expect(t.away).toBe(true);
-  await dragFromTo(page, supply.x, supply.y, 450, 380);
+  await fromDesk(page, 'connections', 450, 380);
   await expect(sheet).toHaveCount(1);
   await expect(under('Eliza', 'Obed')).toHaveText('+Sig');
-  // R408: taken again while it is out, the same table moves.
+  // R518: taken again while it is out, the same table moves.
   const before = (await rec(page, rid)).place;
-  await dragFromTo(page, supply.x, supply.y, 600, 450);
+  await fromDesk(page, 'connections', 600, 450);
   await expect(sheet).toHaveCount(1);
   expect(await kinds(page, 'connections')).toHaveLength(1);
   await expect.poll(async () => (await rec(page, rid)).place.x).not.toBe(before.x);
@@ -412,8 +412,7 @@ test('the GM keeps Opinion Records', async ({ page }) => {
   // R426: Hank's card shows the group's record too.
   await expect(page.locator('.obj.card[data-rid="o:00000020"] .infotab.opinion')).toHaveText(['Sam']);
   // R421: the Connection Table's cell for the group and Sam follows the record.
-  const supply = await at(page, '#bar .supply.links', 20, 10);
-  await dragFromTo(page, supply.x, supply.y, 300, 600);
+  await fromDesk(page, 'connections', 300, 600);
   const row = page.locator('.obj.connections tr', { has: page.locator('th.rowname', { hasText: 'Unton folk' }) });
   await expect(row.locator('td.pc')).toHaveText(['', '+Min']);
   // R428: emptied, the record is buried once the GM leaves it; undo digs it up.
@@ -463,8 +462,7 @@ test('the GM taps an Opinion', async ({ page }) => {
   await page.keyboard.type('Reputation +Sig');
   await page.locator('#table').click({ position: { x: 5, y: 300 } });
   await expect(paper.locator('.glyph')).toHaveCount(1);
-  const supply = await at(page, '#bar .supply.links', 20, 10);
-  await dragFromTo(page, supply.x, supply.y, 300, 600);
+  await fromDesk(page, 'connections', 300, 600);
   const row = page.locator('.obj.connections tr', { has: page.locator('th.rowname', { hasText: 'Devreux' }) });
   await expect(row.locator('td.pc')).toHaveText(['', '+Sig']);
   // R433: dragged onto Sam's Main, it is "Devreux: Reputation", and the record spends into parentheses.
@@ -542,19 +540,21 @@ test("select-all takes the whole of an Opinion Record's text", async ({ page }) 
   await expect(text).toHaveText('Grudge');
 });
 
-test("an image the browser won't keep is said on the image supply", async ({ page }) => {
-  // R453: the browser refuses the image (as Firefox does at its limit): the image supply says so.
+test("an image the browser won't keep is said on the image pigeonhole", async ({ page }) => {
+  // R517: the browser refuses the image (as Firefox does at its limit): the image pigeonhole says so, and the desk is edged red.
   const png = { name: 'dot.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') };
   await hook(page, h => { h.blobs.add = () => Promise.reject(new DOMException('The quota has been exceeded.', 'QuotaExceededError')); });
-  const supply = page.locator('#bar .supply.image'), file = page.locator('#bar input[type=file]').first();
+  const supply = page.locator('#bar .hole[data-paper="image"] .supply'), file = page.locator('#bar input[type=file]').first();
   await file.setInputFiles(png);
   await expect(supply).toHaveClass(/\brefused\b/);
+  await expect(page.locator('#bar .desk')).toHaveClass(/\brefused\b/);
   await expect(supply).toHaveText('storage full');
   await expect(supply).toHaveAttribute('title', /dot\.png not added: this browser.s storage is full/);
   // Room again: the next image is added, and the supply is plain.
   await hook(page, h => { delete h.blobs.add; });
   await file.setInputFiles(png);
   await expect(supply).not.toHaveClass(/\brefused\b/);
+  await expect(page.locator('#bar .desk')).not.toHaveClass(/\brefused\b/);
   await expect(supply).toHaveText('image');
 });
 

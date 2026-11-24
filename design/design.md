@@ -92,6 +92,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-BootHillView.md → `src/ui/boothill.ts`, `src/ui/doom.ts`
 - [x] crc-Ledger.md → `src/ui/ledger.ts`
 - [x] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
+- [x] crc-Desk.md → `src/ui/desk.ts`
 - [x] crc-Tray.md → `src/ui/tray.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
 - [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`, `tools/relays.ts`
@@ -152,6 +153,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Build.md → `tools/relays.test.ts`
 - [x] test-Exchange.md → `src/store/exchange.test.ts`
 - [x] test-Ledger.md → `src/ui/ledger.test.ts`
+- [x] test-Desk.md → `src/ui/desk.test.ts`, `tests/desk.spec.ts`
 - [x] test-Seat.md → `tests/seat.spec.ts`, `src/store/seat.test.ts`
 - [x] test-Stamps.md → `src/net/stamps.test.ts`, `src/net/moves.test.ts`
 - [x] test-Authority.md → `src/net/authority.test.ts`
@@ -235,3 +237,8 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] O13: A player can't dig up a burial holding a private note they can't read pinned to its card: their copy lacks the note, so the GM's page refuses the change rather than lose it (R508). Rare: someone else's note pinned to a card the player may dig up.
 - [ ] O14: A player's just-me notes keep the old name as their maker after a rename (R507 rewrites only the GM's game; m: paper is the page's own), so the new name sees no fold menu on them.
 - [ ] O15: tests/tapes.spec.ts flaked once (1 in 17 runs, Chromium, 2026-11-24): synced() after dana.reload() hit 'Execution context was destroyed' while the page was still navigating. A race in the spec helper, not the table; synced could wait for the page's hook to be ready again after a reload.
+- T58: R18 retired by R509 (2026-11-24 organizing Item 2: the paper supplies moved into the desk)
+- T59: R304 retired by R510 (2026-11-24 organizing Item 2: the desk in the bar)
+- T60: R287 retired by R512 (2026-11-24 organizing Item 2: supplies taken from the desk's pigeonholes (R511-R515))
+- T61: R453 retired by R517 (2026-11-24 organizing Item 2: the image pigeonhole says it)
+- T62: R408 retired by R518 (2026-11-24 organizing Item 2: the Connection Table's supply is in the GM's desk)

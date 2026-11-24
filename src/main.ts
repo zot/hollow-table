@@ -29,6 +29,8 @@ import { Eyes } from './ui/eyes.ts';
 import { TapeView } from './ui/tape.ts';
 import { RegisterView } from './ui/register.ts';
 import { BarView, type Supply } from './ui/bar.ts';
+import type { Mode } from './ui/desk.ts';
+import type { PointerLike } from './ui/gesture.ts';
 import { BootHillView, isPageUndo } from './ui/boothill.ts';
 import { FolksView, arrivalName, gmName, viewAsChoices, type Here, type Me } from './ui/folks.ts';
 import { newCharacter, newChip, newHowTo, newSticky, newText } from './rules/supplies.ts';
@@ -157,19 +159,21 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ('kind' in r ? placeOf(r as PieceRecord) : null)?.z ?? 0));
   // R498: paper made on this page records its maker.
   const maker = viewer?.gm ? GM : viewer?.name;
-  // R272, R287: an image's bytes kept, and an Image put on top where it goes.
-  // R453: an image the browser won't keep is said on the image supply, until one is added.
-  const addImage = (file: File, at: { x: number; y: number }) => void blobs.add(file).then(({ blob, w: iw, h }) => {
+  // R272, R515: an image's bytes kept, and an Image put on top where it goes; its rid, once it is.
+  // R517: an image the browser won't keep is said on the image pigeonhole, until one is added.
+  const addImage = (file: File, at: { x: number; y: number }): Promise<string | undefined> => blobs.add(file).then(({ blob, w: iw, h }) => {
     const oid = mint()();
     const image: Image = { kind: 'image', oid, place: { ...at, z: topZ(), tilt: 0 }, blob, w: iw, h, ...(maker && { by: maker }) };   // R498
     game.change(wr => wr.put(ridOf(oid), image));
     bar.refused(null);
+    return ridOf(oid);
   }, (e: unknown) => {
     const full = (e as { name?: string })?.name === 'QuotaExceededError', said = e instanceof Error ? e.message : String(e);
     bar.refused(full ? { label: 'storage full', why: `${file.name} not added: this browser's storage is full (${said})` }
       : { label: 'not added', why: `${file.name} not added: ${said}` });
+    return undefined;
   });
-  // R18, R19, R287, R34: a supply is made at the press and carried; a new character's pool pops out
+  // R19, R512, R34: a supply is made at the pointer and carried; a new character's pool pops out
   // above its card.
   const made = (what: Exclude<Supply, 'connections'>, oid: string, at: { x: number; y: number }): PieceRecord => {
     switch (what) {
@@ -180,23 +184,24 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       default: return newChip(oid, what.sign, what.points, at);
     }
   };
-  // R408: the one Connection Table: taken while out, or put away, the same table comes to the pointer;
+  // R518: the one Connection Table: taken while out, or put away, the same table comes to the pointer;
   // made, it keeps a row for every named GM card (R412).
-  const takeTable = (e: PointerEvent) => {
+  const takeTable = (e: PointerLike, mode: Mode) => {
     const at = table.toWorld(e.clientX, e.clientY), place = { x: Math.round(at.x - 40), y: Math.round(at.y - 20), z: topZ(), tilt: 0 };
     const found = game.all().find(([, r]) => (r as PieceRecord).kind === 'connections') as [string, Connections] | undefined;
     if (found) {
       const { away: _away, ...t } = found[1];
       game.change(w => w.put(found[0], { ...t, place }));
-      drag?.start(found[0], e, e);
+      if (mode !== 'below') drag?.start(found[0], e, e, mode === 'loose');
       return;
     }
     const oid = mint()(), rid = ridOf(oid);
     let t = newConnections(oid, place);
     for (const [, r] of game.all()) if ((r as PieceRecord).kind === 'character') t = keepRow(t, r as Character, mint()());
     game.change(w => w.put(rid, t));
+    if (mode === 'below') return;
     drag?.fresh(rid);
-    drag?.start(rid, e, e);
+    drag?.start(rid, e, e, mode === 'loose');
   };
   // R35: a new pool never lies under the bar; with no room above, it and its card slide down.
   const clearOfBar = (rid: string) => {
@@ -208,18 +213,29 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   };
   const bar = new BarView(document.getElementById('bar')!, {
     version: HOLLOW_VERSION, date: HOLLOW_DATE, gm,
-    take: (what, e) => {
-      if (what === 'connections') { takeTable(e); return; }
+    // R512-R514: made at the pointer and carried on the press or loose, or put just below the strip.
+    take: (what, down, e, mode) => {
+      if (what === 'connections') { takeTable(e, mode); return; }
       const oid = mint()(), rid = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
       game.change(w => w.put(rid, rec));
+      if (mode === 'below') { if (rec.kind === 'character') clearOfBar(rid); return; }
       drag?.fresh(rid);
-      if (rec.kind === 'character') drag?.startPool(rid, e, e, () => clearOfBar(rid));
-      else if (rec.kind === 'chip') drag?.startItem(rid, e, e);
-      else drag?.start(rid, e, e);
+      // Held where the pointer is now (made under it), on the same pointer as the press.
+      const loose = mode === 'loose';
+      if (rec.kind === 'character') drag?.startPool(rid, e, e, () => clearOfBar(rid), loose);
+      else if (rec.kind === 'chip') drag?.startItem(rid, down, e);
+      else drag?.start(rid, e, e, loose);
     },
-    images: files => {
-      const r = document.getElementById('table')!.getBoundingClientRect(), c = table.toWorld(r.left + r.width / 2, r.top + r.height / 2);
-      files.forEach((f, i) => addImage(f, { x: Math.round(c.x - 120 + i * 24), y: Math.round(c.y - 100 + i * 24) }));
+    // R515: picked images land at the pointer, a step apart; one alone let go in its pigeonhole is carried loose.
+    images: (files, at, carry) => {
+      const r = document.getElementById('table')!.getBoundingClientRect();
+      const to = at ?? { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }, c = table.toWorld(to.clientX, to.clientY);
+      files.forEach((f, i) => void addImage(f, { x: Math.round(c.x - 120 + i * 24), y: Math.round(c.y - 80 + i * 24) }).then(rid => {
+        if (!rid || !carry || !at) return;
+        const p = { clientX: at.clientX, clientY: at.clientY } as PointerLike;
+        drag?.fresh(rid);
+        drag?.start(rid, p, p, true);
+      }));
     },
   });
   const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
