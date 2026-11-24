@@ -97,7 +97,7 @@ The die by the character's name shows GM, open, or the player.
 
 Bill (2026-11-23): "there should be a way for a player to make things they put on the desktop
 private ... let them reveal only to the GM. The GM could write on it as well to answer a quick
-question." The note passed across a real table, and the GM's handout (`carves/organizing.md`, Item 1).
+question." The note passed across a real table, and the GM's handout (`carves/done/organizing.md`, Item 1).
 
 - **Paper has a maker.** A sticky, loose text or an image remembers who made it; paper from before
   this has none and stays everyone's, with no fold.

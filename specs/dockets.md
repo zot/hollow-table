@@ -1,7 +1,7 @@
 # Dockets
 
 A named bundle of paper on the table: the label tied round a bundle of papers, its papers inside red
-tape. From `carves/organizing.md`, Item 4 (Bill, 2026-11-24: "Pin to a docket").
+tape. From `carves/done/organizing.md`, Item 4 (Bill, 2026-11-24: "Pin to a docket").
 
 ## The docket
 

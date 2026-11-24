@@ -1,7 +1,7 @@
 # Desk
 **Requirements:** R512-517, R520, R526, R527, R529, R530, R546-548, R551-554, R556, R559, R560, R562
 
-The desk on the bar (`carves/organizing.md`): a little roll-top right after the wordmark, its
+The desk on the bar (`carves/done/organizing.md`): a little roll-top right after the wordmark, its
 pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
 strip of pigeonholes; the press, wherever it goes, decides what is taken and how. A click opens it whole,
 the drawers showing below the pigeonholes.

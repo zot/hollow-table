@@ -103,7 +103,7 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 
 The bar runs along the top. It holds:
 
-- **The desk** (`carves/organizing.md`, Item 2), right after the wordmark: its pigeonholes hold the
+- **The desk** (`carves/done/organizing.md`, Item 2), right after the wordmark: its pigeonholes hold the
   paper supplies, a character, a sticky note, loose text, an image, the "How to play the table"
   reference card and a docket (see `dockets.md`), and on the GM's desk the Connection Table (see
   `connections.md`). Taken from a
@@ -141,7 +141,7 @@ the register, the Ledger and Boot Hill.
   letting go on the table opens the picker, the image landing there (Bill, 2026-11-24: "Picker on
   drop"). A cancelled picker makes nothing.
 - **Clicking the desk** (pressing it and letting go without moving) opens the whole desk, the
-  pigeonholes staying open until a press elsewhere; its drawers come with `carves/organizing.md`,
+  pigeonholes staying open until a press elsewhere; its drawers come with `carves/done/organizing.md`,
   Item 3.
 - **An image the browser won't keep is said on the image pigeonhole** (Bill, 11-19: "On the image
   supply"): when the browser's storage is full, it turns red and reads "storage full" (or "not added",

@@ -1,7 +1,7 @@
 # The desk
 
 Where work is kept without burying it: filed in the desk's drawers, found again, and brought back.
-The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/organizing.md`, Item 3.
+The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/done/organizing.md`, Item 3.
 
 ## Filing
 
@@ -45,7 +45,7 @@ The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/o
 
 ## The GM's desks
 
-From `carves/organizing.md`, Item 6 (Bill, 2026-11-23: "why not more desks, just like graveyards. We
+From `carves/done/organizing.md`, Item 6 (Bill, 2026-11-23: "why not more desks, just like graveyards. We
 could show arrows and a desk name when you click it to expand"; "Same rules"; "GM's desks only").
 
 - **The GM can keep several desks, as Boot Hill keeps graveyards.** The open desk shows ‹, the desk's
@@ -69,7 +69,7 @@ could show arrows and a desk name when you click it to expand"; "Same rules"; "G
 
 ## Desktops and the knife switch
 
-From `carves/organizing.md`, Item 7. Bill (2026-11-23): "let's associate the desktop with the desk.
+From `carves/done/organizing.md`, Item 7. Bill (2026-11-23): "let's associate the desktop with the desk.
 Switching desks switches the desktop contents. The PCs are present on all desktops but switching desks
 moves the PCs to where they are for that desk."
 
@@ -96,7 +96,7 @@ moves the PCs to where they are for that desk."
 
 ## Finding
 
-From `carves/organizing.md`, Item 5 (Bill, 2026-11-24: "words too for a typed-in search but we should
+From `carves/done/organizing.md`, Item 5 (Bill, 2026-11-24: "words too for a typed-in search but we should
 also have a way to present a list of names to the GM", and "Empty search shows it").
 
 - **The open desk has a search line** at the top of its drawers, written in the hand font. Typing in
