@@ -306,6 +306,13 @@ italic or underline.
 - **A growing drawer pushes what it would cover** (Bill, 11-12): any piece the mat would now cover
   slides down just clear of it (a card brings what's pinned to it, a pool its gathered card), and
   stays there when the drawer shrinks. The GM's page makes the move, so everyone sees it slide.
+- **The name above a pool** (`carves/fixes.md`, Item 7; Bill, 2026-11-24: "Full name on the pool;
+  the name is public"). Writing the name on the card's first line, its words before a group in
+  parentheses and before the Rank, resets the name above the pool to it in full: "Mistress Devreux
+  (Unton folk), Rank 3" is "Mistress Devreux". The name above the pool can also be written on its own,
+  a nickname ("That way players can type in a nickname if they want to"), and the card keeps its first
+  line; the next change to the name on the card replaces the nickname. Who may write it is in
+  `ownership.md`.
 - **A character is a card tied to its pool.** Dragging a pool brings its card; a card dragged on its
   own moves alone and is no longer gathered. A **gathered** card stays snapped under its drawer as
   the drawer grows or shrinks. **Gather** snaps it back. The scene starts gathered.

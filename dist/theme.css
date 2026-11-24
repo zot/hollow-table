@@ -618,6 +618,9 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .pool { min-width: 430px; width: max-content; font: 12px/1.2 var(--mono); color: #f3e9d8; user-select: none; -webkit-user-select: none; }
 .pool .hd { display: flex; gap: 8px; align-items: baseline; padding: 0 4px 6px; }
 .pool .hd .name { font: 700 24px/1 var(--hand); color: #9fe08a; text-shadow: 0 1px 2px rgba(0,0,0,.5); cursor: grab; }
+/* R565: the name written in place, a nickname: it shows the I-beam while written. */
+.pool .hd .name { outline: none; min-width: 1em; }
+.pool .hd .name:focus { cursor: text; user-select: text; -webkit-user-select: text; border-bottom: 1px dashed rgba(159,224,138,.6); }
 /* R142: the die by the name shows the owner; it claims, opens, or docks the roll row. */
 .pool .die-own { min-width: 30px; height: 26px; padding: 0 6px; border-radius: 5px; border: 1.5px solid #2a2a2a; background: #f6f6f2;
   color: #222; font: 700 12px var(--mono); box-shadow: 1.5px 1.5px 0 #2a2a2a; cursor: pointer; }

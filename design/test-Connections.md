@@ -103,3 +103,14 @@
 **Fire alarm:** publish a group's record on the first member only (`on` the first card); red: the group's `on` is [Devreux]
 **Inject:** src/rules/connections.ts:published
 **Pulled:** 2026-11-19 — rang: the group's `on` held Devreux alone; restored clean
+
+## Test: the name on a card
+**Purpose:** R566: the name is the first line's words before a group and before the first comma, marks left out.
+**Input:** "<head>Mistress Devreux (Unton folk), Rank 3</head>", "<head>Samuel Diamond, Rank 3</head>", "<head>Name, Rank _</head>", an empty front.
+**Expected:** "Mistress Devreux", "Samuel Diamond", "Name", "".
+**Refs:** crc-Connections.md
+**Code:** src/rules/connections.test.ts
+**Alarm:** 7
+**Fire alarm:** keep the group in the name: "Mistress Devreux (Unton folk)"
+**Inject:** src/rules/connections.ts:cardName
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: keeping the group, 'the name on a card' failed; restored clean

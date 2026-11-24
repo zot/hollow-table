@@ -1322,6 +1322,10 @@ function level(n) {
 }
 var LEVELS3 = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
 var firstLine2 = (front) => (front.split("\n")[0] ?? "").replace(/<[^>]*>/g, "");
+function cardName(front) {
+  const bare = firstLine2(front).replace(/\([^()]*\)/g, "").replace(/\([^)]*$/, "");
+  return bare.split(",")[0].replace(/\s+/g, " ").trim();
+}
 function groupOf(front) {
   const m = /\(([^()]*)\)/.exec(firstLine2(front));
   return m?.[1]?.trim() || void 0;
@@ -1679,6 +1683,33 @@ function groupChooser(text, w, gmCard) {
     }
   });
   text.addEventListener("focusout", () => close());
+}
+
+// src/rules/ownership.ts
+var own = (viewer, c) => !!viewer && c.owner === (viewer.gm ? GM : viewer.name);
+function click(viewer, c) {
+  if (!viewer) return { refused: "Only someone at the table can take a character." };
+  if (c.owner === OPEN) return { owner: viewer.gm ? GM : viewer.name };
+  if (viewer.gm || own(viewer, c)) return { dock: true };
+  return { refused: `${c.name} is ${c.owner === GM ? "the GM's" : `${c.owner}'s`}.` };
+}
+function shiftClick(viewer, c) {
+  if (viewer && (viewer.gm || own(viewer, c))) return { owner: OPEN };
+  return { refused: `${c.name} isn't yours to open.` };
+}
+function mayChange(viewer, before2, after) {
+  if (viewer?.gm) return true;
+  if (!viewer) return false;
+  const mine = (c) => c.owner === viewer.name || c.owner === OPEN;
+  if (before2 && !mine(before2)) return false;
+  return !after || mine(after);
+}
+function mayWrite(viewer, c) {
+  return !!viewer && (viewer.gm || c.owner !== OPEN && c.owner === viewer.name);
+}
+function rewrites(before2, after) {
+  if (!before2 || !after) return false;
+  return before2.front !== after.front || before2.back.notes !== after.back.notes || before2.name !== after.name;
 }
 
 // src/rules/visibility.ts
@@ -2551,7 +2582,10 @@ function make(doc, r, w) {
     case "character": {
       const flipper = el2(doc, "div", "flipper");
       const front = el2(doc, "div", "face front"), back3 = el2(doc, "div", "face back");
-      const text = writable(doc, "text", r.front, (s) => change(w, rid2, (c) => ({ ...c, front: s })));
+      const text = writable(doc, "text", r.front, (s) => change(w, rid2, (c) => {
+        const was = cardName(c.front), now2 = cardName(s);
+        return { ...c, front: s, ...now2 !== was && { name: now2.slice(0, CAPS.name) } };
+      }));
       front.append(text);
       e.addEventListener("pointerdown", (ev) => checkPress(ev, text), true);
       if (w.viewer?.gm) groupChooser(text, w, () => w.game.get(rid2)?.owner === GM);
@@ -2631,7 +2665,9 @@ function update(e, r, w) {
       e.classList.toggle("eyed", eyed);
       e.classList.toggle("inferring", !!draft);
       const front = e.querySelector(".front > .text");
-      front.contentEditable = back3 ? "false" : "true";
+      const writes = mayWrite(w.viewer, r);
+      front.contentEditable = back3 || !writes ? "false" : "true";
+      e.querySelector(".back .notes").contentEditable = writes ? "true" : "false";
       const body = secret ? blankFront(r) : r.front;
       if (!draft && front.querySelector("[data-entries]")) delete front.dataset.source;
       rewrite(front, back3 ? named2(body, r.name) : body);
@@ -3344,26 +3380,6 @@ function reference(doc, r) {
   ];
 }
 
-// src/rules/ownership.ts
-var own = (viewer, c) => !!viewer && c.owner === (viewer.gm ? GM : viewer.name);
-function click(viewer, c) {
-  if (!viewer) return { refused: "Only someone at the table can take a character." };
-  if (c.owner === OPEN) return { owner: viewer.gm ? GM : viewer.name };
-  if (viewer.gm || own(viewer, c)) return { dock: true };
-  return { refused: `${c.name} is ${c.owner === GM ? "the GM's" : `${c.owner}'s`}.` };
-}
-function shiftClick(viewer, c) {
-  if (viewer && (viewer.gm || own(viewer, c))) return { owner: OPEN };
-  return { refused: `${c.name} isn't yours to open.` };
-}
-function mayChange(viewer, before2, after) {
-  if (viewer?.gm) return true;
-  if (!viewer) return false;
-  const mine = (c) => c.owner === viewer.name || c.owner === OPEN;
-  if (before2 && !mine(before2)) return false;
-  return !after || mine(after);
-}
-
 // src/net/identity.ts
 var ID = /^[0-9A-Za-z]{22}$/;
 var PUB = /^[\w-]{87}$/;
@@ -3686,7 +3702,10 @@ function judge(game2, edit, who, tab2) {
     const gms = (r) => !!r && "kind" in r && (r.kind === "connections" || r.kind === "opinion");
     if (gms(old) || gms(rec)) return false;
     const c = (r) => r && "kind" in r && r.kind === "character" ? r : void 0;
-    return !c(old) && !c(rec) ? true : mayChange(viewer, c(old), c(rec));
+    const before2 = c(old), after = c(rec);
+    if (!before2 && !after) return true;
+    if (rewrites(before2, after) && !mayWrite(viewer, before2)) return false;
+    return mayChange(viewer, before2, after);
   };
   const stale = (rid2) => {
     const l = book2.last?.[rid2];
@@ -16725,7 +16744,9 @@ function drawPool(c, items, old, w) {
   e.style.left = `${c.pool.x}px`;
   e.style.top = `${c.pool.y}px`;
   e.style.zIndex = String(c.pool.z);
-  e.querySelector(".name").textContent = c.name;
+  const name2 = e.querySelector(".name");
+  name2.contentEditable = mayWrite(w.viewer, c) ? "true" : "false";
+  if (doc.activeElement !== name2 && name2.textContent !== c.name) name2.textContent = c.name;
   const die3 = e.querySelector(".die-own");
   die3.textContent = ownerWord(c);
   die3.title = c.owner === OPEN ? "Open: click to claim this character" : "Click to roll for this character; shift-click to open it for someone else";
@@ -16779,6 +16800,20 @@ function make3(doc, c, w) {
     w.game.change((x) => x.put(rid2, { ...cur, gathered: true }));
   } });
   const name2 = el3(doc, "span", "name");
+  name2.spellcheck = false;
+  name2.addEventListener("pointerdown", (ev) => {
+    if (doc.activeElement === name2) ev.stopImmediatePropagation();
+  });
+  name2.addEventListener("input", () => {
+    const cur = w.game.get(rid2);
+    if (cur) w.game.change((x) => x.put(rid2, { ...cur, name: (name2.textContent ?? "").slice(0, CAPS.name) }));
+  });
+  name2.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      name2.blur();
+    }
+  });
   const die3 = el3(doc, "button", "die-own");
   gesture(die3, { click: () => w.poolDie(c.oid, false, die3), shift: () => w.poolDie(c.oid, true, die3) });
   const menu = el3(doc, "button", "makemenu", "\u25BE");

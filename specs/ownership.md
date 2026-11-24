@@ -19,6 +19,10 @@ The die by the character's name shows GM, open, or the player.
   shift-click (open), then click (claim).
 - A player can't take another player's character, and clicking it does nothing.
 - A player may own several characters.
+- **Who writes a character** (Bill, 2026-11-24: "Only the owner is allowed to edit the nickname or the
+  card", "the GM can also edit it"): its owner and the GM write its card and the name above its pool,
+  no one else; an open character's are the GM's alone until someone claims it ("that's right"). The
+  GM's page refuses anyone else's change to them.
 
 ## Secrecy
 

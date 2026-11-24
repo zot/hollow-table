@@ -1,4 +1,4 @@
-// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418, R420-426, R429, R430, R436-438
+// CRC: crc-Connections.md | R407, R411, R412, R413, R415, R416, R418, R420-426, R429, R430, R436-438, R566
 // The Connection Table's rules, pure: Levels as words, a card's group, a row for every named NPC,
 // renaming rows, setting cells, the adventure's table as the seed, and the Opinion Records: their
 // Connection, their first Opinions, and their cells.
@@ -19,6 +19,14 @@ export const LEVELS = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
 
 /** The first line of a card's front, without its marks. */
 const firstLine = (front: string) => (front.split('\n')[0] ?? '').replace(/<[^>]*>/g, '');
+
+// R566: the name on a card: its first line's words before a group in parentheses and before the first comma.
+/** The name a card's first line gives. */
+export function cardName(front: string): string {
+  // A group may hold a comma, and one being typed isn't closed yet.
+  const bare = firstLine(front).replace(/\([^()]*\)/g, '').replace(/\([^)]*$/, '');
+  return bare.split(',')[0]!.replace(/\s+/g, ' ').trim();
+}
 
 // R413: the words in parentheses on the card's first line.
 /** A card's group, or none. */

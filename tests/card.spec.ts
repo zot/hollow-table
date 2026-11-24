@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -191,4 +191,56 @@ test('a slot worth only 1 reads "Mild (1)"', async ({ page }) => {
   await page.locator(`${CARD} .flip`).click();
   await expect(page.locator(`${CARD} .col-bias .slotline[data-row="mild"] .lvl`)).toHaveText('Mild (1)');
   await expect(page.locator(`${CARD} .col-bias .slotline[data-row="min"] .lvl`)).toHaveText('Min');
+});
+
+test('the name above a pool: set by the card, or written as a nickname', async ({ page }) => {
+  await open(page);
+  const DCARD = `.obj.card[data-rid="${DEVREUX}"]`, name = page.locator(`${DPOOL} .hd .name`);
+  const front = async () => (await rec(page, DEVREUX)).front as string;
+  /** Puts the caret at the end of the card's first line and types `s`. */
+  const onFirstLine = async (s: string) => {
+    await page.locator(`${DCARD} .front .text`).click();
+    await page.evaluate(sel => {
+      const t = document.querySelector(sel)!, line = t.firstElementChild ?? t, r = document.createRange();
+      r.selectNodeContents(line);
+      r.collapse(false);
+      getSelection()!.removeAllRanges();
+      getSelection()!.addRange(r);
+    }, `${DCARD} .front .text`);
+    await page.keyboard.type(s);
+  };
+  // R566: writing the name on the card resets the name above the pool, in full.
+  await onFirstLine(' Jr');
+  await expect.poll(async () => (await rec(page, DEVREUX)).name).toBe('Mistress Devreux Jr');
+  await expect(name).toHaveText('Mistress Devreux Jr');
+  // R565: written above the pool, a nickname; the card keeps its first line.
+  const kept = await front();
+  await name.click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.type('Madam');
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await rec(page, DEVREUX)).name).toBe('Madam');
+  expect(await front()).toBe(kept);
+  // An edit elsewhere on the card keeps the nickname; the next change to the card's name replaces it.
+  await page.locator(`${DCARD} .front .text`).click();
+  await page.keyboard.press('ControlOrMeta+End');
+  await page.keyboard.type(' x');
+  await expect.poll(front).not.toBe(kept);
+  expect((await rec(page, DEVREUX)).name).toBe('Madam');
+  await onFirstLine('r');
+  await expect.poll(async () => (await rec(page, DEVREUX)).name).toBe('Mistress Devreux Jrr');
+});
+
+test("a player can't write a name or card that isn't theirs", async ({ browser }) => {
+  const { gmTable, join } = await import('./page.ts');
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  // R567: the GM writes Devreux; Dana, who doesn't own it, can't write its name.
+  await expect(gm.locator(`${DPOOL} .hd .name`)).toHaveAttribute('contenteditable', 'true');
+  await expect(dana.locator(`${DPOOL} .hd .name`)).toHaveAttribute('contenteditable', 'false');
+  // An open character's card and name are the GM's alone.
+  await hook(gm, h => h.store.game.change((w: any) => w.put('o:00000001', { ...h.store.game.get('o:00000001'), owner: 'open' })));
+  await expect(dana.locator(`${SPOOL} .hd .name`)).toHaveAttribute('contenteditable', 'false', { timeout: 15_000 });
+  await expect(dana.locator(`${CARD} .front .text`)).toHaveAttribute('contenteditable', 'false');
+  await expect(gm.locator(`${SPOOL} .hd .name`)).toHaveAttribute('contenteditable', 'true');
 });

@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { GM, type Character, type Connections, type Opinion } from '../model/records.ts';
-import { awaits, cell, connection, opinionItems, published, recordsOn, first, groupOf, keep, level, order, reacted, reactionOf, recordOf, rename, respected, seed, set, synced } from './connections.ts';
+import { awaits, cardName, cell, connection, opinionItems, published, recordsOn, first, groupOf, keep, level, order, reacted, reactionOf, recordOf, rename, respected, seed, set, synced } from './connections.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -130,3 +130,14 @@ test("a record's items and where it shows", () => {
   assert.deepEqual(recordsOn([ours], hank), [ours], 'a player finds it by `on`');
   assert.deepEqual(recordsOn([ours], card(SAM)), []);
 });
+
+test('the name on a card', () => {
+  // R566: the first line's words before a group and before the first comma, marks left out.
+  assert.equal(cardName('<head>Mistress Devreux (Unton folk), Rank 3</head>\nSkills'), 'Mistress Devreux');
+  assert.equal(cardName('<head>Samuel Diamond, Rank 3</head>'), 'Samuel Diamond');
+  assert.equal(cardName('<head>Name, Rank _</head>'), 'Name');
+  assert.equal(cardName('<head>Devreux (Unton, folk)</head>'), 'Devreux', 'a comma inside the group');
+  assert.equal(cardName('<head>Devreux (Unt</head>'), 'Devreux', 'a group still being typed');
+  assert.equal(cardName(''), '');
+});
+

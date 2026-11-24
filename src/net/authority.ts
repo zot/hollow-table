@@ -1,4 +1,4 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442, R486, R506, R508
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442, R486, R506, R508, R567
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
@@ -6,7 +6,7 @@
 
 import { same, type Game } from '../model/game.ts';
 import { TOMBS, isLocal, isPaper, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
-import { mayChange } from '../rules/ownership.ts';
+import { mayChange, mayWrite, rewrites } from '../rules/ownership.ts';
 import { reads, redact, type Characters, type Viewer } from '../rules/visibility.ts';
 import { renameWhy, renamed, why, whoIs } from './claims.ts';
 import { editBody } from './envelope.ts';
@@ -153,7 +153,11 @@ export function judge(game: Game, edit: Edit, who: string | null, tab?: string):
     const gms = (r: Rec | undefined) => !!r && 'kind' in r && (r.kind === 'connections' || r.kind === 'opinion');
     if (gms(old) || gms(rec)) return false;
     const c = (r: Rec | undefined) => r && 'kind' in r && r.kind === 'character' ? r : undefined;
-    return !c(old) && !c(rec) ? true : mayChange(viewer, c(old), c(rec));                   // R148
+    const before = c(old), after = c(rec);
+    if (!before && !after) return true;
+    // R567: a character's writing is its owner's and the GM's; an open one's, the GM's alone.
+    if (rewrites(before, after) && !mayWrite(viewer, before!)) return false;
+    return mayChange(viewer, before, after);                                                // R148
   };
   // R444: another tab changed the piece after the copy this change was made on.
   const stale = (rid: Rid) => { const l = book.last?.[rid]; return !!l && l.g > edit.base && l.by !== tab; };

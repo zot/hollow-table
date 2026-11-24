@@ -1,5 +1,5 @@
 # PoolView
-**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R220, R227-240, R244, R251, R463, R268, R269, R142, R144, R146, R285, R360, R366, R379, R369, R377, R401, R422, R464
+**Requirements:** R28, R31-33, R37, R41, R48-50, R53, R64, R78, R142, R144, R146, R220, R227-240, R244, R251, R268, R269, R285, R360, R366, R369, R377, R379, R401, R422, R463, R464, R565, R567
 
 Draws a character's pool, its drawer and used pile, and the header with the action and opponent.
 
@@ -77,6 +77,8 @@ Draws a character's pool, its drawer and used pile, and the header with the acti
 - drag the pool: brings its card if gathered; Gather snaps the card under the drawer.
 - held (R220): a chip or card in hand isn't among the items TableView gives it, so redrawing the
   pool while it's carried doesn't draw it again (and its slot settles without it).
+- the name (R565, R567): written in place where Ownership.mayWrite allows, a nickname, 200 characters
+  at most; a press-and-drag on it still carries the pool.
 
 ## Collaborators
 - Pool, Influence, Game, Drag, RollRow, Gesture

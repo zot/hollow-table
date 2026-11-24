@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character } from '../model/records.ts';
-import { click, mayChange, shiftClick, type Result } from './ownership.ts';
+import { click, mayChange, mayWrite, shiftClick, type Result } from './ownership.ts';
 import { canSee, type Viewer } from './visibility.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
@@ -55,3 +55,14 @@ test("the GM's check", () => {
   ], [true, false, true, false]);
   assert.equal(mayChange(GM, beau, { ...beau!, owner: 'Dana' }), true);
 });
+
+test('who writes a character', () => {
+  // R567: the owner and the GM; an open one, the GM alone.
+  const all = scene(), char = (oid: string) => all.find((r): r is Character => r.kind === 'character' && r.oid === oid)!;
+  const sam = char(SAM), devreux = char(DEVREUX), open: Character = { ...sam, owner: 'open' };
+  assert.deepEqual([sam, devreux, open].map(c => mayWrite(GM, c)), [true, true, true], 'the GM writes all');
+  assert.deepEqual([sam, devreux, open].map(c => mayWrite(P1, c)), [sam.owner === P1.name, false, false], 'Player 1 writes their own alone');
+  assert.deepEqual([sam, devreux, open].map(c => mayWrite(P2, c)), [false, false, false]);
+  assert.equal(mayWrite(null, sam), false);
+});
+

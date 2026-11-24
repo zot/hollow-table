@@ -501,3 +501,36 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** never write "(1)" on a slot; red: the Mild slot reads "Mild"
 **Inject:** src/ui/piece.ts
 **Pulled:** 2026-11-23 — rang: with no "(1)" written, the Mild slot read "Mild" (Chromium); restored clean
+
+## Test: the name above a pool: set by the card, or written as a nickname
+**Purpose:** R565, R566: writing the name on the card's first line resets the name above the pool; a nickname written above the pool leaves the card alone and lasts through other edits to the card, until its name changes again.
+**Input:** the GM types " Jr" after Mistress Devreux's first line, writes "Madam" above its pool, types on the card's last line, then types on the first line again.
+**Expected:** "Mistress Devreux Jr"; "Madam" with the card unchanged; still "Madam"; "Mistress Devreux Jrr".
+**Refs:** crc-PieceView.md, crc-PoolView.md, crc-Connections.md
+**Code:** tests/card.spec.ts
+**Alarm:** 41
+**Fire alarm:** let the card's edits leave the name alone: Devreux's pool keeps "Mistress Devreux"
+**Inject:** src/ui/piece.ts:make
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the card's edits leaving the name alone, the pool name spec failed in Chromium; restored clean
+
+## Test: a player can't write a name or card that isn't theirs
+**Purpose:** R567: on a player's page another's character, and an open one, show their name and card unwritable; the GM's page writes them.
+**Input:** the GM and Dana; Devreux; then Sam opened.
+**Expected:** Devreux's name writable on the GM's page, not on Dana's; open Sam's name and card not writable on Dana's page.
+**Refs:** crc-PoolView.md, crc-PieceView.md, crc-Ownership.md
+**Code:** tests/card.spec.ts
+**Alarm:** 42
+**Fire alarm:** make the name writable for anyone (ignore mayWrite in drawPool): Dana's page lets her write Devreux's name
+**Inject:** src/ui/pool.ts:drawPool
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the name writable for anyone, the spec failed in Chromium (Devreux's name writable on Dana's page); restored clean
+
+## Test: an open character's card isn't written on a player's page
+**Purpose:** R567: the card's front follows who may write it, not only whether its face is shown.
+**Input:** the "a player can't write a name or card" spec, Sam opened.
+**Expected:** Sam's front not writable on Dana's page.
+**Refs:** crc-PieceView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 43
+**Fire alarm:** make the front writable whenever its face shows (ignore mayWrite): Dana's page lets her write Sam's card
+**Inject:** src/ui/piece.ts:update
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the front writable whenever its face shows, the spec failed in Chromium (open Sam's front writable on Dana's page); restored clean

@@ -573,3 +573,22 @@ test("a rename follows into the GM's drawers", () => {
   game.change(renamed(game, 'Dee', 'Dot'));
   assert.deepEqual((game.get('desk') as Desks).desks.map(d => d.items[0]!.records[0]!.owner), ['Dot', 'Dot']);
 });
+
+test('a player writes only what is theirs', () => {
+  // R567: Dana writes Sam's front and name; an open character's writing is the GM's alone, though she may claim it.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  whoIs(game, 'Dana', 'b-dana');
+  const sam = game.get(ridOf(SAM)) as Character;
+  const edit = (rec: Character): Edit => ({ s: 1, base: 0, puts: [{ rid: ridOf(SAM), rec }], dels: [] });
+  const refused = (rec: Character) => judge(game, edit(rec), 'Dana').refused.length > 0;
+  assert.equal(refused({ ...sam, name: 'Sammy' }), false, 'her nickname for Sam');
+  assert.equal(refused({ ...sam, front: sam.front + '\nmore' }), false, "Sam's front");
+  game.change(w => w.put(ridOf(SAM), { ...sam, owner: 'open' }));
+  const open = game.get(ridOf(SAM)) as Character;
+  assert.equal(refused({ ...open, name: 'Mine' }), true, "an open character's name");
+  assert.equal(refused({ ...open, front: open.front + '\nmore' }), true, 'its front');
+  assert.equal(refused({ ...open, back: { ...open.back, notes: 'mine' } }), true, 'its notes');
+  assert.equal(refused({ ...open, owner: 'Dana' }), false, 'but she may claim it');
+});
+

@@ -29,3 +29,14 @@
 **Fire alarm:** Stop checking the owner after the change (`return true` at the end): Dana handing Sam to Ann is taken
 **Inject:** src/rules/ownership.ts:mayChange
 **Pulled:** 2026-11-12 — rang: Dana handing Sam to Ann was taken (true instead of false)
+
+## Test: who writes a character
+**Purpose:** R567: the owner and the GM write a character; an open one, the GM alone; nobody else.
+**Input:** the GM, Dana (Sam's owner) and Ann, on Sam, Devreux and an open character.
+**Expected:** the GM writes all three; Dana writes Sam only; Ann none.
+**Refs:** crc-Ownership.md
+**Code:** src/rules/ownership.test.ts
+**Alarm:** 3
+**Fire alarm:** let anyone write an open character (as anyone may claim it): Dana writes it
+**Inject:** src/rules/ownership.ts:mayWrite
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with an open character anyone's to write, 'who writes a character' failed; restored clean

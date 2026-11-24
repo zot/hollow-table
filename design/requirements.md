@@ -119,6 +119,8 @@
 - **~~R453:~~** (Retired T61 — see R517) When the browser refuses to store a new image, the image supply turns red and reads "storage full" (a QuotaExceededError) or "not added", its tooltip saying why, until an image is added.
 - **R460:** (principle) The table enforces who may see and touch what, with the GM's page arbitrating; works out and shows the arithmetic; and allows a judgment call the book leaves to the GM, flagging it for the GM, rather than refusing it.
 - **R496:** At Con or Wis −1 a Damage column's Mild Slot, at −2 or below its Mild and Min Slots, are worth only 1 point: each absorbs 1 point of an Attack instead of 2, and the back shows it beside its Level word, "Mild (1)".
+- **R565:** A character's name, above its pool, is written in place there, 200 characters at most: a nickname, kept until the name on its card changes.
+- **R566:** An edit to a card's front that changes the name on its first line (its words before a group in parentheses and before the first comma, marks left out, trimmed) sets the character's name to that name in full; an edit that leaves that name alone leaves the character's name alone.
 - **R529:** The bar holds, right after the wordmark, a desk whose pigeonholes hold the paper supplies (character, sticky, loose text, image, the "How to play the table" card and a docket, and on the GM's desk the Connection Table); the chips 2, 4, 6 and +1 in each color stay on the bar; the people, and the register, the Ledger and Boot Hill at its right end.
 - **R530:** Pressing the desk opens a strip below it, a pigeonhole per supply, each holding its supply drawn small (a stack of white card, a yellow note, "Aa", an image, the reference card, a docket's label on red tape, the Connection Table); while the press lasts, the pointer over a pigeonhole holds that supply's small piece in hand.
 - **R531:** Paper pinned to a card or a docket goes with it on every page that holds it, to the holder's place plus the paper's offset: the GM's page moves the shared paper a change moved the holder without, and each page its own "just me" paper.
@@ -386,6 +388,7 @@
 - **R147:** The GM takes back an open character by clicking it; taking one from a player is shift-click (open), then click.
 - **R148:** A player can't take another player's character; clicking it does nothing.
 - **R149:** A player may own several characters.
+- **R567:** Only a character's owner and the GM write its card's front, its back's notes and its name; an open character's, the GM alone: on anyone else's page they can't be written, and the GM's page refuses anyone else's change to them.
 - **R150:** A character's sheet and its Influence cards, wherever they are, are readable only by its owner and the GM.
 - **~~R151:~~** (Retired T23 — see R356) A character's name and place, its drawer's card count, chip values in pools, and its sheet's shape are public.
 - **~~R152:~~** (Retired T24 — see R357) To others, a hidden character's card and drawer cards are face-down, and its pool chips lose their names on hover.

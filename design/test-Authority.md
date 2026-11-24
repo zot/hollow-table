@@ -295,3 +295,14 @@ is tombed
 **Fire alarm:** leave `desk` out of renamed; red: the filed Sam's owner stays Dana
 **Inject:** src/net/claims.ts:renamed
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with desk left out of renamed, the filed Sam stayed Dana's; restored clean
+
+## Test: a player writes only what's theirs
+**Purpose:** R567: the GM's page takes a player's change to their own character's front and name, and refuses one to an open character's front, notes or name, while still taking a claim of it.
+**Input:** Dana renames Sam and writes his front; Dana writes an open character's front, its notes, its name; Dana claims it.
+**Expected:** the first two taken; the three writes refused; the claim taken.
+**Refs:** crc-Authority.md, crc-Ownership.md
+**Code:** src/net/authority.test.ts
+**Alarm:** 27
+**Fire alarm:** drop the writing check from judge: the change to the open character's name is taken
+**Inject:** src/net/authority.ts:judge
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: without the writing check in judge, 'a player writes only what is theirs' failed (the open character's name taken); restored clean

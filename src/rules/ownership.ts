@@ -1,4 +1,4 @@
-// CRC: crc-Ownership.md | R142, R149
+// CRC: crc-Ownership.md | R142, R149, R567
 // What clicking or shift-clicking a character's die does to its owner. Pure: returns the new owner,
 // docking, or a refusal with its reason.
 
@@ -33,4 +33,16 @@ export function mayChange(viewer: Viewer, before: Character | undefined, after: 
   const mine = (c: Character) => c.owner === viewer.name || c.owner === OPEN;
   if (before && !mine(before)) return false;
   return !after || mine(after);
+}
+
+// R567: the owner and the GM write a character's card and name; an open one's, the GM alone.
+/** Whether this viewer may write a character's card and the name above its pool. */
+export function mayWrite(viewer: Viewer, c: Character): boolean {
+  return !!viewer && (viewer.gm || (c.owner !== OPEN && c.owner === viewer.name));
+}
+
+/** R567: whether a change touches a character's writing: its front, its back's notes or its name. */
+export function rewrites(before: Character | undefined, after: Character | undefined): boolean {
+  if (!before || !after) return false;
+  return before.front !== after.front || before.back.notes !== after.back.notes || before.name !== after.name;
 }

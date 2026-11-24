@@ -1,5 +1,5 @@
 # Connections
-**Requirements:** R407-430, R434, R436-438
+**Requirements:** R407-430, R434, R436-438, R566
 
 The Connection Table: its rules, pure (`src/rules/connections.ts`), and its sheet and the group
 chooser on the GM's page (`src/ui/connections.ts`).
@@ -70,6 +70,8 @@ chooser on the GM's page (`src/ui/connections.ts`).
   last seen, keep its row. A card first seen (a load, a dig-up) is only remembered, so a row the GM
   cleared stays cleared until its card is renamed. Taking the table from the supply keeps a row for
   every named GM card.
+- cardName(front) (R566): the name on a card's first line: its words before a group in parentheses and
+  before the first comma, marks left out, trimmed.
 
 ## Collaborators
 - Records, Visibility, PieceView, Bar, Drag, MarkedText

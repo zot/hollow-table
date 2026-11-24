@@ -1,14 +1,15 @@
-// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R366, R53, R64, R251, R268, R269, R285, R360, R379, R377, R422
+// CRC: crc-PoolView.md | Seq: seq-drag.md#1.4, seq-drag.md#1.8, seq-drag.md#1.9 | R28, R244, R239, R240, R227, R228, R229, R230, R231, R232, R233, R234, R235, R236, R237, R238, R31, R32, R33, R36, R37, R38, R39, R41, R47, R49, R50, R366, R53, R64, R251, R268, R269, R285, R360, R379, R377, R422, R565, R567
 // A character's pool mat: the seven slots, the drawer of Influence cards with its writers, used pile
 // and kill box, and the header. What a click or a drop does is in actions.ts; this only draws and
 // listens.
 
 import type { Game } from '../model/game.ts';
-import { GM, OPEN, SLOTS, ridOf, type Character, type Influence, type Oid, type Opinion, type PieceRecord, type SlotName } from '../model/records.ts';
+import { CAPS, GM, OPEN, SLOTS, ridOf, type Character, type Influence, type Oid, type Opinion, type PieceRecord, type SlotName } from '../model/records.ts';
 import { candidates, newConnections, rowOf, tableOf } from '../rules/connections.ts';
 import { levelName } from '../rules/influence.ts';
 import { rollUp, worth, type Item, type Unit } from '../rules/pool.ts';
 import { canSee, type Viewer } from '../rules/visibility.ts';
+import { mayWrite } from '../rules/ownership.ts';
 import { addLoose, cardClick, chipClick, restoreUsed, riderClick, ruleFlag, writeCard, type Change } from './actions.ts';
 import { ownerWord } from './rollrow.ts';
 import { gesture, type PointerLike } from './gesture.ts';
@@ -144,7 +145,10 @@ export function drawPool(c: Character, items: Item[], old: HTMLElement | undefin
   e.style.left = `${c.pool.x}px`;
   e.style.top = `${c.pool.y}px`;
   e.style.zIndex = String(c.pool.z);
-  e.querySelector('.name')!.textContent = c.name;
+  // R565, R567: written by its owner and the GM (an open one's by the GM); left alone while it has the caret.
+  const name = e.querySelector<HTMLElement>('.name')!;
+  name.contentEditable = mayWrite(w.viewer, c) ? 'true' : 'false';
+  if (doc.activeElement !== name && name.textContent !== c.name) name.textContent = c.name;
   const die = e.querySelector<HTMLElement>('.die-own')!;
   die.textContent = ownerWord(c);
   die.title = c.owner === OPEN ? 'Open: click to claim this character' : 'Click to roll for this character; shift-click to open it for someone else';
@@ -211,6 +215,15 @@ function make(doc: Document, c: Character, w: PoolWith): HTMLElement {
   // R33: Gather snaps the card back under the drawer.
   gesture(gather, { click: () => { const cur = w.game.get(rid) as Character; w.game.change(x => x.put(rid, { ...cur, gathered: true })); } });
   const name = el(doc, 'span', 'name');
+  // R565: the name is written in place, a nickname, by whoever may write the character (drawPool); while
+  // it has the caret a press stays in it, so a drag selects words instead of carrying the pool.
+  name.spellcheck = false;
+  name.addEventListener('pointerdown', ev => { if (doc.activeElement === name) ev.stopImmediatePropagation(); });
+  name.addEventListener('input', () => {
+    const cur = w.game.get(rid) as Character | undefined;
+    if (cur) w.game.change(x => x.put(rid, { ...cur, name: (name.textContent ?? '').slice(0, CAPS.name) }));
+  });
+  name.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); name.blur(); } });
   // R142, R381: the die by the name shows the owner; click claims or docks the roll row, shift opens.
   const die = el(doc, 'button', 'die-own');
   gesture(die, { click: () => w.poolDie(c.oid, false, die), shift: () => w.poolDie(c.oid, true, die) });
