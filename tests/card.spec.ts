@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567, R568, R572, R570, R571, R573, R574, R575
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567, R568, R572, R570, R571, R573, R574, R575, R576
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -337,4 +337,35 @@ test("paper pinned to a gathered card keeps its place on the card through the po
   const sam = await rec(page, SAM), s = await rec(page, S), drawn = await page.evaluate(sel => { const e = document.querySelector(sel) as HTMLElement; return [parseFloat(e.style.left), parseFloat(e.style.top)]; }, SAMCARD);
   expect([sam.card.x, sam.card.y]).toEqual(drawn);
   expect([s.place.x - sam.card.x, s.place.y - sam.card.y]).toEqual([s.pin.dx, s.pin.dy]);
+});
+
+test("Gather, and a drawer that grows, bring a gathered card's paper with it", async ({ page }) => {
+  const { fromDesk } = await import('./page.ts');
+  await open(page);
+  const SAMCARD = `.obj.card[data-rid="${SAM}"]`, box = async (sel: string) => (await page.locator(sel).boundingBox())!;
+  const c = await box(SAMCARD);
+  await fromDesk(page, 'sticky', c.x + c.width / 2, c.y + c.height / 2 + 40);
+  const S = await page.evaluate(async () => (await (window as any).hollow.ready).store.game.all().filter(([, r]: any) => r.kind === 'sticky').at(-1)[0] as string);
+  await expect.poll(async () => (await rec(page, S))?.pin?.card).toBe('00000001');
+  const rel = async () => { const s = await box(`[data-rid="${S}"]`), k = await box(SAMCARD); return [Math.round(s.x - k.x), Math.round(s.y - k.y)]; };
+  const near = (a: number[], b: number[]) => Math.abs(a[0]! - b[0]!) < 3 && Math.abs(a[1]! - b[1]!) < 3;
+  // The card dragged off its pool, its sticky with it; then Gather.
+  const k = await box(SAMCARD);
+  await dragFromTo(page, k.x + 6, k.y + 6, k.x + 206, k.y + 46);
+  await expect.poll(async () => (await rec(page, SAM)).gathered).toBe(false);
+  const on = await rel();
+  await page.locator(`${SPOOL} .gather`).click();
+  // R576: the card goes back under its pool, its record with it, and its sticky by the same delta.
+  await expect.poll(async () => (await rec(page, SAM)).gathered).toBe(true);
+  await expect.poll(async () => near(await rel(), on)).toBe(true);
+  const recs = async () => { const sam = await rec(page, SAM), s = await rec(page, S); return [s.place.x - sam.card.x - s.pin.dx, s.place.y - sam.card.y - s.pin.dy]; };
+  await expect.poll(recs).toEqual([0, 0]);
+  // A drawer that grows moves the gathered card down, and its sticky with it.
+  const y0 = (await rec(page, SAM)).card.y;
+  await hook(page, h => h.store.game.change((w: any) => {
+    for (let i = 0; i < 8; i++) w.put(`o:c00000${10 + i}`, { kind: 'influence', oid: `c00000${10 + i}`, home: '00000001', where: 'drawer', n: 100 + i, name: `Grown ${i}`, sign: 1, points: 2, used: false, crit: false });
+  }));
+  await expect.poll(async () => (await rec(page, SAM)).card.y).toBeGreaterThan(y0);
+  await expect.poll(async () => near(await rel(), on)).toBe(true);
+  await expect.poll(recs).toEqual([0, 0]);
 });

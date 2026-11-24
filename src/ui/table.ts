@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486, R534, R535, R537, R539, R542, R543, R568, R572, R571, R573
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486, R534, R535, R537, R539, R542, R543, R568, R572, R571, R573, R575, R576
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -194,10 +194,31 @@ export class TableView {
 
   // R33: a gathered card is drawn under its pool's drawer, wherever that ends; the same on every page.
   #snap(rid: Rid): void {
-    const c = this.#w.game.get(rid) as Character | undefined, card = this.#els.get(rid), mat = this.#pools.get(rid);
+    const { game } = this.#w, c = game.get(rid) as Character | undefined, card = this.#els.get(rid), mat = this.#pools.get(rid);
     if (!c || c.kind !== 'character' || !card || !mat || !c.gathered || this.#held.has(rid)) return;
     card.style.left = `${c.pool.x}px`;
     card.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
+    // R576: on the page holding the game, the card's record follows where it belongs (Gather, a drawer
+    // growing or shrinking); the paper pinned to it follows the record (Dockets.repin). Not mid-carry.
+    const at = this.gatheredAt(rid);
+    if (!at || !game.get('book') || mat.ownerDocument.body.classList.contains('dragging')) return;
+    const x = Math.round(at.x), y = Math.round(at.y);
+    if (x !== c.card.x || y !== c.card.y) game.change(w => w.put(rid, { ...c, card: { ...c.card, x, y } }));
+  }
+
+  /** The height of this page's docked roll row in a mat, which is its own alone (R381). */
+  #ownRow(mat: HTMLElement): number {
+    const row = mat.querySelector<HTMLElement>('.roller');
+    return row ? row.offsetHeight + parseFloat(getComputedStyle(row).marginBottom || '0') : 0;
+  }
+
+  // R575, R576: a gathered card belongs under its pool, a page's own docked roll row left out, so every
+  // page puts it in the same place.
+  /** Where a gathered card belongs, in table coordinates, or null when it isn't drawn here. */
+  gatheredAt(rid: Rid): Pt | null {
+    const c = this.#w.game.get(rid) as Character | undefined, mat = this.#pools.get(rid);
+    if (!c || c.kind !== 'character' || !mat) return null;
+    return { x: c.pool.x, y: c.pool.y + mat.offsetHeight - this.#ownRow(mat) + GATHER_GAP };
   }
 
   // R241: on the GM's page, a mat that grew pushes the pieces it now covers just clear below it, in
@@ -206,7 +227,7 @@ export class TableView {
     const { game, viewer } = this.#w, mat = this.#pools.get(rid), c = game.get(rid) as Character | undefined;
     if (!mat || !c || c.kind !== 'character' || mat.ownerDocument.body.classList.contains('dragging')) return;
     // The docked roll row is this page's alone (R381): it never pushes anyone's pieces.
-    const row = mat.querySelector<HTMLElement>('.roller'), own = row ? row.offsetHeight + parseFloat(getComputedStyle(row).marginBottom || '0') : 0;
+    const own = this.#ownRow(mat);
     const h = mat.offsetHeight - own, was = this.#heights.get(rid);
     this.#heights.set(rid, h);
     if (was === undefined || h <= was || !viewer?.gm) return;

@@ -338,7 +338,10 @@ italic or underline.
   2026-11-24: "dragging the paper and then dragging the pool mat makes the paper jump up"): a pool's
   drop moves its gathered card to where it is drawn, and the paper pinned to it with it, by the same
   offset; and a pin is measured from where its card is drawn. So nothing jumps while the pool is
-  carried, and nothing is left behind when it is let go.
+  carried, and nothing is left behind when it is let go. **Gather, and a drawer that grows or shrinks**,
+  move a gathered card's paper with it too (Item 10; Bill, 2026-11-24: "make gather move attached notes
+  with the same delta as their card", and the drawer: "Yes, include it"). A gathered card's place is
+  under its pool, a page's own open roll row left out, and the GM's page keeps its record there.
 - **A pool is carried from anywhere on it** (Bill, 11-12): its name, its frame and slots, or its
   drawer; what has a drag of its own (a chip, a card) is carried instead, and only the empty space
   beside the name passes through to the table. **The pool and its card move as a group**, by the

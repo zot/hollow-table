@@ -622,3 +622,25 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** leave the gathered card's record alone on the pool's drop: the record differs from where it is drawn
 **Inject:** src/ui/drag.ts:Drag
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with the gathered card's record left alone, the spec failed in Chromium (record not where the card is drawn); restored clean
+
+## Test: Gather, and a drawer that grows, bring a gathered card's paper with it
+**Purpose:** R576: a card with a pinned sticky, dragged off its pool then gathered, goes back under the pool with its record, and the sticky keeps its place on it; a drawer that grows moves the gathered card down, its sticky with it.
+**Input:** the GM pins a sticky to Sam's card, drags the card off, presses Gather, then adds eight Influence cards to Sam's drawer.
+**Expected:** after Gather and after the drawer grows, the sticky's offset from the card as before, and its place the card's record plus its pin.
+**Refs:** crc-TableView.md, crc-Dockets.md
+**Code:** tests/card.spec.ts
+**Alarm:** 52
+**Fire alarm:** leave a gathered card's record alone when it snaps (no record write in #snap): the sticky stays behind on Gather
+**Inject:** src/ui/table.ts:TableView
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with #snap leaving the record alone, the spec failed in Chromium (the sticky stayed behind on Gather); restored clean
+
+## Test: repin counts gathered cards
+**Purpose:** R576: paper pinned to a gathered card follows the card's record.
+**Input:** the same spec.
+**Expected:** as above.
+**Refs:** crc-Dockets.md
+**Code:** tests/card.spec.ts, src/rules/dockets.test.ts
+**Alarm:** 53
+**Fire alarm:** let repin skip gathered cards again: the sticky stays behind when the record moves
+**Inject:** src/rules/dockets.ts:repin
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with repin skipping gathered cards, 'paper follows its holder' failed in the unit tests; restored clean

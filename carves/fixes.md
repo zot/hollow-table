@@ -15,6 +15,8 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [x] ~~**Item 7 — the name above a pool, written and tied to its card.**~~ **LANDED (2026-11-24 — `#70`.)** Bill, 2026-11-24.
 - [x] ~~**Item 8 — a thumbtack on paper pinned to a card.**~~ **LANDED (2026-11-24 — `#71`.)** Bill, 2026-11-24.
 - [x] ~~**Item 9 — pinned paper jumps when its pool is dragged.**~~ **LANDED (2026-11-24 — `#72`.)** Bill, 2026-11-24.
+- [x] ~~**Item 10 — Gather, and a drawer's growing, bring the card's paper with it.**~~ **LANDED (2026-11-24 — `#74`.)** Bill, 2026-11-24.
+- [ ] **Item 11 — paper with no maker is the GM's.** **OPEN (not queued.)** Bill, 2026-11-24.
 
 ## Item 1
 
@@ -154,6 +156,49 @@ card moved 18 px and the paper 2; after the drop the card's record and the paper
 One fix for Items 1 and 9: a pool's drop moves its gathered card's record to where the card was drawn,
 moved with the pool, and the paper pinned to it by the same offset; and pins are measured from where the
 card is drawn. Specified in `specs/table.md` as R574 and R575 (#72, #73); gap O16 resolved.
+
+## Item 10
+
+Bill (2026-11-24): "dragging the pool mat after a gather shifts attached papers while dragging and then
+unshifts them on drop. Let's add a carve item to make gather move attached notes with the same delta as
+their card."
+
+Gather snaps a card back under its pool, but only on the page: the card's record keeps its old place and
+its paper stays where it was. The carry then holds the paper against the card where it's drawn (R575),
+and the drop moves the paper only by the pool's offset (R574), so it shifts and comes back.
+
+**Gather moves the paper pinned to the card by the card's delta**: from where the card was to where it
+is drawn under its pool, and the card's record goes there too, as a pool's drop now does.
+
+DECIDED (Bill, 2026-11-24), on Daneel's note that a drawer growing or shrinking moves a gathered card
+the same way (R33), its paper left where it lies: **include it** ("Yes, include it"). Whenever a gathered
+card is snapped to a new place under its pool, by Gather or by its drawer, its paper moves by the same
+delta and its record follows.
+
+Specified in `specs/table.md` as R576 (#74). A gathered card belongs under its pool, a page's own open roll
+row left out; the GM's page keeps its record there, and `repin` now counts gathered cards, so their
+paper follows on every page (the table's paper by the GM's page, each page's own "just me" paper by that
+page). A pin made on a gathered card before #72 may move once, by the old gap, when the GM's page first
+corrects the card's record.
+
+## Item 11
+
+Bill (2026-11-24), on two stickies with no maker on the GM's page: "Unowned notes should count as owned by
+the GM and the GM should be able to reassign them."
+
+Today paper with no maker (`by`), made before private paper or written straight into the game, is
+everyone's: no folded corner and no ▾, so no one can change who reads it (R498). Under this item it
+counts as the GM's: on the GM's page it shows the fold and the GM's ▾ (Everyone, Just me, the players),
+and the GM can hand it to someone.
+
+DECIDED (Bill, 2026-11-24): "The GM should be able to reassign visible notes": any note the GM can see,
+a player's too, and their private notes while the GM views as them ([the GM's backup](backup.md), Item 3).
+
+@undecided: Daneel's questions before this is built:
+- **"Reassign"**: does the GM give the note to a player, so it becomes theirs (their fold and ▾, the GM
+  no longer its maker)? Or pick who reads it, as the GM's ▾ already does for the GM's own paper?
+- **Paper with no maker as it is read**: does it stay everyone's until the GM picks readers (the GM's
+  ▾ starting at Everyone), as today?
 
 DECIDED (Bill, 2026-11-24): the carve takes gaps O9 and O12–O16 ("Those six gaps"); O1 and O10 stay as
 gaps.

@@ -193,11 +193,11 @@ export class Drag {
     return c?.kind === 'character' ? c : null;
   }
 
-  // R575: a gathered card is drawn under its pool, which its record may not say; a pin is measured from there.
-  /** Where a card is drawn on this page, in table coordinates. */
+  // R575: a gathered card belongs under its pool (TableView.gatheredAt), which its record may not say yet;
+  // a pin is measured from there.
+  /** Where a card is, for pinning, in table coordinates. */
   #spot(c: Character): { x: number; y: number } {
-    const e = c.gathered ? this.#w.table.element(ridOf(c.oid)) : undefined;
-    return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top) } : c.card;
+    return (c.gathered ? this.#w.table.gatheredAt(ridOf(c.oid)) : null) ?? c.card;
   }
 
   /** The middle of a card as it is drawn, in table coordinates. */

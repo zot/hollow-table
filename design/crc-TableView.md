@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573, R575, R576
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -78,6 +78,9 @@ DOM a view of the records.
   `rid`'s tack (its corner at `at`, its tilt counted) to `to`, one below the paper's height, so under it
   and over its card; or none. With it, the cards it names are raised (`pinraised`) and the paper above
   them (`pinpaper`), above every other piece, the line between; taken away, they go back down (R573).
+- gatheredAt(rid) (R575, R576): where a gathered card belongs: under its pool, this page's docked roll row
+  left out. #snap draws it there (its own row below), and on the page holding the game puts the card's
+  record there when it differs, not mid-carry; Dockets.repin then brings its paper.
 
 ## Collaborators
 - Game, Seat, PieceView, PoolView, Drag

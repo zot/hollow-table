@@ -1,4 +1,4 @@
-// CRC: crc-Dockets.md | R531, R534, R536, R537, R538, R539, R542, R543, R545
+// CRC: crc-Dockets.md | R531, R534, R536, R537, R538, R539, R542, R543, R545, R576
 // Dockets, pure: the red tape's shape and the touch test, where a tied docket's papers pile, and which
 // pinned paper must be moved to its holder or let loose. Boxes come in, places and paths go out.
 
@@ -131,12 +131,12 @@ export function pile(label: Box, papers: { rid: Rid; z: number }[]): Map<Rid, Po
 // R531, R545: pinned paper goes to its holder plus its offset, and is let loose where it lies when its
 // holder was deleted (`gone`, the GM's page's tombstones; a holder merely not here, a "just me" docket on
 // another page, is left alone): shared paper on the GM's page, and on every page its own `mine` paper. A
-// gathered card's record doesn't say where it is drawn (under its pool), so it moves nothing.
+// gathered card counts by its record, which the GM's page keeps under its pool (R576).
 /** The puts that bring pinned paper to its holder, or let it loose. */
 export function repin(all: [Rid, PieceRecord][], gm: boolean, gone: (oid: Oid) => boolean): { rid: Rid; rec: Pinnable }[] {
-  const holders = new Map<Oid, Point | null>();
+  const holders = new Map<Oid, Point>();
   for (const [, r] of all) {
-    if (r.kind === 'character') holders.set(r.oid, r.gathered ? null : r.card);
+    if (r.kind === 'character') holders.set(r.oid, r.card);   // R576: a gathered card's record follows its pool
     else if (r.kind === 'docket') holders.set(r.oid, r.place);
   }
   const puts: { rid: Rid; rec: Pinnable }[] = [];
@@ -146,8 +146,7 @@ export function repin(all: [Rid, PieceRecord][], gm: boolean, gone: (oid: Oid) =
       if (gone(r.pin.card)) { const { pin: _was, ...loose } = r; puts.push({ rid, rec: loose }); }
       continue;
     }
-    const h = holders.get(r.pin.card);
-    if (!h) continue;
+    const h = holders.get(r.pin.card)!;
     const x = h.x + r.pin.dx, y = h.y + r.pin.dy;
     if (x !== r.place.x || y !== r.place.y) puts.push({ rid, rec: { ...r, place: { ...r.place, x, y } } });
   }

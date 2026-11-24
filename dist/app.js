@@ -1144,7 +1144,7 @@ function pile(label2, papers) {
 function repin(all2, gm, gone) {
   const holders = /* @__PURE__ */ new Map();
   for (const [, r] of all2) {
-    if (r.kind === "character") holders.set(r.oid, r.gathered ? null : r.card);
+    if (r.kind === "character") holders.set(r.oid, r.card);
     else if (r.kind === "docket") holders.set(r.oid, r.place);
   }
   const puts = [];
@@ -1158,7 +1158,6 @@ function repin(all2, gm, gone) {
       continue;
     }
     const h = holders.get(r.pin.card);
-    if (!h) continue;
     const x = h.x + r.pin.dx, y = h.y + r.pin.dy;
     if (x !== r.place.x || y !== r.place.y) puts.push({ rid: rid2, rec: { ...r, place: { ...r.place, x, y } } });
   }
@@ -18572,11 +18571,11 @@ var Drag = class {
     const c = this.#w.game.get(ridOf(rec.pin.card));
     return c?.kind === "character" ? c : null;
   }
-  // R575: a gathered card is drawn under its pool, which its record may not say; a pin is measured from there.
-  /** Where a card is drawn on this page, in table coordinates. */
+  // R575: a gathered card belongs under its pool (TableView.gatheredAt), which its record may not say yet;
+  // a pin is measured from there.
+  /** Where a card is, for pinning, in table coordinates. */
   #spot(c) {
-    const e = c.gathered ? this.#w.table.element(ridOf(c.oid)) : void 0;
-    return e ? { x: parseFloat(e.style.left), y: parseFloat(e.style.top) } : c.card;
+    return (c.gathered ? this.#w.table.gatheredAt(ridOf(c.oid)) : null) ?? c.card;
   }
   /** The middle of a card as it is drawn, in table coordinates. */
   #middle(c) {
@@ -19097,17 +19096,34 @@ var TableView = class {
   }
   // R33: a gathered card is drawn under its pool's drawer, wherever that ends; the same on every page.
   #snap(rid2) {
-    const c = this.#w.game.get(rid2), card2 = this.#els.get(rid2), mat = this.#pools.get(rid2);
+    const { game: game2 } = this.#w, c = game2.get(rid2), card2 = this.#els.get(rid2), mat = this.#pools.get(rid2);
     if (!c || c.kind !== "character" || !card2 || !mat || !c.gathered || this.#held.has(rid2)) return;
     card2.style.left = `${c.pool.x}px`;
     card2.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
+    const at4 = this.gatheredAt(rid2);
+    if (!at4 || !game2.get("book") || mat.ownerDocument.body.classList.contains("dragging")) return;
+    const x = Math.round(at4.x), y = Math.round(at4.y);
+    if (x !== c.card.x || y !== c.card.y) game2.change((w) => w.put(rid2, { ...c, card: { ...c.card, x, y } }));
+  }
+  /** The height of this page's docked roll row in a mat, which is its own alone (R381). */
+  #ownRow(mat) {
+    const row2 = mat.querySelector(".roller");
+    return row2 ? row2.offsetHeight + parseFloat(getComputedStyle(row2).marginBottom || "0") : 0;
+  }
+  // R575, R576: a gathered card belongs under its pool, a page's own docked roll row left out, so every
+  // page puts it in the same place.
+  /** Where a gathered card belongs, in table coordinates, or null when it isn't drawn here. */
+  gatheredAt(rid2) {
+    const c = this.#w.game.get(rid2), mat = this.#pools.get(rid2);
+    if (!c || c.kind !== "character" || !mat) return null;
+    return { x: c.pool.x, y: c.pool.y + mat.offsetHeight - this.#ownRow(mat) + GATHER_GAP };
   }
   // R241: on the GM's page, a mat that grew pushes the pieces it now covers just clear below it, in
   // one change (they glide on every page). Not mid-carry: a drawer's gap is only there for a moment.
   #push(rid2) {
     const { game: game2, viewer } = this.#w, mat = this.#pools.get(rid2), c = game2.get(rid2);
     if (!mat || !c || c.kind !== "character" || mat.ownerDocument.body.classList.contains("dragging")) return;
-    const row2 = mat.querySelector(".roller"), own2 = row2 ? row2.offsetHeight + parseFloat(getComputedStyle(row2).marginBottom || "0") : 0;
+    const own2 = this.#ownRow(mat);
     const h = mat.offsetHeight - own2, was = this.#heights.get(rid2);
     this.#heights.set(rid2, h);
     if (was === void 0 || h <= was || !viewer?.gm) return;

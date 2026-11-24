@@ -83,6 +83,7 @@
 - **R33:** A gathered card stays snapped under its drawer as the drawer grows or shrinks; Gather snaps it back; the starting scene is gathered.
 - **R574:** A pool's drop puts its gathered card's record where the card is drawn, moved by the pool's offset, and moves the paper pinned to that card by the same offset.
 - **R575:** A pin's offset from a card (pinning paper on it, re-pinning by its tack, or keeping it pinned after a drag) is measured from where the card is drawn on the page that pins it.
+- **R576:** A gathered card belongs under its pool: at the pool's x, and the pool's y plus its mat's height (less this page's own docked roll row) plus the gather gap; the page holding the game keeps the card's record there whenever it differs (Gather, a drawer growing or shrinking), not mid-carry, and the paper pinned to it follows its record by R531, gathered cards counted.
 - **R34:** Dropping the character supply makes a card with its pool popped out above it, linked and gathered, owned by its maker (GM-owned when the GM makes it).
 - **R35:** A new pool never pops out under the bar; with no room above, the card slides down under it.
 - **R202:** Something waiting to be filled in shrinks to its name and opens when reached for.

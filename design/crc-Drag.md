@@ -97,8 +97,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
   nothing changes. The paper itself doesn't move.
 - a pool's drop (R574): its gathered card's record goes where the card was drawn when the carry began,
   moved by the pool's offset, and the paper pinned to the card moves by the same offset.
-- #spot(card) (R575): where a card is drawn on this page (a gathered card under its pool, from its
-  element; else its record); pin offsets are measured from it.
+- #spot(card) (R575): where a card is for pinning: a gathered card where it belongs under its pool
+  (TableView.gatheredAt), else its record; pin offsets are measured from it.
 
 ## Collaborators
 - Game, Moves, Pool, Tap, Yards, PoolView, TableView, RollRow, Gesture

@@ -1,5 +1,5 @@
 # Dockets
-**Requirements:** R531, R534, R536, R537, R538, R539, R542, R543, R545
+**Requirements:** R531, R534, R536-539, R542, R543, R545, R576
 
 Dockets, pure: the red tape's shape and the touch test, where a docket's papers pile when it is tied,
 and which pinned paper must be moved to its holder or let loose. No DOM: boxes come in, places and
@@ -24,8 +24,8 @@ paths go out.
   never offers a docket for a docket.
 - pile(label, papers) (R542, R543): where each of a tied docket's papers lies: squarely under the
   label, each PILE_STEP right and down from the last, in their z order.
-- repin(all, gm, gone) (R531, R545): the puts that bring pinned paper to its holder (an ungathered
-  card's card, or a docket's label) plus its offset, and that unpin paper whose holder was deleted
+- repin(all, gm, gone) (R531, R545, R576): the puts that bring pinned paper to its holder (a card's card,
+  gathered or not, or a docket's label) plus its offset, and that unpin paper whose holder was deleted
   (`gone`: the GM's page's tombstones): shared paper on the GM's page, and on every page its own `mine`
   paper. A holder merely not on the page keeps its paper. Nothing when all is where it belongs.
 

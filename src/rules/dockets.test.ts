@@ -68,8 +68,8 @@ test('paper follows its holder', () => {
   const gm = repin(all, true, () => false);
   assert.deepEqual(gm.map(p => [p.rid, p.rec.place.x, p.rec.place.y]), [['o:a0000001', 310, 320], ['m:a0000002', 510, 520]]);
   assert.deepEqual(repin(all, false, () => false).map(p => p.rid), ['m:a0000002'], "a player's page moves only its own");
-  // A gathered card is drawn under its pool, not where its record says: nothing follows it.
-  assert.deepEqual(repin([['o:c0000001', { ...card, gathered: true }], all[2]!], true, () => false), []);
+  // R576: a gathered card counts by its record too, which the GM's page keeps under its pool.
+  assert.deepEqual(repin([['o:c0000001', { ...card, gathered: true }], all[2]!], true, () => false).map(p => p.rid), ['o:a0000001']);
 });
 
 test('paper whose holder is gone', () => {
