@@ -16,10 +16,10 @@ const put = (page: Page, rid: string, f: string) => page.evaluate(async ([rid, f
 test.beforeEach(async ({ page }) => { await open(page); });
 
 test('the bar holds the supplies', async ({ page }) => {
-  // R509, R20: the desk holds the paper supplies; the chips stay on the bar.
+  // R529, R20: the desk holds the paper supplies; the chips stay on the bar.
   await expect(page.locator('#bar .desk')).toBeVisible();
   await expect(page.locator('#bar > .supply')).toHaveCount(0);
-  await expect(page.locator('#bar .hole')).toHaveCount(6);
+  await expect(page.locator('#bar .hole')).toHaveCount(7);
   await expect(page.locator('#bar .supplychips .chip')).toHaveCount(8);
   await expect(page.locator('#bar #boothill')).toBeVisible();
   await expect(page.locator('#bar .register')).toBeVisible();

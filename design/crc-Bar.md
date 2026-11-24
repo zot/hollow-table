@@ -1,12 +1,12 @@
 # Bar
-**Requirements:** R9, R19, R20, R34, R35, R288, R305, R347, R498, R509, R510, R518
+**Requirements:** R9, R19, R20, R34, R35, R288, R305, R347, R498, R510, R518, R529, R530, R532
 
 The bar along the top: the wordmark, the desk with the paper supplies (crc-Desk.md), the chips, the
 people at the table, and the furniture at the right end.
 
 ## Does
 - refused(why): passed to the desk's image pigeonhole (Desk.refused, R517).
-- BarView (`src/ui/bar.ts`) draws the wordmark with the version and date, the desk (DeskView, R509),
+- BarView (`src/ui/bar.ts`) draws the wordmark with the version and date, the desk (DeskView, R529),
   the chip grid, the slot for the Opposition button and its tray (`oppo`, filled
   by TrayView, crc-Tray.md), and the slots for the people and "You are"; the register,
   Ledger and Boot Hill append themselves after.
@@ -33,6 +33,7 @@ people at the table, and the furniture at the right end.
   crc-Folks.md.
 - version and date (R305): under the wordmark, the version (`stamp version`), and under it the date
   (`stamp date`), left out when there is none; both from the build (HOLLOW_VERSION, HOLLOW_DATE).
+- newDocket(oid, at, by) (R532): a docket named "Docket" with its middle at `at`, recording its maker.
 
 ## Collaborators
 - Folks, Drag, Gesture

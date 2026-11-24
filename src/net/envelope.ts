@@ -23,11 +23,11 @@ const opponent: Shape = v => v === null || v === WORLD || isOid(v);
 // R296: a claim's why is null when the page now holds its name.
 const whyOrNull: Shape = v => v === null || why(v);
 const box = fields({ iv: str(24), data: str(LIMITS.box) });
-// R299: a move's aim, each part optional; a slot name is one of the seven.
+// R299, R536: a move's aim, each part optional; a slot name is one of the seven.
 const slotName = oneOf(...SLOTS), rid = str(CAPS.id);
 const aim = fields({}, {
   slot: fields({ owner: isOid, name: slotName }), drawer: fields({ owner: isOid }, { at: int(0, 1000) }), kill: isOid,
-  merge: rid, card: rid, reach: fields({ owner: isOid, at: slotName, from: (v: unknown) => v === null || slotName(v) }), chip: bool,
+  merge: rid, card: rid, docket: rid, reach: fields({ owner: isOid, at: slotName, from: (v: unknown) => v === null || slotName(v) }), chip: bool,
 });
 // A record travels with its rid and the stamp it was sent under; it must pass Records.check.
 const put: Shape = v => fields({ rid: str(CAPS.id), s: seq, rec: () => true }, { by: tab })(v)

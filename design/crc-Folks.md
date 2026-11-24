@@ -1,5 +1,5 @@
 # Folks
-**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445, R446, R447, R469, R476
+**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445-447, R469, R476, R531, R545
 
 The people in the bar: a name tag each, the GM's invite, and the real GM's "You are".
 
@@ -27,6 +27,7 @@ The people in the bar: a name tag each, the GM's invite, and the real GM's "You 
   the table", then "Copy invite"; a copy says "Copied" for about a second, or shows the link if the
   clipboard refuses; shift-click or a long press closes the table (R14). "You are", on the real GM's page only, is a tag
   that cycles to the next choice, kept in the GM's seat, and reloads the page as that person.
+- repinned (R531, R545): after every change, Dockets.repin's puts, made as one change of this page's, so paper follows its holder; a holder counts as deleted when the book holds its tombstone or this page saw it go.
 
 ## Collaborators
 - Presence: people, stale, status, rename, close.

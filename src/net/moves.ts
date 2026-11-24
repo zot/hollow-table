@@ -16,6 +16,8 @@ export type Aim = {
   kill?: Oid;
   merge?: Rid;
   card?: Rid;
+  /** R536: the docket a carried paper would join. */
+  docket?: Rid;
   reach?: { owner: Oid; at: SlotName; from: SlotName | null };
   chip?: boolean;
 };

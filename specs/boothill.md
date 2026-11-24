@@ -8,7 +8,8 @@ Where put-away work goes, so nothing that holds work is lost by accident.
   Sancreek; the red badge counts everything buried in every graveyard, and the stone fades when
   nothing is. The list is oldest first, and an empty graveyard says "Nothing is buried here." A
   burial is named after its pool (or "Nameless"); a sticky "Note: " and its first line, loose
-  writing "Writing: " and its first line (28 characters at most); a receipt by its title; a torn
+  writing "Writing: " and its first line (28 characters at most); a docket "Docket: " and its name,
+  with its papers (`dockets.md`); a receipt by its title; a torn
   roll "Tape: N rolls, last" and the newest receipt's title.
 - **An Info card the GM empties is buried** (see `ownership.md`), named "Devreux: Info card" after
   its NPC. Dragged out of the list it goes back on its NPC where it was, slid out; while its NPC isn't

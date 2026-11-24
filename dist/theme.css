@@ -23,6 +23,8 @@
   --oak: #8a5a2e;
   --nickel: #c9cccf;
   --enamel: #c8372d;
+  --manila: #ecd9a8;
+  --tape: #b3302b;
   --cloth: #2f5d3a;
   --amber: #f0a040;
   --hand: "Caveat", cursive;
@@ -57,7 +59,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 }
 #bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
 #bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; text-align: center; margin-top: 2px; user-select: text; -webkit-user-select: text; cursor: text; }
-/* R509-R511: the desk, a little roll-top after the wordmark; pressed, its pigeonholes open below the bar,
+/* R529, R510, R530: the desk, a little roll-top after the wordmark; pressed, its pigeonholes open below the bar,
    each holding its paper supply drawn small. R510: the chips in two rows on the bar itself. */
 #bar .desk { position: relative; width: 66px; height: 58px; flex: none; cursor: grab; touch-action: none; }
 #bar .desk .rolltop { position: absolute; left: 5px; right: 5px; top: 3px; height: 24px; border-radius: 16px 16px 2px 2px;
@@ -101,7 +103,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
   background: #3b2719; box-shadow: inset 0 4px 7px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.12); }
 #bar .hole:hover { background: #4d3423; }
 #bar .hole .supply { pointer-events: none; }
-/* R511: the piece held small, under the pointer, while the desk is pressed. */
+/* R530: the piece held small, under the pointer, while the desk is pressed. */
 #bar .ghost { position: fixed; z-index: 1000; pointer-events: none; transform: translate(-50%, -50%) rotate(-3deg);
   box-shadow: 0 6px 12px rgba(0,0,0,.45); opacity: .95; }
 #bar .ghost.aa { box-shadow: none; text-shadow: 0 2px 4px rgba(0,0,0,.7); }
@@ -111,6 +113,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 #bar .supply.note { width: 46px; height: 42px; background: var(--sticky); color: #222; font: 700 15px/1 var(--hand); box-shadow: 2px 2px 0 #d6cb00; }
 #bar .supply.aa { width: 40px; font: 700 24px var(--hand); color: #f3e9d8; }
 #bar .supply.howto { width: 60px; height: 40px; background: var(--card); color: #222; border: 1px solid #888; border-radius: 6px; font: 11px/1.1 var(--mono); }
+/* R530: a docket's label, in its loop of red tape. */
+#bar .supply.docket { width: 56px; height: 22px; background: var(--manila); color: var(--ink); font: 700 15px/22px var(--hand); text-align: center;
+  border-radius: 3px; outline: 2px solid var(--tape); outline-offset: 4px; }
 #bar .supply.image { width: 56px; height: 40px; background: #fff; color: #222; border: 1px solid #888; border-radius: 4px; font: 700 13px var(--hand); cursor: pointer; }
 #bar .supplychips { display: grid; grid-template-columns: repeat(4, auto); gap: 4px 6px; align-items: center; justify-items: center; flex: none; }
 #bar .supply.chip { width: 30px; height: 30px; border-radius: 50%; font: 700 13px var(--mono); color: #fff; cursor: pointer; box-shadow: 0 2px 0 rgba(0,0,0,.45); }
@@ -492,6 +497,37 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
   border-radius: 4px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
 .readmenu button.on { font-weight: 700; }
 .readmenu button:hover, .readmenu label:hover, .readmenu button:focus-visible { background: #efe6d2; outline: none; }
+
+/* ---- R532-R534, R542: a docket: a manila tag, knotted to its red tape; the tape under its papers ---- */
+.obj.docket { min-width: 110px; height: 40px; padding: 0 16px 0 32px; display: flex; align-items: center; color: var(--ink);
+  font: 700 23px/1 var(--hand); filter: drop-shadow(1px 3px 2.5px rgba(0,0,0,.4));
+  /* A shipping tag: the left end's corners cut off. */
+  background: linear-gradient(135deg, transparent 11px, var(--manila) 11px) top left / 51% 51% no-repeat,
+    linear-gradient(45deg, transparent 11px, var(--manila) 11px) bottom left / 51% 51% no-repeat,
+    linear-gradient(var(--manila), var(--manila)) right / 50% 100% no-repeat; }
+.docket .dname { outline: none; white-space: nowrap; min-width: 2ch; }
+/* The knot, on the tag's eyelet: a click ties the bundle or unties it. */
+.docket .knot { position: absolute; left: 9px; top: 50%; width: 15px; height: 15px; margin-top: -7.5px; padding: 0; border: 0;
+  border-radius: 50%; cursor: pointer; background: radial-gradient(circle, var(--walnut) 3px, var(--tape) 3.5px, var(--tape) 6px, #7a1d18 7.5px); }
+.docket .knot:focus-visible { outline: 2px solid var(--amber); }
+.docket.tied .knot::before, .docket.tied .knot::after { content: ""; position: absolute; top: 3px; width: 11px; height: 8px;
+  border: 2.5px solid var(--tape); border-radius: 50%; }
+.docket.tied .knot::before { right: 11px; transform: rotate(-20deg); }
+.docket.tied .knot::after { left: 11px; transform: rotate(20deg); }
+.tapes { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 0; }
+.tapes path { fill: rgba(179,48,43,.06); stroke: var(--tape); stroke-width: 3; stroke-linejoin: round;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+/* Tied, the tape crosses over the pile in a bow; a piled paper is held by the bundle, not written on. */
+.bow { position: absolute; pointer-events: none;
+  background: linear-gradient(var(--tape), var(--tape)) center / 4px 100% no-repeat,
+    linear-gradient(var(--tape), var(--tape)) center / 100% 4px no-repeat;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
+.bow::before, .bow::after { content: ""; position: absolute; top: 50%; width: 18px; height: 12px; margin-top: -8px;
+  border: 3px solid var(--tape); border-radius: 50%; }
+.bow::before { right: 50%; transform: rotate(-20deg); }
+.bow::after { left: 50%; transform: rotate(20deg); }
+.obj.piled * { pointer-events: none; }
+.obj.piled > .readers, .obj.piled > .foldpick, .obj.piled > .readmenu { display: none; }
 
 /* ---- loose handwriting on the table ---- */
 .loose { font: 600 22px/1.2 var(--hand); color: #f3e9d8; min-width: 80px; padding: 2px 6px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }

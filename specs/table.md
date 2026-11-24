@@ -104,8 +104,9 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 The bar runs along the top. It holds:
 
 - **The desk** (`carves/organizing.md`, Item 2), right after the wordmark: its pigeonholes hold the
-  paper supplies, a character, a sticky note, loose text, an image and the "How to play the table"
-  reference card, and on the GM's desk the Connection Table (see `connections.md`). Taken from a
+  paper supplies, a character, a sticky note, loose text, an image, the "How to play the table"
+  reference card and a docket (see `dockets.md`), and on the GM's desk the Connection Table (see
+  `connections.md`). Taken from a
   pigeonhole, one is made; dropped back on the bar, nothing is.
 - **Chips** (2, 4, 6 and +1 in each color) stay on the bar, outside the desk (Bill, 2026-11-23: "Chips
   stay out"). Drag one onto the table to take one; dropped back on the bar, nothing is made.
@@ -123,8 +124,8 @@ report; the desk, a little roll-top; the chips, 2, 4, 6 and +1 in each color, in
 the register, the Ledger and Boot Hill.
 - **Pressing the desk shows its pigeonholes** (Bill, 2026-11-23): a strip opens below it, one pigeonhole
   for each paper supply, each holding its supply drawn small: a character as a little stack of white
-  card, a note as a yellow square, "Aa" for loose text, an image, the reference card, and on the GM's
-  the Connection Table.
+  card, a note as a yellow square, "Aa" for loose text, an image, the reference card, a docket's label
+  on its red tape, and on the GM's the Connection Table.
 - **Dragging across the pigeonholes** puts each one's piece in your hand, small; **dragging out of the
   strip** makes it, its full size, its middle under the pointer, carried as any piece is. Loose text
   starts as "Write here".
@@ -210,6 +211,8 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
   Images belong to the game and survive a reload.
 - Stickies, text and images can pin to a card and travel with it. **Pinned paper lies on its card**
   (Bill, 11-12): it is always drawn on it, and rises with it while the card is carried or written on.
+  It goes with its card on every page that holds it, even when whoever moved the card can't read it.
+  Paper can also be bundled on a docket (`dockets.md`).
 
 ## Card text
 

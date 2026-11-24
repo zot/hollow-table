@@ -10,6 +10,9 @@ function damageSlots(f) {
   return Object.fromEntries(DAMAGE.map((d) => [d, column2(d)]));
 }
 function isPaper(r) {
+  return isPinnable(r) || r.kind === "docket";
+}
+function isPinnable(r) {
   return r.kind === "sticky" || r.kind === "text" || r.kind === "image";
 }
 function isPrivate(r) {
@@ -52,7 +55,7 @@ function ridFor(r) {
 function minePaper(r) {
   return isPaper(r) && !!r.mine;
 }
-var LOCAL = /* @__PURE__ */ new Set(["book", "tape", "hill", "desk"]);
+var LOCAL = /* @__PURE__ */ new Set(["book", "tape", "hill", "desk", "tied"]);
 function isLocal(rid2) {
   return LOCAL.has(rid2) || isTorn(rid2) || isMine(rid2);
 }
@@ -119,6 +122,7 @@ var receipt = fields(
   }
 );
 var readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true) };
+var DOCKET_NAME = 40;
 var PIECES = {
   character: fields({
     kind: oneOf("character"),
@@ -164,6 +168,7 @@ var PIECES = {
     w: int(1, 1e5),
     h: int(1, 1e5)
   }, { pin, ...readers }),
+  docket: fields({ kind: oneOf("docket"), oid: isOid, place, name: str(DOCKET_NAME) }, readers),
   tornroll: fields({ kind: oneOf("tornroll"), oid: isOid, place, receipts: list(receipt, 1e4) }),
   reference: fields({ kind: oneOf("reference"), oid: isOid, place, which: oneOf("howto", "actions") }),
   connections: fields({
@@ -221,7 +226,8 @@ var SINGLETONS = {
       ), KEPT)
     }
   ),
-  tape: fields({ receipts: list(receipt, 1e4) }, { last: int(0, Number.MAX_SAFE_INTEGER) })
+  tape: fields({ receipts: list(receipt, 1e4) }, { last: int(0, Number.MAX_SAFE_INTEGER) }),
+  tied: fields({ tied: list(isOid, 1e4) })
 };
 function check(rid2, value2) {
   if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2) && !minePaper(value2);
@@ -903,10 +909,11 @@ function sweep(y, at3, cur) {
 }
 var withYard = (y, at3, g) => ({ yards: y.yards.map((x, i) => i === at3 ? g : x) });
 function burialOf(piece2, all2) {
+  if (piece2.kind === "docket") return [piece2, ...all2.filter((r) => isPinnable(r) && r.pin?.card === piece2.oid)];
   if (piece2.kind !== "character") return [piece2];
   const oid = piece2.oid;
   const inSlot3 = (r) => (r.kind === "chip" || r.kind === "influence") && typeof r.where === "object" && "slot" in r.where && r.where.slot === oid;
-  return [piece2, ...all2.filter((r) => r.kind === "influence" && r.home === oid || inSlot3(r) || (r.kind === "sticky" || r.kind === "text" || r.kind === "image") && r.pin?.card === oid)];
+  return [piece2, ...all2.filter((r) => r.kind === "influence" && r.home === oid || inSlot3(r) || isPinnable(r) && r.pin?.card === oid)];
 }
 function putAway(piece2, all2) {
   const whole = burialOf(piece2, all2), mine = (r) => r.kind === "tornroll" || isPaper(r) && !!r.mine;
@@ -1010,6 +1017,9 @@ function graveName(piece2) {
       return `Note: ${firstLine(piece2.text)}`;
     case "text":
       return `Writing: ${firstLine(piece2.text)}`;
+    case "docket":
+      return `Docket: ${piece2.name.trim()}`;
+    // R544
     case "tornroll": {
       const n = piece2.receipts.length;
       return `Tape: ${n} roll${n === 1 ? "" : "s"}${n ? `, last ${piece2.receipts[0].title}` : ""}`;
@@ -1030,6 +1040,125 @@ function raised(records3, at3, z) {
 }
 var GRAB_POOL = { x: 30, y: 14 };
 var GRAB_PIECE = { x: 20, y: 14 };
+
+// src/rules/dockets.ts
+var RADIUS = 14;
+var CORD = 3;
+var PILE_STEP = 5;
+var PILE_GAP = 6;
+var cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+function hull(points3) {
+  const ps = [...new Map(points3.map((p) => [`${p.x},${p.y}`, p])).values()].sort((a, b) => a.x - b.x || a.y - b.y);
+  if (ps.length < 3) return ps;
+  const half = (list2) => {
+    const h2 = [];
+    for (const p of list2) {
+      while (h2.length >= 2 && cross(h2[h2.length - 2], h2[h2.length - 1], p) <= 0) h2.pop();
+      h2.push(p);
+    }
+    h2.pop();
+    return h2;
+  };
+  const h = [...half(ps), ...half([...ps].reverse())];
+  return area(h) < 0 ? h.reverse() : h;
+}
+function area(h) {
+  let a = 0;
+  h.forEach((p, i) => {
+    const q = h[(i + 1) % h.length];
+    a += p.x * q.y - q.x * p.y;
+  });
+  return a;
+}
+var corners = (b) => [{ x: b.left, y: b.top }, { x: b.right, y: b.top }, { x: b.right, y: b.bottom }, { x: b.left, y: b.bottom }];
+function tapeOf(boxes) {
+  return { hull: hull(boxes.flatMap(corners)), r: RADIUS };
+}
+function path(t) {
+  const { hull: h, r } = t, f = (n) => Math.round(n * 10) / 10;
+  if (!h.length) return "";
+  if (h.length === 1) {
+    const p = h[0];
+    return `M${f(p.x - r)},${f(p.y)}a${r},${r} 0 1 0 ${2 * r},0a${r},${r} 0 1 0 ${-2 * r},0Z`;
+  }
+  const out = (a, b) => {
+    const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+    return { x: dy / l * r, y: -dx / l * r };
+  };
+  const arc = `A${r},${r} 0 0 1 `, parts2 = [];
+  h.forEach((a, i) => {
+    const b = h[(i + 1) % h.length], n = out(a, b);
+    const s = { x: a.x + n.x, y: a.y + n.y }, e = { x: b.x + n.x, y: b.y + n.y };
+    parts2.push(`${i ? arc : "M"}${f(s.x)},${f(s.y)}L${f(e.x)},${f(e.y)}`);
+  });
+  const a0 = h[0], n0 = out(a0, h[1]);
+  return `${parts2.join("")}${arc}${f(a0.x + n0.x)},${f(a0.y + n0.y)}Z`;
+}
+function inHull(h, p) {
+  if (h.length < 3) return false;
+  return h.every((a, i) => cross(a, h[(i + 1) % h.length], p) >= 0);
+}
+var inBox = (b, p) => p.x >= b.left && p.x <= b.right && p.y >= b.top && p.y <= b.bottom;
+function crosses(a, b, c, d) {
+  const d1 = cross(c, d, a), d2 = cross(c, d, b), d3 = cross(a, b, c), d4 = cross(a, b, d);
+  if ((d1 > 0 && d2 < 0 || d1 < 0 && d2 > 0) && (d3 > 0 && d4 < 0 || d3 < 0 && d4 > 0)) return true;
+  const on = (p, q, s) => Math.min(p.x, q.x) <= s.x && s.x <= Math.max(p.x, q.x) && Math.min(p.y, q.y) <= s.y && s.y <= Math.max(p.y, q.y);
+  return d1 === 0 && on(c, d, a) || d2 === 0 && on(c, d, b) || d3 === 0 && on(a, b, c) || d4 === 0 && on(a, b, d);
+}
+function toSegment(p, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, l = dx * dx + dy * dy;
+  const t = l ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l)) : 0;
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+var edges = (ps) => ps.length < 2 ? [] : ps.map((p, i) => [p, ps[(i + 1) % ps.length]]);
+function touches(t, box2) {
+  const h = t.hull, reach2 = t.r + CORD / 2;
+  if (!h.length) return false;
+  const xs = h.map((p) => p.x), ys = h.map((p) => p.y);
+  if (box2.right < Math.min(...xs) - reach2 || box2.left > Math.max(...xs) + reach2 || box2.bottom < Math.min(...ys) - reach2 || box2.top > Math.max(...ys) + reach2) return false;
+  const c = corners(box2);
+  if (c.some((p) => inHull(h, p))) return true;
+  if (h.some((p) => inBox(box2, p))) return true;
+  const he = edges(h), be = edges(c);
+  if (he.some(([a, b]) => be.some(([p, q]) => crosses(a, b, p, q)))) return true;
+  const near = Math.min(
+    ...h.flatMap((v) => be.map(([p, q]) => toSegment(v, p, q))),
+    ...c.flatMap((v) => he.map(([a, b]) => toSegment(v, a, b)))
+  );
+  return near <= reach2;
+}
+function aimed(targets, box2) {
+  let best = null;
+  for (const t of targets) if ((!best || t.z > best.z) && touches(t.tape, box2)) best = t;
+  return best?.oid ?? null;
+}
+function pile(label2, papers) {
+  const order2 = [...papers].sort((a, b) => a.z - b.z);
+  return new Map(order2.map((p, i) => [p.rid, { x: label2.left + i * PILE_STEP, y: label2.bottom + PILE_GAP + i * PILE_STEP }]));
+}
+function repin(all2, gm, gone) {
+  const holders = /* @__PURE__ */ new Map();
+  for (const [, r] of all2) {
+    if (r.kind === "character") holders.set(r.oid, r.gathered ? null : r.card);
+    else if (r.kind === "docket") holders.set(r.oid, r.place);
+  }
+  const puts = [];
+  for (const [rid2, r] of all2) {
+    if (!isPinnable(r) || !r.pin || !(isMine(rid2) || gm && isPiece(rid2))) continue;
+    if (!holders.has(r.pin.card)) {
+      if (gone(r.pin.card)) {
+        const { pin: _was, ...loose } = r;
+        puts.push({ rid: rid2, rec: loose });
+      }
+      continue;
+    }
+    const h = holders.get(r.pin.card);
+    if (!h) continue;
+    const x = h.x + r.pin.dx, y = h.y + r.pin.dy;
+    if (x !== r.place.x || y !== r.place.y) puts.push({ rid: rid2, rec: { ...r, place: { ...r.place, x, y } } });
+  }
+  return puts;
+}
 
 // src/rules/drawers.ts
 function drawers(gm) {
@@ -2018,7 +2147,7 @@ function tray(piece2) {
   const box2 = doc.createElement("div");
   box2.className = "pens";
   let last = null;
-  const area = (n) => (n?.nodeType === 1 ? n : n?.parentElement)?.closest(".writes") ?? null;
+  const area2 = (n) => (n?.nodeType === 1 ? n : n?.parentElement)?.closest(".writes") ?? null;
   const pens = PENS.map((p) => {
     const b = doc.createElement("button");
     b.className = `pen pen-${p.mark}`;
@@ -2064,7 +2193,7 @@ function tray(piece2) {
     places(pens.length, k, at3, step).forEach((y, i) => pens[i].style.setProperty("--dy", `${y - pens[i].offsetTop}px`));
   }
   piece2.addEventListener("focusin", (ev) => {
-    const t = area(ev.target);
+    const t = area2(ev.target);
     if (t) {
       last = t;
       raise();
@@ -2320,6 +2449,26 @@ function make(doc, r, w) {
     case "text":
       e.append(writable(doc, "text", r.text, (s) => change(w, rid2, (c) => ({ ...c, text: s }))), tray(e));
       break;
+    case "docket": {
+      const knot = el2(doc, "button", "knot");
+      knot.setAttribute("aria-label", "Tie or untie this docket");
+      gesture(knot, { click: () => tie(w, r.oid) });
+      const name2 = el2(doc, "span", "dname");
+      name2.contentEditable = "true";
+      name2.spellcheck = false;
+      name2.addEventListener("input", () => {
+        const words = (name2.textContent ?? "").slice(0, DOCKET_NAME);
+        change(w, rid2, (d) => ({ ...d, name: words }));
+      });
+      name2.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          name2.blur();
+        }
+      });
+      e.append(knot, name2);
+      break;
+    }
     case "image": {
       const img = doc.createElement("img");
       img.alt = "";
@@ -2374,6 +2523,12 @@ function update(e, r, w) {
       image(e, r, w);
       fold(e, r, w);
       break;
+    case "docket": {
+      const name2 = e.querySelector(".dname");
+      if (e.ownerDocument.activeElement !== name2 && name2.textContent !== r.name) name2.textContent = r.name;
+      fold(e, r, w);
+      break;
+    }
     case "tornroll":
       tornroll(e, r);
       break;
@@ -2787,6 +2942,14 @@ function recordGlyphs(text, rec, npc, w) {
     const words = line.textContent ?? "", r = influence(unadjusted(words));
     if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
   }
+}
+function tiedHere(game) {
+  return new Set(game.get("tied")?.tied ?? []);
+}
+function tie(w, oid) {
+  const now2 = tiedHere(w.game);
+  if (!now2.delete(oid)) now2.add(oid);
+  w.game.change((wr) => wr.put("tied", { tied: [...now2] }));
 }
 function readersOf(r, viewer) {
   if (r.mine) return ["me"];
@@ -3223,6 +3386,7 @@ var aim = fields({}, {
   kill: isOid,
   merge: rid,
   card: rid,
+  docket: rid,
   reach: fields({ owner: isOid, at: slotName, from: (v) => v === null || slotName(v) }),
   chip: bool
 });
@@ -4769,7 +4933,7 @@ var Rolls = class {
     }
     const held = game.get("rows")?.rows[intent.pool];
     const { reaction: _asked, ...asked } = intent;
-    const aimed2 = {
+    const aimed3 = {
       ...asked,
       vs: held?.opponent ?? null,
       defend: held?.defend ?? intent.defend,
@@ -4777,7 +4941,7 @@ var Rolls = class {
       row: held?.byHand ? held.row ?? void 0 : void 0,
       ...held?.reaction && { reaction: held.reaction }
     };
-    const done2 = resolve2(game, aimed2, rng, clock2.now());
+    const done2 = resolve2(game, aimed3, rng, clock2.now());
     if ("refused" in done2) {
       refuse(done2.refused);
       return this.#work;
@@ -15179,7 +15343,7 @@ function handStep(r, what, by) {
 function picked(r, key) {
   return { ...r, row: key, byHand: true };
 }
-function aimed(r, opponent2, defend2, against) {
+function aimed2(r, opponent2, defend2, against) {
   const { against: _, ...rest } = r;
   return { ...rest, opponent: opponent2, defend: defend2, row: null, byHand: false, ...against && { against } };
 }
@@ -15574,7 +15738,7 @@ var RollRowView = class {
           this.#note(viewer?.gm ? "Put the world's number in the tray first." : "The GM hasn't given the world a number yet.", e);
           return;
         }
-        this.#set(aimed(r, WORLD, "mental"));
+        this.#set(aimed2(r, WORLD, "mental"));
         return;
       }
       const opp = t && t.oid !== r.pool ? this.#w.game.get(ridOf(t.oid)) : void 0;
@@ -15589,22 +15753,22 @@ var RollRowView = class {
       };
       if (t.point) {
         const a = t.point.against;
-        this.#set(aimed(r, opp.oid, "def" in a ? a.def : byType, a));
+        this.#set(aimed2(r, opp.oid, "def" in a ? a.def : byType, a));
         if ("def" in a) remind();
         return;
       }
       if (isAttack(r.type)) {
-        this.#set(aimed(r, opp.oid, byType));
+        this.#set(aimed2(r, opp.oid, byType));
         return;
       }
       const def = defendOf(opp);
       if (!def || def.mental === def.psych) {
-        this.#set(aimed(r, opp.oid, "mental"));
+        this.#set(aimed2(r, opp.oid, "mental"));
         remind();
         return;
       }
       this.#choose(opp, def, e, (kind) => {
-        this.#set(aimed(r, opp.oid, kind));
+        this.#set(aimed2(r, opp.oid, kind));
         remind();
       });
     };
@@ -16022,7 +16186,9 @@ var HOLES = [
   ["sticky", "supply note", "note", "Sticky note"],
   ["text", "supply aa", "Aa", "Write on the table"],
   ["image", "supply image", "image", "Add an image"],
-  ["howto", "supply howto", "how to play", 'The "How to play the table" card']
+  ["howto", "supply howto", "how to play", 'The "How to play the table" card'],
+  // R529, R530: a docket's label on its red tape.
+  ["docket", "supply docket", "docket", "A docket: a named bundle of paper, tied in red tape"]
 ];
 var LINKS = ["connections", "supply links", "connections", "The Connection Table: how the characters view each other"];
 var CLICK = 4;
@@ -16155,7 +16321,7 @@ var DeskView = class {
       return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
     });
   }
-  // R511-R516: the press, followed until it is let go or hands its piece over.
+  // R530, R512-R516: the press, followed until it is let go or hands its piece over.
   #press(down) {
     if (down.button !== 0) return;
     down.preventDefault();
@@ -16442,7 +16608,7 @@ function units(slotEl, items, w, shown3, drawn, pileUp) {
     const mine = units2.filter((u) => u.sign === sign2).sort((a, b) => sign2 > 0 ? worthOf(b) - worthOf(a) : worthOf(a) - worthOf(b));
     box2.replaceChildren(...mine.map((u, k) => {
       const piled = isPile2(u);
-      const e = piled ? pile(doc, u, opened.piles, w) : chip(doc, u, w);
+      const e = piled ? pile2(doc, u, opened.piles, w) : chip(doc, u, w);
       e.style.zIndex = String((!piled && u.kind === "influence" && u.flag ? 100 : 50) - k);
       const key = piled ? `pile:${u.members[0]?.oid ?? ""}` : u.oid;
       shown3.set(key, { points: u.points, place: place3 });
@@ -16484,7 +16650,7 @@ function chip(doc, i, w) {
   });
   return b;
 }
-function pile(doc, p, open, w) {
+function pile2(doc, p, open, w) {
   const first2 = p.members[0]?.oid ?? "";
   const d = el3(doc, "div", `pile ${p.sign > 0 ? "pos" : "neg"}${open.has(first2) ? " open" : ""}`);
   const disc = el3(doc, "button", "chip disc", `${p.sign < 0 ? "\u2212" : ""}${p.points}`);
@@ -16493,7 +16659,7 @@ function pile(doc, p, open, w) {
   d.append(disc);
   if (open.has(first2)) {
     const list2 = el3(doc, "div", "members");
-    for (const m of p.members) list2.append(isPile2(m) ? pile(doc, m, open, w) : chip(doc, m, w));
+    for (const m of p.members) list2.append(isPile2(m) ? pile2(doc, m, open, w) : chip(doc, m, w));
     d.append(list2);
   }
   return d;
@@ -16631,7 +16797,7 @@ var BarView = class {
   folks;
   /** Where the GM's "You are" goes. */
   youAre;
-  /** R509: the desk, after the wordmark. */
+  /** R529: the desk, after the wordmark. */
   desk;
   // R517: an image the browser won't keep is said on the desk's image pigeonhole until one is added.
   /** Marks the image pigeonhole refused (`label`, and `why` on hover), or plain again with null. */
@@ -17076,6 +17242,7 @@ var place2 = (at3, w, h) => ({ x: Math.round(at3.x - w / 2), y: Math.round(at3.y
 var CARD = { w: 430, h: 316 };
 var STICKY = { w: 230, h: 150 };
 var TEXT = { w: 120, h: 30 };
+var DOCKET = { w: 130, h: 40 };
 var CHIP = 42;
 var POOL_H = 230;
 var BLANK_FRONT = `<head>Name, Rank _</head>
@@ -17114,6 +17281,9 @@ function newSticky(oid, at3, by) {
 }
 function newText(oid, at3, by) {
   return { kind: "text", oid, place: place2(at3, TEXT.w, TEXT.h), text: "Write here", ...by && { by } };
+}
+function newDocket(oid, at3, by) {
+  return { kind: "docket", oid, place: place2(at3, DOCKET.w, DOCKET.h), name: "Docket", ...by && { by } };
 }
 function newHowTo(oid, at3) {
   return { kind: "reference", oid, place: place2(at3, CARD.w, CARD.h), which: "howto" };
@@ -18008,7 +18178,6 @@ function leaveWriting(doc) {
   doc.activeElement?.blur?.();
   doc.getSelection?.()?.removeAllRanges();
 }
-var pinnable = (r) => r.kind === "sticky" || r.kind === "text" || r.kind === "image";
 var less = (p, g) => ({ x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) });
 var Drag = class {
   #w;
@@ -18087,15 +18256,24 @@ var Drag = class {
     const { game, table } = this.#w;
     const rec = game.get(rid2), at3 = rec && placeOf(rec), el4 = table.element(rid2);
     if (!rec || !at3 || !el4) return;
+    if (isPinnable(rec) && rec.pin && tiedHere(game).has(rec.pin.card) && table.element(ridOf(rec.pin.card))) {
+      this.start(ridOf(rec.pin.card), down, move, loose);
+      return;
+    }
+    const named4 = rec.kind === "docket" && this.#fresh.has(rid2);
     const from = rec.kind === "character" && rec.gathered ? { ...at3, x: parseFloat(el4.style.left), y: parseFloat(el4.style.top) } : at3;
     const p0 = table.toWorld(down.clientX, down.clientY), grip = { x: p0.x - from.x, y: p0.y - from.y };
-    const pins = pinnable(rec);
+    const pins = isPinnable(rec);
     this.#carry({
       rid: rid2,
       ...rec.kind === "character" && { part: "card" },
+      // R538, R536, R539: paper is aimed at the card under the pointer, else at the docket on top whose
+      // tape, drawn without it, it touches.
       frame: (cx, cy) => {
         const f = less(table.toWorld(cx, cy), grip), card2 = pins ? this.#cardAt(el4.ownerDocument, cx, cy, el4) : void 0;
-        return card2 ? { ...f, aim: { card: ridOf(card2.oid) } } : f;
+        if (card2) return { ...f, aim: { card: ridOf(card2.oid) } };
+        const docket = pins ? aimed(table.targets(rid2), { left: f.x, top: f.y, right: f.x + el4.offsetWidth, bottom: f.y + el4.offsetHeight }) : null;
+        return docket ? { ...f, aim: { docket: ridOf(docket) } } : f;
       },
       buries: rec.kind !== "reference" && rec.kind !== "connections" && !this.#fresh.has(rid2),
       // R19, R519: a fresh supply is never made, so never filed.
@@ -18104,6 +18282,12 @@ var Drag = class {
         if (file) return this.#file(rec);
         if (away) return this.#putAway(rec);
         return this.#drop(rec, "card", from, last, z, last.aim);
+      },
+      done: () => {
+        const name2 = named4 && game.get(rid2) ? table.element(rid2)?.querySelector(".dname") : null;
+        if (!name2) return;
+        name2.focus();
+        name2.ownerDocument.getSelection()?.selectAllChildren(name2);
       },
       loose
     }, down, move);
@@ -18365,6 +18549,12 @@ var Drag = class {
     const { game } = this.#w, rid2 = ridFor(rec), dx = to.x - from.x, dy = to.y - from.y;
     this.#fresh.delete(rid2);
     const moved = (p) => ({ ...p, x: Math.round(p.x + dx), y: Math.round(p.y + dy), z });
+    const bringPapers = (w, holder) => {
+      for (const [r2, o] of game.all()) {
+        const q = o;
+        if ("kind" in q && isPinnable(q) && q.pin?.card === holder) w.put(r2, { ...q, place: moved(q.place) });
+      }
+    };
     return (w) => {
       if (rec.kind === "character") {
         if (part === "pool") {
@@ -18372,26 +18562,33 @@ var Drag = class {
           return;
         }
         w.put(rid2, { ...rec, card: { ...rec.card, x: to.x, y: to.y, z }, gathered: false });
-        for (const [r2, o] of game.all()) {
-          const q = o;
-          if ("kind" in q && pinnable(q) && q.pin?.card === rec.oid) w.put(r2, { ...q, place: moved(q.place) });
-        }
+        bringPapers(w, rec.oid);
         return;
       }
       if (!("place" in rec)) return;
       const place3 = moved(rec.place);
-      if (!pinnable(rec)) {
+      if (rec.kind === "docket") {
+        w.put(rid2, { ...rec, place: place3 });
+        bringPapers(w, rec.oid);
+        return;
+      }
+      if (!isPinnable(rec)) {
         w.put(rid2, { ...rec, place: place3 });
         return;
       }
       const card2 = aim2?.card ? game.get(aim2.card) : void 0;
+      const docket = aim2?.docket ? game.get(aim2.docket) : void 0;
+      let holder = null;
+      if (card2?.kind === "character") holder = { oid: card2.oid, at: card2.card };
+      else if (docket?.kind === "docket") holder = { oid: docket.oid, at: docket.place };
       const { pin: _old, ...loose } = rec;
-      w.put(rid2, card2?.kind === "character" ? { ...loose, place: place3, pin: { card: card2.oid, dx: place3.x - card2.card.x, dy: place3.y - card2.card.y } } : { ...loose, place: place3 });
+      w.put(rid2, holder ? { ...loose, place: place3, pin: { card: holder.oid, dx: place3.x - holder.at.x, dy: place3.y - holder.at.y } } : { ...loose, place: place3 });
     };
   }
 };
 
 // src/ui/table.ts
+var SVG = "http://www.w3.org/2000/svg";
 var GATHER_GAP = 14;
 var ZOOM_MIN = 0.25;
 var ZOOM_MAX = 2.5;
@@ -18438,11 +18635,20 @@ var TableView = class {
   view;
   /** Called after each placing of the view (R482). */
   #watchers = /* @__PURE__ */ new Set();
+  /** R534: the red tapes, one SVG layer under the pieces, a path per docket; a tied docket's bow over its pile. */
+  #tapeLayer;
+  #tapes = /* @__PURE__ */ new Map();
+  #bows = /* @__PURE__ */ new Map();
+  /** R539: each piece leading a hand now, and the docket it is aimed at, if any (Hands). */
+  #leads = /* @__PURE__ */ new Map();
   constructor(root, world, w) {
     this.#root = root;
     this.#world = world;
     this.#w = w;
     this.view = w.view ? { ...w.view } : { x: 0, y: 0, zoom: 1 };
+    this.#tapeLayer = world.ownerDocument.createElementNS(SVG, "svg");
+    this.#tapeLayer.classList.add("tapes");
+    world.prepend(this.#tapeLayer);
     this.#place();
     w.game.listen((rids) => this.render(rids));
     this.render(w.game.all().map(([rid2]) => rid2));
@@ -18756,9 +18962,12 @@ var TableView = class {
         delete e.dataset.pin;
         continue;
       }
-      const card2 = game.get(ridOf(p.pin.card));
+      const holder = game.get(ridOf(p.pin.card));
       e.dataset.pin = p.pin.card;
-      if (card2?.kind === "character" && "place" in p) e.style.zIndex = String(Math.max(p.place.z, card2.card.z + 1));
+      let z = null;
+      if (holder?.kind === "character") z = holder.card.z;
+      else if (holder?.kind === "docket") z = holder.place.z;
+      if (z !== null && "place" in p) e.style.zIndex = String(Math.max(p.place.z, z + 1));
     }
   }
   #raisePins() {
@@ -18769,6 +18978,119 @@ var TableView = class {
     };
     this.#root.addEventListener("focusin", (e) => mark2(e, true));
     this.#root.addEventListener("focusout", (e) => mark2(e, false));
+  }
+  // CRC: crc-TableView.md | R534, R535, R537, R539, R542, R543: the dockets' tapes and tied piles.
+  /** A drawn piece's box in table coordinates. */
+  box(rid2) {
+    const e = this.#els.get(rid2);
+    if (!e) return null;
+    const left = parseFloat(e.style.left), top = parseFloat(e.style.top);
+    return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+  }
+  /** The dockets drawn here, each with the papers pinned to it that this page holds (R535). */
+  #dockets() {
+    const all2 = this.#w.game.all(), out = /* @__PURE__ */ new Map();
+    for (const [rid2, r] of all2) {
+      const p = r;
+      if (p.kind === "docket" && this.#els.has(rid2)) out.set(p.oid, { rid: rid2, d: p, papers: [] });
+    }
+    for (const [rid2, r] of all2) {
+      const p = r;
+      if (isPinnable(p) && p.pin && this.#els.has(rid2)) out.get(p.pin.card)?.papers.push(rid2);
+    }
+    return [...out.values()];
+  }
+  /** The boxes a docket's tape goes round: its label and its papers (piled, when tied), less `leave`. */
+  #boxes(k, leave, tied) {
+    const label2 = this.box(k.rid);
+    if (!label2) return [];
+    const papers = k.papers.filter((r) => r !== leave);
+    if (!tied) return [label2, ...papers.flatMap((r) => this.box(r) ?? [])];
+    const at3 = this.#pile(label2, papers);
+    return [label2, ...papers.flatMap((r) => {
+      const e = this.#els.get(r), p = at3.get(r);
+      return e && p ? [{ left: p.x, top: p.y, right: p.x + e.offsetWidth, bottom: p.y + e.offsetHeight }] : [];
+    })];
+  }
+  #pile(label2, papers) {
+    const game = this.#w.game;
+    return pile(label2, papers.map((r) => ({ rid: r, z: game.get(r).place.z })));
+  }
+  // R536, R538, R539, R543: the dockets a carried piece may join, each tape drawn without it.
+  /** Every docket on this page as the aim sees it, `carried` left out of each tape. */
+  targets(carried) {
+    const tied = tiedHere(this.#w.game);
+    return this.#dockets().filter((k) => k.rid !== carried).map((k) => ({ oid: k.d.oid, z: k.d.place.z, tape: tapeOf(this.#boxes(k, carried, tied.has(k.d.oid))) }));
+  }
+  // R534, R539, R542: each docket's tape round its label and papers; a carried paper only while aimed at
+  // it. A tied docket's papers lie piled under the label (marked piled), its bow over them.
+  /** Draws the tapes, the pieces leading hands now (and their aims) given by Hands. */
+  tapes(leads) {
+    if (leads) this.#leads = leads;
+    const doc = this.#tapeLayer.ownerDocument, tied = tiedHere(this.#w.game), seen3 = /* @__PURE__ */ new Set();
+    const piled = /* @__PURE__ */ new Set();
+    for (const k of this.#dockets()) {
+      seen3.add(k.rid);
+      const isTied = tied.has(k.d.oid);
+      this.#els.get(k.rid)?.classList.toggle("tied", isTied);
+      const kept = k.papers.filter((r) => !this.#leads.has(r) || this.#leads.get(r) === k.rid);
+      const boxes = this.#boxes({ ...k, papers: kept }, null, isTied);
+      for (const [r, at3] of this.#leads) if (at3 === k.rid && !k.papers.includes(r)) {
+        const b = this.box(r);
+        if (b) boxes.push(b);
+      }
+      if (isTied) {
+        const label2 = this.box(k.rid), stay = k.papers.filter((r) => !this.#leads.has(r) && !this.#held.has(r));
+        if (label2) for (const [r, p] of this.#pile(label2, stay)) {
+          const e = this.#els.get(r);
+          e.style.left = `${p.x}px`;
+          e.style.top = `${p.y}px`;
+          piled.add(e);
+        }
+      }
+      let line = this.#tapes.get(k.rid);
+      if (!line) {
+        line = doc.createElementNS(SVG, "path");
+        this.#tapeLayer.append(line);
+        this.#tapes.set(k.rid, line);
+      }
+      line.setAttribute("d", path(tapeOf(boxes)));
+      this.#bow(k.rid, isTied ? boxes.slice(1) : [], k.papers);
+    }
+    for (const [rid2, line] of this.#tapes) if (!seen3.has(rid2)) {
+      line.remove();
+      this.#tapes.delete(rid2);
+      this.#bow(rid2, [], []);
+    }
+    for (const e of this.#world.querySelectorAll(".obj.piled")) {
+      if (piled.has(e)) continue;
+      e.classList.remove("piled");
+      const r = this.#w.game.get(e.dataset.rid);
+      if (r && "place" in r && !this.#held.has(e.dataset.rid)) {
+        e.style.left = `${r.place.x}px`;
+        e.style.top = `${r.place.y}px`;
+      }
+    }
+    for (const e of piled) e.classList.add("piled");
+  }
+  // R542: the red tape crossed over a tied pile in a bow, above its papers.
+  #bow(rid2, pileBoxes, papers) {
+    let b = this.#bows.get(rid2);
+    if (!pileBoxes.length) {
+      b?.remove();
+      this.#bows.delete(rid2);
+      return;
+    }
+    if (!b) {
+      b = this.#world.ownerDocument.createElement("div");
+      b.className = "bow";
+      this.#world.append(b);
+      this.#bows.set(rid2, b);
+    }
+    const left = Math.min(...pileBoxes.map((x) => x.left)), top = Math.min(...pileBoxes.map((x) => x.top));
+    const right = Math.max(...pileBoxes.map((x) => x.right)), bottom = Math.max(...pileBoxes.map((x) => x.bottom));
+    const z = Math.max(0, ...papers.map((r) => parseInt(this.#els.get(r)?.style.zIndex || "0", 10)));
+    Object.assign(b.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px`, zIndex: String(z + 1) });
   }
   /** Screen to table coordinates, for drops. */
   toWorld(clientX, clientY) {
@@ -18894,7 +19216,6 @@ function asChip(el4, i) {
   el4.textContent = chipFace(i);
   if (i.kind === "influence") el4.title = i.name;
 }
-var pinnable2 = (r) => r.kind === "sticky" || r.kind === "text" || r.kind === "image";
 var Hands = class {
   #w;
   /** hand → key → piece. */
@@ -18936,12 +19257,31 @@ var Hands = class {
         }
         for (const [r2, o] of game.all()) {
           const q = o;
-          if ("kind" in q && pinnable2(q) && q.pin?.card === r.oid) keys2.push(...this.#hold(r2, r2, { x: card2.x + q.pin.dx, y: card2.y + q.pin.dy }, own2));
+          if ("kind" in q && isPinnable(q) && q.pin?.card === r.oid) keys2.push(...this.#hold(r2, r2, { x: card2.x + q.pin.dx, y: card2.y + q.pin.dy }, own2));
         }
-      }
+      } else if (r?.kind === "docket") keys2.push(...this.#papers(r.oid, i.rid, at3, own2));
       pieces.set(key, { rid: i.rid, keys: [...new Set(keys2)], aim: i.aim, t: ++this.#t, own: own2 });
     }
     this.react();
+  }
+  // R541, R542: a docket brings the papers pinned to it that this page holds, where they lie from its label,
+  // or piled under it when it is tied here.
+  /** Holds a docket's papers for its label at `at`; the keys. */
+  #papers(oid, rid2, at3, own2) {
+    const { table, game } = this.#w, label2 = table.element(rid2);
+    const papers = [];
+    for (const [r2, o] of game.all()) {
+      const q = o;
+      if (isPinnable(q) && q.pin?.card === oid && table.element(r2)) papers.push([r2, q]);
+    }
+    const keys2 = [];
+    if (label2 && tiedHere(game).has(oid)) {
+      const box2 = { left: at3.x, top: at3.y, right: at3.x + label2.offsetWidth, bottom: at3.y + label2.offsetHeight };
+      for (const [r2, p] of pile(box2, papers.map(([r22, q]) => ({ rid: r22, z: q.place.z })))) keys2.push(...this.#hold(r2, r2, p, own2));
+      return keys2;
+    }
+    for (const [r2, { pin: pin2 }] of papers) keys2.push(...this.#hold(r2, r2, { x: at3.x + pin2.dx, y: at3.y + pin2.dy }, own2));
+    return keys2;
   }
   /** Holds one piece at `at`, lifting it first if it isn't held; the keys it holds. */
   #hold(key, rid2, at3, own2) {
@@ -19028,6 +19368,7 @@ var Hands = class {
       const el4 = table.held(p.rid), i = game.get(p.rid);
       if (a.chip && el4 && i?.kind === "influence") chips.set(el4, i);
     }
+    table.tapes(new Map(all2.map((p) => [p.rid, p.aim?.docket])));
     for (const e of this.#lit) if (!lit.has(e)) e.classList.remove("over");
     for (const e of lit) e.classList.add("over");
     this.#lit = lit;
@@ -19207,6 +19548,9 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
         return newText(oid, at3, maker2);
       case "howto":
         return newHowTo(oid, at3);
+      case "docket":
+        return newDocket(oid, at3, maker2);
+      // R532
       default:
         return newChip(oid, what.sign, what.points, at3);
     }
@@ -19459,6 +19803,19 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
   });
   if (gm) addEventListener("keydown", (ev) => {
     if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault();
+  });
+  const deleted = /* @__PURE__ */ new Set();
+  const repinned = () => {
+    const book2 = game.get("book");
+    const puts = repin(game.all().filter(([, r]) => "kind" in r), !!book2, (oid) => deleted.has(oid) || !!book2?.tomb[ridOf(oid)]);
+    deleted.clear();
+    if (puts.length) game.change((w) => {
+      for (const p of puts) w.put(p.rid, p.rec);
+    });
+  };
+  game.listen((rids) => {
+    for (const rid2 of rids) if (onTable(rid2) && !game.get(rid2)) deleted.add(rid2.slice(2));
+    queueMicrotask(repinned);
   });
   if (gm) {
     const sig = (c) => `${c.name.trim()}

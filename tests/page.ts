@@ -78,7 +78,7 @@ export async function join(browser: Browser, invite: string, name: string, gm: P
 // R361: a private mat's pieces aren't what anyone may see, so the GM's side counts only the rest.
 export async function synced(player: Page, gm: Page, timeout = 20_000): Promise<void> {
   // R486, R500: each page's own (its book, tape, Hill, torn rolls and own paper) is never sent, so it isn't counted.
-  const shared = (r: string) => r !== 'book' && r !== 'tape' && r !== 'hill' && !r.startsWith('t:') && !r.startsWith('m:');
+  const shared = (r: string) => r !== 'book' && r !== 'tape' && r !== 'hill' && r !== 'tied' && !r.startsWith('t:') && !r.startsWith('m:');
   const rids = (p: Page) => hook(p, h => h.store.game.all().map(([rid]: [string]) => rid)).then(rs => rs.filter(shared).sort().join());
   const want = await hook(gm, h => h.forNobody() as string[]).then(rs => rs.filter(shared).sort().join()), start = Date.now();
   while (await rids(player) !== want) {
@@ -138,7 +138,7 @@ export async function openTable(page: Page): Promise<{ x: number; y: number }> {
   });
 }
 
-/** R511, R512: presses the desk, moves over a pigeonhole, out below the strip, and drags its supply to (x, y). */
+/** R530, R512: presses the desk, moves over a pigeonhole, out below the strip, and drags its supply to (x, y). */
 export async function fromDesk(page: Page, paper: string, x: number, y: number): Promise<void> {
   const desk = await at(page, '#bar .desk', 33, 40);
   await page.mouse.move(desk.x, desk.y);

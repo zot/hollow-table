@@ -157,3 +157,18 @@ test("a page's own paper is buried on that page alone, and nothing of it in Boot
   assert.ok(sam.shared.some(r => r.oid === shared.oid) && sam.shared[0]!.oid === SAM, 'Sam and his shared note to Boot Hill');
   assert.deepEqual(putAway(shared, all), { shared: [shared], own: [] }, 'shared paper: Boot Hill');
 });
+
+test('a docket is paper, buried and filed with its papers', async () => {
+  const { drawerOf } = await import('./drawers.ts');
+  const { graveName } = await import('./yards.ts');
+  const d = { kind: 'docket', oid: 'd0000001', place: { x: 0, y: 0, z: 1, tilt: 0 }, name: 'Clues' } as const;
+  const pinned = (oid: string, mine: boolean): Sticky => ({ kind: 'sticky', oid, place: { x: 9, y: 9, z: 2, tilt: 0 }, text: oid,
+    pin: { card: d.oid, dx: 9, dy: 9 }, ...(mine && { by: 'Sam', mine: true as const }) });
+  const loose: Sticky = { kind: 'sticky', oid: 'a0000009', place: { x: 0, y: 0, z: 1, tilt: 0 }, text: 'loose' };
+  const all: PieceRecord[] = [d, pinned('a0000001', false), pinned('a0000002', true), loose];
+  assert.equal(drawerOf(d, false), 'papers');
+  const { shared, own } = putAway(d, all);
+  assert.deepEqual(shared.map(r => r.oid), ['d0000001', 'a0000001']);
+  assert.deepEqual(own.map(r => r.oid), ['a0000002']);
+  assert.equal(graveName(d), 'Docket: Clues');
+});

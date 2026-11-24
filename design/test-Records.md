@@ -41,8 +41,8 @@ faulty record is refused
 **Alarm:** 3
 **Fire alarm:** leave `world` out of the singletons; red: the good records are refused
 **Inject:** src/model/records.ts:SINGLETONS
-@alarm-hash: adb6bb931cf86339
-**Pulled:** 2026-11-23 — re-pulled after R491 (the singletons changed): rang, the good records were refused; restored clean *Earlier —* 2026-11-23 — re-pulled after R488 (the singletons changed): rang, the good records were refused; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 and R448 (the Book's shape in SINGLETONS changed; missed at #39 and #42, caught at #45): rang, the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after Item 7 added `reaction` to the rows entry in SINGLETONS; rang: "the world's record" failed; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
+@alarm-hash: d944761a4f6705a8
+**Pulled:** 2026-11-24 — 2026-11-24 — re-pulled after #66 (the tied record joined SINGLETONS, the Docket shape PIECES): rang, the world's record failed; restored clean *Earlier —* 2026-11-23 — re-pulled after R491 (the singletons changed): rang, the good records were refused; restored clean *Earlier —* 2026-11-23 — re-pulled after R488 (the singletons changed): rang, the good records were refused; restored clean *Earlier —* 2026-11-19 — re-pulled after R444 and R448 (the Book's shape in SINGLETONS changed; missed at #39 and #42, caught at #45): rang, the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after Item 7 added `reaction` to the rows entry in SINGLETONS; rang: "the world's record" failed; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the good records were refused; restored clean *Earlier —* 2026-11-15 — rang: "the world's record" failed, the good records refused; restored clean
 ## Test: a card an action suffers
 **Purpose:** R362: an Influence may carry `once: true`, and nothing else in that field
 **Input:** Beauford's Tricky card with `once: true`, and with `once: false`
@@ -52,8 +52,8 @@ faulty record is refused
 **Alarm:** 4
 **Fire alarm:** leave `once` out of the Influence's fields; red: the `once` card is refused
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: 7824d3ba44a05618
-**Pulled:** 2026-11-19 — re-pulled after R464 (the Influence shape gained flag): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
+@alarm-hash: 81947c4c03eb6b94
+**Pulled:** 2026-11-24 — 2026-11-24 — re-pulled after #66 (the Docket shape joined PIECES): rang, the once card was refused; restored clean *Earlier —* 2026-11-19 — re-pulled after R464 (the Influence shape gained flag): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: the `once` card was refused; restored clean *Earlier —* 2026-11-16 — rang: "a card an action suffers" failed, the `once` card was refused; restored clean
 ## Test: a card's revealed entries and Info cards
 **Purpose:** R391: a character's `shown` is a list of revealed entries' keys, absent when none; R400: its `info` a list of texts
 **Input:** Devreux with `shown` as a list of keys; as a list of a number; as a bare string; with `info` as texts; as a list of lists
@@ -63,9 +63,8 @@ faulty record is refused
 **Alarm:** 5
 **Fire alarm:** take any list as `shown`; red: a list of line numbers is taken
 **Inject:** src/model/records.ts:PIECES
-@alarm-hash: 7824d3ba44a05618
-**Pulled:** 2026-11-19 — re-pulled after R464 (the Influence shape gained flag): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: a list of line numbers was taken as `shown`; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean
-
+@alarm-hash: 81947c4c03eb6b94
+**Pulled:** 2026-11-24 — 2026-11-24 — re-pulled after #66 (the Docket shape joined PIECES): rang, a non-marked shown was taken; restored clean *Earlier —* 2026-11-19 — re-pulled after R464 (the Influence shape gained flag): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after Item 9 changed PIECES (the Opinion's fields); rang: a list of line numbers was taken as `shown`; restored clean *Earlier —* 2026-11-18 — re-pulled after the Opinion shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — re-pulled after the Connections shape joined PIECES; rang: a list of line numbers was taken; restored clean *Earlier —* 2026-11-18 — rang: "a line is its text, not its number" failed, a list of numbers taken; restored clean
 ## Test: a torn roll and the Hill are this page's own records
 **Purpose:** R486, R488: a `t:` rid holds a torn roll and nothing else; `hill` holds this page's burials; isLocal names `book`, `tape`, `hill` and every `t:`, and no table piece
 **Input:** a torn roll under `t:`; a sticky under `t:`; a Hill with one tape's burial; a Hill whose entry has no graveyard name; isLocal of `book`, `tape`, `hill`, `t:0000000f`, `o:0000000f`, `yards`

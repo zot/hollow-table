@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500, R524, R525
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500, R524, R525, R532, R533, R536, R542
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -95,6 +95,7 @@ export type Flag = { why: string; fed?: Record<string, number>; plain?: true };
 // R360: `by` is who put it in a pool; none on a Roll Up's chip or one from before.
 export type Chip = { kind: 'chip'; oid: Oid; where: Where; n: number; sign: Sign; points: number; rider: boolean; by?: Who };
 
+// R27, R536: paper pinned to a card or a docket (`card` names either), at its offset from the card or label.
 export type Pin = { card: Oid; dx: number; dy: number };
 // R498-R500: paper's maker (`by`; none on paper from before, which is everyone's), the players who read
 // it besides its maker (`to`; absent is everyone, and the GM reads any with `to`), and `mine`, its
@@ -104,9 +105,17 @@ export type Readers = { by?: Who; to?: string[]; mine?: true };
 export type Sticky = { kind: 'sticky'; oid: Oid; place: Place; text: Marked; pin?: Pin; big?: boolean } & Readers;
 export type Text = { kind: 'text'; oid: Oid; place: Place; text: Marked; pin?: Pin } & Readers;
 export type Image = { kind: 'image'; oid: Oid; place: Place; blob: string; w: number; h: number; pin?: Pin } & Readers;
-export type Paper = Sticky | Text | Image;
-/** R499: whether a record is paper. */
-export function isPaper(r: { kind?: string }): r is Paper { return r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image'; }
+// R532, R533: a docket, the label of a bundle of paper: its name, and paper's maker and readers.
+export type Docket = { kind: 'docket'; oid: Oid; place: Place; name: string } & Readers;
+export type Paper = Sticky | Text | Image | Docket;
+/** Paper that pins to a card or a docket (R27, R536): a docket never does. */
+export type Pinnable = Sticky | Text | Image;
+/** R499, R533: whether a record is paper. */
+export function isPaper(r: { kind?: string }): r is Paper { return isPinnable(r) || r.kind === 'docket'; }
+/** R27, R536: whether a record is paper that pins. */
+export function isPinnable(r: { kind?: string }): r is Pinnable { return r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image'; }
+/** R542: the dockets tied on this page, a record of its own. */
+export type Tied = { tied: Oid[] };
 /** R499: paper that names who reads it, or is its maker's alone. */
 export function isPrivate(r: { kind?: string }): boolean { return isPaper(r) && (!!r.to || !!r.mine); }
 
@@ -167,7 +176,7 @@ export type Opinion = {
   shown?: string[]; on?: Oid[]; name?: string;
 };
 
-export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | TornRoll | Reference | Connections | Opinion;
+export type PieceRecord = Character | Influence | Chip | Sticky | Text | Image | Docket | TornRoll | Reference | Connections | Opinion;
 
 /** R403: an Info card's burial carries its NPC, its place among the NPC's cards and its words, and no records. */
 export type InfoBurial = { oid: Oid; k: number; text: Marked };
@@ -238,7 +247,7 @@ export type Drawer = 'characters' | 'npcs' | 'papers';
 export type Filed = { drawer: Drawer; name: string; records: PieceRecord[] };
 export type Desk = { desk: Filed[] };
 
-export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill | Desk;
+export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill | Desk | Tied;
 
 // Player-made characters number from here up, so they can't collide with the GM's.
 export const PLAYER_OIDS = 0x100000;
@@ -260,8 +269,8 @@ export function ridFor(r: PieceRecord): Rid {
 }
 /** R500: paper that is its maker's alone. */
 function minePaper(r: PieceRecord): boolean { return isPaper(r) && !!r.mine; }
-const LOCAL = new Set<Rid>(['book', 'tape', 'hill', 'desk']);
-/** R486, R500, R524: each page's own, never sent: the GM's book, every page's tape, its Hill and desk, its torn rolls and its own paper. */
+const LOCAL = new Set<Rid>(['book', 'tape', 'hill', 'desk', 'tied']);
+/** R486, R500, R524, R542: each page's own, never sent: the GM's book, every page's tape, its Hill, desk and tied dockets, its torn rolls and its own paper. */
 export function isLocal(rid: Rid): boolean { return LOCAL.has(rid) || isTorn(rid) || isMine(rid); }
 
 // ---- check: every record from another page or an import passes here (R177) ----
@@ -320,6 +329,8 @@ export const receipt = fields(
 
 // R498-R500: paper's maker, its readers and whether it is its maker's alone.
 const readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true) };
+/** R532: how long a docket's name may be. */
+export const DOCKET_NAME = 40;
 const PIECES: Record<PieceRecord['kind'], Shape> = {
   character: fields({ kind: oneOf('character'), oid: isOid, owner: str(CAPS.name), name: str(CAPS.name), pool: place,
     card: place, flipped: bool, gathered: bool, front: marked, back }, { shown: list(marked), info: list(marked, 20) }),
@@ -332,6 +343,7 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
   text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin, ...readers }),
   image: fields({ kind: oneOf('image'), oid: isOid, place, blob: v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v),
     w: int(1, 100_000), h: int(1, 100_000) }, { pin, ...readers }),
+  docket: fields({ kind: oneOf('docket'), oid: isOid, place, name: str(DOCKET_NAME) }, readers),
   tornroll: fields({ kind: oneOf('tornroll'), oid: isOid, place, receipts: list(receipt, 10_000) }),
   reference: fields({ kind: oneOf('reference'), oid: isOid, place, which: oneOf('howto', 'actions') }),
   connections: fields({ kind: oneOf('connections'), oid: isOid, place,
@@ -363,6 +375,7 @@ const SINGLETONS: Record<string, Shape> = {
       kept: list(fields({ character: isOid, n: int(0, Number.MAX_SAFE_INTEGER), full: receipt, roller: receipt, table: receipt },
         { tab: str(CAPS.id), sealKey: str(CAPS.text), priv: oneOf(true) }), KEPT) }),
   tape: fields({ receipts: list(receipt, 10_000) }, { last: int(0, Number.MAX_SAFE_INTEGER) }),
+  tied: fields({ tied: list(isOid, 10_000) }),
 };
 
 /**

@@ -5,9 +5,10 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, isLocal, ridFor, ridOf, type Book, type Desk, type Character, type Hill, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
+import { GM, isLocal, onTable, ridFor, ridOf, type Book, type Desk, type Character, type Hill, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Rid, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
 import { buryInfo, buryRecord, empty as emptyYards, ownTorn, raised } from './rules/yards.ts';
+import { repin } from './rules/dockets.ts';
 import { emptyDesk, takeOut } from './rules/drawers.ts';
 import { first, groupOf, keep as keepRow, nameOf, newConnections, pcsOf, published, rowOf, synced, tableOf } from './rules/connections.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
@@ -34,7 +35,7 @@ import type { Mode } from './ui/desk.ts';
 import type { PointerLike } from './ui/gesture.ts';
 import { BootHillView, isPageUndo } from './ui/boothill.ts';
 import { FolksView, arrivalName, gmName, viewAsChoices, type Here, type Me } from './ui/folks.ts';
-import { newCharacter, newChip, newHowTo, newSticky, newText } from './rules/supplies.ts';
+import { newCharacter, newChip, newDocket, newHowTo, newSticky, newText } from './rules/supplies.ts';
 import { handOver, oldClaims } from './net/claims.ts';
 import { redact, type Viewer } from './rules/visibility.ts';
 import { BlobStore, type Size } from './store/blobs.ts';
@@ -182,6 +183,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       case 'sticky': return newSticky(oid, at, maker);   // R498
       case 'text': return newText(oid, at, maker);
       case 'howto': return newHowTo(oid, at);
+      case 'docket': return newDocket(oid, at, maker);   // R532
       default: return newChip(oid, what.sign, what.points, at);
     }
   };
@@ -387,6 +389,20 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   });
   // R404: on the GM's page, Ctrl+Z / ⌘Z outside written text digs up the newest Info card buried.
   if (gm) addEventListener('keydown', ev => { if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault(); });
+  // R531, R545: pinned paper follows its holder: on the page holding the game (its book, whoever it is
+  // viewed as) the table's paper; on every page its own "just me" paper. A holder was deleted when the book
+  // holds its tombstone or this page saw it go (a docket another page put away).
+  const deleted = new Set<Oid>();
+  const repinned = () => {
+    const book = game.get('book') as Book | undefined;
+    const puts = repin(game.all().filter(([, r]) => 'kind' in r) as [Rid, PieceRecord][], !!book, oid => deleted.has(oid) || !!book?.tomb[ridOf(oid)]);
+    deleted.clear();
+    if (puts.length) game.change(w => { for (const p of puts) w.put(p.rid, p.rec); });
+  };
+  game.listen(rids => {
+    for (const rid of rids) if (onTable(rid) && !game.get(rid)) deleted.add(rid.slice(2));
+    queueMicrotask(repinned);
+  });
   // R412, R415: a GM card's row follows its name and group as they change; a card first seen is only
   // remembered, so a row the GM cleared stays cleared until its card is renamed.
   if (gm) {

@@ -1,10 +1,12 @@
-// CRC: crc-Hands.md | Seq: seq-move.md#1.4, seq-move.md#2.1, seq-move.md#2.2, seq-drag.md#1.3, seq-drag.md#1.4 | R298, R299, R300, R301, R218, R220, R222, R240, R243, R244
+// CRC: crc-Hands.md | Seq: seq-move.md#1.4, seq-move.md#2.1, seq-move.md#2.2, seq-drag.md#1.3, seq-drag.md#1.4 | R298, R299, R300, R301, R218, R220, R222, R240, R243, R244, R539, R541
 // Every piece in a hand, this page's and other pages', drawn the same way: lifted at its place, with
 // what its aim does (the place lit, a drawer's gap, a pool's strip, a card as a chip). Nothing here
 // is sent or saved; each page draws the aims in its own layout.
 
 import type { Game } from '../model/game.ts';
-import { ridOf, type PieceRecord, type Rid, type SlotName } from '../model/records.ts';
+import { isPinnable, ridOf, type Oid, type PieceRecord, type Pin, type Pinnable, type Rid, type SlotName } from '../model/records.ts';
+import { pile } from '../rules/dockets.ts';
+import { tiedHere } from './piece.ts';
 import type { Item } from '../rules/pool.ts';
 import type { Aim, MoveItem } from '../net/moves.ts';
 import { chipFace, reach, showGap } from './pool.ts';
@@ -24,9 +26,6 @@ function asChip(el: HTMLElement, i: Item): void {
 
 /** One piece in a hand: what holds it (it and what follows it), where, and what it's aimed at. */
 type Piece = { rid: Rid; keys: string[]; aim: Aim | undefined; t: number; own: boolean; landing?: ReturnType<typeof setTimeout> };
-
-const pinnable = (r: PieceRecord): r is Extract<PieceRecord, { pin?: unknown }> =>
-  r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image';
 
 export class Hands {
   #w: HandsWith;
@@ -71,12 +70,32 @@ export class Hands {
         }
         for (const [r2, o] of game.all()) {
           const q = o as PieceRecord;
-          if ('kind' in q && pinnable(q) && q.pin?.card === r.oid) keys.push(...this.#hold(r2, r2, { x: card.x + q.pin.dx, y: card.y + q.pin.dy }, own));
+          if ('kind' in q && isPinnable(q) && q.pin?.card === r.oid) keys.push(...this.#hold(r2, r2, { x: card.x + q.pin.dx, y: card.y + q.pin.dy }, own));
         }
-      }
+      } else if (r?.kind === 'docket') keys.push(...this.#papers(r.oid, i.rid, at, own));
       pieces.set(key, { rid: i.rid, keys: [...new Set(keys)], aim: i.aim, t: ++this.#t, own });
     }
     this.react();
+  }
+
+  // R541, R542: a docket brings the papers pinned to it that this page holds, where they lie from its label,
+  // or piled under it when it is tied here.
+  /** Holds a docket's papers for its label at `at`; the keys. */
+  #papers(oid: Oid, rid: Rid, at: { x: number; y: number }, own: boolean): string[] {
+    const { table, game } = this.#w, label = table.element(rid);
+    const papers: [Rid, Pinnable & { pin: Pin }][] = [];
+    for (const [r2, o] of game.all()) {
+      const q = o as PieceRecord;
+      if (isPinnable(q) && q.pin?.card === oid && table.element(r2)) papers.push([r2, q as Pinnable & { pin: Pin }]);
+    }
+    const keys: string[] = [];
+    if (label && tiedHere(game).has(oid)) {
+      const box = { left: at.x, top: at.y, right: at.x + label.offsetWidth, bottom: at.y + label.offsetHeight };
+      for (const [r2, p] of pile(box, papers.map(([r2, q]) => ({ rid: r2, z: q.place.z })))) keys.push(...this.#hold(r2, r2, p, own));
+      return keys;
+    }
+    for (const [r2, { pin }] of papers) keys.push(...this.#hold(r2, r2, { x: at.x + pin.dx, y: at.y + pin.dy }, own));
+    return keys;
   }
 
   /** Holds one piece at `at`, lifting it first if it isn't held; the keys it holds. */
@@ -158,6 +177,8 @@ export class Hands {
       const el = table.held(p.rid), i = game.get(p.rid) as Item | undefined;
       if (a.chip && el && i?.kind === 'influence') chips.set(el, i);
     }
+    // R539: the tapes, with each hand's lead and the docket it is aimed at.
+    table.tapes(new Map(all.map(p => [p.rid, p.aim?.docket])));
     for (const e of this.#lit) if (!lit.has(e)) e.classList.remove('over');
     for (const e of lit) e.classList.add('over');
     this.#lit = lit;

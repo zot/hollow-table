@@ -1,4 +1,4 @@
-// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R509, R510, R511, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527
+// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R529, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527
 // The desk on the bar: its pigeonholes hold the paper supplies; a press takes one out, small while
 // over the strip; let go in a pigeonhole it follows the pointer until the next press.
 import { expect, test, type Page } from '@playwright/test';
@@ -13,16 +13,16 @@ const count = async (page: Page, kind: string) => (await kinds(page, kind)).leng
 test('the desk holds the paper supplies', async ({ browser }) => {
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
-  // R509, R510, R518: the desk and the chips; no paper on the bar itself; the Connection Table's pigeonhole the GM's alone.
+  // R529, R510, R518: the desk and the chips; no paper on the bar itself; the Connection Table's pigeonhole the GM's alone.
   for (const p of [gm, dana]) {
     await expect(p.locator('#bar .desk')).toBeVisible();
     await expect(p.locator('#bar > .supply, #bar > .refs')).toHaveCount(0);
     await expect(p.locator('#bar .supplychips .chip')).toHaveCount(8);
   }
-  await expect(gm.locator('#bar .hole')).toHaveCount(6);
-  await expect(dana.locator('#bar .hole')).toHaveCount(5);
+  await expect(gm.locator('#bar .hole')).toHaveCount(7);
+  await expect(dana.locator('#bar .hole')).toHaveCount(6);
 
-  // R511: pressed, the pigeonholes open; across them, each one's piece is held small.
+  // R530: pressed, the pigeonholes open; across them, each one's piece is held small.
   const desk = await middle(gm, '#bar .desk');
   await gm.mouse.move(desk.x, desk.y);
   await gm.mouse.down();

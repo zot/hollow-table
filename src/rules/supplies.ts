@@ -1,15 +1,15 @@
-// CRC: crc-Bar.md | R18, R19, R34, R287, R498
+// CRC: crc-Bar.md | R18, R19, R34, R287, R498, R532
 // What a supply makes, pure: the records for a new piece with its middle at `at` (R287). A new
 // character's pool pops out above its card, linked and gathered (R34).
 
-import { DAMAGE, GM, damageSlots, type CardBack, type Character, type Chip, type Oid, type Place, type Reference, type Sign, type Sticky, type Text } from '../model/records.ts';
+import { DAMAGE, GM, damageSlots, type CardBack, type Character, type Chip, type Oid, type Place, type Docket, type Reference, type Sign, type Sticky, type Text } from '../model/records.ts';
 import type { Viewer } from './visibility.ts';
 
 export type Point = { x: number; y: number };
 const place = (at: Point, w: number, h: number): Place => ({ x: Math.round(at.x - w / 2), y: Math.round(at.y - h / 2), z: 0, tilt: 0 });
 
 // The sizes the pieces are drawn at (theme.css), so a new one is taken by its middle.
-const CARD = { w: 430, h: 316 }, STICKY = { w: 230, h: 150 }, TEXT = { w: 120, h: 30 }, CHIP = 42, POOL_H = 230;
+const CARD = { w: 430, h: 316 }, STICKY = { w: 230, h: 150 }, TEXT = { w: 120, h: 30 }, DOCKET = { w: 130, h: 40 }, CHIP = 42, POOL_H = 230;
 
 /** A blank card, as a character sheet's template: written in, not filled in. */
 export const BLANK_FRONT = `<head>Name, Rank _</head>
@@ -44,6 +44,11 @@ export function newSticky(oid: Oid, at: Point, by?: string): Sticky {
 // R287: loose text starts as "Write here".
 export function newText(oid: Oid, at: Point, by?: string): Text {
   return { kind: 'text', oid, place: place(at, TEXT.w, TEXT.h), text: 'Write here', ...(by && { by }) };
+}
+
+// R532: a docket is named "Docket", and records its maker.
+export function newDocket(oid: Oid, at: Point, by?: string): Docket {
+  return { kind: 'docket', oid, place: place(at, DOCKET.w, DOCKET.h), name: 'Docket', ...(by && { by }) };
 }
 
 export function newHowTo(oid: Oid, at: Point): Reference {

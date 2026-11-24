@@ -1,5 +1,5 @@
 # Hands
-**Requirements:** R298, R299, R300, R301, R218, R220, R222, R240, R243, R244
+**Requirements:** R218, R220, R222, R240, R243, R244, R298-301, R539, R541
 
 Every piece in a hand, this page's and other pages', drawn the same way: lifted at its place, with
 what its aim does. Nothing here is sent or saved.
@@ -31,6 +31,8 @@ what its aim does. Nothing here is sent or saved.
 - An aim resolves in this page's own layout: a slot by its pool's oid and name, a drawer by its
   pool's oid, the kill box by its pool's oid, a tap or card by its rid. What this page doesn't draw
   resolves to nothing.
+- tapes (R539): after each reaction, tells TableView which held pieces lead a hand and the docket each is aimed at, so the tapes are drawn with the carried paper in or out.
+- a docket in hand brings its papers, at the label's place plus their offsets (R541).
 
 ## Collaborators
 - TableView: lift, letGo, render, the pools and elements by rid, and `after` for redraws.

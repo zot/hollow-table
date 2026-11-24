@@ -209,7 +209,7 @@ test('the Connection Table never reaches a player', async ({ browser }) => {
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
   await expect(dana.locator('#bar .hole[data-paper="connections"]')).toHaveCount(0);
-  await expect(dana.locator('#bar .hole')).toHaveCount(5);
+  await expect(dana.locator('#bar .hole')).toHaveCount(6);
   const TABLE = 'o:0000000a';
   await hook(gm, new Function('h', `const t = h.store.game.get('${TABLE}'); const { away, ...out } = t; h.store.game.change(w => w.put('${TABLE}', out));`) as (h: any) => void);
   await expect(gm.locator('.obj.connections')).toHaveCount(1);

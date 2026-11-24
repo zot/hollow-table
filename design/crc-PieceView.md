@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503-505
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503-505, R532, R533, R542
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and reference cards.
@@ -127,6 +127,7 @@ stickies, loose text, images, torn rolls and reference cards.
 - skillIndents(front) (R331): which front lines are a Field's Skills, and which of those carry a ✓; the view gives them `sklpad` (indented) and `sklhang` (the ✓ hanging in the margin).
 - toggleCheck(lines, line) (R335): the lines with that Field Skill's ✓ written (`✓ ` at the start of its text) or taken out; the same lines when the line isn't one `skillIndents` indents.
 - The ghost ✓ (R334) is CSS on a `sklpad` line without `sklhang`, shown only while the card is written on; a press in an indented Skill's margin while the front holds the caret toggles its ✓ through toggleCheck and saves through the front's own `input`, as a pen does (R335).
+- docket (R532, R533): a small tag of card, its name written in place in the hand font (40 characters at most), a knot at its left end whose click ties or unties it on this page (R542), and the folded corner of paper.
 
 ## Collaborators
 - Absorb: the pages and what they fill

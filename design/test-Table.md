@@ -6,7 +6,7 @@ Player 1, Beauford: Player 2, Devreux: GM; the big sticky; the reference card). 
 carried with the mouse, as a person does; measurements wait for the web fonts.
 
 ## Test: characters and pools
-**Purpose:** the bar's desk and chips (R509); making, carrying, burying and digging up characters; the strips
+**Purpose:** the bar's desk and chips (R529); making, carrying, burying and digging up characters; the strips
 **Expected:**
 - the bar holds the desk (its six pigeonholes on the GM's page), eight chips, Boot Hill and the register, and no paper supply of its own;
   under the wordmark, a local build says just "dev" (R305)

@@ -11,7 +11,7 @@ The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/o
   the bar it names the graveyard.
 - **The drawers are fixed by kind** (Bill, 2026-11-23: "fixed by kind"). The GM's desk has three:
   **Characters** (a character a player owns, or an open one), **NPCs** (the GM's own characters), and
-  **Papers** (stickies, loose text and images). A player's desk has **Papers** alone (Bill,
+  **Papers** (stickies, loose text, images and dockets, a docket with its papers). A player's desk has **Papers** alone (Bill,
   2026-11-24: "Paper only"): a character is the GM's game, so a character a player drops on their desk
   is buried, as anywhere else on the bar.
 - **What isn't filed** does on the desk what it does on the bar: plain chips vanish, an Influence card
@@ -36,7 +36,7 @@ The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/o
 - **The open desk** (a click, `table.md`) shows its drawers below the pigeonholes: drawer fronts with
   brass pulls, each named on a small label. Clicking one pulls it out, listing what is filed there,
   oldest first, each by name as Boot Hill names a burial (a character by its name, "Note: " and the
-  first line, "Writing: " and the first line, "Image"); an empty drawer says "Nothing filed here."
+  first line, "Writing: " and the first line, "Docket: " and its name, "Image"); an empty drawer says "Nothing filed here."
   Clicking it again, or another, closes it.
 - **Drag a name out** of a drawer to bring it back under the pointer, with everything filed with it.
   It comes up once dragged a few pixels, as from Boot Hill. A PC comes back to its player (Bill,

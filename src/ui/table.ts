@@ -1,15 +1,20 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486, R534, R535, R537, R539, R542, R543
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
 import type { Game } from '../model/game.ts';
-import { isPiece, onTable, ridOf, type Character, type PieceRecord, type Rid } from '../model/records.ts';
+import { isPiece, isPinnable, onTable, ridOf, type Character, type Docket, type Oid, type PieceRecord, type Rid } from '../model/records.ts';
+import { path, pile, tapeOf, type Box as Rect, type Target } from '../rules/dockets.ts';
 import { levelName } from '../rules/influence.ts';
 import { cardClick, chipClick } from './actions.ts';
 import type { Item } from '../rules/pool.ts';
 import { claim, gesture, paced } from './gesture.ts';
-import { draw, type PieceWith } from './piece.ts';
+import { draw, tiedHere, type PieceWith } from './piece.ts';
 import { chipFace, drawPool, type Box, type PoolWith } from './pool.ts';
+
+const SVG = 'http://www.w3.org/2000/svg';
+/** A docket drawn here, with the papers pinned to it that this page holds. */
+type DocketHere = { rid: Rid; d: Docket; papers: Rid[] };
 
 /** How far under its pool a gathered card sits (R33). */
 export const GATHER_GAP = 14;
@@ -83,12 +88,21 @@ export class TableView {
   view: View;
   /** Called after each placing of the view (R482). */
   #watchers = new Set<() => void>();
+  /** R534: the red tapes, one SVG layer under the pieces, a path per docket; a tied docket's bow over its pile. */
+  #tapeLayer: SVGSVGElement;
+  #tapes = new Map<Rid, SVGPathElement>();
+  #bows = new Map<Rid, HTMLElement>();
+  /** R539: each piece leading a hand now, and the docket it is aimed at, if any (Hands). */
+  #leads = new Map<Rid, Rid | undefined>();
 
   constructor(root: HTMLElement, world: HTMLElement, w: TableWith) {
     this.#root = root;
     this.#world = world;
     this.#w = w;
     this.view = w.view ? { ...w.view } : { x: 0, y: 0, zoom: 1 };
+    this.#tapeLayer = world.ownerDocument.createElementNS(SVG, 'svg');
+    this.#tapeLayer.classList.add('tapes');
+    world.prepend(this.#tapeLayer);
     this.#place();
     w.game.listen(rids => this.render(rids));
     this.render(w.game.all().map(([rid]) => rid));
@@ -371,9 +385,12 @@ export class TableView {
       if (!e || !('pin' in p)) continue;
       e.classList.toggle('pinned', !!p.pin);
       if (!p.pin) { delete e.dataset.pin; continue; }
-      const card = game.get(ridOf(p.pin.card)) as Character | undefined;
+      const holder = game.get(ridOf(p.pin.card)) as Character | Docket | undefined;
       e.dataset.pin = p.pin.card;
-      if (card?.kind === 'character' && 'place' in p) e.style.zIndex = String(Math.max(p.place.z, card.card.z + 1));
+      let z: number | null = null;
+      if (holder?.kind === 'character') z = holder.card.z;
+      else if (holder?.kind === 'docket') z = holder.place.z;
+      if (z !== null && 'place' in p) e.style.zIndex = String(Math.max(p.place.z, z + 1));
     }
   }
 
@@ -385,6 +402,105 @@ export class TableView {
     };
     this.#root.addEventListener('focusin', e => mark(e, true));
     this.#root.addEventListener('focusout', e => mark(e, false));
+  }
+
+  // CRC: crc-TableView.md | R534, R535, R537, R539, R542, R543: the dockets' tapes and tied piles.
+  /** A drawn piece's box in table coordinates. */
+  box(rid: Rid): Rect | null {
+    const e = this.#els.get(rid);
+    if (!e) return null;
+    const left = parseFloat(e.style.left), top = parseFloat(e.style.top);
+    return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
+  }
+
+  /** The dockets drawn here, each with the papers pinned to it that this page holds (R535). */
+  #dockets(): DocketHere[] {
+    const all = this.#w.game.all(), out = new Map<Oid, DocketHere>();
+    for (const [rid, r] of all) {
+      const p = r as PieceRecord;
+      if (p.kind === 'docket' && this.#els.has(rid)) out.set(p.oid, { rid, d: p, papers: [] });
+    }
+    for (const [rid, r] of all) {
+      const p = r as PieceRecord;
+      if (isPinnable(p) && p.pin && this.#els.has(rid)) out.get(p.pin.card)?.papers.push(rid);
+    }
+    return [...out.values()];
+  }
+
+  /** The boxes a docket's tape goes round: its label and its papers (piled, when tied), less `leave`. */
+  #boxes(k: DocketHere, leave: Rid | null, tied: boolean): Rect[] {
+    const label = this.box(k.rid);
+    if (!label) return [];
+    const papers = k.papers.filter(r => r !== leave);
+    if (!tied) return [label, ...papers.flatMap(r => this.box(r) ?? [])];
+    const at = this.#pile(label, papers);
+    return [label, ...papers.flatMap(r => {
+      const e = this.#els.get(r), p = at.get(r);
+      return e && p ? [{ left: p.x, top: p.y, right: p.x + e.offsetWidth, bottom: p.y + e.offsetHeight }] : [];
+    })];
+  }
+
+  #pile(label: Rect, papers: Rid[]): Map<Rid, { x: number; y: number }> {
+    const game = this.#w.game;
+    return pile(label, papers.map(r => ({ rid: r, z: (game.get(r) as { place: { z: number } }).place.z })));
+  }
+
+  // R536, R538, R539, R543: the dockets a carried piece may join, each tape drawn without it.
+  /** Every docket on this page as the aim sees it, `carried` left out of each tape. */
+  targets(carried: Rid): Target[] {
+    const tied = tiedHere(this.#w.game);
+    return this.#dockets().filter(k => k.rid !== carried)
+      .map(k => ({ oid: k.d.oid, z: k.d.place.z, tape: tapeOf(this.#boxes(k, carried, tied.has(k.d.oid))) }));
+  }
+
+  // R534, R539, R542: each docket's tape round its label and papers; a carried paper only while aimed at
+  // it. A tied docket's papers lie piled under the label (marked piled), its bow over them.
+  /** Draws the tapes, the pieces leading hands now (and their aims) given by Hands. */
+  tapes(leads?: Map<Rid, Rid | undefined>): void {
+    if (leads) this.#leads = leads;
+    const doc = this.#tapeLayer.ownerDocument, tied = tiedHere(this.#w.game), seen = new Set<Rid>();
+    const piled = new Set<HTMLElement>();
+    for (const k of this.#dockets()) {
+      seen.add(k.rid);
+      const isTied = tied.has(k.d.oid);
+      this.#els.get(k.rid)?.classList.toggle('tied', isTied);
+      // A paper of this docket in hand is in its tape only while aimed back at it; another aimed at it is in.
+      const kept = k.papers.filter(r => !this.#leads.has(r) || this.#leads.get(r) === k.rid);
+      const boxes = this.#boxes({ ...k, papers: kept }, null, isTied);
+      for (const [r, at] of this.#leads) if (at === k.rid && !k.papers.includes(r)) { const b = this.box(r); if (b) boxes.push(b); }
+      if (isTied) {
+        const label = this.box(k.rid), stay = k.papers.filter(r => !this.#leads.has(r) && !this.#held.has(r));
+        if (label) for (const [r, p] of this.#pile(label, stay)) {
+          const e = this.#els.get(r)!;
+          e.style.left = `${p.x}px`; e.style.top = `${p.y}px`;
+          piled.add(e);
+        }
+      }
+      let line = this.#tapes.get(k.rid);
+      if (!line) { line = doc.createElementNS(SVG, 'path'); this.#tapeLayer.append(line); this.#tapes.set(k.rid, line); }
+      line.setAttribute('d', path(tapeOf(boxes)));
+      this.#bow(k.rid, isTied ? boxes.slice(1) : [], k.papers);
+    }
+    for (const [rid, line] of this.#tapes) if (!seen.has(rid)) { line.remove(); this.#tapes.delete(rid); this.#bow(rid, [], []); }
+    // Untied, or out of the docket: back where its record says.
+    for (const e of this.#world.querySelectorAll<HTMLElement>('.obj.piled')) {
+      if (piled.has(e)) continue;
+      e.classList.remove('piled');
+      const r = this.#w.game.get(e.dataset.rid!) as PieceRecord | undefined;
+      if (r && 'place' in r && !this.#held.has(e.dataset.rid!)) { e.style.left = `${r.place.x}px`; e.style.top = `${r.place.y}px`; }
+    }
+    for (const e of piled) e.classList.add('piled');
+  }
+
+  // R542: the red tape crossed over a tied pile in a bow, above its papers.
+  #bow(rid: Rid, pileBoxes: Rect[], papers: Rid[]): void {
+    let b = this.#bows.get(rid);
+    if (!pileBoxes.length) { b?.remove(); this.#bows.delete(rid); return; }
+    if (!b) { b = this.#world.ownerDocument.createElement('div'); b.className = 'bow'; this.#world.append(b); this.#bows.set(rid, b); }
+    const left = Math.min(...pileBoxes.map(x => x.left)), top = Math.min(...pileBoxes.map(x => x.top));
+    const right = Math.max(...pileBoxes.map(x => x.right)), bottom = Math.max(...pileBoxes.map(x => x.bottom));
+    const z = Math.max(0, ...papers.map(r => parseInt(this.#els.get(r)?.style.zIndex || '0', 10)));
+    Object.assign(b.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px`, zIndex: String(z + 1) });
   }
 
   /** Screen to table coordinates, for drops. */

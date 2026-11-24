@@ -1,4 +1,4 @@
-// CRC: crc-Desk.md | R509, R511, R512, R513, R514, R515, R516, R517, R520, R526, R527
+// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527
 // The desk on the bar: a little roll-top whose pigeonholes hold the paper supplies. A press opens the
 // strip of pigeonholes and follows the pointer: dragged across them it holds each one's piece small,
 // dragged out it hands the piece to the page to make and carry, and let go it decides what the
@@ -9,7 +9,7 @@ import { LABEL, drawers, inDrawer } from '../rules/drawers.ts';
 import type { Desk, Drawer } from '../model/records.ts';
 
 /** What a pigeonhole holds. */
-export type Paper = 'character' | 'sticky' | 'text' | 'image' | 'howto' | 'connections';
+export type Paper = 'character' | 'sticky' | 'text' | 'image' | 'howto' | 'docket' | 'connections';
 /** How a piece taken from the desk is carried: on the press, with no button held, or not at all (put just below the strip). */
 export type Mode = 'press' | 'loose' | 'below';
 /** A screen point. */
@@ -62,6 +62,8 @@ const HOLES: [Paper, string, string, string][] = [
   ['text', 'supply aa', 'Aa', 'Write on the table'],
   ['image', 'supply image', 'image', 'Add an image'],
   ['howto', 'supply howto', 'how to play', 'The "How to play the table" card'],
+  // R529, R530: a docket's label on its red tape.
+  ['docket', 'supply docket', 'docket', 'A docket: a named bundle of paper, tied in red tape'],
 ];
 // R518: the GM's alone.
 const LINKS: [Paper, string, string, string] = ['connections', 'supply links', 'connections', 'The Connection Table: how the characters view each other'];
@@ -95,7 +97,7 @@ export class DeskView {
       if (title) e.title = title;
       return e;
     };
-    // R509, R510: a little roll-top, right after the wordmark.
+    // R529, R510: a little roll-top, right after the wordmark.
     this.el = el('div', 'desk', '', 'The desk: press for paper; click to open it');
     this.el.append(el('div', 'rolltop'), el('div', 'desktop'));
     this.#strip = el('div', 'deskpanel');
@@ -197,7 +199,7 @@ export class DeskView {
     });
   }
 
-  // R511-R516: the press, followed until it is let go or hands its piece over.
+  // R530, R512-R516: the press, followed until it is let go or hands its piece over.
   #press(down: PointerEvent): void {
     if (down.button !== 0) return;
     down.preventDefault();

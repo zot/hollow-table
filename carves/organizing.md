@@ -13,7 +13,7 @@ Opened by Bill, 2026-11-23, and worked out with Daneel over 2026-11-23 and 24.
 - [x] ~~**Item 1 — private paper.**~~ **LANDED (2026-11-24 — `#63`.)** First: paper gets an owner, which Items 3 and 7 need.
 - [x] ~~**Item 2 — the desk and its pigeonholes.**~~ **LANDED (2026-11-24 — `#64`.)**
 - [x] ~~**Item 3 — drawers and filing.**~~ **LANDED (2026-11-24 — `#65`.)** After Items 1 and 2.
-- [ ] **Item 4 — dockets.** **OPEN (not queued.)** After Item 3.
+- [x] ~~**Item 4 — dockets.**~~ **LANDED (2026-11-24 — `#66`.)** After Item 3.
 - [ ] **Item 5 — search and the list of names.** **OPEN (not queued.)** After Item 3.
 - [ ] **Item 6 — the GM's desks.** **OPEN (not queued.)** After Item 3.
 - [ ] **Item 7 — desktops and the knife switch.** **OPEN (not queued.)** After Item 6.
@@ -195,15 +195,80 @@ pointing at records that are gone.
 ## Item 4
 
 Dockets: the named bundle of Bill's opening, its name written in Caveat like a pool's. A docket is a
-label piece taken from its own pigeonhole like a sticky. Paper dropped on it pins to it as paper pins
-to a card, travels with it, and comes off when dragged away; no selecting several, no lasso. Filed,
-it goes in the Papers drawer with its papers and comes back with them laid out as they were. Anyone
-can make one, and a player's docket follows that player's paper rules, folded corner and all.
+label piece taken from its own pigeonhole like a sticky. Its papers lie inside **red tape**: a red
+cord drawn under them, knotted at the label, round the convex hull of their corners and the label's,
+pushed out by a radius so each corner is an arc and the runs between are straight. Paper dropped
+inside the tape or on the label joins the docket and travels with it when the label is dragged. A
+paper dragged within the tape just moves, and the tape refits when it's let go; while it's carried,
+the tape holds still as the other papers give it, and a paper let go still touching the tape stays,
+so the tape grows to take it. One dragged entirely clear comes off, and the tape shrinks back to show
+it before it's let go. No selecting several, no lasso. Filed, a docket goes in the Papers drawer with
+its papers and comes back with them laid out as they were. Anyone can make one, and a player's docket
+follows that player's paper rules, folded corner and all.
 
 ### Item 4's decisions
 
 DECIDED (Bill, 2026-11-24): "Pin to a docket". *(Its pigeonhole makes six on a player's desk and seven on
 the GM's.)*
+
+DECIDED (Bill, 2026-11-24), on moving a docket's papers without taking them off ("I'd like it to be
+possible to move attached things around without detaching them ... make an outline that expands as
+items are added"): the outline is **red tape** ("red tape"), and **"intersecting the line count[s] as
+'inside the docket'"**. Its shape is **"a smoothed polygon convex hull formed from the padded bounding
+box corners of the items"**, smoothed by **rounding with a radius** ("rounded by a radius sounds good
+and also simple, let's use that"), which keeps it convex. So whether a paper touches the tape is
+exact arithmetic on the hull, done in table coordinates with no library and no DOM: the
+separating-axis test for overlap, and otherwise the nearest edges within the radius and half the
+cord's width. Each page draws the tape round the papers it reads, so its size never shows a note
+hidden from that page.
+
+DECIDED (Bill, 2026-11-24): **the touch test**, Bill's steps for a polygon, run on the bare hull, with
+a last step that handles the rounding:
+
+1. If the item's box misses the hull's bounding box padded by the radius, false.
+2. If any corner of the item's box is inside the hull, true.
+3. If any vertex of the hull is inside the item's box, true.
+4. If any edge of the item's box crosses an edge of the hull, true.
+5. Otherwise the two are disjoint and convex, so their nearest points are a vertex of one and an edge
+   of the other: true when the least distance from a hull vertex to a box edge, or from a box corner
+   to a hull edge, is within the radius and half the cord's width.
+
+Pure geometry with its own unit tests. Step 5 makes the arcs exact and takes in edges that only graze.
+
+DECIDED (Bill, 2026-11-24): **a docket's paper dropped on a card pins to the card** and leaves the
+docket ("card is more specific"); **a docket dropped inside another's tape doesn't join it** ("doesn't
+join"): no dockets inside dockets.
+
+DECIDED (Bill, 2026-11-24), on Daneel's three questions: **a paper's own readers decide who sees it,
+not its docket's** ("the paper itself, not the docket, determines visibility"), so a public paper in a
+docket only the GM reads lies loose on the players' pages; **a docket filed or buried by a page that
+can't read one of its papers leaves that paper on the table, loose where it lay**, as hidden notes are
+left on Boot Hill ("yes"); **only the label carries the whole docket**, with no grip on the tape
+("yes"). Settled alongside them, unless Bill says otherwise: being in a docket is recorded, a pin
+with an offset as on a card, and the tape is drawn from the pins, so every page agrees on who's in
+it; the label's name is written as a pool's is, and an empty docket's tape runs round its label;
+whoever reads a docket may add to it and take out, and adding someone's paper doesn't change its
+maker; burying a docket takes its papers, as filing does; where tapes overlap, a drop joins the
+docket on top.
+
+DECIDED (Bill, 2026-11-24): **a docket can be tied up**, each page's own ("clicking the label piling
+the papers together and binding them? Just a visual trick -- not actually moving the papers around
+for the other players"). A click on the **knot** at the label ties and unties it, leaving the label
+to its name and its drag. Tied, the papers it reads pile squarely under the label, offset a little
+like a real stack, with the red tape crossed over them in a bow; untied, the tape lies loose round
+them again. A tied bundle is closed: a drag anywhere on it carries the whole docket, and a paper is
+got at by untying. A paper dropped on it joins at the offset it was dropped at, piled on this page and
+laid out where it fell on the others. It stays tied through a reload, as this page's own state, and
+others keep moving its papers meanwhile, which shows when it's untied. **No count** ("no count, the
+thickness says enough").
+
+Specified in `specs/dockets.md` as R532–R545, with the docket's pigeonhole and paper following its
+holder on every page in `specs/table.md` as R529–R531 (#66), retiring R509 and R511.
+
+@undecided: Daneel's reading while building #66, settled by Bill's yes or undone at his no: the GM's
+page lets a docket's paper loose only when the docket was **deleted** (it holds its tombstone). A
+docket merely not on the GM's page, a player's "just me" docket, keeps the table's paper pinned to it,
+and that paper is left where it lies.
 
 ## Item 5
 

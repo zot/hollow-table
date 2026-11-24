@@ -1,13 +1,13 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486, R496, R500, R503, R504, R505
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486, R496, R500, R503, R504, R505, R532, R533, R542
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
-// (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
+// (both faces, the Damage columns), stickies, loose text, images, dockets, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
 
 import { connections, groupChooser, sheet } from './connections.ts';
 import type { Game } from '../model/game.ts';
 import {
-  DAMAGE, GM, ROWS, isPrivate, ridFor, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type Paper, type PieceRecord, type Place, type Reference,
-  type Rid, type RowName, type Sticky, type Text, type TornRoll,
+  DAMAGE, DOCKET_NAME, GM, ROWS, isPrivate, ridFor, ridOf, type Character, type Docket, type Damage, type DamageSlot, type Image, type Oid, type Paper, type PieceRecord, type Place, type Reference,
+  type Rid, type RowName, type Sticky, type Text, type Tied, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
 import { awaits, connection, fixed, level, opinionItems, recordsOn, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
@@ -230,6 +230,22 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
     case 'sticky': case 'text':
       e.append(writable(doc, 'text', r.text, s => change<Sticky | Text>(w, rid, c => ({ ...c, text: s }))), tray(e));
       break;
+    case 'docket': {
+      // R532, R542: the knot ties and unties it on this page; the name is written in place.
+      const knot = el(doc, 'button', 'knot');
+      knot.setAttribute('aria-label', 'Tie or untie this docket');
+      gesture(knot, { click: () => tie(w, r.oid) });
+      const name = el(doc, 'span', 'dname');
+      name.contentEditable = 'true';
+      name.spellcheck = false;
+      name.addEventListener('input', () => {
+        const words = (name.textContent ?? '').slice(0, DOCKET_NAME);
+        change<Docket>(w, rid, d => ({ ...d, name: words }));
+      });
+      name.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); name.blur(); } });
+      e.append(knot, name);
+      break;
+    }
     case 'image': {
       const img = doc.createElement('img');
       img.alt = '';
@@ -283,6 +299,12 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
       fold(e, r, w);
       break;
     case 'image': image(e, r, w); fold(e, r, w); break;
+    case 'docket': {
+      const name = e.querySelector<HTMLElement>('.dname')!;
+      if (e.ownerDocument.activeElement !== name && name.textContent !== r.name) name.textContent = r.name;
+      fold(e, r, w);
+      break;
+    }
     case 'tornroll': tornroll(e, r); break;
     case 'reference': break;
     case 'connections': sheet(e, r, w); break;
@@ -723,6 +745,17 @@ function recordGlyphs(text: HTMLElement, rec: Opinion, npc: Character, w: PieceW
     const words = line.textContent ?? '', r = influence(unadjusted(words));
     if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
   }
+}
+
+/** R542: the dockets tied on this page. */
+export function tiedHere(game: Game): Set<Oid> { return new Set((game.get('tied') as Tied | undefined)?.tied ?? []); }
+
+// R542: tying is this page's own (`tied`, never sent).
+/** Ties a docket on this page, or unties it. */
+function tie(w: PieceWith, oid: Oid): void {
+  const now = tiedHere(w.game);
+  if (!now.delete(oid)) now.add(oid);
+  w.game.change(wr => wr.put('tied', { tied: [...now] }));
 }
 
 // R505: who reads a note, as its tags show them: everyone but the viewer, the GM as "GM"; "me" when only the viewer does.

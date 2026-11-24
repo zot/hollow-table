@@ -1,5 +1,5 @@
 # Desk
-**Requirements:** R509, R511, R512, R513, R514, R515, R516, R517, R520, R526, R527
+**Requirements:** R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527
 
 The desk on the bar (`carves/organizing.md`): a little roll-top right after the wordmark, its
 pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
@@ -13,7 +13,7 @@ the drawers showing below the pigeonholes.
 - held: the supply whose small piece is in hand during a press, or none.
 
 ## Does
-- press (R511): a press on the desk (or on a pigeonhole of the open desk) opens the strip and follows
+- press (R530): a press on the desk (or on a pigeonhole of the open desk) opens the strip and follows
   that pointer: over a pigeonhole, its supply is `held`, drawn small under the pointer (the ghost).
 - leaving (R512): the pointer leaving the strip and the desk with a supply held hands it over: the
   page makes it at the pointer and carries it on the same press (BarWith.take, mode `press`), and the
@@ -35,6 +35,7 @@ the drawers showing below the pigeonholes.
   pointer, and the desk closes; the page brings its records back under the pointer and carries them.
 - the hint (R520): Drag marks the desk `file` with the drawer's name while a piece that would be filed
   is over it; the desk shows "→ <drawer>" beneath itself.
+- the docket's pigeonhole (R529, R530): a label on red tape, between the reference card and the Connection Table.
 
 ## Collaborators
 - Bar: makes it, in the bar after the wordmark, and passes its callbacks through.

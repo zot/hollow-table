@@ -16,6 +16,7 @@ Ricochet's physical conflict: "No seam; build it when it comes".
 - [rolls.md](rolls.md) — the roll row, actions, pointing at an opponent, resolving, receipts and the tape, the register
 - [boothill.md](boothill.md) — putting away, graveyards, deleting forever
 - [desk.md](desk.md) — the desk's drawers: filing pieces away by kind, whose they are, and bringing them back
+- [dockets.md](dockets.md) — dockets: named bundles of paper in red tape, putting papers in and out, tying them up
 - [connections.md](connections.md) — the Connection Table: how the characters view each other, NPC groups
 
 ### The game

@@ -1,8 +1,8 @@
-// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290, R403, R404, R405, R428, R487, R488, R489, R500
+// CRC: crc-Yards.md | R120, R121, R122, R123, R124, R125, R290, R403, R404, R405, R428, R487, R488, R489, R500, R544
 // Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever. `cur` is the index
 // of the graveyard being browsed (a seat setting); every operation returns the new yards and cur.
 
-import { isPaper, isPiece, ridFor, type Burial, type Character, type Graveyard, type Hill, type InfoBurial, type Oid, type Opinion, type PieceRecord, type Place, type Rec, type Rid, type Yards } from '../model/records.ts';
+import { isPaper, isPiece, isPinnable, ridFor, type Burial, type Character, type Graveyard, type Hill, type InfoBurial, type Oid, type Opinion, type PieceRecord, type Place, type Rec, type Rid, type Yards } from '../model/records.ts';
 
 export type At = { yard: number; item: number };
 export type Browse = { yards: Yards; cur: number };
@@ -39,11 +39,13 @@ const withYard = (y: Yards, at: number, g: Graveyard): Yards => ({ yards: y.yard
 // pool's slots, and whatever is pinned to it.
 /** The records a piece is buried with: itself, and for a character everything on it. */
 export function burialOf(piece: PieceRecord, all: PieceRecord[]): PieceRecord[] {
+  // R544: a docket goes with the paper pinned to it.
+  if (piece.kind === 'docket') return [piece, ...all.filter(r => isPinnable(r) && r.pin?.card === piece.oid)];
   if (piece.kind !== 'character') return [piece];
   const oid: Oid = piece.oid;
   const inSlot = (r: PieceRecord) => (r.kind === 'chip' || r.kind === 'influence') && typeof r.where === 'object' && 'slot' in r.where && r.where.slot === oid;
   return [piece, ...all.filter(r => (r.kind === 'influence' && r.home === oid) || inSlot(r)
-    || ((r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image') && r.pin?.card === oid))];
+    || (isPinnable(r) && r.pin?.card === oid))];
 }
 
 // R488, R500: what putting a piece away buries where: the table's Boot Hill takes the burial, less any
@@ -189,6 +191,7 @@ export function graveName(piece: PieceRecord): string {
     case 'character': return piece.name.trim() || 'Nameless';
     case 'sticky': return `Note: ${firstLine(piece.text)}`;
     case 'text': return `Writing: ${firstLine(piece.text)}`;
+    case 'docket': return `Docket: ${piece.name.trim()}`;   // R544
     case 'tornroll': {
       const n = piece.receipts.length;
       return `Tape: ${n} roll${n === 1 ? '' : 's'}${n ? `, last ${piece.receipts[0]!.title}` : ''}`;
