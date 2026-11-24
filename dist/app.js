@@ -9,6 +9,12 @@ function damageSlots(f) {
   const column2 = (d) => Object.fromEntries(ROWS.map((r) => [r, f(d, r)]));
   return Object.fromEntries(DAMAGE.map((d) => [d, column2(d)]));
 }
+function isPaper(r) {
+  return r.kind === "sticky" || r.kind === "text" || r.kind === "image";
+}
+function isPrivate(r) {
+  return isPaper(r) && (!!r.to || !!r.mine);
+}
 var DICE = ["W", "G", "R", "B", "Y"];
 var ROLL_TYPES = ["?", "skill", "influence", "phys", "mental", "psych", "infer", "impress", "request"];
 var ATTACKS = ["phys", "mental", "psych"];
@@ -32,15 +38,23 @@ function ridOf(oid) {
 function isTorn(rid2) {
   return rid2.startsWith("t:");
 }
+function isMine(rid2) {
+  return rid2.startsWith("m:");
+}
 function onTable(rid2) {
-  return isPiece(rid2) || isTorn(rid2);
+  return isPiece(rid2) || isTorn(rid2) || isMine(rid2);
 }
 function ridFor(r) {
-  return r.kind === "tornroll" ? "t:" + r.oid : ridOf(r.oid);
+  if (r.kind === "tornroll") return "t:" + r.oid;
+  if (minePaper(r)) return "m:" + r.oid;
+  return ridOf(r.oid);
+}
+function minePaper(r) {
+  return isPaper(r) && !!r.mine;
 }
 var LOCAL = /* @__PURE__ */ new Set(["book", "tape", "hill"]);
 function isLocal(rid2) {
-  return LOCAL.has(rid2) || isTorn(rid2);
+  return LOCAL.has(rid2) || isTorn(rid2) || isMine(rid2);
 }
 var CAPS = { name: 200, text: 2e4, id: 64, coord: 1e6, list: 500 };
 var obj = (v) => typeof v === "object" && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
@@ -104,6 +118,7 @@ var receipt = fields(
     )
   }
 );
+var readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true) };
 var PIECES = {
   character: fields({
     kind: oneOf("character"),
@@ -139,8 +154,8 @@ var PIECES = {
     }
   ),
   chip: fields({ kind: oneOf("chip"), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }, { by: str(CAPS.name) }),
-  sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin, big: bool }),
-  text: fields({ kind: oneOf("text"), oid: isOid, place, text: marked }, { pin }),
+  sticky: fields({ kind: oneOf("sticky"), oid: isOid, place, text: marked }, { pin, big: bool, ...readers }),
+  text: fields({ kind: oneOf("text"), oid: isOid, place, text: marked }, { pin, ...readers }),
   image: fields({
     kind: oneOf("image"),
     oid: isOid,
@@ -148,7 +163,7 @@ var PIECES = {
     blob: (v) => typeof v === "string" && /^[0-9a-f]{64}$/.test(v),
     w: int(1, 1e5),
     h: int(1, 1e5)
-  }, { pin }),
+  }, { pin, ...readers }),
   tornroll: fields({ kind: oneOf("tornroll"), oid: isOid, place, receipts: list(receipt, 1e4) }),
   reference: fields({ kind: oneOf("reference"), oid: isOid, place, which: oneOf("howto", "actions") }),
   connections: fields({
@@ -208,8 +223,9 @@ var SINGLETONS = {
   tape: fields({ receipts: list(receipt, 1e4) }, { last: int(0, Number.MAX_SAFE_INTEGER) })
 };
 function check(rid2, value2) {
-  if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2);
+  if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2) && !minePaper(value2);
   if (isTorn(rid2)) return PIECES.tornroll(value2) && value2.oid === oidOf(rid2);
+  if (isMine(rid2)) return piece(value2) && minePaper(value2) && value2.oid === oidOf(rid2);
   return Object.hasOwn(SINGLETONS, rid2) && SINGLETONS[rid2](value2);
 }
 
@@ -891,6 +907,10 @@ function burialOf(piece2, all2) {
   const inSlot3 = (r) => (r.kind === "chip" || r.kind === "influence") && typeof r.where === "object" && "slot" in r.where && r.where.slot === oid;
   return [piece2, ...all2.filter((r) => r.kind === "influence" && r.home === oid || inSlot3(r) || (r.kind === "sticky" || r.kind === "text" || r.kind === "image") && r.pin?.card === oid)];
 }
+function putAway(piece2, all2) {
+  const whole = burialOf(piece2, all2), mine = (r) => r.kind === "tornroll" || isPaper(r) && !!r.mine;
+  return { shared: whole.filter((r) => !mine(r)), own: whole.filter(mine) };
+}
 function bury(y, cur, records3, name2) {
   const g = y.yards[cur];
   return withYard(y, cur, { ...g, items: [...g.items, { name: name2, records: records3 }] });
@@ -1413,7 +1433,13 @@ function contribution(i, chars) {
   const home = chars(i.home);
   return !!home && home.owner !== pool.owner;
 }
+function reads(viewer, p) {
+  if (p.mine) return !!viewer && !viewer.gm && viewer.name === p.by;
+  if (!p.to) return true;
+  return !!viewer && (viewer.gm || viewer.name === p.by || p.to.includes(viewer.name));
+}
 function redactPiece(r, viewer, chars) {
+  if (isPaper(r)) return reads(viewer, r) ? r : void 0;
   if (r.kind === "connections") return viewer?.gm ? r : void 0;
   if (r.kind === "opinion") {
     if (viewer?.gm) return r;
@@ -1451,11 +1477,12 @@ function redactYards(y, viewer, chars) {
   return {
     yards: y.yards.map((g) => ({
       ...g,
-      items: g.items.map((b) => {
-        if (b.gm) return viewer?.gm ? b : { name: "GM card", records: [], gm: b.gm };
+      items: g.items.flatMap((b) => {
+        if (b.gm) return [viewer?.gm ? b : { name: "GM card", records: [], gm: b.gm }];
         const buried = new Map(b.records.filter((r) => r.kind === "character").map((c) => [c.oid, c]));
         const look = (oid) => buried.get(oid) ?? chars(oid);
-        return { ...b, records: b.records.map((r) => redactPiece(r, viewer, look)).filter((r) => !!r) };
+        if (b.records.length && b.records.every((r) => isPaper(r) && !reads(viewer, r))) return [];
+        return [{ ...b, records: b.records.map((r) => redactPiece(r, viewer, look)).filter((r) => !!r) }];
       })
     }))
   };
@@ -2315,9 +2342,11 @@ function update(e, r, w) {
     case "text":
       rewrite(e.querySelector(".text"), r.text);
       if (r.kind === "sticky") e.classList.toggle("big", !!r.big);
+      fold(e, r, w);
       break;
     case "image":
       image(e, r, w);
+      fold(e, r, w);
       break;
     case "tornroll":
       tornroll(e, r);
@@ -2733,6 +2762,99 @@ function recordGlyphs(text, rec, npc, w) {
     if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
   }
 }
+function readersOf(r, viewer) {
+  if (r.mine) return ["me"];
+  if (!r.to) return [];
+  const me = selfName(viewer);
+  const others = [.../* @__PURE__ */ new Set([GM, ...r.by ? [r.by] : [], ...r.to])].filter((n) => n !== me);
+  return others.length ? others : ["me"];
+}
+function withReaders(r, a) {
+  const { to: _to, mine: _mine, ...rest } = r;
+  if (a === "all") return rest;
+  if (a === "me") return { ...rest, mine: true };
+  return { ...rest, to: a === "gm" ? [] : a };
+}
+function selfName(viewer) {
+  return viewer?.gm ? GM : viewer?.name;
+}
+var maker = (r, viewer) => !!r.by && r.by === selfName(viewer);
+function setReaders(w, rid2, a) {
+  const cur = w.game.get(rid2);
+  if (!cur) return;
+  const next2 = withReaders(cur, a), to = ridFor(next2);
+  w.game.change((wr) => {
+    if (to !== rid2) wr.del(rid2);
+    wr.put(to, next2);
+  });
+}
+function fold(e, r, w) {
+  const doc = e.ownerDocument;
+  if (!r.by) {
+    for (const x of e.querySelectorAll(":scope > .fold, :scope > .readers, :scope > .foldpick")) x.remove();
+    return;
+  }
+  const f = e.querySelector(":scope > .fold") ?? e.appendChild(el2(doc, "div", "fold"));
+  const priv = isPrivate(r);
+  e.classList.toggle("folded", priv);
+  f.title = priv ? "Private" : "Everyone reads this";
+  const tags2 = e.querySelector(":scope > .readers") ?? e.appendChild(el2(doc, "div", "readers"));
+  tags2.replaceChildren(...readersOf(r, w.viewer).map((n) => el2(doc, "span", "tag", n)));
+  let pick = e.querySelector(":scope > .foldpick");
+  if (!maker(r, w.viewer)) {
+    pick?.remove();
+    e.querySelector(":scope > .readmenu")?.remove();
+    return;
+  }
+  if (!pick) {
+    pick = e.appendChild(el2(doc, "button", "foldpick"));
+    pick.setAttribute("aria-label", "Who reads this");
+    gesture(pick, { click: () => {
+      const was = e.querySelector(":scope > .readmenu");
+      if (was) was.remove();
+      else readMenu(e, w);
+    } });
+  }
+  const menu = e.querySelector(":scope > .readmenu");
+  if (menu) fillMenu(menu, e, r, w);
+}
+function readMenu(e, w) {
+  const r = w.game.get(e.dataset.rid);
+  if (!r) return;
+  fillMenu(e.appendChild(el2(e.ownerDocument, "div", "readmenu")), e, r, w);
+}
+function fillMenu(m, e, r, w) {
+  const doc = e.ownerDocument, rid2 = e.dataset.rid;
+  const choice = (label2, on, a, close) => {
+    const b = el2(doc, "button", on ? "on" : "", label2);
+    gesture(b, { click: () => {
+      if (close) m.remove();
+      setReaders(w, rid2, a);
+    } });
+    return b;
+  };
+  if (!w.viewer?.gm) {
+    m.replaceChildren(choice("Everyone", !r.to && !r.mine, "all", true), choice("GM", !!r.to, "gm", true), choice("Just me", !!r.mine, "me", true));
+    return;
+  }
+  const to = new Set(r.to ?? []), shown3 = JSON.parse(m.dataset.names ?? "[]");
+  const names = [.../* @__PURE__ */ new Set([...shown3, ...w.players(), ...to])].sort();
+  m.dataset.names = JSON.stringify(names);
+  const boxes = names.map((n) => {
+    const l = el2(doc, "label", "reader"), box2 = doc.createElement("input");
+    box2.type = "checkbox";
+    box2.checked = to.has(n);
+    box2.addEventListener("change", () => {
+      const next2 = new Set(to);
+      if (box2.checked) next2.add(n);
+      else next2.delete(n);
+      setReaders(w, rid2, [...next2]);
+    });
+    l.append(box2, n);
+    return l;
+  });
+  m.replaceChildren(choice("Everyone", !r.to, "all", true), choice("Just me", !!r.to && !r.to.length, "gm", true), ...boxes);
+}
 function eyeMenu(e, oid, w) {
   const was = e.querySelector(".eyemenu");
   if (was) {
@@ -3021,15 +3143,15 @@ function handOver(game, name2, browser) {
 function why(name2) {
   return `${name2} is played from another browser, so the GM's page shows you only what anyone sees and doesn't take your changes. The GM can hand ${name2} to you by clicking your name in their strip.`;
 }
-var fold = (s) => s.trim().toLowerCase();
+var fold2 = (s) => s.trim().toLowerCase();
 function renameWhy(game, from, to) {
   const t = to.trim();
   if (!t) return "A name can't be blank.";
   if (t.length > 32) return "A name is at most 32 characters.";
-  if (fold(t) === fold(GM) || fold(t) === fold(OPEN)) return `\u201C${t}\u201D is a word the table keeps for itself.`;
-  for (const n of Object.keys(book(game).claims)) if (n !== from && fold(n) === fold(t)) return `${n} is already at this table.`;
+  if (fold2(t) === fold2(GM) || fold2(t) === fold2(OPEN)) return `\u201C${t}\u201D is a word the table keeps for itself.`;
+  for (const n of Object.keys(book(game).claims)) if (n !== from && fold2(n) === fold2(t)) return `${n} is already at this table.`;
   for (const [, r] of game.all()) {
-    if ("kind" in r && r.kind === "character" && r.owner !== from && fold(r.owner) === fold(t)) return `${r.owner} already owns ${r.name}.`;
+    if ("kind" in r && r.kind === "character" && r.owner !== from && fold2(r.owner) === fold2(t)) return `${r.owner} already owns ${r.name}.`;
   }
   return null;
 }
@@ -3037,7 +3159,7 @@ function renamed(game, from, to) {
   const t = to.trim(), b = book(game), claims = { ...b.claims }, held = claims[from];
   delete claims[from];
   if (held !== void 0) claims[t] = held;
-  const follow = (r) => !("kind" in r) ? r : r.kind === "character" && r.owner === from ? { ...r, owner: t } : r.kind === "chip" && r.by === from ? { ...r, by: t } : r;
+  const follow = (r) => !("kind" in r) ? r : r.kind === "character" && r.owner === from ? { ...r, owner: t } : r.kind === "chip" && r.by === from ? { ...r, by: t } : isPaper(r) && (r.by === from || r.to?.includes(from)) ? { ...r, ...r.by === from && { by: t }, ...r.to && { to: r.to.map((n) => n === from ? t : n) } } : r;
   return (w) => {
     w.put("book", { ...b, claims });
     for (const [rid2, r] of game.all()) {
@@ -3147,6 +3269,13 @@ var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters2 = (game) => (oid) => game.get(`o:${oid}`);
 var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
 var forged = (old, rec, who) => "kind" in rec && rec.kind === "chip" && rec.by !== void 0 && rec.by !== who && rec.by !== (old && "kind" in old && old.kind === "chip" ? old.by : void 0);
+var misread = (old, rec, who) => {
+  if (!("kind" in rec) || !isPaper(rec)) return false;
+  const was = old && "kind" in old && isPaper(old) ? old : void 0;
+  if (!was) return rec.by !== void 0 && rec.by !== who;
+  if (rec.by !== was.by) return true;
+  return JSON.stringify(rec.to ?? null) !== JSON.stringify(was.to ?? null) && was.by !== who;
+};
 var ruled2 = (old, rec) => {
   const f = old && "kind" in old && old.kind === "influence" ? old.flag : void 0;
   if (!f) return false;
@@ -3166,6 +3295,9 @@ function mergeYards(real2, mine, viewer, chars, deleted) {
     }
   }
   const kept = /* @__PURE__ */ new Set();
+  const unread = (r) => isPaper(r) && !reads(viewer, r);
+  const home = /* @__PURE__ */ new Map();
+  for (const g of real2?.yards ?? []) for (const b of g.items) for (const r of b.records) home.set(r.oid, b);
   const yards = mine.yards.map((g) => ({ ...g, items: g.items.flatMap((b) => {
     if (b.gm && secret.has(b.gm)) {
       kept.add(b.gm);
@@ -3180,8 +3312,20 @@ function mergeYards(real2, mine, viewer, chars, deleted) {
       const d = deleted.get(r.oid);
       return d ? [d] : [];
     });
+    const was = records3.map((r) => home.get(r.oid)).find((x) => x);
+    for (const r of was?.records.filter(unread) ?? []) if (!kept.has(r.oid)) {
+      kept.add(r.oid);
+      records3.push(r);
+    }
     return records3.length || b.info ? [{ ...b, records: records3 }] : [];
   }) }));
+  (real2?.yards ?? []).forEach((g) => g.items.forEach((b, k) => {
+    if (b.gm || !b.records.length || !b.records.every(unread) || b.records.every((r) => kept.has(r.oid))) return;
+    const to = yards.find((y) => y.name === g.name) ?? yards[0];
+    if (!to) return;
+    to.items.splice(Math.min(k, to.items.length), 0, b);
+    for (const r of b.records) kept.add(r.oid);
+  }));
   return [...secret].every((o) => kept.has(o)) ? { yards } : null;
 }
 function mergeRows(real2, mine, who, chars) {
@@ -3224,6 +3368,8 @@ function judge(game, edit, who, tab2) {
     const l = book2.last?.[rid2];
     return !!l && l.g > edit.base && l.by !== tab2;
   };
+  const buried = /* @__PURE__ */ new Map();
+  for (const g of game.get("yards")?.yards ?? []) for (const b of g.items) for (const r of b.records) buried.set(r.oid, r);
   const puts = [], dels = [], refused = [];
   for (const rid2 of edit.dels) {
     if (!all2.includes(rid2)) continue;
@@ -3242,6 +3388,7 @@ function judge(game, edit, who, tab2) {
     else if (kindOf(rec) === "tornroll") refused.push(rid2);
     else if (stale(rid2)) refused.push(rid2);
     else if (forged(game.get(rid2), rec, who)) refused.push(rid2);
+    else if (misread(game.get(rid2) ?? buried.get(oidOf(rid2)), rec, who)) refused.push(rid2);
     else if (ruled2(game.get(rid2), rec)) refused.push(rid2);
     else if (mine(game.get(rid2), rec)) puts.push({ rid: rid2, rec });
     else refused.push(rid2);
@@ -16720,12 +16867,12 @@ var blankBack2 = () => ({
   absorb: Object.fromEntries(DAMAGE.map((d) => [d, 0])),
   notes: ""
 });
-function newCharacter(oid, maker, at3) {
+function newCharacter(oid, maker2, at3) {
   const card2 = place2(at3, CARD.w, CARD.h);
   return {
     kind: "character",
     oid,
-    owner: maker?.gm || !maker ? GM : maker.name,
+    owner: maker2?.gm || !maker2 ? GM : maker2.name,
     name: "Name",
     pool: { ...card2, y: card2.y - POOL_H },
     card: card2,
@@ -16735,11 +16882,11 @@ function newCharacter(oid, maker, at3) {
     back: blankBack2()
   };
 }
-function newSticky(oid, at3) {
-  return { kind: "sticky", oid, place: place2(at3, STICKY.w, STICKY.h), text: "" };
+function newSticky(oid, at3, by) {
+  return { kind: "sticky", oid, place: place2(at3, STICKY.w, STICKY.h), text: "", ...by && { by } };
 }
-function newText(oid, at3) {
-  return { kind: "text", oid, place: place2(at3, TEXT.w, TEXT.h), text: "Write here" };
+function newText(oid, at3, by) {
+  return { kind: "text", oid, place: place2(at3, TEXT.w, TEXT.h), text: "Write here", ...by && { by } };
 }
 function newHowTo(oid, at3) {
   return { kind: "reference", oid, place: place2(at3, CARD.w, CARD.h), which: "howto" };
@@ -17872,20 +18019,18 @@ var Drag = class {
   #putAway(rec) {
     const { game } = this.#w, rid2 = ridFor(rec);
     if (this.#fresh.delete(rid2) || rec.kind === "reference") return (w) => w.del(rid2);
-    if (rec.kind === "tornroll") {
-      const h = game.get("hill") ?? { hill: [] };
-      return (w) => {
-        w.put("hill", buryOwn(h, this.#w.yard().name, [rec], graveName(rec)));
-        w.del(rid2);
-      };
-    }
     if (rec.kind === "connections") return (w) => w.put(rid2, { ...rec, away: true });
     const all2 = game.all().map(([, r]) => r).filter((r) => "kind" in r);
-    const recs = burialOf(rec, all2), y = game.get("yards") ?? empty();
+    const { shared: shared2, own: own2 } = putAway(rec, all2), y = game.get("yards") ?? empty();
     const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
     return (w) => {
-      w.put("yards", bury(y, cur, recs, graveName(rec)));
-      for (const r of recs) w.del(ridFor(r));
+      if (shared2.length) w.put("yards", bury(y, cur, shared2, graveName(rec)));
+      if (own2.length) {
+        let h = game.get("hill") ?? { hill: [] };
+        for (const r of own2) h = buryOwn(h, this.#w.yard().name, [r], graveName(r));
+        w.put("hill", h);
+      }
+      for (const r of [...shared2, ...own2]) w.del(ridFor(r));
     };
   }
   /** Follows one pointer on the document until it lets go. */
@@ -18741,9 +18886,10 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     redraw();
   };
   const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ("kind" in r ? placeOf(r) : null)?.z ?? 0));
+  const maker2 = viewer?.gm ? GM : viewer?.name;
   const addImage = (file, at3) => void blobs.add(file).then(({ blob, w: iw, h }) => {
     const oid = mint2()();
-    const image2 = { kind: "image", oid, place: { ...at3, z: topZ(), tilt: 0 }, blob, w: iw, h };
+    const image2 = { kind: "image", oid, place: { ...at3, z: topZ(), tilt: 0 }, blob, w: iw, h, ...maker2 && { by: maker2 } };
     game.change((wr) => wr.put(ridOf(oid), image2));
     bar.refused(null);
   }, (e) => {
@@ -18755,9 +18901,10 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       case "character":
         return newCharacter(oid, viewer, at3);
       case "sticky":
-        return newSticky(oid, at3);
+        return newSticky(oid, at3, maker2);
+      // R498
       case "text":
-        return newText(oid, at3);
+        return newText(oid, at3, maker2);
       case "howto":
         return newHowTo(oid, at3);
       default:
@@ -18851,6 +18998,8 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
     // R75–R77: an action's die brings the roll row; the action in use gets its swish.
     useAction: (oid, label2, alt) => rollRow?.action(oid, label2, alt) ?? false,
     react: (pc, npc) => rollRow?.react(pc, npc) ?? false,
+    // R504: the names claimed at the table (the GM's page holds the claims), for the GM's checklist.
+    players: () => Object.keys(game.get("book")?.claims ?? {}).sort(),
     inUse: (oid) => rollRow?.inUse(oid) ?? null,
     taking: () => taking,
     turnPage: (k) => {

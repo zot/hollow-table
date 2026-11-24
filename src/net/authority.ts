@@ -1,13 +1,13 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442, R486
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442, R486, R506, R508
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
 // its own version.
 
 import { same, type Game } from '../model/game.ts';
-import { TOMBS, isLocal, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
+import { TOMBS, isLocal, isPaper, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
 import { mayChange } from '../rules/ownership.ts';
-import { redact, type Characters, type Viewer } from '../rules/visibility.ts';
+import { reads, redact, type Characters, type Viewer } from '../rules/visibility.ts';
 import { renameWhy, renamed, why, whoIs } from './claims.ts';
 import { editBody } from './envelope.ts';
 import type { Link, Peer } from './link.ts';
@@ -38,6 +38,16 @@ const seen = (rec: Rec, viewer: Viewer, chars: Characters) => same(redact(rec, v
 const forged = (old: Rec | undefined, rec: Rec, who: string) => 'kind' in rec && rec.kind === 'chip'
   && rec.by !== undefined && rec.by !== who && rec.by !== (old && 'kind' in old && old.kind === 'chip' ? old.by : undefined);
 
+// R506: only paper's maker says who reads it, and a player makes paper under their own name alone. A
+// piece dug up from Boot Hill is judged against its buried copy.
+const misread = (old: Rec | undefined, rec: Rec, who: string) => {
+  if (!('kind' in rec) || !isPaper(rec)) return false;
+  const was = old && 'kind' in old && isPaper(old) ? old : undefined;
+  if (!was) return rec.by !== undefined && rec.by !== who;
+  if (rec.by !== was.by) return true;
+  return JSON.stringify(rec.to ?? null) !== JSON.stringify(was.to ?? null) && was.by !== who;
+};
+
 // R464: only the GM's page rules on a flag: a player's change may add to one (another flagged tap), but
 // never drop it, drop its why, or take Levels from under it.
 const ruled = (old: Rec | undefined, rec: Rec) => {
@@ -62,6 +72,10 @@ function mergeYards(real: Yards | undefined, mine: Yards, viewer: Viewer, chars:
     }
   }
   const kept = new Set<string>();
+  // R508: paper the sender doesn't read was never in their copy: it goes back where the GM holds it.
+  const unread = (r: PieceRecord) => isPaper(r) && !reads(viewer, r);
+  const home = new Map<string, Burial>();
+  for (const g of real?.yards ?? []) for (const b of g.items) for (const r of b.records) home.set(r.oid, b);
   const yards = mine.yards.map(g => ({ ...g, items: g.items.flatMap((b): Burial[] => {
     if (b.gm && secret.has(b.gm)) { kept.add(b.gm); return [cards.get(b.gm)!]; }
     if (b.gm && !viewer?.gm) return [];
@@ -70,8 +84,19 @@ function mergeYards(real: Yards | undefined, mine: Yards, viewer: Viewer, chars:
       const d = deleted.get(r.oid);
       return d ? [d] : [];
     });
+    const was = records.map(r => home.get(r.oid)).find(x => x);
+    for (const r of was?.records.filter(unread) ?? []) if (!kept.has(r.oid)) { kept.add(r.oid); records.push(r); }
     return records.length || b.info ? [{ ...b, records }] : [];
   }) }));
+  // R508: a burial of nothing but unread paper, left out whole, goes back in its graveyard (by name,
+  // else the first) at its place.
+  (real?.yards ?? []).forEach(g => g.items.forEach((b, k) => {
+    if (b.gm || !b.records.length || !b.records.every(unread) || b.records.every(r => kept.has(r.oid))) return;
+    const to = yards.find(y => y.name === g.name) ?? yards[0];
+    if (!to) return;
+    to.items.splice(Math.min(k, to.items.length), 0, b);
+    for (const r of b.records) kept.add(r.oid);
+  }));
   return [...secret].every(o => kept.has(o)) ? { yards } : null;
 }
 
@@ -132,6 +157,8 @@ export function judge(game: Game, edit: Edit, who: string | null, tab?: string):
   };
   // R444: another tab changed the piece after the copy this change was made on.
   const stale = (rid: Rid) => { const l = book.last?.[rid]; return !!l && l.g > edit.base && l.by !== tab; };
+  const buried = new Map<string, PieceRecord>();
+  for (const g of (game.get('yards') as Yards | undefined)?.yards ?? []) for (const b of g.items) for (const r of b.records) buried.set(r.oid, r);
   const puts: { rid: Rid; rec: Rec }[] = [], dels: Rid[] = [], refused: Rid[] = [];
   for (const rid of edit.dels) {
     if (!all.includes(rid)) continue;
@@ -148,6 +175,7 @@ export function judge(game: Game, edit: Edit, who: string | null, tab?: string):
     else if (kindOf(rec) === 'tornroll') refused.push(rid);                                  // R486: each page's own
     else if (stale(rid)) refused.push(rid);                                                  // R444
     else if (forged(game.get(rid), rec, who)) refused.push(rid);                             // R360
+    else if (misread(game.get(rid) ?? buried.get(oidOf(rid)), rec, who)) refused.push(rid);  // R506
     else if (ruled(game.get(rid), rec)) refused.push(rid);                                   // R464
     else if (mine(game.get(rid), rec)) puts.push({ rid, rec });
     else refused.push(rid);

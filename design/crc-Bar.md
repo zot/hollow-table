@@ -1,5 +1,5 @@
 # Bar
-**Requirements:** R9, R18, R20, R287, R288, R304, R305, R19, R34, R35, R347, R408, R453
+**Requirements:** R9, R18-20, R34, R35, R287, R288, R304, R305, R347, R408, R453, R498
 
 The bar along the top: the wordmark, supplies, the people at the table, and the furniture at the
 right end.
@@ -13,7 +13,7 @@ right end.
   Ledger and Boot Hill append themselves after.
 - Supplies (`src/rules/supplies.ts`, pure): newCharacter (its maker's, its pool above its card,
   gathered, a blank card template), newSticky, newText ("Write here"), newHowTo, newChip, each with
-  its middle at the pointer (R287). The page makes the record, marks it fresh with Drag (dropped back
+  its middle at the pointer (R287); a sticky, a text and an image record their maker as `by` (R498). The page makes the record, marks it fresh with Drag (dropped back
   on the bar it is never made, R19), and carries it: a character by its pool (moved clear of the bar
   after the drop, its card sliding with it, R35), a chip as an item, the rest as pieces.
 - look (R304): a walnut-dark strip 92 px high: the wordmark and its version and date (selectable), the

@@ -1,10 +1,10 @@
-// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R394, R399, R410, R435
+// CRC: crc-Visibility.md | R143, R144, R145, R150, R356, R357, R358, R378, R185, R348, R381, R377, R394, R399, R410, R435, R501, R508
 // Who may read what, and each record as a given viewer may see it. Pure. The invariant: no page
 // ever holds, in the clear, a secret its person may not read.
 
 import { clues, entries, type Entry } from './readmarks.ts';
 import { parse } from '../text/marks.ts';
-import { OPEN, damageSlots, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Rec, type Yards } from '../model/records.ts';
+import { OPEN, damageSlots, isPaper, type CardBack, type Character, type Chip, type Influence, type Oid, type Paper, type PieceRecord, type Rec, type Yards, type Burial } from '../model/records.ts';
 
 /** Who is looking: a name and whether they are the GM; null for someone who owns nothing. */
 export type Viewer = { name: string; gm: boolean } | null;
@@ -64,7 +64,17 @@ export function contribution(i: Chip | Influence, chars: Characters): boolean {
   return !!home && home.owner !== pool.owner;
 }
 
+// R501: paper naming who reads it is the GM's, its maker's and its readers'; `mine` paper its maker's.
+/** Whether a viewer reads a piece of paper. */
+export function reads(viewer: Viewer, p: Paper): boolean {
+  if (p.mine) return !!viewer && !viewer.gm && viewer.name === p.by;
+  if (!p.to) return true;
+  return !!viewer && (viewer.gm || viewer.name === p.by || p.to.includes(viewer.name));
+}
+
 function redactPiece(r: PieceRecord, viewer: Viewer, chars: Characters): PieceRecord | undefined {
+  // R501: nothing at all of paper the viewer doesn't read, not even face-down.
+  if (isPaper(r)) return reads(viewer, r) ? r : undefined;
   // R410: the Connection Table is the GM's alone; no one else's page receives it.
   if (r.kind === 'connections') return viewer?.gm ? r : undefined;
   // R435: an Opinion Record reaches a player once a line of it is revealed, and then only that.
@@ -114,13 +124,15 @@ function redactYards(y: Yards, viewer: Viewer, chars: Characters): Yards {
   return {
     yards: y.yards.map(g => ({
       ...g,
-      items: g.items.map(b => {
+      items: g.items.flatMap((b): Burial[] => {
         // R406: a buried Info card is the GM's: anyone else sees only that it is a GM card.
-        if (b.gm) return viewer?.gm ? b : { name: 'GM card', records: [], gm: b.gm };
+        if (b.gm) return [viewer?.gm ? b : { name: 'GM card', records: [], gm: b.gm }];
         // A buried character's cards are buried with it, so look there first.
         const buried = new Map(b.records.filter((r): r is Character => r.kind === 'character').map(c => [c.oid, c]));
         const look: Characters = oid => buried.get(oid) ?? chars(oid);
-        return { ...b, records: b.records.map(r => redactPiece(r, viewer, look)).filter((r): r is PieceRecord => !!r) };
+        // R508: a burial of nothing but paper the viewer doesn't read isn't listed for them.
+        if (b.records.length && b.records.every(r => isPaper(r) && !reads(viewer, r))) return [];
+        return [{ ...b, records: b.records.map(r => redactPiece(r, viewer, look)).filter((r): r is PieceRecord => !!r) }];
       }),
     })),
   };

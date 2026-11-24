@@ -420,6 +420,32 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 /* R248: the big sticky, for the GM's long notes. */
 .sticky.big { width: 330px; min-height: 300px; }
 
+/* ---- R503-R505: paper's folded corner: flat for everyone, turned down when private ---- */
+.fold { position: absolute; top: 0; right: 0; width: 18px; height: 18px; pointer-events: none;
+  background: linear-gradient(225deg, transparent 50%, rgba(0,0,0,.08) 50%); }
+/* Folded, the corner is cut from the paper itself (what lies under shows through) and the flap lies on it. */
+.folded > .fold { background: linear-gradient(225deg, transparent 50%, var(--fold-back, #d8cfa0) 50%);
+  filter: drop-shadow(-1px 2px 1.5px rgba(0,0,0,.3)); }
+.sticky.folded { --fold-back: var(--sticky-fold);
+  background: linear-gradient(225deg, transparent 12.73px, var(--sticky) 12.73px) top / 100% 51% no-repeat,
+    linear-gradient(315deg, transparent 15.56px, var(--sticky) 15.56px) bottom / 100% 50% no-repeat; }
+.image.folded { background: linear-gradient(225deg, transparent 12.73px, #fff 12.73px); }
+.loose > .fold { top: -10px; right: -12px; }
+.foldpick { position: absolute; top: 1px; right: 20px; width: 16px; height: 16px; border: 0; padding: 0; background: none;
+  font: 12px/16px var(--mono); color: #333; opacity: .45; cursor: pointer; }
+.foldpick::before { content: "\25BE"; }
+.foldpick:hover, .foldpick:focus-visible { opacity: 1; }
+.loose > .foldpick { top: -10px; right: 8px; color: #f3e9d8; }
+.readers { position: absolute; bottom: 100%; right: 0; display: flex; gap: 4px; margin-bottom: 3px; pointer-events: none; }
+.readers .tag { font: 600 14px/1.2 var(--hand); background: var(--paper); color: var(--ink); padding: 0 6px; border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.35); white-space: nowrap; }
+.readmenu { position: absolute; top: 20px; right: 4px; z-index: 4; background: var(--paper); color: #222; border-radius: 8px; padding: 6px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.35); display: flex; flex-direction: column; min-width: 110px; }
+.readmenu button, .readmenu label { text-align: left; font: 12px var(--mono); background: none; border: 0; padding: 4px 8px;
+  border-radius: 4px; cursor: pointer; display: flex; gap: 6px; align-items: center; }
+.readmenu button.on { font-weight: 700; }
+.readmenu button:hover, .readmenu label:hover, .readmenu button:focus-visible { background: #efe6d2; outline: none; }
+
 /* ---- loose handwriting on the table ---- */
 .loose { font: 600 22px/1.2 var(--hand); color: #f3e9d8; min-width: 80px; padding: 2px 6px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
 .loose .text { outline: none; white-space: pre-wrap; }

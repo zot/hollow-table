@@ -76,3 +76,14 @@ faulty record is refused
 **Fire alarm:** check a `t:` record as any piece; red: the sticky under `t:` is accepted
 **Inject:** src/model/records.ts:check
 **Pulled:** 2026-11-23 — rang: a sticky under `t:` was accepted; restored clean
+
+## Test: paper's maker and readers, and a page's own paper
+**Purpose:** R498-R500: `by`, `to` and `mine` are checked; `mine` paper is keyed `m:` and is the page's own
+**Input:** check on stickies with `by`, `to: [names]`, `mine: true`, a `to` that isn't a list of names, and a `mine` sticky under `m:` and under `o:`; ridFor, isLocal and onTable on `m:`
+**Expected:** the well-formed taken; a bad `to` refused; ridFor gives `m:` for `mine` paper; `m:` is local and on the table
+**Refs:** crc-Records.md
+**Code:** `src/model/records.test.ts`
+**Alarm:** 7
+**Fire alarm:** leave `m:` out of isLocal; red: an `m:` key reads as shared
+**Inject:** src/model/records.ts:isLocal
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with m: out of isLocal, an m: key read as shared; restored clean

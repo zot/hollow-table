@@ -240,3 +240,47 @@ is tombed
 **Fire alarm:** leave `t:` out of isLocal; red: Dana's batches hold the torn roll
 **Inject:** src/model/records.ts:isLocal
 **Pulled:** 2026-11-23 — rang: with `t:` out of isLocal, Dana's batches held the torn roll; restored clean
+
+## Test: only its maker says who reads paper
+**Purpose:** R506: a player can't make paper under another's name, nor change `by` or `to` of paper they didn't make; a reader may still write on it
+**Input:** Sam's note to the GM; changes from Dana: a new sticky with `by: Sam`; Sam's note with `to: [Dana]` (she can't read it: refused as unseen anyway); from the GM's handout to Sam: Sam rewrites its text, Sam sets its `to` to `[]`, Sam sets its `by` to Sam; Sam sets his own note's `to` to absent
+**Expected:** Dana's sticky refused; Sam's text taken; Sam's `to` and `by` changes to the handout refused; Sam's own note made public taken
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 22
+**Fire alarm:** skip the paper check in judge; red: Sam's `to` change to the handout is taken
+**Inject:** src/net/authority.ts:judge
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with misread skipped, Dana's change to the handout's readers was taken; restored clean
+
+## Test: a private note goes only to its readers, and leaves a page that stops reading it
+**Purpose:** R501: batches and catch-ups carry a note naming who reads it sealed to its readers alone; a reader dropped from `to` gets a sealed removal
+**Input:** the GM writes a handout to Sam and Dana; then sets `to` to Sam alone; Ann asks for the whole table
+**Expected:** Sam's and Dana's tabs get it sealed, the public part and Ann's tab never hold its words; after the change Dana's tab gets a sealed removal; Ann's catch-up holds no trace of it
+**Refs:** crc-Authority.md, crc-Visibility.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 23
+**Fire alarm:** send paper's public view unredacted (redact returning the record for paper with `to`); red: the public part holds the handout's words
+**Inject:** src/rules/visibility.ts:redactPiece
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with paper unredacted, the handout went out in the public part; restored clean
+
+## Test: a player's Boot Hill change keeps the burials they can't see
+**Purpose:** R508: mergeYards puts back paper the sender's copy never held: in its burial, or a whole burial in its graveyard at its place
+**Input:** Graveyard 1 holds "Nameless" (Ann's character with Sam's note to the GM pinned), "Note: for the GM" (Sam's note alone), "Note: shopping" (public); Dana's change digs up "Note: shopping" from her view (which lacks the note and the second burial)
+**Expected:** taken; Graveyard 1 holds Ann's character with the note, then "Note: for the GM", and no "Note: shopping"
+**Refs:** crc-Authority.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 24
+**Fire alarm:** leave hidden burials out of mergeYards' rebuild; red: the change is refused (or the hidden burial is lost)
+**Inject:** src/net/authority.ts:mergeYards
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with hidden burials not put back, Dana's change was refused; restored clean
+
+## Test: a rename carries paper with it
+**Purpose:** R507: paper a player made, and paper sent to them, follow their new name
+**Input:** Dana's note to the GM, and the GM's handout to Ann and Dana; Dana renamed Dee
+**Expected:** the note's `by` is Dee; the handout's `to` is Ann and Dee
+**Refs:** crc-Claims.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 25
+**Fire alarm:** leave paper out of renamed's follow; red: the note's `by` stays Dana
+**Inject:** src/net/claims.ts:renamed
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with paper left out of renamed, the note's by stayed Dana; restored clean

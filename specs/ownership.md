@@ -93,6 +93,38 @@ The die by the character's name shows GM, open, or the player.
   public view should only show publicly contributed influences and chips and should not do rollup").
 - **The GM sees the private mats**; "You are" shows the table as a player sees it.
 
+## Private paper
+
+Bill (2026-11-23): "there should be a way for a player to make things they put on the desktop
+private ... let them reveal only to the GM. The GM could write on it as well to answer a quick
+question." The note passed across a real table, and the GM's handout (`carves/organizing.md`, Item 1).
+
+- **Paper has a maker.** A sticky, loose text or an image remembers who made it; paper from before
+  this has none and stays everyone's, with no fold.
+- **Its maker picks who reads it**: everyone, or a few. A player's paper goes to the GM, or to no one
+  but them ("just me"); the GM's goes to any of the players, or to no one but the GM. The GM reads
+  every note but a player's "just me".
+- **A folded corner** says which: flat for everyone, folded for a few ("Let's do a folded corner").
+  Beside it, on its maker's page, a dropdown picks: a player's offers Everyone, GM and Just me; the
+  GM's offers Everyone, Just me, and a checklist of the players ("Several players"), none checked being
+  the GM alone too; the list holds the players at the table and anyone the note already went to. Only its maker changes who reads it.
+- **By the fold, who else reads it** (Bill, 2026-11-23: "Names by the fold"), as name tags in the hand
+  font: everyone who reads it but you, "GM" for the GM, so Sam's note to the GM shows "GM" on Sam's
+  page and "Sam" on the GM's, and the GM's handout to Sam and Dana shows "Sam, Dana" on the GM's page
+  and "GM, Dana" on Sam's. A note only you read shows "me".
+- **Everyone who reads it may write on it** ("Yes, both ways"): the GM answers a player's note on the
+  note, and a player a handout; on a note to several players, they all see the answer. They may move
+  it and put it away too.
+- **Nobody else's page gets it at all** ("Don't see it at all"), not even face-down: not its place, not
+  its moves while carried, not its picture. Pinned to a card others see, it rides that card only on
+  the pages that read it. Buried, it's left out of their Boot Hill too (Bill, 2026-11-24: "Nothing"):
+  a burial of nothing but such notes isn't listed for them, and their changes to Boot Hill leave it
+  where it lies.
+- **A "just me" note is that page's own** ("Player's page only"), as a torn tape is: never sent, kept
+  through reloads on that page, buried in that page's Boot Hill, and not in the game the GM saves.
+  Turned public or sent to the GM, it goes to the table; turned "just me", it leaves every other page.
+- **Renaming** a player carries their paper with them: what they made, and what was sent to them.
+
 ## Identity and viewing as
 
 - **Real identity is separate from who you're viewing as.** Only a real GM gets the "You are"

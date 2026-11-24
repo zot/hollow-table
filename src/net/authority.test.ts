@@ -478,3 +478,79 @@ test("a torn roll and the Hill never leave the GM's page", async () => {
   assert.ok(!sent.includes('t:') && !sent.includes('"hill"') && !sent.includes('Devreux, secret roll') && !sent.includes('Devreux, buried roll'),
     'no torn roll, no Hill');
 });
+
+const PAPER_AT = { x: 0, y: 0, z: 0, tilt: 0 };
+
+test('only its maker says who reads paper', () => {
+  // R506: no paper under another's name; `by` and `to` are its maker's; a reader still writes on it.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const note: Sticky = { kind: 'sticky', oid: '0000e001', place: PAPER_AT, text: 'Is the mayor lying?', by: 'Dana', to: [] };
+  const handout: Sticky = { kind: 'sticky', oid: '0000e002', place: PAPER_AT, text: 'A letter', by: 'GM', to: ['Dana'] };
+  game.change(w => { w.put(ridOf(note.oid), note); w.put(ridOf(handout.oid), handout); });
+  const one = (rec: Sticky, who: string) => judge(game, { s: 1, base: 0, dels: [], puts: [{ rid: ridOf(rec.oid), rec }] }, who);
+  const fake: Sticky = { kind: 'sticky', oid: '0000e003', place: PAPER_AT, text: 'from Dana, honest', by: 'Dana' };
+  assert.deepEqual(one(fake, 'Ann').refused, [ridOf(fake.oid)], "Ann can't make paper in Dana's name");
+  assert.deepEqual(one({ ...fake, by: 'Ann' }, 'Ann').refused, [], 'in her own, she can');
+  assert.deepEqual(one({ ...handout, text: 'A letter. Burn it.' }, 'Dana').refused, [], 'a reader writes on it');
+  assert.deepEqual(one({ ...handout, to: [] }, 'Dana').refused, [ridOf(handout.oid)], "a reader doesn't change who reads it");
+  assert.deepEqual(one({ ...handout, by: 'Dana' }, 'Dana').refused, [ridOf(handout.oid)], 'nor its maker');
+  const { to: _to, ...open } = note;
+  assert.deepEqual(one(open, 'Dana').refused, [], 'its maker makes it public');
+  assert.deepEqual(one({ ...note, text: 'peeking' }, 'Ann').refused, [ridOf(note.oid)], "Ann can't touch a note she doesn't read");
+});
+
+test('a private note goes only to its readers, and leaves a page that stops reading it', async () => {
+  // R501: sealed to its readers alone, never in the public part; a reader dropped gets a sealed removal.
+  const { room, game, got, join } = await table();
+  const sue = await join('sue', 'b-sue', 'Sue');
+  const handout: Sticky = { kind: 'sticky', oid: '0000e002', place: PAPER_AT, text: 'A letter, sealed with wax', by: 'GM', to: ['Dana', 'Ann'] };
+  game.change(w => w.put(ridOf(handout.oid), handout));
+  await room.settle();
+  const holds = (tab: string) => got.get(tab)!.mine.some(s => s.puts.some(p => p.rid === ridOf(handout.oid)));
+  assert.ok(holds('dana') && holds('ann'), 'sealed to Dana and Ann');
+  assert.ok(!sue.mine.some(s => JSON.stringify(s).includes('wax')), 'never to Sue');
+  for (const t of ['dana', 'ann', 'sue']) for (const b of got.get(t)!.public) assert.ok(!JSON.stringify([b.puts, b.dels]).includes('wax'), 'never in the public part');
+  game.change(w => w.put(ridOf(handout.oid), { ...handout, to: ['Dana'] }));
+  await room.settle();
+  assert.ok(got.get('ann')!.mine.some(s => (s.dels ?? []).some(d => d.rid === ridOf(handout.oid))), 'Ann gets a sealed removal');
+  sue.link.send('sync', {});
+  await room.settle();
+  assert.ok(!JSON.stringify([sue.public, sue.mine]).includes('wax'), "Sue's catch-up holds no trace");
+});
+
+test("a player's Boot Hill change keeps the burials they can't see", () => {
+  // R508: paper the sender never held goes back where the GM holds it.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  const beau = game.get(ridOf(BEAUFORD)) as Character;
+  const pinned: Sticky = { kind: 'sticky', oid: '0000e004', place: PAPER_AT, text: 'Beau cheats', by: 'Ann', to: [], pin: { card: BEAUFORD, dx: 0, dy: 0 } };
+  const alone: Sticky = { kind: 'sticky', oid: '0000e005', place: PAPER_AT, text: 'For the GM', by: 'Ann', to: [] };
+  const shopping: Sticky = { kind: 'sticky', oid: '0000e006', place: PAPER_AT, text: 'shopping', by: 'Ann' };
+  const y: Yards = { yards: [{ name: 'Graveyard 1', named: false, items: [
+    { name: 'Beauford', records: [beau, pinned] }, { name: 'Note: For the GM', records: [alone] }, { name: 'Note: shopping', records: [shopping] }] }] };
+  game.change(w => w.put('yards', y));
+  const dana = { name: 'Dana', gm: false }, chars = (oid: string) => game.get(ridOf(oid)) as Character | undefined;
+  const seen = redact(y, dana, chars) as Yards;
+  assert.equal(seen.yards[0]!.items.length, 2, 'Dana sees Beauford and the shopping list');
+  // Dana digs up the shopping list: her Boot Hill without it, and the sticky back on the table.
+  const mine: Yards = { yards: [{ ...seen.yards[0]!, items: seen.yards[0]!.items.slice(0, 1) }] };
+  const got = judge(game, { s: 1, base: 0, dels: [], puts: [{ rid: 'yards', rec: mine }, { rid: ridOf(shopping.oid), rec: shopping }] }, 'Dana');
+  assert.deepEqual(got.refused, [], 'taken');
+  const kept = got.puts.find(p => p.rid === 'yards')!.rec as Yards;
+  assert.deepEqual(kept.yards[0]!.items.map(b => [b.name, b.records.map(r => r.oid)]),
+    [['Beauford', [BEAUFORD, '0000e004']], ['Note: For the GM', ['0000e005']]], 'the hidden note and burial kept where they were');
+});
+
+test('a rename carries paper with it', () => {
+  // R507: paper Dana made, and paper sent to her, follow her new name.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  whoIs(game, 'Dana', 'b-dana');
+  const made: Sticky = { kind: 'sticky', oid: '0000e001', place: PAPER_AT, text: 'mine', by: 'Dana', to: [] };
+  const sent: Sticky = { kind: 'sticky', oid: '0000e002', place: PAPER_AT, text: 'yours', by: 'GM', to: ['Ann', 'Dana'] };
+  game.change(w => { w.put(ridOf(made.oid), made); w.put(ridOf(sent.oid), sent); });
+  game.change(renamed(game, 'Dana', 'Dee'));
+  assert.equal((game.get(ridOf(made.oid)) as Sticky).by, 'Dee', 'her paper');
+  assert.deepEqual((game.get(ridOf(sent.oid)) as Sticky).to, ['Ann', 'Dee'], 'paper sent to her');
+});

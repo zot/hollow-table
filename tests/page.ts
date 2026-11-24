@@ -77,8 +77,8 @@ export async function join(browser: Browser, invite: string, name: string, gm: P
 /** Waits until the player's page holds what anyone may see of the GM's table: the same rids. */
 // R361: a private mat's pieces aren't what anyone may see, so the GM's side counts only the rest.
 export async function synced(player: Page, gm: Page, timeout = 20_000): Promise<void> {
-  // R486: each page's own (its book, tape, Hill and torn rolls) is never sent, so it isn't counted.
-  const shared = (r: string) => r !== 'book' && r !== 'tape' && r !== 'hill' && !r.startsWith('t:');
+  // R486, R500: each page's own (its book, tape, Hill, torn rolls and own paper) is never sent, so it isn't counted.
+  const shared = (r: string) => r !== 'book' && r !== 'tape' && r !== 'hill' && !r.startsWith('t:') && !r.startsWith('m:');
   const rids = (p: Page) => hook(p, h => h.store.game.all().map(([rid]: [string]) => rid)).then(rs => rs.filter(shared).sort().join());
   const want = await hook(gm, h => h.forNobody() as string[]).then(rs => rs.filter(shared).sort().join()), start = Date.now();
   while (await rids(player) !== want) {

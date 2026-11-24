@@ -1,9 +1,12 @@
 # Yards
-**Requirements:** R119, R120, R121, R122, R123, R124, R125, R290, R403-405, R428, R487-489
+**Requirements:** R119-125, R290, R403-405, R428, R487-489, R500
 
 Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
 
 ## Does
+- putAway(piece, all) (R488, R500): the piece's burial (burialOf) split into the table's share and this
+  page's own (torn rolls, `mine` paper); Drag buries the own share in the Hill, each alone, and makes
+  no Boot Hill burial when the table's share is empty.
 - graveName(piece) (R290): the pool's name (or "Nameless"); "Note: " or "Writing: " and the first line, 28
   characters at most; "Tape: N rolls, last <title>"; else "Image".
 - bury(yards, cur, records, name): adds a burial to the current graveyard. A character is buried

@@ -1,7 +1,7 @@
 // CRC: crc-Visibility.md | Test: test-Visibility.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Character, Chip, Influence, Opinion, PieceRecord, Rec, Yards } from '../model/records.ts';
+import type { Character, Chip, Influence, Opinion, PieceRecord, Rec, Sticky, Yards } from '../model/records.ts';
 import { canSee, contribution, redact, differs, type Viewer } from './visibility.ts';
 import { bury, burialOf, empty } from './yards.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
@@ -181,4 +181,29 @@ test("a flag is seen by all, but not where its Levels came from", () => {
     flag: { why: 'A Resource and a Motivation on one card', fed: { [`${DEVREUX}:Self-Preservation`]: 1 } } };
   assert.deepEqual((redact(card, { name: 'Dana', gm: false }, look) as Influence).flag, { why: 'A Resource and a Motivation on one card' });
   assert.deepEqual((redact(card, { name: 'GM', gm: true }, look) as Influence).flag, card.flag);
+});
+
+const PLACE = { x: 0, y: 0, z: 0, tilt: 0 };
+const toGm: Sticky = { kind: 'sticky', oid: '0000e001', place: PLACE, text: 'Is the mayor lying?', by: 'Sam', to: [] };
+const handout: Sticky = { kind: 'sticky', oid: '0000e002', place: PLACE, text: 'A letter, sealed', by: 'GM', to: ['Sam', 'Dana'] };
+const who = (n: string | null): Viewer => n === 'GM' ? { name: 'GM', gm: true } : n ? { name: n, gm: false } : null;
+
+test('private paper reaches only who reads it', () => {
+  // R501: whole for the GM, its maker and its readers; nothing at all for anyone else.
+  const open: Sticky = { kind: 'sticky', oid: '0000e003', place: PLACE, text: 'Shopping', by: 'Sam' };
+  const names = ['GM', 'Sam', 'Dana', 'Ann', null];
+  const sees = (r: Sticky) => names.map(n => redact(r, who(n), look));
+  assert.deepEqual(sees(toGm), [toGm, toGm, undefined, undefined, undefined], "Sam's note to the GM");
+  assert.deepEqual(sees(handout), [handout, handout, handout, undefined, undefined], 'the handout to Sam and Dana');
+  assert.deepEqual(sees(open), [open, open, open, open, open], 'everyone reads paper with no readers named');
+});
+
+test('a buried private note is left out of Boot Hill', () => {
+  // R508: a burial of only unreadable paper isn't listed; in a mixed burial only the paper goes.
+  const sam = look(SAM)!, pinned: Sticky = { ...toGm, oid: '0000e004', pin: { card: SAM, dx: 0, dy: 0 } };
+  const y: Yards = { yards: [{ name: 'Graveyard 1', named: false, items: [
+    { name: 'Note: Is the mayor lying?', records: [toGm] }, { name: 'Sam Diamond', records: [sam, pinned] }] }] };
+  assert.deepEqual(redact(y, who('GM'), look), y, 'the GM sees both whole');
+  const dana = redact(y, who('Dana'), look) as Yards;
+  assert.deepEqual(dana.yards[0]!.items.map(b => [b.name, b.records.map(r => r.oid)]), [['Sam Diamond', [SAM]]], 'Dana sees Sam alone');
 });

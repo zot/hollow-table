@@ -1,9 +1,9 @@
 // CRC: crc-PieceView.md | Test: test-PieceView.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { editLasting, frontOrder, skillIndents, toggleCheck } from './piece.ts';
+import { editLasting, frontOrder, readersOf, skillIndents, toggleCheck, withReaders } from './piece.ts';
 import { parse, serialize } from '../text/marks.ts';
-import type { Character } from '../model/records.ts';
+import { ridFor, type Character, type Sticky } from '../model/records.ts';
 import { SAM, scene } from '../store/playtest.ts';
 
 test('a column brought to the front leads', () => {
@@ -48,4 +48,24 @@ test('editing a Conviction', () => {
   assert.equal('lasting' in editLasting(editLasting(one, 'bias', { name: '' }), 'bias', { points: 0 }).back, false, 'blank, it is gone');
   const waiting = { ...sam, back: { ...sam.back, lasting: { affliction: { name: '', points: 2, spent: 0, naming: { by: 'Beauford', id: 'r1' } } } } };
   assert.ok(editLasting(waiting, 'affliction', { points: 0 }).back.lasting?.affliction, 'still waiting for its name');
+});
+
+test("a note's readers by its fold, and its readers changed", () => {
+  // R505: everyone who reads it but the viewer, the GM as "GM"; "me" for `mine` paper.
+  const place = { x: 0, y: 0, z: 0, tilt: 0 }, gm = { name: 'GM', gm: true }, sam = { name: 'Sam', gm: false }, dana = { name: 'Dana', gm: false };
+  const note: Sticky = { kind: 'sticky', oid: '0000e001', place, text: 'Is the mayor lying?', by: 'Sam' };
+  const handout: Sticky = { ...note, by: 'GM', to: ['Sam', 'Dana'] };
+  assert.deepEqual(readersOf(note, sam), [], 'everyone reads it: no tags');
+  assert.deepEqual(readersOf({ ...note, to: [] }, sam), ['GM'], "Sam's note to the GM, on Sam's page");
+  assert.deepEqual(readersOf({ ...note, to: [] }, gm), ['Sam'], '...and on the GM\'s');
+  assert.deepEqual(readersOf(handout, gm), ['Sam', 'Dana'], "the handout on the GM's page");
+  assert.deepEqual(readersOf(handout, sam), ['GM', 'Dana'], "...and on Sam's");
+  assert.deepEqual(readersOf({ ...note, mine: true }, sam), ['me'], 'just me');
+  assert.deepEqual(readersOf(handout, dana), ['GM', 'Sam']);
+  assert.deepEqual(readersOf({ ...handout, to: [] }, gm), ['me'], "the GM's note to no one but the GM");
+  // R499, R500: rewritten for new readers; `mine` moves it to m:.
+  assert.deepEqual(withReaders(handout, 'all'), { ...note, by: 'GM' }, 'everyone: no `to`');
+  assert.deepEqual(withReaders(note, 'gm'), { ...note, to: [] });
+  assert.equal(ridFor(withReaders(note, 'me')), 'm:0000e001', 'just me is the page\'s own');
+  assert.deepEqual(withReaders(withReaders(note, 'me'), ['Ann']), { ...note, to: ['Ann'] }, 'no `mine` left over');
 });

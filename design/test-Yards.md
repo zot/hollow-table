@@ -92,3 +92,14 @@ record moved alike at z 77; the sticky at 80, 36, z 3; nothing
 **Fire alarm:** leave the yards alone in ownTorn; red: the buried tapes stay in the shared Boot Hill
 **Inject:** src/rules/yards.ts:ownTorn
 **Pulled:** 2026-11-23 — rang: with the yards left alone the buried tapes stayed in the shared Boot Hill; restored clean
+
+## Test: a page's own paper is buried on that page alone
+**Purpose:** R500, R488: putAway sends `mine` paper and torn rolls to the page's Hill, a character's pinned `mine` paper apart from it, and gives Boot Hill no burial at all when nothing of it is the table's (not even its name)
+**Input:** Dana's lone `mine` sticky; Sam with a pinned `mine` sticky and a pinned shared one; the shared one alone
+**Expected:** the lone note: nothing shared, itself own; Sam: the pinned `mine` note own, Sam and the shared note shared; the shared note: shared
+**Refs:** crc-Yards.md, crc-Drag.md
+**Code:** `src/rules/yards.test.ts`
+**Alarm:** 8
+**Fire alarm:** treat only torn rolls as the page's own in putAway; red: the lone note is shared, and its burial (named for its words) would go to the GM's page
+**Inject:** src/rules/yards.ts:putAway
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with only torn rolls own, the lone note was shared; restored clean

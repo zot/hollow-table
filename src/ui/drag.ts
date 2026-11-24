@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -8,7 +8,7 @@ import { ridFor, ridOf, type Character, type Hill, type Oid, type PieceRecord, t
 import type { Item } from '../rules/pool.ts';
 import { gapAt } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
-import { burialOf, bury, buryOwn, empty, graveName } from '../rules/yards.ts';
+import { bury, buryOwn, empty, graveName, putAway } from '../rules/yards.ts';
 import type { Aim, MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
 import type { Hands } from './hands.ts';
@@ -294,19 +294,21 @@ export class Drag {
     const { game } = this.#w, rid = ridFor(rec);
     // R19: a supply dropped back on the bar makes nothing.
     if (this.#fresh.delete(rid) || rec.kind === 'reference') return w => w.del(rid);
-    // R488: a torn roll is buried on this page alone, in its Hill under the graveyard's name.
-    if (rec.kind === 'tornroll') {
-      const h = (game.get('hill') as Hill | undefined) ?? { hill: [] };
-      return w => { w.put('hill', buryOwn(h, this.#w.yard().name, [rec], graveName(rec))); w.del(rid); };
-    }
     // R409: the Connection Table is put away, kept for its supply, not buried.
     if (rec.kind === 'connections') return w => w.put(rid, { ...rec, away: true });
+    // R488, R500: a torn roll and `mine` paper are buried on this page alone, in its Hill under the
+    // graveyard's name (a character's pinned `mine` paper apart from it); the rest in Boot Hill.
     const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
-    const recs = burialOf(rec, all), y = (game.get('yards') as Yards | undefined) ?? empty();
+    const { shared, own } = putAway(rec, all), y = (game.get('yards') as Yards | undefined) ?? empty();
     const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
     return w => {
-      w.put('yards', bury(y, cur, recs, graveName(rec)));
-      for (const r of recs) w.del(ridFor(r));
+      if (shared.length) w.put('yards', bury(y, cur, shared, graveName(rec)));
+      if (own.length) {
+        let h = (game.get('hill') as Hill | undefined) ?? { hill: [] };
+        for (const r of own) h = buryOwn(h, this.#w.yard().name, [r], graveName(r));
+        w.put('hill', h);
+      }
+      for (const r of [...shared, ...own]) w.del(ridFor(r));
     };
   }
 

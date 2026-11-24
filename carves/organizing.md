@@ -10,7 +10,7 @@ Opened by Bill, 2026-11-23, and worked out with Daneel over 2026-11-23 and 24.
 
 ## Status
 
-- [ ] **Item 1 — private paper.** **OPEN (not queued.)** First: paper gets an owner, which Items 3 and 7 need.
+- [x] ~~**Item 1 — private paper.**~~ **LANDED (2026-11-24 — `#63`.)** First: paper gets an owner, which Items 3 and 7 need.
 - [ ] **Item 2 — the desk and its pigeonholes.** **OPEN (not queued.)**
 - [ ] **Item 3 — drawers and filing.** **OPEN (not queued.)** After Items 1 and 2.
 - [ ] **Item 4 — dockets.** **OPEN (not queued.)** After Item 3.
@@ -74,6 +74,15 @@ players), or just its owner. It's the note passed across a real table, and the G
   sent, kept through reloads on that page, and not in the game the GM saves. A note to the GM goes to
   the GM's page like any piece, and to no other.
 
+Specified in `specs/ownership.md`, *Private paper*, as R498–R508 (#63).
+
+@undecided: four calls Daneel made while building #63, each settled by Bill's yes or undone at his no:
+the GM's menu has a **Just me** choice (the GM alone, the same as no box checked, and the only way to
+reach it with no players at the table); its checklist also holds **anyone the note already went to**,
+and a name stays while the menu is open; the tags name **everyone who reads it but the viewer**, so
+Sam sees "GM, Dana" on a handout to him and Dana; and a note only the viewer reads shows **"me"**, the
+GM's to no one included.
+
 ### Item 1's decisions
 
 DECIDED (Bill, 2026-11-23), on Daneel's questions:
@@ -89,6 +98,11 @@ DECIDED (Bill, 2026-11-23), on Daneel's questions:
   to indicate them"), with no player colors.
 - **In this carve** ("Keep it here"), and first, since the desk's travelling paper (Item 7) needs
   paper to have an owner.
+
+DECIDED (Bill, 2026-11-24), on Daneel's question while designing: **a buried private note is hidden
+from Boot Hill too** ("Nothing"), over a nameless "Private note" entry or burying it on the burying
+page alone. A player who can't read it sees no burial, and the GM's page keeps it where it lies when
+that player's Boot Hill changes.
 
 ## Item 2
 

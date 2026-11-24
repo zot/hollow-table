@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R462, R98, R126, R130, R191, R209, R211, R248, R463, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R362, R360, R381, R380, R391, R400, R407-409, R419, R426, R429, R436, R439, R464, R486, R488, R491
+**Requirements:** R23, R26, R28, R36, R38, R47, R98, R126, R130, R191, R209, R211, R248, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R360, R362, R380, R381, R391, R400, R407-409, R419, R426, R429, R436, R439, R462-464, R486, R488, R491, R498-500
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -46,6 +46,9 @@ record crosses the wire, the database and an export file unchanged.
 - Sticky, Text: `{kind, oid, place, text: Marked, pin?: {card: oid, dx, dy}}`; a sticky may carry
   `big: true` (R248).
 - Image: `{kind: 'image', oid, place, blob: sha256, w, h, pin?}`.
+- Paper (a Sticky, Text or Image) may carry (R498-R500) `by`, its maker (a player's name or `GM`; none on
+  paper from before, which is everyone's), `to`, the players who read it besides its maker (absent is
+  everyone; the GM reads any with `to`), and `mine: true`, its maker's alone, kept under `m:<oid>`.
 - TornRoll: `{kind: 'tornroll', oid, place, receipts: Receipt[]}`, kept under `t:<oid>` (R486).
 - Hill (R488): `{hill: [{yard, burial}]}`, this page's own burials, each with the name of the graveyard it
   went to.
@@ -89,8 +92,9 @@ record crosses the wire, the database and an export file unchanged.
 - Receipt.transfer (R439, R441): `{target, name, sl, done?: {resource, moved, extra}}`, the transfer a
   successful Request against an NPC offers, `sl` its Success Level; `done` once the GM has made it.
 - isPiece(rid), oidOf(rid), ridOf(oid): key helpers; isPiece is the table's (`o:`). isTorn(rid) (`t:`),
-  onTable(rid) (either), ridFor(piece) (`t:` for a torn roll, else ridOf). isLocal(rid) (R486): `book`,
-  `tape`, `hill` and every `t:` are each page's own and never sent.
+  isMine(rid) (`m:`, R500), onTable(rid) (any of the three), ridFor(piece) (`t:` for a torn roll, `m:` for
+  `mine` paper, else ridOf). isLocal(rid) (R486, R500): `book`, `tape`, `hill`, every `t:` and every `m:` are
+  each page's own and never sent. private(r) (R499): paper with `to` or `mine`.
 - check(rid, record): validates a record for its key field by field (types, ranges, string caps, a
   piece's oid matching its key); anything off is rejected whole. Every record from another page or an import passes through it.
 

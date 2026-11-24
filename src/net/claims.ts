@@ -1,10 +1,10 @@
-// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169, R467, R468, R472
+// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169, R467, R468, R472, R507
 // On the GM's page: which browser holds which name. The first browser to claim a name holds it; a
 // page claiming a name another browser holds is nobody until the GM hands the name over. The claims
 // live in the book, saved with the game; the book is never sent, but who holds each name goes to every
 // page as `claims` (Authority, R446).
 
-import { GM, OPEN, type Book, type Rec, type Yards } from '../model/records.ts';
+import { GM, OPEN, isPaper, type Book, type Rec, type Yards } from '../model/records.ts';
 import type { Game, Writer } from '../model/game.ts';
 import { ID } from './identity.ts';
 
@@ -66,7 +66,10 @@ export function renamed(game: Game, from: string, to: string): (w: Writer) => vo
   if (held !== undefined) claims[t] = held;
   const follow = (r: Rec): Rec => !('kind' in r) ? r
     : r.kind === 'character' && r.owner === from ? { ...r, owner: t }
-    : r.kind === 'chip' && r.by === from ? { ...r, by: t } : r;
+    : r.kind === 'chip' && r.by === from ? { ...r, by: t }
+    // R507: paper they made, and paper sent to them, follow too.
+    : isPaper(r) && (r.by === from || r.to?.includes(from))
+      ? { ...r, ...(r.by === from && { by: t }), ...(r.to && { to: r.to.map(n => (n === from ? t : n)) }) } : r;
   return w => {
     w.put('book', { ...b, claims });
     for (const [rid, r] of game.all()) {

@@ -339,3 +339,14 @@ by the drop
 **Fire alarm:** skip ownTorn when the GM's page loads; red: Dana's page keeps the torn roll
 **Inject:** src/main.ts
 **Pulled:** 2026-11-23 — rang: with ownTorn skipped, Dana's page kept the torn roll (Chromium); restored clean
+
+## Test: a note to the GM, a handout, and a note kept to oneself
+**Purpose:** R498-R507: private paper across pages: Dana's note to the GM reaches the GM and not Sam; the GM answers on it; the GM's handout to Sam reaches Sam and not Dana; Dana's "just me" note stays on her page through a reload; its fold and tags
+**Input:** GM, Dana and Sam at the table; Dana makes a sticky and picks GM; the GM writes on it; the GM makes a sticky and checks Sam; Dana makes another and picks Just me, then reloads
+**Expected:** the GM's page holds Dana's note with the GM's words and shows tags "Dana"; Dana's shows "GM"; Sam's page holds neither Dana's note nor any trace; Sam's holds the handout with tags "GM"; Dana's never does; Dana's "just me" note is under `m:` on her page after the reload, tagged "me", and on no other page
+**Refs:** crc-PieceView.md, crc-Authority.md, crc-Copy.md, crc-Records.md
+**Code:** `tests/private.spec.ts`
+**Alarm:** 29
+**Fire alarm:** pick Just me as `to: []` under `o:` (no move to `m:`); red: the GM's page holds Dana's "just me" note
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with Just me kept under o: as to [], the GM's page still held Dana's note (line 70, Chromium); restored clean

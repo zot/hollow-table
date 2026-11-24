@@ -1,7 +1,7 @@
 // CRC: crc-Records.md | Test: test-Records.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAPS, check, isLocal, ridOf, type Character, type Influence, type TornRoll } from './records.ts';
+import { CAPS, check, isLocal, onTable, ridFor, ridOf, type Character, type Influence, type Sticky, type TornRoll } from './records.ts';
 import { scene } from '../store/playtest.ts';
 
 test('check takes the scene and refuses the malformed', () => {
@@ -92,4 +92,22 @@ test("a torn roll and the Hill are this page's own records", () => {
   assert.ok(check('hill', { hill: [{ yard: 'Graveyard 1', burial }] }));
   assert.equal(check('hill', { hill: [{ burial }] }), false, 'an own burial names its graveyard');
   assert.deepEqual(['book', 'tape', 'hill', 't:0000000f', 'o:0000000f', 'yards'].map(isLocal), [true, true, true, true, false, false]);
+});
+
+test("paper's maker and readers, and a page's own paper", () => {
+  // R498-R500: `by`, `to` and `mine` are checked; `mine` paper is keyed `m:` and is the page's own.
+  const place = { x: 0, y: 0, z: 0, tilt: 0 };
+  const note: Sticky = { kind: 'sticky', oid: '0000e001', place, text: 'Is the mayor lying?', by: 'Dana' };
+  assert.ok(check(ridOf(note.oid), note), 'a maker');
+  assert.ok(check(ridOf(note.oid), { ...note, to: [] }), 'to the GM');
+  assert.ok(check(ridOf(note.oid), { ...note, to: ['Sam', 'Ann'] }), 'to players');
+  assert.ok(!check(ridOf(note.oid), { ...note, to: 'Sam' }), 'a `to` that is no list');
+  assert.ok(!check(ridOf(note.oid), { ...note, to: [3] }), 'a `to` of no names');
+  const mine: Sticky = { ...note, mine: true };
+  assert.equal(ridFor(mine), 'm:0000e001', '`mine` paper keyed m:');
+  assert.equal(ridFor(note), ridOf(note.oid), 'other paper keyed o:');
+  assert.ok(check('m:0000e001', mine), 'mine under m:');
+  assert.ok(!check(ridOf(note.oid), mine), 'never the table\'s');
+  assert.ok(!check('m:0000e001', note), 'm: holds only mine paper');
+  assert.ok(isLocal('m:0000e001') && onTable('m:0000e001'), 'the page\'s own, on its table');
 });

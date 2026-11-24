@@ -160,7 +160,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Yards.md → `src/rules/yards.test.ts`
 - [x] test-Connections.md → `src/rules/connections.test.ts`
 - [x] test-Table.md → `tests/table.spec.ts`, `tests/rolls-local.spec.ts`, `tests/floor.spec.ts`, `tests/drag.spec.ts`, `tests/card.spec.ts`, `tests/pinch.spec.ts`
-- [x] test-Network.md → `tests/sync.spec.ts`, `tests/secret.spec.ts`, `tests/away.spec.ts`, `tests/deletion.spec.ts`, `tests/images.spec.ts`, `tests/rolls.spec.ts`, `tests/relays.spec.ts`
+- [x] test-Network.md → `tests/sync.spec.ts`, `tests/secret.spec.ts`, `tests/away.spec.ts`, `tests/deletion.spec.ts`, `tests/images.spec.ts`, `tests/rolls.spec.ts`, `tests/relays.spec.ts`, `tests/private.spec.ts`
 
 ## Gaps
 - [ ] O1: Checked by hand only, after 9.4.6c's browser specs (`tests/table.spec.ts`, `drag.spec.ts`, `card.spec.ts`, `rolls-local.spec.ts`, `floor.spec.ts`, which now check R215's drop, R216, R217, R220–R222, R225, R240, R241, R243, R244, R251–R253, R255, R256, R463, R268–R272, the roll row, aiming, the tape and the register): R215 frame pacing (passes against pointer events); R226 another page's move gliding; the pool's look R227–R236 and R237's pop; the card's text look R245–R250 and the big sticky R248; R254 headings on one line; R258 the Motivation pen and marks; R259 someone else's Resource glyph shaking; R263–R267 Damage entry fill, the absorb and boxes from Wis, the Attributes pen; R271 a resize keeping the view; R273 pinned paper over its card while written on; R274, R275 and R77 the roll row's look and the swish; R279–R283 receipt titles, the CRIT punch; R117's recharge after End; and from #7, checked by hand 11-13 on a fresh page: R318 the blue action die, R319 the type tag's look and R321 its place in the row, R308 the Take stamp, R309–R312 the take strip and pencilled Slots, R313 the name blanks.
@@ -231,3 +231,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T55: R140 retired by R483 (a copy per room and name (Bill 11-23: Copy per name))
 - T56: R458 retired by R485 (Tables joined names whose copy each is (Bill 11-23: Copy per name))
 - T57: R466 retired by R490 (Item 2 of the tapes carve: a page asks on each arrival and takes only what is newer than its tape's newest)
+- [ ] O12: A change made in the 400 ms before a page reloads can be lost: GameStore saves SAVE_PAUSE after a change, and the save main.ts starts on pagehide does not finish before a quick reload (seen with a just-me note, #63; true of every change). tests/private.spec.ts waits for the save before reloading.
+- [ ] O13: A player can't dig up a burial holding a private note they can't read pinned to its card: their copy lacks the note, so the GM's page refuses the change rather than lose it (R508). Rare: someone else's note pinned to a card the player may dig up.
+- [ ] O14: A player's just-me notes keep the old name as their maker after a rename (R507 rewrites only the GM's game; m: paper is the page's own), so the new name sees no fold menu on them.
+- [ ] O15: tests/tapes.spec.ts flaked once (1 in 17 runs, Chromium, 2026-11-24): synced() after dana.reload() hit 'Execution context was destroyed' while the page was still navigating. A race in the spec helper, not the table; synced could wait for the page's hook to be ready again after a reload.

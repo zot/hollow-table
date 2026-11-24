@@ -155,11 +155,13 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   };
   /** The height that puts a piece on top of everything. */
   const topZ = () => 1 + Math.max(0, ...game.all().map(([, r]) => ('kind' in r ? placeOf(r as PieceRecord) : null)?.z ?? 0));
+  // R498: paper made on this page records its maker.
+  const maker = viewer?.gm ? GM : viewer?.name;
   // R272, R287: an image's bytes kept, and an Image put on top where it goes.
   // R453: an image the browser won't keep is said on the image supply, until one is added.
   const addImage = (file: File, at: { x: number; y: number }) => void blobs.add(file).then(({ blob, w: iw, h }) => {
     const oid = mint()();
-    const image: Image = { kind: 'image', oid, place: { ...at, z: topZ(), tilt: 0 }, blob, w: iw, h };
+    const image: Image = { kind: 'image', oid, place: { ...at, z: topZ(), tilt: 0 }, blob, w: iw, h, ...(maker && { by: maker }) };   // R498
     game.change(wr => wr.put(ridOf(oid), image));
     bar.refused(null);
   }, (e: unknown) => {
@@ -172,8 +174,8 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   const made = (what: Exclude<Supply, 'connections'>, oid: string, at: { x: number; y: number }): PieceRecord => {
     switch (what) {
       case 'character': return newCharacter(oid, viewer, at);
-      case 'sticky': return newSticky(oid, at);
-      case 'text': return newText(oid, at);
+      case 'sticky': return newSticky(oid, at, maker);   // R498
+      case 'text': return newText(oid, at, maker);
       case 'howto': return newHowTo(oid, at);
       default: return newChip(oid, what.sign, what.points, at);
     }
@@ -248,6 +250,8 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     // R75–R77: an action's die brings the roll row; the action in use gets its swish.
     useAction: (oid, label, alt) => rollRow?.action(oid, label, alt) ?? false,
     react: (pc, npc) => rollRow?.react(pc, npc) ?? false,
+    // R504: the names claimed at the table (the GM's page holds the claims), for the GM's checklist.
+    players: () => Object.keys((game.get('book') as Book | undefined)?.claims ?? {}).sort(),
     inUse: oid => rollRow?.inUse(oid) ?? null,
     taking: () => taking,
     turnPage: k => { if (taking) { taking = { ...taking, k: Math.max(0, Math.min(k, taking.pages.length - 1)) }; redraw(); } },
@@ -619,6 +623,7 @@ async function main() {
 }
 
 // R361: a piece someone who owns nothing may see at all: anything but a private mat's. R486: nor a page's own.
+// R502: nor paper naming who reads it, so its carry stays on the carrier's page.
 const shared = (game: Game) => (rid: string): boolean => {
   if (isLocal(rid)) return false;
   const r = game.get(rid);

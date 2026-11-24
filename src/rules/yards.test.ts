@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Character, Hill, PieceRecord, Rec, Rid, Sticky, TornRoll, Yards } from '../model/records.ts';
-import { bury, burialOf, buryInfo, buryOwn, empty, exhume, exhumeOwn, forgetOwnIn, lastCard, ownIn, ownTorn, withInfo, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
+import { putAway, bury, burialOf, buryInfo, buryOwn, empty, exhume, exhumeOwn, forgetOwnIn, lastCard, ownIn, ownTorn, withInfo, forget, forgetAll, next, prev, raised, rename, type Browse } from './yards.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
 const records = scene();
@@ -142,4 +142,18 @@ test('torn rolls shared before become the GM\'s own', () => {
     [['Graveyard 1', 'buried'], ['Saloon', 'there']]);
   const again = ownTorn([['o:00000008', sticky], ['t:0000000f', old]], put.get('yards') as Yards, put.get('hill') as Hill);
   assert.deepEqual(again, { puts: [], dels: [] }, 'a second pass has nothing to move');
+});
+
+test("a page's own paper is buried on that page alone, and nothing of it in Boot Hill", () => {
+  // R500, R488: `mine` paper and torn rolls go to the Hill; a burial with nothing for the table isn't made there.
+  const at = { x: 0, y: 0, z: 0, tilt: 0 };
+  const own: Sticky = { kind: 'sticky', oid: '0000e001', place: at, text: 'my secret plan', by: 'Dana', mine: true };
+  const pinned: Sticky = { ...own, oid: '0000e002', pin: { card: SAM, dx: 0, dy: 0 } };
+  const shared: Sticky = { kind: 'sticky', oid: '0000e003', place: at, text: 'for all', by: 'Dana', pin: { card: SAM, dx: 0, dy: 0 } };
+  const all = [...records, own, pinned, shared];
+  assert.deepEqual(putAway(own, all), { shared: [], own: [own] }, 'a lone note: all its own');
+  const sam = putAway(piece(SAM), all);
+  assert.deepEqual(sam.own, [pinned], "Sam's pinned `mine` note apart");
+  assert.ok(sam.shared.some(r => r.oid === shared.oid) && sam.shared[0]!.oid === SAM, 'Sam and his shared note to Boot Hill');
+  assert.deepEqual(putAway(shared, all), { shared: [shared], own: [] }, 'shared paper: Boot Hill');
 });

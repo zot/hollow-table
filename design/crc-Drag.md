@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R298, R299, R300, R19, R21, R34, R35, R48, R83, R113, R120, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R211, R463, R273, R19, R119, R122, R288, R409, R451, R482, R488
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -8,11 +8,13 @@ Lifting, carrying and dropping, and deciding what a drop means.
 
 ## Does
 - over the bar (R288): while anything is carried over it the bar is `toss`, and `bury` with "→" and the
-  current graveyard's name when letting go would bury; letting go there puts away (putAway; a torn roll is buried in this page's
-  Hill under the current graveyard's name, Yards.buryOwn, R488): a
+  current graveyard's name when letting go would bury; letting go there puts away (putAway; Yards.putAway splits what it buries: torn rolls and
+  `mine` paper, a character's pinned `mine` paper included, are buried each alone in this page's Hill
+  under the current graveyard's name, Yards.buryOwn, R488, R500, and Boot Hill gets no burial when
+  nothing of it is the table's): a
   fresh supply is never made (R19), the reference card vanishes, the Connection Table is put away
   (`away`, kept for its supply, and no "→", R409), anything else is buried in the
-  current graveyard with burialOf's records under graveName (R119, R122, R290). Chips and cards go
+  current graveyard with the table's share of burialOf's records under graveName (R119, R122, R290). Chips and cards go
   by their own bar target (vanish, or home).
 - carrying a card lifts its pinned pieces with it; they stay drawn over it (`pinned` and `lifted`, R273).
 - carry (R298, R299, R300): the one way anything is carried: paper, a card, a pool, a chip or an

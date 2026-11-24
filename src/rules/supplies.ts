@@ -1,4 +1,4 @@
-// CRC: crc-Bar.md | R18, R19, R34, R287
+// CRC: crc-Bar.md | R18, R19, R34, R287, R498
 // What a supply makes, pure: the records for a new piece with its middle at `at` (R287). A new
 // character's pool pops out above its card, linked and gathered (R34).
 
@@ -36,13 +36,14 @@ export function newCharacter(oid: Oid, maker: Viewer, at: Point): Character {
     pool: { ...card, y: card.y - POOL_H }, card, flipped: false, gathered: true, front: BLANK_FRONT, back: blankBack() };
 }
 
-export function newSticky(oid: Oid, at: Point): Sticky {
-  return { kind: 'sticky', oid, place: place(at, STICKY.w, STICKY.h), text: '' };
+// R498: paper records its maker, when the page has one.
+export function newSticky(oid: Oid, at: Point, by?: string): Sticky {
+  return { kind: 'sticky', oid, place: place(at, STICKY.w, STICKY.h), text: '', ...(by && { by }) };
 }
 
 // R287: loose text starts as "Write here".
-export function newText(oid: Oid, at: Point): Text {
-  return { kind: 'text', oid, place: place(at, TEXT.w, TEXT.h), text: 'Write here' };
+export function newText(oid: Oid, at: Point, by?: string): Text {
+  return { kind: 'text', oid, place: place(at, TEXT.w, TEXT.h), text: 'Write here', ...(by && { by }) };
 }
 
 export function newHowTo(oid: Oid, at: Point): Reference {

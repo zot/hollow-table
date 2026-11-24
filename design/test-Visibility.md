@@ -121,3 +121,25 @@ the GM's view is unchanged
 **Fire alarm:** keep the whole flag in redaction; red: Dana gets `fed`, Self-Preservation's name with it
 **Inject:** src/rules/visibility.ts:redactPiece
 **Pulled:** 2026-11-19 — rang: Dana got the whole flag, fed and its source with it; restored clean
+
+## Test: private paper reaches only who reads it
+**Purpose:** R501: paper naming who reads it is whole for the GM, its maker and those in `to`, and nothing at all for anyone else
+**Input:** Sam's sticky to the GM (`by: Sam, to: []`); the GM's handout to Sam and Dana (`by: GM, to: [Sam, Dana]`); a public sticky with a maker; each redacted for the GM, Sam, Dana, Ann and nobody
+**Expected:** Sam's note: the GM and Sam whole, Dana, Ann and nobody nothing; the handout: the GM, Sam and Dana whole, Ann and nobody nothing; the public sticky whole for all
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 12
+**Fire alarm:** let anyone see paper with `to` (drop the paper case from redactPiece); red: Ann gets Sam's note
+**Inject:** src/rules/visibility.ts:redactPiece
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with paper unredacted, Ann and nobody got Sam's note; restored clean
+
+## Test: a buried private note is left out of Boot Hill
+**Purpose:** R508: a burial of only paper a viewer can't read isn't listed for them; in a mixed burial only the unreadable paper goes
+**Input:** Boot Hill holding "Note: for the GM" (Sam's note to the GM) and Sam's character buried with Sam's note to the GM pinned to its card; redacted for the GM and for Dana
+**Expected:** the GM sees both burials whole; Dana sees one burial, Sam's character, without the note
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 13
+**Fire alarm:** keep a burial whose records all redact away (the old filter); red: Dana's Boot Hill lists "Note: for the GM"
+**Inject:** src/rules/visibility.ts:redactYards
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the R508 skip gone, Dana's Boot Hill listed the note's burial; restored clean

@@ -1,4 +1,4 @@
-// CRC: crc-Moves.md | Seq: seq-move.md#1, seq-move.md#1.1, seq-move.md#1.2, seq-move.md#1.3, seq-move.md#1.5, seq-move.md#2 | R298, R299, R300, R182, R183, R361
+// CRC: crc-Moves.md | Seq: seq-move.md#1, seq-move.md#1.1, seq-move.md#1.2, seq-move.md#1.3, seq-move.md#1.5, seq-move.md#2 | R298, R299, R300, R182, R183, R361, R502
 // Drags go straight to the room, without passing through the GM's page. A receiving page queues
 // what arrives and an actor works through it in passes, newest arrival first, and shows the winners
 // (Hands). A move saves nothing: the drop's change does.

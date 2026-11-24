@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464, R469, R486
+**Requirements:** R168, R170, R174-176, R185, R186, R188, R191-193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464, R469, R486, R506, R508
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change. (R460) It enforces who may see and touch what; a judgment call the book leaves to
@@ -51,6 +51,8 @@ the GM isn't refused here (it is to be flagged, prototype Item 14).
   - (R444) it puts or deletes a piece another tab changed after the copy it was made on (`last` newer
     than the edit's version, by a tab not the sender's);
   - it is a chip whose `by` changes to anyone but the sender (R360);
+  - (R506) it is paper whose `by` isn't as before (new paper: none, or the sender; a piece dug up from
+    Boot Hill: as buried), or whose `to` changes when its maker isn't the sender;
   - (R464) it drops or shrinks a card's flag: only the GM's page rules on a flag;
   - (R375) `rows` is merged, as Boot Hill's is: of a player's rows, only those of characters they own
     are taken, and of those only the action, its alternative, the type and the hand; the aim, the
@@ -65,7 +67,10 @@ the GM isn't refused here (it is to be flagged, prototype Item 14).
     up is dropped. (R442) Every record already buried is the GM's copy, whatever the player sends; a
     record in a new burial is kept only when the same change deletes its piece and that deletion is
     taken, as the GM's page holds the piece; a burial left with no records is dropped. So a player
-    buries only what they may delete, and a refused deletion leaves its piece in play.
+    buries only what they may delete, and a refused deletion leaves its piece in play. (R508) Paper
+    the sender can't read, which their copy never held, is kept as the GM holds it: back in the
+    burial they kept, or, for a burial of nothing else, in the graveyard of its name (else the
+    first) at its place.
   Returns what to take and what to answer.
 - claims (R446): when the book's claims change, sends `claims` (name → browser) to everyone; a
   catch-up sends them to its tab too.

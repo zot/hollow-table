@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486, R496
+// CRC: crc-PieceView.md | Seq: seq-save.md#1.4 | R392, R393, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R390, R397, R398, R399, R400, R402, R403, R5, R206, R22, R23, R24, R25, R26, R27, R62, R202, R209, R213, R245, R248, R249, R250, R252, R253, R254, R255, R258, R259, R264, R265, R75, R76, R77, R283, R309, R310, R312, R316, R318, R339, R341, R342, R343, R354, R355, R363, R486, R496, R500, R503, R504, R505
 // Draws one paper piece from its record and turns edits back into Game changes: character cards
 // (both faces, the Damage columns), stickies, loose text, images, torn rolls and reference cards.
 // The slimmest DOM that draws it: text is MarkedText.render, built with textContent only.
@@ -6,7 +6,7 @@
 import { connections, groupChooser, sheet } from './connections.ts';
 import type { Game } from '../model/game.ts';
 import {
-  DAMAGE, GM, ROWS, ridFor, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type PieceRecord, type Place, type Reference,
+  DAMAGE, GM, ROWS, isPrivate, ridFor, ridOf, type Character, type Damage, type DamageSlot, type Image, type Oid, type Paper, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
@@ -58,6 +58,8 @@ export type PieceWith = {
   buryRecord: (oid: Oid, words: string) => void;
   /** R429: brings the PC's row up as a Reaction from the NPC's card; false when the viewer can't. */
   react: (pc: Oid, npc: Oid) => boolean;
+  /** R504: the players who have claimed names at the table, for the GM's checklist. */
+  players: () => string[];
 };
 
 /** An Attack being taken: whose card, the receipt, the kind, the attacker's name, its Result, the pages and the one shown. */
@@ -278,8 +280,9 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
     case 'sticky': case 'text':
       rewrite(e.querySelector('.text')!, r.text);
       if (r.kind === 'sticky') e.classList.toggle('big', !!r.big);   // R248
+      fold(e, r, w);
       break;
-    case 'image': image(e, r, w); break;
+    case 'image': image(e, r, w); fold(e, r, w); break;
     case 'tornroll': tornroll(e, r); break;
     case 'reference': break;
     case 'connections': sheet(e, r, w); break;
@@ -720,6 +723,105 @@ function recordGlyphs(text: HTMLElement, rec: Opinion, npc: Character, w: PieceW
     const words = line.textContent ?? '', r = influence(unadjusted(words));
     if (fixed(words) && r?.sign) line.prepend(glyph(doc, `${npc.oid}:o${rec.oid}/${r.name}`, w));
   }
+}
+
+// R505: who reads a note, as its tags show them: everyone but the viewer, the GM as "GM"; "me" when only the viewer does.
+/** The names by a folded corner, for this viewer; none for paper everyone reads. */
+export function readersOf(r: Paper, viewer: Viewer): string[] {
+  if (r.mine) return ['me'];
+  if (!r.to) return [];
+  const me = selfName(viewer);
+  const others = [...new Set([GM, ...(r.by ? [r.by] : []), ...r.to])].filter(n => n !== me);
+  return others.length ? others : ['me'];   // the GM's note to no one but the GM
+}
+
+/** Who reads a note: everyone, the GM alone (a player's to the GM, or the GM's to no one), its maker alone, or these players. */
+export type Readers = 'all' | 'gm' | 'me' | string[];
+
+// R499, R500: the note rewritten for its new readers; `mine` paper is kept under `m:` (ridFor).
+export function withReaders(r: Paper, a: Readers): Paper {
+  const { to: _to, mine: _mine, ...rest } = r;
+  if (a === 'all') return rest;
+  if (a === 'me') return { ...rest, mine: true };
+  return { ...rest, to: a === 'gm' ? [] : a };
+}
+
+/** The name the viewer goes by at the table: GM for the GM; none for someone who owns nothing. */
+function selfName(viewer: Viewer): string | undefined { return viewer?.gm ? GM : viewer?.name; }
+
+/** R504: only paper's maker picks who reads it. */
+const maker = (r: Paper, viewer: Viewer) => !!r.by && r.by === selfName(viewer);
+
+// R500: one change; crossing to or from "just me" moves the note between `o:` and `m:`.
+function setReaders(w: PieceWith, rid: Rid, a: Readers): void {
+  const cur = w.game.get(rid) as Paper | undefined;
+  if (!cur) return;
+  const next = withReaders(cur, a), to = ridFor(next);
+  w.game.change(wr => { if (to !== rid) wr.del(rid); wr.put(to, next); });
+}
+
+// R503-R505: paper with a maker shows a folded corner, folded when private, its readers' names by it, and
+// on its maker's page the ▾ that picks them.
+function fold(e: HTMLElement, r: Paper, w: PieceWith): void {
+  const doc = e.ownerDocument;
+  if (!r.by) {
+    for (const x of e.querySelectorAll(':scope > .fold, :scope > .readers, :scope > .foldpick')) x.remove();
+    return;
+  }
+  const f = e.querySelector<HTMLElement>(':scope > .fold') ?? e.appendChild(el(doc, 'div', 'fold'));
+  const priv = isPrivate(r);
+  e.classList.toggle('folded', priv);
+  f.title = priv ? 'Private' : 'Everyone reads this';
+  const tags = e.querySelector<HTMLElement>(':scope > .readers') ?? e.appendChild(el(doc, 'div', 'readers'));
+  tags.replaceChildren(...readersOf(r, w.viewer).map(n => el(doc, 'span', 'tag', n)));
+  let pick = e.querySelector<HTMLElement>(':scope > .foldpick');
+  if (!maker(r, w.viewer)) { pick?.remove(); e.querySelector(':scope > .readmenu')?.remove(); return; }
+  if (!pick) {
+    pick = e.appendChild(el(doc, 'button', 'foldpick'));
+    pick.setAttribute('aria-label', 'Who reads this');
+    gesture(pick, { click: () => { const was = e.querySelector(':scope > .readmenu'); if (was) was.remove(); else readMenu(e, w); } });
+  }
+  const menu = e.querySelector<HTMLElement>(':scope > .readmenu');
+  if (menu) fillMenu(menu, e, r, w);
+}
+
+// R504: a player's menu offers Everyone, GM and Just me; the GM's, Everyone, Just me and a checkbox per player.
+function readMenu(e: HTMLElement, w: PieceWith): void {
+  const r = w.game.get(e.dataset.rid!) as Paper | undefined;
+  if (!r) return;
+  fillMenu(e.appendChild(el(e.ownerDocument, 'div', 'readmenu')), e, r, w);
+}
+
+function fillMenu(m: HTMLElement, e: HTMLElement, r: Paper, w: PieceWith): void {
+  const doc = e.ownerDocument, rid = e.dataset.rid!;
+  const choice = (label: string, on: boolean, a: Readers, close: boolean) => {
+    const b = el(doc, 'button', on ? 'on' : '', label);
+    gesture(b, { click: () => { if (close) m.remove(); setReaders(w, rid, a); } });
+    return b;
+  };
+  if (!w.viewer?.gm) {
+    m.replaceChildren(choice('Everyone', !r.to && !r.mine, 'all', true), choice('GM', !!r.to, 'gm', true), choice('Just me', !!r.mine, 'me', true));
+    return;
+  }
+  // The players at the table, and anyone it already went to who isn't; a name stays while the menu is
+  // open, so unticking someone who left doesn't take their box away.
+  const to = new Set(r.to ?? []), shown: string[] = JSON.parse(m.dataset.names ?? '[]');
+  const names = [...new Set([...shown, ...w.players(), ...to])].sort();
+  m.dataset.names = JSON.stringify(names);
+  const boxes = names.map(n => {
+    const l = el(doc, 'label', 'reader'), box = doc.createElement('input');
+    box.type = 'checkbox';
+    box.checked = to.has(n);
+    box.addEventListener('change', () => {
+      const next = new Set(to);
+      if (box.checked) next.add(n); else next.delete(n);
+      setReaders(w, rid, [...next]);
+    });
+    l.append(box, n);
+    return l;
+  });
+  // "Just me" is the GM alone, as none checked is, reachable with no players at the table.
+  m.replaceChildren(choice('Everyone', !r.to, 'all', true), choice('Just me', !!r.to && !r.to.length, 'gm', true), ...boxes);
 }
 
 /** R393: the eye's category menu, under the arrow; a pick opens the eye on it. */

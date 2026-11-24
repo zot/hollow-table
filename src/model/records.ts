@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -96,10 +96,19 @@ export type Flag = { why: string; fed?: Record<string, number>; plain?: true };
 export type Chip = { kind: 'chip'; oid: Oid; where: Where; n: number; sign: Sign; points: number; rider: boolean; by?: Who };
 
 export type Pin = { card: Oid; dx: number; dy: number };
+// R498-R500: paper's maker (`by`; none on paper from before, which is everyone's), the players who read
+// it besides its maker (`to`; absent is everyone, and the GM reads any with `to`), and `mine`, its
+// maker's alone, kept under `m:`.
+export type Readers = { by?: Who; to?: string[]; mine?: true };
 // R248: `big` is the big sticky, for the GM's long notes.
-export type Sticky = { kind: 'sticky'; oid: Oid; place: Place; text: Marked; pin?: Pin; big?: boolean };
-export type Text = { kind: 'text'; oid: Oid; place: Place; text: Marked; pin?: Pin };
-export type Image = { kind: 'image'; oid: Oid; place: Place; blob: string; w: number; h: number; pin?: Pin };
+export type Sticky = { kind: 'sticky'; oid: Oid; place: Place; text: Marked; pin?: Pin; big?: boolean } & Readers;
+export type Text = { kind: 'text'; oid: Oid; place: Place; text: Marked; pin?: Pin } & Readers;
+export type Image = { kind: 'image'; oid: Oid; place: Place; blob: string; w: number; h: number; pin?: Pin } & Readers;
+export type Paper = Sticky | Text | Image;
+/** R499: whether a record is paper. */
+export function isPaper(r: { kind?: string }): r is Paper { return r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image'; }
+/** R499: paper that names who reads it, or is its maker's alone. */
+export function isPrivate(r: { kind?: string }): boolean { return isPaper(r) && (!!r.to || !!r.mine); }
 
 export const DICE = ['W', 'G', 'R', 'B', 'Y'] as const;
 export type DieColor = (typeof DICE)[number];
@@ -234,13 +243,21 @@ export function oidOf(rid: Rid): Oid { return rid.slice(2); }
 export function ridOf(oid: Oid): Rid { return 'o:' + oid; }
 /** R486: a torn roll is this page's own, under `t:` and its oid. */
 export function isTorn(rid: Rid): boolean { return rid.startsWith('t:'); }
-/** Drawn on the table: the table's pieces and this page's torn rolls. */
-export function onTable(rid: Rid): boolean { return isPiece(rid) || isTorn(rid); }
-/** A piece's key: `t:` for a torn roll, else ridOf. */
-export function ridFor(r: PieceRecord): Rid { return r.kind === 'tornroll' ? 't:' + r.oid : ridOf(r.oid); }
+/** R500: a player's "just me" paper is this page's own, under `m:` and its oid. */
+export function isMine(rid: Rid): boolean { return rid.startsWith('m:'); }
+/** Drawn on the table: the table's pieces, and this page's torn rolls and own paper. */
+export function onTable(rid: Rid): boolean { return isPiece(rid) || isTorn(rid) || isMine(rid); }
+/** A piece's key: `t:` for a torn roll, `m:` for `mine` paper (R500), else ridOf. */
+export function ridFor(r: PieceRecord): Rid {
+  if (r.kind === 'tornroll') return 't:' + r.oid;
+  if (minePaper(r)) return 'm:' + r.oid;
+  return ridOf(r.oid);
+}
+/** R500: paper that is its maker's alone. */
+function minePaper(r: PieceRecord): boolean { return isPaper(r) && !!r.mine; }
 const LOCAL = new Set<Rid>(['book', 'tape', 'hill']);
-/** R486: each page's own, never sent: the GM's book, every page's tape, its Hill and its torn rolls. */
-export function isLocal(rid: Rid): boolean { return LOCAL.has(rid) || isTorn(rid); }
+/** R486, R500: each page's own, never sent: the GM's book, every page's tape, its Hill, its torn rolls and its own paper. */
+export function isLocal(rid: Rid): boolean { return LOCAL.has(rid) || isTorn(rid) || isMine(rid); }
 
 // ---- check: every record from another page or an import passes here (R177) ----
 
@@ -296,6 +313,8 @@ export const receipt = fields(
     transfer: fields({ target: isOid, name: str(CAPS.name), sl: int(1, 5) },
       { done: fields({ resource: str(CAPS.name), moved: int(0, 5), extra: int(0, 5) }) }) });
 
+// R498-R500: paper's maker, its readers and whether it is its maker's alone.
+const readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true) };
 const PIECES: Record<PieceRecord['kind'], Shape> = {
   character: fields({ kind: oneOf('character'), oid: isOid, owner: str(CAPS.name), name: str(CAPS.name), pool: place,
     card: place, flipped: bool, gathered: bool, front: marked, back }, { shown: list(marked), info: list(marked, 20) }),
@@ -304,10 +323,10 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
     { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true),
       flag: fields({ why: str(CAPS.name) }, { fed: dict(int(0, 100)), plain: oneOf(true) }) }),
   chip: fields({ kind: oneOf('chip'), oid: isOid, where, n: int(0, CAPS.list), sign, points, rider: bool }, { by: str(CAPS.name) }),
-  sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin, big: bool }),
-  text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin }),
+  sticky: fields({ kind: oneOf('sticky'), oid: isOid, place, text: marked }, { pin, big: bool, ...readers }),
+  text: fields({ kind: oneOf('text'), oid: isOid, place, text: marked }, { pin, ...readers }),
   image: fields({ kind: oneOf('image'), oid: isOid, place, blob: v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v),
-    w: int(1, 100_000), h: int(1, 100_000) }, { pin }),
+    w: int(1, 100_000), h: int(1, 100_000) }, { pin, ...readers }),
   tornroll: fields({ kind: oneOf('tornroll'), oid: isOid, place, receipts: list(receipt, 10_000) }),
   reference: fields({ kind: oneOf('reference'), oid: isOid, place, which: oneOf('howto', 'actions') }),
   connections: fields({ kind: oneOf('connections'), oid: isOid, place,
@@ -345,7 +364,9 @@ const SINGLETONS: Record<string, Shape> = {
  * caps. Anything off rejects the record whole. A piece's oid must match its key.
  */
 export function check(rid: Rid, value: unknown): value is Rec {
-  if (isPiece(rid)) return piece(value) && (value as PieceRecord).oid === oidOf(rid);
+  // R500: `mine` paper is never the table's.
+  if (isPiece(rid)) return piece(value) && (value as PieceRecord).oid === oidOf(rid) && !minePaper(value as PieceRecord);
   if (isTorn(rid)) return PIECES.tornroll(value) && (value as PieceRecord).oid === oidOf(rid);   // R486
+  if (isMine(rid)) return piece(value) && minePaper(value as PieceRecord) && (value as PieceRecord).oid === oidOf(rid);   // R500
   return Object.hasOwn(SINGLETONS, rid) && SINGLETONS[rid]!(value);
 }

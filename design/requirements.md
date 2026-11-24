@@ -411,6 +411,17 @@
 - **R468:** A rename taken moves the claim to the new name and rewrites, in one change, the owner of each character the renamer owned and the `by` of each chip they put; printed receipts keep the old name.
 - **R469:** Clicking their own name in the bar, a player asks for a new name, which goes to the GM's page as `rename`; the GM's page answers that page (taken, or refused and why); taken, the page saves the name, moves its seat and reloads as it; refused, or with the GM's page away, the page's own tag says why.
 - **R478:** A rename taken moves the name's key to the new name, so the page's id holds.
+- **R498:** A sticky, loose text or image made from now on records its maker (`by`: a player's name, or "GM"); paper without one is everyone's and has no fold.
+- **R499:** Paper may name who reads it (`to`): absent is everyone; a list names the players who read it besides its maker, the GM reading every such note; a player's note to the GM has an empty list, and so does the GM's note to no one but the GM.
+- **R500:** A player's "just me" note (`mine`) is kept under a key of the page's own (`m:<oid>`), like a torn roll: never sent, kept with the page's copy through reloads, not in the game the GM saves; changing its audience to or from "just me" moves it between that key and the table's (`o:<oid>`), the table's copy deleted when it leaves.
+- **R501:** A note naming who reads it reaches only their pages: everyone else's page gets nothing of it, not even face-down, and a page that stops reading it has it removed.
+- **R502:** A note naming who reads it is carried on the carrier's page alone; its moves never go to the room.
+- **R503:** Paper with a maker shows a folded corner at its upper right: flat for everyone, folded for a note with readers named or kept "just me".
+- **R504:** On its maker's page, a ▾ beside the fold picks who reads the paper: a player's offers Everyone, GM and Just me; the GM's offers Everyone, Just me (the GM alone) and a checklist of the players who have claimed names at the table and of any it already went to, none checked being the GM alone too.
+- **R505:** By a folded corner, name tags in the hand font list everyone who reads the note but the viewer, the GM as "GM", players by name; a note only the viewer reads ("just me", or the GM's to no one) shows "me".
+- **R506:** Everyone who reads a note may write on it, move it and put it away; only its maker changes `by` or `to`, and a player can't make paper with another's name as its maker.
+- **R508:** A buried note a viewer can't read is left out of their Boot Hill: a burial holding only such notes isn't listed for them, and one holding others lists only those; the GM's page keeps such notes as it holds them when a player's Boot Hill change leaves them out, in their burial, or, for a whole burial left out, in the graveyard of its name (else the first) at its place.
+- **R507:** A rename taken rewrites the renamer's name in every paper's `by` and `to`, in the same change.
 
 ## Feature: the network
 **Source:** specs/network.md
