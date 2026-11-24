@@ -1,11 +1,11 @@
-// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527
+// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548
 // The desk on the bar: a little roll-top whose pigeonholes hold the paper supplies. A press opens the
 // strip of pigeonholes and follows the pointer: dragged across them it holds each one's piece small,
 // dragged out it hands the piece to the page to make and carry, and let go it decides what the
 // release means (release, pure).
 
 import { gesture, type PointerLike } from './gesture.ts';
-import { LABEL, drawers, inDrawer } from '../rules/drawers.ts';
+import { LABEL, drawers, inDrawer, search } from '../rules/drawers.ts';
 import type { Desk, Drawer } from '../model/records.ts';
 
 /** What a pigeonhole holds. */
@@ -81,6 +81,11 @@ export class DeskView {
   #drawers: HTMLElement;
   /** R526: the drawer pulled out, if any. */
   #pulled: Drawer | null = null;
+  /** R546, R547: the search line, and whether its list shows (from its focus until a drawer is pulled or the desk closes). */
+  #find: HTMLInputElement;
+  #searching = false;
+  /** What render redraws: the drawer fronts and the list below them. */
+  #body: HTMLElement;
   #image: HTMLElement;
   #imageSays: { text: string; title: string };
   #file: HTMLInputElement;
@@ -103,6 +108,16 @@ export class DeskView {
     this.#strip = el('div', 'deskpanel');
     const holes = el('div', 'pigeonholes');
     this.#drawers = el('div', 'drawers');
+    // R546, R547: the search line, at the top of the drawers, kept across redraws so it keeps its caret.
+    this.#find = doc.createElement('input');
+    this.#find.className = 'search';
+    this.#find.placeholder = 'Find in the desk';
+    this.#find.spellcheck = false;
+    const searching = () => { this.#searching = true; this.#pulled = null; this.render(); };
+    this.#find.addEventListener('focus', searching);
+    this.#find.addEventListener('input', searching);
+    this.#body = el('div', 'drawerbody');
+    this.#drawers.append(this.#find, this.#body);
     this.#strip.append(holes, this.#drawers);
     let image: HTMLElement | null = null;
     for (const [what, cls, text, title] of w.gm ? [...HOLES, LINKS] : HOLES) {
@@ -160,28 +175,43 @@ export class DeskView {
       const front = make('button', `drawerfront${this.#pulled === d ? ' pulled' : ''}`, '', `${LABEL[d]}: click to pull it out`);
       front.dataset.drawer = d;
       front.append(make('span', 'label', LABEL[d]), make('span', 'pull'));
-      front.addEventListener('click', () => { this.#pulled = this.#pulled === d ? null : d; this.render(); });
+      front.addEventListener('click', () => { this.#pulled = this.#pulled === d ? null : d; this.#searching = false; this.render(); });
       fronts.append(front);
     }
+    // R527, R548: an entry, dragged out, comes back under the pointer; a search's shows its drawer.
+    const entry = (k: number, name: string, drawer?: Drawer) => {
+      const b = make('button', '', name, 'Drag this back onto the table');
+      if (drawer) b.append(make('span', 'where', LABEL[drawer]));
+      gesture(b, { drag: (_down, move) => { this.#show(false); this.#w.takeOut(k, move); } });
+      return b;
+    };
+    if (this.#searching) {
+      const list = make('div', 'filed found'), hits = search(this.#w.filed(), this.#find.value);
+      if (!hits.length) list.append(make('p', '', this.#find.value.trim() ? 'Nothing found.' : 'Nothing filed here.'));
+      for (const { k, entry: e } of hits) list.append(entry(k, e.name, e.drawer));
+      this.#body.replaceChildren(fronts, list);
+      return;
+    }
     if (!this.#pulled) {
-      this.#drawers.replaceChildren(fronts);
+      this.#body.replaceChildren(fronts);
       return;
     }
     const list = make('div', 'filed'), filed = inDrawer(this.#w.filed(), this.#pulled);
     list.dataset.drawer = this.#pulled;
     if (!filed.length) list.append(make('p', '', 'Nothing filed here.'));
-    for (const { k, entry } of filed) {
-      const b = make('button', '', entry.name, 'Drag this back onto the table');
-      gesture(b, { drag: (_down, move) => { this.#show(false); this.#w.takeOut(k, move); } });
-      list.append(b);
-    }
-    this.#drawers.replaceChildren(fronts, list);
+    for (const { k, entry: e } of filed) list.append(entry(k, e.name));
+    this.#body.replaceChildren(fronts, list);
   }
 
   /** The strip shown (a press or the open desk) or hidden; `open` keeps it until a press elsewhere. */
   #show(on: boolean, open = false): void {
     this.#open = on && open;
-    if (!this.#open && this.#pulled) { this.#pulled = null; this.render(); }
+    if (!this.#open && (this.#pulled || this.#searching || this.#find.value)) {
+      this.#pulled = null;
+      this.#searching = false;
+      this.#find.value = '';
+      this.render();
+    }
     this.el.classList.toggle('pressed', on);
     this.el.classList.toggle('open', this.#open);
   }

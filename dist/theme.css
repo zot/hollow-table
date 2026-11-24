@@ -95,6 +95,13 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
   padding: 3px 6px; border-radius: 3px; cursor: grab; touch-action: none; }
 #bar .drawers .filed button:hover { background: #efe6d2; }
 #bar .drawers .filed p { margin: 4px 6px; font: 12px var(--mono); color: #6a5a4a; }
+/* R546-R548: the search line, a slip of ruled paper at the top of the drawers; a result says its drawer. */
+#bar .drawers .search { display: block; box-sizing: border-box; width: 100%; margin-bottom: 8px; padding: 2px 8px 0;
+  font: 600 18px/1.4 var(--hand); color: var(--ink); background: var(--paper); border: 0; border-bottom: 1px solid var(--rule);
+  border-radius: 3px 3px 0 0; outline: none; user-select: text; -webkit-user-select: text; }
+#bar .drawers .search::placeholder { color: #9a8a74; }
+#bar .drawers .search:focus { box-shadow: 0 0 0 2px var(--amber); }
+#bar .drawers .filed .where { margin-left: 10px; font: 11px var(--mono); color: #6a5a4a; }
 /* R520: over the desk, the drawer a piece would be filed in. */
 #bar .desk.file .desktop, #bar .desk.file .rolltop { outline: 2px solid #d9b45a; }
 #bar .desk.file::after { content: attr(data-drawer); position: absolute; top: 100%; left: 50%; transform: translateX(-50%);

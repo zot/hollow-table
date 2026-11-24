@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { OPEN, type Character, type Chip, type PieceRecord, type Sticky, type TornRoll } from '../model/records.ts';
-import { drawerOf, drawers, emptyDesk, filed, inDrawer, takeOut } from './drawers.ts';
+import { drawerOf, drawers, emptyDesk, filed, inDrawer, search, takeOut } from './drawers.ts';
 import { burialOf } from './yards.ts';
 import { DEVREUX, SAM, scene } from '../store/playtest.ts';
 
@@ -32,3 +32,30 @@ test('what files where, and filing and taking out', () => {
   assert.deepEqual(out.desk.desk.map(e => e.name), ['Note: shopping'], 'the rest stays');
   assert.deepEqual(inDrawer(undefined, 'papers'), [], 'no desk: nothing filed');
 });
+
+const found = (d: ReturnType<typeof emptyDesk>, q: string) => search(d, q).map(e => e.entry.name);
+const at = { x: 0, y: 0, z: 1, tilt: 0 };
+const with_ = (oid: string, name: string, front: string): Character => ({ ...char(DEVREUX), oid, name, front });
+
+test('searching the desk', () => {
+  let d = emptyDesk();
+  d = filed(d, 'npcs', [with_('00000003', 'Devreux', '<head>Devreux</head>\nSkills 3: Savvy')], 'Devreux');
+  const note: Sticky = { kind: 'sticky', oid: 'aa000001', place: at, text: 'buy rope\nthe <b>coach</b> left at dawn' };
+  d = filed(d, 'papers', [note], 'Note: buy rope');
+  d = filed(d, 'characters', [char(SAM)], 'Sam');
+  d = filed(d, 'papers', [{ kind: 'docket', oid: 'dd000001', place: at, name: 'Clues' }], 'Docket: Clues');
+  assert.deepEqual(found(d, ''), ['Devreux', 'Docket: Clues', 'Note: buy rope', 'Sam']);
+  assert.deepEqual(found(d, '  sam '), ['Sam']);
+  assert.deepEqual(found(d, 'COACH dawn'), ['Note: buy rope']);
+  assert.deepEqual(found(d, 'savvy'), ['Devreux']);
+  assert.deepEqual(found(d, 'nobody'), []);
+  assert.deepEqual(search(undefined, ''), []);
+});
+
+test('names first', () => {
+  let d = emptyDesk();
+  d = filed(d, 'npcs', [with_('00000010', 'Zeke', 'Zeke')], 'Zeke');
+  d = filed(d, 'npcs', [with_('00000011', 'Ann', 'Ann, an amaze of a woman')], 'Ann');
+  assert.deepEqual(found(d, 'ze'), ['Zeke', 'Ann']);
+});
+

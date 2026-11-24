@@ -1184,6 +1184,33 @@ function takeOut(desk, k) {
 function inDrawer(desk, drawer2) {
   return (desk?.desk ?? []).flatMap((entry, k) => entry.drawer === drawer2 ? [{ k, entry }] : []);
 }
+function wordsOf(r) {
+  const plain2 = (m) => m.replace(/<[^>]*>/g, "");
+  switch (r.kind) {
+    case "character":
+      return [r.front, r.back.notes, ...r.info ?? []].map(plain2).join("\n");
+    case "sticky":
+    case "text":
+      return plain2(r.text);
+    case "docket":
+      return r.name;
+    default:
+      return "";
+  }
+}
+function search(desk, query) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const byName = (a, b) => a.entry.name.localeCompare(b.entry.name, void 0, { sensitivity: "base" });
+  const all2 = (desk?.desk ?? []).map((entry, k) => ({ k, entry })).sort(byName);
+  if (!words.length) return all2;
+  const has = (text) => {
+    const t = text.toLowerCase();
+    return words.every((w) => t.includes(w));
+  };
+  const named4 = all2.filter((e) => has(e.entry.name));
+  const worded = all2.filter((e) => !has(e.entry.name) && has(e.entry.records.map(wordsOf).join("\n")));
+  return [...named4, ...worded];
+}
 
 // src/rules/connections.ts
 var WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
@@ -4342,8 +4369,8 @@ function invite(base, room2, gm) {
 }
 var ROOM2 = /^[a-z0-9-]{1,40}-[0-9a-f]{32}$/;
 var OLD = /^[\w-]{20}$/;
-function fromUrl(search) {
-  const q = new URLSearchParams(search), room2 = q.get("room"), gm = q.get("gm");
+function fromUrl(search2) {
+  const q = new URLSearchParams(search2), room2 = q.get("room"), gm = q.get("gm");
   if (!room2 || !gm || !ROOM2.test(room2)) return null;
   if (ID.test(gm)) return { room: room2, gm };
   return OLD.test(gm) ? "old" : null;
@@ -16201,6 +16228,11 @@ var DeskView = class {
   #drawers;
   /** R526: the drawer pulled out, if any. */
   #pulled = null;
+  /** R546, R547: the search line, and whether its list shows (from its focus until a drawer is pulled or the desk closes). */
+  #find;
+  #searching = false;
+  /** What render redraws: the drawer fronts and the list below them. */
+  #body;
   #image;
   #imageSays;
   #file;
@@ -16221,6 +16253,19 @@ var DeskView = class {
     this.#strip = el4("div", "deskpanel");
     const holes = el4("div", "pigeonholes");
     this.#drawers = el4("div", "drawers");
+    this.#find = doc.createElement("input");
+    this.#find.className = "search";
+    this.#find.placeholder = "Find in the desk";
+    this.#find.spellcheck = false;
+    const searching = () => {
+      this.#searching = true;
+      this.#pulled = null;
+      this.render();
+    };
+    this.#find.addEventListener("focus", searching);
+    this.#find.addEventListener("input", searching);
+    this.#body = el4("div", "drawerbody");
+    this.#drawers.append(this.#find, this.#body);
     this.#strip.append(holes, this.#drawers);
     let image2 = null;
     for (const [what, cls, text, title] of w.gm ? [...HOLES, LINKS] : HOLES) {
@@ -16279,32 +16324,44 @@ var DeskView = class {
       front.append(make4("span", "label", LABEL[d]), make4("span", "pull"));
       front.addEventListener("click", () => {
         this.#pulled = this.#pulled === d ? null : d;
+        this.#searching = false;
         this.render();
       });
       fronts.append(front);
     }
+    const entry = (k, name2, drawer2) => {
+      const b = make4("button", "", name2, "Drag this back onto the table");
+      if (drawer2) b.append(make4("span", "where", LABEL[drawer2]));
+      gesture(b, { drag: (_down, move) => {
+        this.#show(false);
+        this.#w.takeOut(k, move);
+      } });
+      return b;
+    };
+    if (this.#searching) {
+      const list3 = make4("div", "filed found"), hits = search(this.#w.filed(), this.#find.value);
+      if (!hits.length) list3.append(make4("p", "", this.#find.value.trim() ? "Nothing found." : "Nothing filed here."));
+      for (const { k, entry: e } of hits) list3.append(entry(k, e.name, e.drawer));
+      this.#body.replaceChildren(fronts, list3);
+      return;
+    }
     if (!this.#pulled) {
-      this.#drawers.replaceChildren(fronts);
+      this.#body.replaceChildren(fronts);
       return;
     }
     const list2 = make4("div", "filed"), filed2 = inDrawer(this.#w.filed(), this.#pulled);
     list2.dataset.drawer = this.#pulled;
     if (!filed2.length) list2.append(make4("p", "", "Nothing filed here."));
-    for (const { k, entry } of filed2) {
-      const b = make4("button", "", entry.name, "Drag this back onto the table");
-      gesture(b, { drag: (_down, move) => {
-        this.#show(false);
-        this.#w.takeOut(k, move);
-      } });
-      list2.append(b);
-    }
-    this.#drawers.replaceChildren(fronts, list2);
+    for (const { k, entry: e } of filed2) list2.append(entry(k, e.name));
+    this.#body.replaceChildren(fronts, list2);
   }
   /** The strip shown (a press or the open desk) or hidden; `open` keeps it until a press elsewhere. */
   #show(on, open = false) {
     this.#open = on && open;
-    if (!this.#open && this.#pulled) {
+    if (!this.#open && (this.#pulled || this.#searching || this.#find.value)) {
       this.#pulled = null;
+      this.#searching = false;
+      this.#find.value = "";
       this.render();
     }
     this.el.classList.toggle("pressed", on);

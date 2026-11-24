@@ -1,8 +1,8 @@
-// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R529, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527
+// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R529, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527, R546, R547, R548, R549
 // The desk on the bar: its pigeonholes hold the paper supplies; a press takes one out, small while
 // over the strip; let go in a pigeonhole it follows the pointer until the next press.
 import { expect, test, type Page } from '@playwright/test';
-import { barMiddle, fromDesk, gmTable, join, kinds, open, openTable, rec, records } from './page.ts';
+import { barMiddle, fromDesk, gmTable, hook, join, kinds, open, openTable, rec, records } from './page.ts';
 
 const PNG = { name: 'dot.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64') };
 
@@ -133,7 +133,8 @@ test('on touch, a piece let go in its pigeonhole lands below the strip', async (
   await touch.touchscreen.tap(desk.x, desk.y);
   await expect(touch.locator('#bar .pigeonholes')).toBeVisible();
   const before = await count(touch, 'sticky'), n = await hole(touch, 'sticky');
-  const strip = (await touch.locator('#bar .pigeonholes').boundingBox())!;
+  // The open desk's whole panel, its drawers and search line too: the piece lands below it.
+  const strip = (await touch.locator('#bar .deskpanel').boundingBox())!;
   await touch.touchscreen.tap(n.x, n.y);
   await expect.poll(() => count(touch, 'sticky')).toBe(before + 1);
   const made = (await kinds(touch, 'sticky')).at(-1)![1];
@@ -226,4 +227,41 @@ test("a player's drawer is her own", async ({ browser }) => {
   await expect.poll(() => rec(dana, mine)).toBeUndefined();
   expect((await rec(dana, 'desk')).desk).toHaveLength(1);
   await expect.poll(async () => JSON.stringify(await rec(gm, 'yards')), { timeout: 15_000 }).toContain(mine.slice(2));
+});
+
+test('the search line finds what is filed, and lists every name', async ({ browser }) => {
+  const { gm, invite } = await gmTable(browser);
+  const dana = await join(browser, invite, 'Dana', gm);
+  // The GM's desk holds Devreux and a note: filed straight into the record, as filing would.
+  await hook(gm, h => h.store.game.change((w: any) => {
+    const g = h.store.game, dev = g.get('o:00000003');
+    const note = { kind: 'sticky', oid: 'aa000001', place: { x: 900, y: 500, z: 1, tilt: 0 }, text: 'buy rope\nthe coach left at dawn' };
+    w.put('desk', { desk: [{ drawer: 'npcs', name: 'Devreux', records: [dev] }, { drawer: 'papers', name: 'Note: buy rope', records: [note] }] });
+    w.del('o:00000003');
+  }));
+  const desk = await middle(gm, '#bar .desk');
+  await gm.mouse.click(desk.x, desk.y);
+  // R547, R548: with nothing typed, every name, alphabetical, each with its drawer.
+  await gm.locator('#bar .search').click();
+  await expect(gm.locator('#bar .filed button')).toHaveText(['DevreuxNPCs', 'Note: buy ropePapers']);
+  // R546: as it is typed, by the words filed; none says so; cleared, the whole list again.
+  await gm.keyboard.type('COACH');
+  await expect(gm.locator('#bar .filed button')).toHaveText(['Note: buy ropePapers']);
+  await gm.keyboard.type(' nobody');
+  await expect(gm.locator('#bar .filed p')).toHaveText('Nothing found.');
+  await gm.locator('#bar .search').fill('');
+  await expect(gm.locator('#bar .filed button')).toHaveCount(2);
+  await gm.locator('#bar .search').fill('dev');
+  // R548: dragged out, it comes back as from its drawer.
+  const entry = await middle(gm, '#bar .filed button'), to = await openTable(gm);
+  await lift(gm, entry, to, { x: 10, y: 10 });
+  await gm.mouse.up();
+  await expect.poll(() => rec(gm, DEVREUX).then(r => !!r)).toBe(true);
+  expect((await rec(gm, 'desk')).desk.map((e: any) => e.name)).toEqual(['Note: buy rope']);
+  // R549: Dana's search reads her own desk, which holds nothing.
+  const dd = await middle(dana, '#bar .desk');
+  await dana.mouse.click(dd.x, dd.y);
+  await dana.locator('#bar .search').click();
+  await expect(dana.locator('#bar .filed button')).toHaveCount(0);
+  await expect(dana.locator('#bar .filed p')).toHaveText('Nothing filed here.');
 });

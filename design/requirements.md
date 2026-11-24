@@ -569,6 +569,10 @@
 - **R526:** The open desk shows its drawers below the pigeonholes, each a drawer front with a brass pull and a label naming it; clicking one pulls it out listing what is filed there, oldest first, each named as a burial is (graveName); an empty drawer says "Nothing filed here"; clicking it again, or another, closes it.
 - **R527:** A name dragged a few pixels out of a drawer comes back under the pointer with everything filed with it, carried as from Boot Hill, owned as when it was filed; let go over the desk it is filed again, over the rest of the bar buried.
 - **R528:** A rename taken rewrites the renamer's name in the GM's drawers as in the game (R468, R507).
+- **R546:** The open desk has a search line at the top of its drawers, in the hand font; typing in it lists, as it is typed, the filed entries in which every word typed is found, without regard to case, in the entry's name or in the words on its records (a sticky's or loose text's text, a character's front, back notes and Info cards, a docket's name), marks left out; those matching by name come first, each group alphabetical by name; none matching says "Nothing found."
+- **R547:** With nothing typed, the search line, while it has the caret, lists every filed entry, alphabetical by name; clearing what was typed brings the whole list back.
+- **R548:** Each result shows its name and its drawer's label, and dragged a few pixels out comes back as from its drawer (R527).
+- **R549:** A page searches only its own desk record (R524, R525).
 
 ## Feature: dockets
 **Source:** specs/dockets.md

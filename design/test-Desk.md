@@ -66,3 +66,14 @@
 **Fire alarm:** file characters on a player's page too (drawerOf ignoring `gm`); red: her character goes into her desk
 **Inject:** src/rules/drawers.ts:drawerOf
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with drawerOf ignoring gm, Dana's character lit her desk to be filed (Chromium); restored clean
+
+## Test: the search line finds what is filed, and lists every name
+**Purpose:** R546-R549: the open desk's search line lists every name with nothing typed, narrows as it is typed, says "Nothing found.", drags a result out, and reads the page's own desk.
+**Input:** the GM's desk holding Devreux and a note "buy rope / the coach left at dawn"; the GM focuses the line, types COACH, then " nobody", clears it, types "dev" and drags the result out; Dana opens her desk's line.
+**Expected:** Devreux (NPCs) and the note (Papers), alphabetical; COACH leaves the note; "Nothing found."; cleared, both again; Devreux back on the table, the desk holding the note; Dana's line says "Nothing filed here."
+**Refs:** crc-Desk.md, crc-Drawers.md
+**Code:** tests/desk.spec.ts
+**Alarm:** 7
+**Fire alarm:** leave the list shut when the line takes the caret (no `#searching` on focus): with nothing typed, no names show
+**Inject:** src/ui/desk.ts:DeskView
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with no list on focus, the search line spec failed in Chromium (no names with nothing typed); restored clean

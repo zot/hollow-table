@@ -14,7 +14,7 @@ Opened by Bill, 2026-11-23, and worked out with Daneel over 2026-11-23 and 24.
 - [x] ~~**Item 2 — the desk and its pigeonholes.**~~ **LANDED (2026-11-24 — `#64`.)**
 - [x] ~~**Item 3 — drawers and filing.**~~ **LANDED (2026-11-24 — `#65`.)** After Items 1 and 2.
 - [x] ~~**Item 4 — dockets.**~~ **LANDED (2026-11-24 — `#66`.)** After Item 3.
-- [ ] **Item 5 — search and the list of names.** **OPEN (not queued.)** After Item 3.
+- [x] ~~**Item 5 — search and the list of names.**~~ **LANDED (2026-11-24 — `#67`.)** After Item 3.
 - [ ] **Item 6 — the GM's desks.** **OPEN (not queued.)** After Item 3.
 - [ ] **Item 7 — desktops and the knife switch.** **OPEN (not queued.)** After Item 6.
 
@@ -283,6 +283,9 @@ finds only their own paper.
 
 DECIDED (Bill, 2026-11-24): "words too for a typed-in search but we should also have a way to present a
 list of names to the GM", and that list is the empty search ("Empty search shows it").
+
+Specified in `specs/desk.md`, *Finding*, as R546–R549 (#67). Built before Item 6, a result says its
+drawer alone ("NPCs"); with several desks it will say its desk too ("Act 2: NPCs").
 
 ## Item 6
 

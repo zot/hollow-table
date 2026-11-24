@@ -1,4 +1,4 @@
-// CRC: crc-Drawers.md | R519, R521, R523, R524, R525, R527
+// CRC: crc-Drawers.md | R519, R521, R523, R524, R525, R527, R546, R547, R549
 // The desk's drawers, pure: which drawer a piece files in, filing it, and taking it out again. Like
 // Boot Hill's graveyards, but each page's own (`desk`) and never shared.
 
@@ -40,4 +40,30 @@ export function takeOut(desk: Desk, k: number): { desk: Desk; records: PieceReco
 /** A drawer's entries, oldest first, each with its index in the desk. */
 export function inDrawer(desk: Desk | undefined, drawer: Drawer): { k: number; entry: Filed }[] {
   return (desk?.desk ?? []).flatMap((entry, k) => (entry.drawer === drawer ? [{ k, entry }] : []));
+}
+
+// R546: the plain words on a filed record, marks left out.
+/** The words a search reads on a filed record. */
+export function wordsOf(r: PieceRecord): string {
+  const plain = (m: string) => m.replace(/<[^>]*>/g, '');
+  switch (r.kind) {
+    case 'character': return [r.front, r.back.notes, ...(r.info ?? [])].map(plain).join('\n');
+    case 'sticky': case 'text': return plain(r.text);
+    case 'docket': return r.name;
+    default: return '';
+  }
+}
+
+// R546, R547, R549: every word of the query, case aside, in the name or the words filed; name matches
+// first, each group by name; no words, every entry by name. The page's own desk alone.
+/** The desk's entries a search finds, each with its index in the desk. */
+export function search(desk: Desk | undefined, query: string): { k: number; entry: Filed }[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const byName = (a: { entry: Filed }, b: { entry: Filed }) => a.entry.name.localeCompare(b.entry.name, undefined, { sensitivity: 'base' });
+  const all = (desk?.desk ?? []).map((entry, k) => ({ k, entry })).sort(byName);
+  if (!words.length) return all;
+  const has = (text: string) => { const t = text.toLowerCase(); return words.every(w => t.includes(w)); };
+  const named = all.filter(e => has(e.entry.name));
+  const worded = all.filter(e => !has(e.entry.name) && has(e.entry.records.map(wordsOf).join('\n')));
+  return [...named, ...worded];
 }

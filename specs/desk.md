@@ -42,3 +42,20 @@ The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/o
   It comes up once dragged a few pixels, as from Boot Hill. A PC comes back to its player (Bill,
   2026-11-24: "Back to its player"), owned as when it was filed.
 - **Dropped back on the desk** it is filed again; on the rest of the bar, buried.
+
+## Finding
+
+From `carves/organizing.md`, Item 5 (Bill, 2026-11-24: "words too for a typed-in search but we should
+also have a way to present a list of names to the GM", and "Empty search shows it").
+
+- **The open desk has a search line** at the top of its drawers, written in the hand font. Typing in
+  it lists what is filed that matches, as you type: every word typed, in any case, found in its name
+  or in the words on what was filed (a note's or loose writing's words, a character card's front, back
+  notes and Info cards, a docket's name and its papers' words). **Names first**: what matches by its
+  name comes before what matches only by its words, each alphabetical. Nothing matching says "Nothing
+  found."
+- **With nothing typed, it is the list of names**: every name filed, in every drawer, alphabetical.
+  Clearing what was typed brings the whole list back.
+- **Each result says its drawer** ("NPCs") and drags out as from its drawer.
+- **A page searches only its own desk**, so a player finds only what they filed.
+

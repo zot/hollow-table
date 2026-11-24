@@ -1,5 +1,5 @@
 # Desk
-**Requirements:** R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527
+**Requirements:** R512-517, R520, R526, R527, R529, R530, R546-548
 
 The desk on the bar (`carves/organizing.md`): a little roll-top right after the wordmark, its
 pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
@@ -36,6 +36,9 @@ the drawers showing below the pigeonholes.
 - the hint (R520): Drag marks the desk `file` with the drawer's name while a piece that would be filed
   is over it; the desk shows "→ <drawer>" beneath itself.
 - the docket's pigeonhole (R529, R530): a label on red tape, between the reference card and the Connection Table.
+- search line (R546-R548): an input at the top of the open desk's drawers; while it has the caret or
+  holds words it lists Drawers.search's results, each its name and its drawer's label, dragged out as
+  from a drawer; none says "Nothing found."
 
 ## Collaborators
 - Bar: makes it, in the bar after the wordmark, and passes its callbacks through.

@@ -1,5 +1,5 @@
 # Drawers
-**Requirements:** R519, R521, R523, R524, R525, R527
+**Requirements:** R519, R521, R523-525, R527, R546, R547, R549
 
 The desk's drawers, pure: which drawer a piece files in, filing it, and taking it out again. Like
 Yards, but each page's own (`desk`, Records.isLocal) and never shared.
@@ -16,6 +16,11 @@ Yards, but each page's own (`desk`, Records.isLocal) and never shared.
   name (Yards.graveName) and the records a burial would take (Yards.burialOf), as they were.
 - takeOut(desk, drawer, k) (R527): the desk without that entry, and its records as filed.
 - inDrawer(desk, drawer): the entries of one drawer, oldest first, with their index in the desk.
+- search(desk, query) (R546, R547, R549): the entries matching every word of the query, case aside, in
+  their name or in the words on their records (wordsOf), name matches first, each group by name; with
+  no words, every entry by name.
+- wordsOf(record) (R546): the plain words on a filed record: a sticky's or loose text's text, a
+  character's front, back notes and Info cards, a docket's name; marks left out.
 
 ## Collaborators
 - Records: the `desk` record and its pieces.
