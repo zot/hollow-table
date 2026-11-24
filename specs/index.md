@@ -15,6 +15,7 @@ Ricochet's physical conflict: "No seam; build it when it comes".
 - [influence.md](influence.md) — chips, Influence cards, Roll Up, tapping Resources, used cards
 - [rolls.md](rolls.md) — the roll row, actions, pointing at an opponent, resolving, receipts and the tape, the register
 - [boothill.md](boothill.md) — putting away, graveyards, deleting forever
+- [desk.md](desk.md) — the desk's drawers: filing pieces away by kind, whose they are, and bringing them back
 - [connections.md](connections.md) — the Connection Table: how the characters view each other, NPC groups
 
 ### The game

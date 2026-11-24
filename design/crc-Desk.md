@@ -1,9 +1,10 @@
 # Desk
-**Requirements:** R509, R511, R512, R513, R514, R515, R516, R517
+**Requirements:** R509, R511, R512, R513, R514, R515, R516, R517, R520, R526, R527
 
 The desk on the bar (`carves/organizing.md`): a little roll-top right after the wordmark, its
-pigeonholes holding the paper supplies. Pressing it opens the strip of pigeonholes; the press, wherever
-it goes, decides what is taken and how. Its drawers come with Item 3.
+pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
+strip of pigeonholes; the press, wherever it goes, decides what is taken and how. A click opens it whole,
+the drawers showing below the pigeonholes.
 
 ## Knows
 - holes: the pigeonholes in order: character, sticky, text, image, howto, and on the GM's desk
@@ -27,10 +28,18 @@ it goes, decides what is taken and how. Its drawers come with Item 3.
 - refused(why) (R517): the image pigeonhole red with its label and tooltip, the desk edged red; null
   clears both.
 - an open desk closes on a press anywhere outside it.
+- drawers (R526): on the open desk, a drawer front per drawer (Drawers.DRAWERS) with a brass pull and its
+  label; a click pulls one out (closing any other) and lists its entries (Drawers.inDrawer) by name,
+  or "Nothing filed here." It is drawn again when the `desk` record changes (render).
+- take out (R527): an entry dragged a few pixels (Gesture's drag) goes to DeskWith.takeOut with the
+  pointer, and the desk closes; the page brings its records back under the pointer and carries them.
+- the hint (R520): Drag marks the desk `file` with the drawer's name while a piece that would be filed
+  is over it; the desk shows "→ <drawer>" beneath itself.
 
 ## Collaborators
 - Bar: makes it, in the bar after the wordmark, and passes its callbacks through.
-- Drag (through the page): carries what is made, on the press or loose.
+- Drag (through the page): carries what is made, on the press or loose, and what comes out of a drawer.
+- Drawers: what the drawers hold, read from the page's `desk` record.
 
 ## Sequences
 - seq-drag.md

@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500, R524, R525
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -233,7 +233,12 @@ export function newestRoll(tape: Tape | undefined): number {
   return Math.max(tape?.last ?? 0, ...(tape?.receipts ?? []).filter(r => r.id.startsWith('roll-')).map(r => r.at));
 }
 
-export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill;
+// R524, R525: this page's own drawers (the GM's saved with the game, a player's with their copy).
+export type Drawer = 'characters' | 'npcs' | 'papers';
+export type Filed = { drawer: Drawer; name: string; records: PieceRecord[] };
+export type Desk = { desk: Filed[] };
+
+export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill | Desk;
 
 // Player-made characters number from here up, so they can't collide with the GM's.
 export const PLAYER_OIDS = 0x100000;
@@ -255,8 +260,8 @@ export function ridFor(r: PieceRecord): Rid {
 }
 /** R500: paper that is its maker's alone. */
 function minePaper(r: PieceRecord): boolean { return isPaper(r) && !!r.mine; }
-const LOCAL = new Set<Rid>(['book', 'tape', 'hill']);
-/** R486, R500: each page's own, never sent: the GM's book, every page's tape, its Hill, its torn rolls and its own paper. */
+const LOCAL = new Set<Rid>(['book', 'tape', 'hill', 'desk']);
+/** R486, R500, R524: each page's own, never sent: the GM's book, every page's tape, its Hill and desk, its torn rolls and its own paper. */
 export function isLocal(rid: Rid): boolean { return LOCAL.has(rid) || isTorn(rid) || isMine(rid); }
 
 // ---- check: every record from another page or an import passes here (R177) ----
@@ -342,6 +347,7 @@ const burial = fields({ name: str(CAPS.name), records: list(piece) }, { info: fi
 const SINGLETONS: Record<string, Shape> = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool, items: list(burial) }), 100) }),
   hill: fields({ hill: list(fields({ yard: str(CAPS.name), burial }), 10_000) }),
+  desk: fields({ desk: list(fields({ drawer: oneOf('characters', 'npcs', 'papers'), name: str(CAPS.name), records: list(piece) }), 10_000) }),
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1000, 1000) }),
   rows: fields({ rows: dict(fields({ pool: isOid, action: str(CAPS.name), opponent: (v: unknown) => v === null || v === WORLD || isOid(v),

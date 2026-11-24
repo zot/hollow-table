@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -47,6 +47,11 @@ Lifting, carrying and dropping, and deciding what a drop means.
   - otherwise: placed where dropped.
 - supplies: a supply taken from the desk is made under the pointer (Desk); a new character pops its
   pool out above the card, or the card slides below the bar if there's no room.
+- file (R519-R523): letting go over the desk (overDesk, by the pointer's x and y) files a piece
+  Drawers.drawerOf gives a drawer, on this page's `gm`: its burialOf records (less `mine` paper on the
+  GM's page, which holds none) go into the `desk` record's drawer under graveName, and are deleted from
+  the table in the same change. Anything else over the desk is as over the bar. While a fileable piece
+  is over the desk the bar is lit `file` with "→ <drawer>" (R520), not `bury`.
 - loose (R513): start, startPool and startItem may carry with no button held, from a pointer
   position: the piece follows every pointer move until the next press, which is taken (its default
   prevented and kept from what lies under it) and puts the piece down there, or puts it away over the

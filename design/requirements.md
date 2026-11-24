@@ -552,3 +552,17 @@
 - **~~R302:~~** (Retired T13 — see R303) Every push to `main` publishes the page to GitHub Pages: built from the sources, type-checked and unit-tested, and stamped with the commit's time; a push that fails the checks publishes nothing.
 - **R303:** Only releases are published: pushing a release's version tag (`vX.Y.Z`) builds the page from that tag's sources, type-checked and unit-tested, showing the tag as its version and the release's day as its date; a release that fails the checks publishes nothing.
 - **R297:** The specs run headless in Chromium and Firefox, each page in its own browser context; networked specs meet through a local Nostr relay the spec run starts (a page with the test hook may be told to use it), so the suite runs offline, and one meets through the public relays.
+
+## Feature: the desk
+**Source:** specs/desk.md
+
+- **R519:** A piece let go over the desk is filed in its drawer; let go anywhere else on the bar, it is buried as before.
+- **R520:** While a piece that would be filed is over the desk, the "→" hint by the desk names its drawer ("→ NPCs"); over the rest of the bar the hint names the graveyard.
+- **R521:** The GM's desk has three drawers: Characters (a character a player owns, or an open one), NPCs (a character the GM owns) and Papers (a sticky, loose text or an image); a player's desk has Papers alone, and a character a player lets go over their desk is buried.
+- **R522:** What isn't filed does over the desk what it does over the bar: plain chips and the reference card vanish, an Influence card goes home, the Connection Table is put away, a torn tape is buried on its own page.
+- **R523:** A filed character takes the records a burial would (its card, the Influence cards of its drawer and pool, the paper pinned to it), its Info cards and revealed entries with its card; its Opinion Records and its Connection Table row stay in the game.
+- **R524:** The GM's drawers are a record of the GM's page's own (`desk`), saved with the game and never sent; filing deletes the pieces from the table, so every other page loses them.
+- **R525:** A player's drawer is a record of that page's own (`desk`), kept with its copy through reloads and never sent; filing deletes the pieces from the table as a change of theirs.
+- **R526:** The open desk shows its drawers below the pigeonholes, each a drawer front with a brass pull and a label naming it; clicking one pulls it out listing what is filed there, oldest first, each named as a burial is (graveName); an empty drawer says "Nothing filed here"; clicking it again, or another, closes it.
+- **R527:** A name dragged a few pixels out of a drawer comes back under the pointer with everything filed with it, carried as from Boot Hill, owned as when it was filed; let go over the desk it is filed again, over the rest of the bar buried.
+- **R528:** A rename taken rewrites the renamer's name in the GM's drawers as in the game (R468, R507).

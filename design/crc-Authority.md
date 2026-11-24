@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174-176, R185, R186, R188, R191-193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464, R469, R486, R506, R508
+**Requirements:** R168, R170, R174-176, R185, R186, R188, R191-193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464, R469, R486, R506, R508, R524
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change. (R460) It enforces who may see and touch what; a judgment call the book leaves to
@@ -17,7 +17,7 @@ the GM isn't refused here (it is to be flagged, prototype Item 14).
 - origin: rid → the stamp it last went out under; a change taken from a player keeps the player's
   `{s, by}` for the batch that answers it.
 - book.hillGv: the version Boot Hill last changed at.
-- Records.isLocal: `book`, `tape`, `hill` and each torn roll (`t:`) are each page's own and never sent,
+- Records.isLocal: `book`, `tape`, `hill`, `desk` (R524), each torn roll (`t:`) and `mine` paper are each page's own and never sent,
   in a batch or a catch-up. (R486) judge refuses a torn roll put on the table from any page.
 - A batch: `{g, full, puts: [{rid, s, by?, rec}], dels: [{rid, s, by?}], sealed: {tab: box of {g,
   puts, dels?}}}`; `by` names whose number `s` is, the GM's tab when absent.

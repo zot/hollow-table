@@ -1,14 +1,15 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
 
 import type { Game } from '../model/game.ts';
-import { ridFor, ridOf, type Character, type Hill, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName, type Yards } from '../model/records.ts';
+import { ridFor, ridOf, type Character, type Hill, type Desk, type Drawer, type Oid, type PieceRecord, type Pin, type Place, type Rid, type SlotName, type Yards } from '../model/records.ts';
 import type { Item } from '../rules/pool.ts';
 import { gapAt } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
 import { bury, buryOwn, empty, graveName, putAway } from '../rules/yards.ts';
+import { LABEL, drawerOf, emptyDesk, filed } from '../rules/drawers.ts';
 import type { Aim, MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
 import type { Hands } from './hands.ts';
@@ -25,6 +26,8 @@ export type DragWith = {
   who: () => string | undefined;
   /** The graveyard being browsed (the Seat), where a put-away piece is buried (R122, R288). */
   yard: () => { cur: number; name: string };
+  /** R521: whether this is the GM's page, whose desk files characters too. */
+  gm: boolean;
 };
 
 /** The slot a carried chip or card came from (R244). */
@@ -44,8 +47,10 @@ type Carry = {
   buries: boolean;
   /** The pointing hand on the whole page (R221). */
   pointing?: boolean;
-  /** What the drop changes, from the last frame; `away` is over the bar. */
-  drop: (last: Frame, away: boolean, z: number) => Change | null;
+  /** What the drop changes, from the last frame; `away` is over the bar, `file` over the desk (R519). */
+  drop: (last: Frame, away: boolean, z: number, file: boolean) => Change | null;
+  /** R519, R520: the drawer it files in over the desk, or none (then the desk is the bar). */
+  files?: Drawer | null;
   done?: () => void;
   /** R513: carried with no button held, until the next press (or Esc). */
   loose?: boolean;
@@ -101,7 +106,7 @@ export class Drag {
       const it = item(last);
       hands.show(hand, [it], true);
       moves?.drag([it]);
-      this.#lightBar(doc, cy, c.buries);
+      this.#lightBar(doc, cx, cy, c.buries, c.files ?? null);
     });
     let at = { cx: move.clientX, cy: move.clientY };
     const to = (e: PointerLike) => pace.to(at = { cx: e.clientX, cy: e.clientY });
@@ -114,14 +119,15 @@ export class Drag {
       pace.cancel();
       keepOut();
       last = c.frame(e.clientX, e.clientY);
-      // R513: Esc takes a loose piece back as a press on the bar would.
-      const away = put || this.#overBar(doc, e.clientY);
-      this.#lightBar(doc, null, false);
+      // R513: Esc takes a loose piece back as a press on the bar would. R519: over the desk, filed.
+      const file = !put && !!c.files && this.#overDesk(doc, e.clientX, e.clientY);
+      const away = put || (!file && this.#overBar(doc, e.clientY));
+      this.#lightBar(doc, null, null, false, null);
       doc.body.classList.remove('dragging', 'tapping');
       hands.drop(hand, [], true);
       // R300: the drop is a move; its change goes out right after it.
       moves?.drop([item(last)]);
-      const change = c.drop(last, away, z);
+      const change = c.drop(last, away, z, file);
       // R217, R226: drawn where it was let go, without gliding there.
       table.still(() => { if (change) game.change(change); });
       moves?.release(c.rid);
@@ -149,7 +155,13 @@ export class Drag {
         return card ? { ...f, aim: { card: ridOf(card.oid) } } : f;
       },
       buries: rec.kind !== 'reference' && rec.kind !== 'connections' && !this.#fresh.has(rid),
-      drop: (last, away, z) => away ? this.#putAway(rec) : this.#drop(rec, 'card', from, last, z, last.aim),
+      // R19, R519: a fresh supply is never made, so never filed.
+      files: this.#fresh.has(rid) ? null : drawerOf(rec, this.#w.gm),
+      drop: (last, away, z, file) => {
+        if (file) return this.#file(rec);
+        if (away) return this.#putAway(rec);
+        return this.#drop(rec, 'card', from, last, z, last.aim);
+      },
       loose,
     }, down, move);
   }
@@ -166,7 +178,13 @@ export class Drag {
       rid, part: 'pool',
       frame: (cx, cy) => less(table.toWorld(cx, cy), grip),
       buries: !this.#fresh.has(rid),
-      drop: (last, over, z) => { away = over; return over ? this.#putAway(c) : this.#drop(c, 'pool', c.pool, last, z); },
+      files: this.#fresh.has(rid) ? null : drawerOf(c, this.#w.gm),
+      drop: (last, over, z, file) => {
+        away = over || file;
+        if (file) return this.#file(c);
+        if (over) return this.#putAway(c);
+        return this.#drop(c, 'pool', c.pool, last, z);
+      },
       done: () => { if (!away) done?.(); },
       loose,
     }, down, move);
@@ -285,13 +303,35 @@ export class Drag {
     return !!bar && cy < bar.getBoundingClientRect().bottom;
   }
 
-  #lightBar(doc: Document, cy: number | null, buries: boolean): void {
-    const bar = doc.getElementById('bar');
+  // R519: the desk on the bar, by the pointer.
+  #overDesk(doc: Document, cx: number, cy: number): boolean {
+    const r = doc.querySelector('#bar .desk')?.getBoundingClientRect();
+    return !!r && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+  }
+  // R288, R520: over the bar it is red, with the graveyard it would be buried in; over the desk, with
+  // the drawer it would be filed in instead.
+  #lightBar(doc: Document, cx: number | null, cy: number | null, buries: boolean, files: Drawer | null): void {
+    const bar = doc.getElementById('bar'), desk = doc.querySelector<HTMLElement>('#bar .desk');
     if (!bar) return;
-    const over = cy !== null && this.#overBar(doc, cy);
+    const over = cy !== null && this.#overBar(doc, cy), file = !!files && cx !== null && cy !== null && this.#overDesk(doc, cx, cy);
     bar.classList.toggle('toss', over);
-    bar.classList.toggle('bury', over && buries);
+    bar.classList.toggle('bury', over && buries && !file);
     bar.dataset.yard = `→ ${this.#w.yard().name || 'Unnamed graveyard'}`;
+    desk?.classList.toggle('file', file);
+    if (desk && files) desk.dataset.drawer = `→ ${LABEL[files]}`;
+  }
+
+  // R519, R523: filed in its drawer with what a burial would take, and gone from the table.
+  #file(rec: PieceRecord): Change {
+    const { game, gm } = this.#w, drawer = drawerOf(rec, gm);
+    if (!drawer) return () => {};
+    const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
+    const { shared, own } = putAway(rec, all), recs = [...shared, ...own];
+    const d = (game.get('desk') as Desk | undefined) ?? emptyDesk();
+    return w => {
+      w.put('desk', filed(d, drawer, recs, graveName(rec)));
+      for (const r of recs) w.del(ridFor(r));
+    };
   }
 
   // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is

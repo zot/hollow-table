@@ -12,7 +12,7 @@ Opened by Bill, 2026-11-23, and worked out with Daneel over 2026-11-23 and 24.
 
 - [x] ~~**Item 1 — private paper.**~~ **LANDED (2026-11-24 — `#63`.)** First: paper gets an owner, which Items 3 and 7 need.
 - [x] ~~**Item 2 — the desk and its pigeonholes.**~~ **LANDED (2026-11-24 — `#64`.)**
-- [ ] **Item 3 — drawers and filing.** **OPEN (not queued.)** After Items 1 and 2.
+- [x] ~~**Item 3 — drawers and filing.**~~ **LANDED (2026-11-24 — `#65`.)** After Items 1 and 2.
 - [ ] **Item 4 — dockets.** **OPEN (not queued.)** After Item 3.
 - [ ] **Item 5 — search and the list of names.** **OPEN (not queued.)** After Item 3.
 - [ ] **Item 6 — the GM's desks.** **OPEN (not queued.)** After Item 3.
@@ -183,6 +183,14 @@ DECIDED (Bill, 2026-11-23): **a player's drawers are the player's only** ("Playe
 "player and GM". DECIDED (Bill, 2026-11-24): **paper only** ("Paper only"); **a PC comes back to its
 player** ("Back to its player"), filed in the GM's Characters drawer ("These are all good"); **a filed
 NPC takes its records with it** ("All go with it").
+
+Specified in `specs/desk.md` as R519–R528 (#65).
+
+@undecided: Daneel's reading while building #65, settled by Bill's yes or undone at his no: a filed
+NPC takes its Info cards and revealed entries (they are on its card) but **not its Opinion Records**,
+which belong to its row of the Connection Table rather than its card; the row stays, so they stay in the
+game and show under the card again when it comes back. Taking them would leave the Table's cells
+pointing at records that are gone.
 
 ## Item 4
 

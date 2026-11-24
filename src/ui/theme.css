@@ -71,10 +71,32 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 #bar .desk:hover .rolltop, #bar .desk.pressed .rolltop { background: repeating-linear-gradient(180deg, #9d7050 0 3px, #7a5439 3px 4px); }
 /* R517: a refused image edges the desk red. */
 #bar .desk.refused .desktop, #bar .desk.refused .rolltop { outline: 2px solid var(--chip-neg); }
-#bar .pigeonholes { display: none; position: absolute; top: calc(100% + 19px); left: -12px; z-index: 50; gap: 6px; padding: 8px;
+#bar .deskpanel { display: none; position: absolute; top: calc(100% + 19px); left: -12px; z-index: 50; padding: 8px;
   background: linear-gradient(#8a5e3f, #6e4a31); border: 3px solid #4a3121; border-top-width: 5px; border-radius: 4px;
-  box-shadow: 0 8px 18px rgba(0,0,0,.5); }
-#bar .desk.pressed .pigeonholes { display: flex; }
+  box-shadow: 0 8px 18px rgba(0,0,0,.5); cursor: default; width: max-content; }
+#bar .desk.pressed .deskpanel { display: block; }
+#bar .pigeonholes { display: flex; gap: 6px; }
+/* R526: the open desk's drawers, under the pigeonholes: fronts with a brass label holder and pull. */
+#bar .drawers { display: none; margin-top: 8px; }
+#bar .desk.open .drawers { display: block; }
+#bar .drawers .fronts { display: flex; gap: 6px; }
+#bar .drawerfront { flex: 1 1 0; min-width: 0; height: 34px; display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 0 10px;
+  border: 1px solid #3f2a1c; border-radius: 2px; background: linear-gradient(#a0714b, #845a3c); cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 2px 0 rgba(0,0,0,.35); }
+#bar .drawerfront.pulled { background: linear-gradient(#b07e56, #8e6142); transform: translateY(2px); }
+#bar .drawerfront .label { font: 11px/1 var(--mono); color: #2b1e17; padding: 3px 6px; border-radius: 2px;
+  background: var(--paper); box-shadow: 0 0 0 2px #c9a24e, 0 0 0 3px #7d6129; }
+#bar .drawerfront .pull { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f0d27a, #a8802f); }
+#bar .drawers .filed { margin-top: 8px; max-height: 220px; overflow: auto; display: flex; flex-direction: column; gap: 2px;
+  background: var(--paper); border-radius: 3px; padding: 6px; }
+#bar .drawers .filed button { text-align: left; font: 600 16px/1.2 var(--hand); color: var(--ink); background: none; border: 0;
+  padding: 3px 6px; border-radius: 3px; cursor: grab; touch-action: none; }
+#bar .drawers .filed button:hover { background: #efe6d2; }
+#bar .drawers .filed p { margin: 4px 6px; font: 12px var(--mono); color: #6a5a4a; }
+/* R520: over the desk, the drawer a piece would be filed in. */
+#bar .desk.file .desktop, #bar .desk.file .rolltop { outline: 2px solid #d9b45a; }
+#bar .desk.file::after { content: attr(data-drawer); position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; margin-top: 2px; font: 12px var(--mono); color: #f3e9d8; }
 #bar .hole { width: 84px; height: 60px; display: grid; place-items: center; border-radius: 10px 10px 2px 2px;
   background: #3b2719; box-shadow: inset 0 4px 7px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.12); }
 #bar .hole:hover { background: #4d3423; }

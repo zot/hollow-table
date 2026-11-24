@@ -554,3 +554,14 @@ test('a rename carries paper with it', () => {
   assert.equal((game.get(ridOf(made.oid)) as Sticky).by, 'Dee', 'her paper');
   assert.deepEqual((game.get(ridOf(sent.oid)) as Sticky).to, ['Ann', 'Dee'], 'paper sent to her');
 });
+
+test("a rename follows into the GM's drawers", () => {
+  // R528: a character of Dana's the GM filed is Dee's when it comes back.
+  const game = new Game();
+  game.load(playtest('Dana', 'Ann'));
+  whoIs(game, 'Dana', 'b-dana');
+  const sam = game.get(ridOf(SAM)) as Character;
+  game.change(w => { w.del(ridOf(SAM)); w.put('desk', { desk: [{ drawer: 'characters', name: sam.name, records: [sam] }] }); });
+  game.change(renamed(game, 'Dana', 'Dee'));
+  assert.equal(((game.get('desk') as { desk: { records: Character[] }[] }).desk[0]!.records[0]!).owner, 'Dee');
+});

@@ -1,5 +1,5 @@
 # Copy
-**Requirements:** R171-173, R189, R361, R443, R483, R484, R486, R500
+**Requirements:** R171-173, R189, R361, R443, R483, R484, R486, R500, R525
 
 A player's page: shows its copy of the GM's game, and keeps its own changes pending until the GM's
 page answers them.
@@ -19,7 +19,7 @@ page answers them.
 - receive(batch): opens its sealed part, replaces the redacted pieces with it (a sealed put also
   overrides a public removal of the same piece, and sealed removals apply as removals, R361), applies what is
   fresh (Stamps), skips pieces with a pending change, holds pieces in hand (Moves.hold); takes the
-  round from meta; keeps its own tape, torn rolls, buried tapes and `mine` paper (Records.isLocal: neither taken nor sent, R486, R500). A full table also removes what the GM's table doesn't have,
+  round from meta; keeps its own tape, torn rolls, buried tapes, `mine` paper and drawer (Records.isLocal: neither taken nor sent, R486, R500, R525). A full table also removes what the GM's table doesn't have,
   except pending new pieces. A gap in versions asks for the whole table after GAP_MS.
 - send(changed): this page's changes, sealed to the GM's page, each with the version of the copy it
   was made on; marks them pending.

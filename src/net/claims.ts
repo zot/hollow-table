@@ -1,10 +1,10 @@
-// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169, R467, R468, R472, R507
+// CRC: crc-Claims.md | Seq: seq-join.md#1.9, seq-join.md#1.10 | R166, R167, R168, R169, R467, R468, R472, R507, R528
 // On the GM's page: which browser holds which name. The first browser to claim a name holds it; a
 // page claiming a name another browser holds is nobody until the GM hands the name over. The claims
 // live in the book, saved with the game; the book is never sent, but who holds each name goes to every
 // page as `claims` (Authority, R446).
 
-import { GM, OPEN, isPaper, type Book, type Rec, type Yards } from '../model/records.ts';
+import { GM, OPEN, isPaper, type Book, type Desk, type Rec, type Yards } from '../model/records.ts';
 import type { Game, Writer } from '../model/game.ts';
 import { ID } from './identity.ts';
 
@@ -76,6 +76,10 @@ export function renamed(game: Game, from: string, to: string): (w: Writer) => vo
       if (rid === 'yards') {
         const y = r as Yards;
         w.put(rid, { ...y, yards: y.yards.map(g => ({ ...g, items: g.items.map(i => ({ ...i, records: i.records.map(x => follow(x) as typeof x) })) })) });
+      } else if (rid === 'desk') {
+        // R528: what the GM filed follows too.
+        const d = r as Desk;
+        w.put(rid, { desk: d.desk.map(e => ({ ...e, records: e.records.map(x => follow(x) as typeof x) })) });
       } else {
         const f = follow(r);
         if (f !== r) w.put(rid, f);

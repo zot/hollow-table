@@ -4,7 +4,7 @@
 // its right end.
 
 import type { Sign } from '../model/records.ts';
-import { DeskView, type At, type Mode, type Paper } from './desk.ts';
+import { DeskView, type At, type DeskWith, type Mode, type Paper } from './desk.ts';
 import type { PointerLike } from './gesture.ts';
 import { chipFace } from './pool.ts';
 
@@ -20,6 +20,9 @@ export type BarWith = {
   take: (what: Supply, down: PointerLike, move: PointerLike, mode: Mode) => void;
   /** R515: images picked from the image pigeonhole's file picker, landing at `at`. */
   images: (files: File[], at: At | null, carry: boolean) => void;
+  /** R526, R527: the desk's drawers, and an entry taken out of them. */
+  filed: DeskWith['filed'];
+  takeOut: DeskWith['takeOut'];
 };
 
 export class BarView {
@@ -50,7 +53,7 @@ export class BarView {
     mark.append(el('span', 'stamp version', w.version, 'Which version this is: a release\'s tag, or dev'));
     if (w.date) mark.append(el('span', 'stamp date', w.date, 'When it was released (on the test rig, when it was published)'));
     // R509: the desk holds the paper supplies.
-    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images });
+    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut });
     // R509, R510: chips 2, 4, 6 and +1 of each color, in two rows, on the bar itself.
     const chips = el('div', 'supplychips', '', 'Influence chips: drag one out');
     for (const sign of [1, -1] as const) for (const points of [2, 4, 6, 1]) {

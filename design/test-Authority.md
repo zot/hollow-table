@@ -284,3 +284,14 @@ is tombed
 **Fire alarm:** leave paper out of renamed's follow; red: the note's `by` stays Dana
 **Inject:** src/net/claims.ts:renamed
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with paper left out of renamed, the note's by stayed Dana; restored clean
+
+## Test: a rename follows into the GM's drawers
+**Purpose:** R528: a character of Dana's the GM filed comes back as Dee's after she renames
+**Input:** Sam, Dana's, filed in the GM's Characters drawer; Dana renamed Dee
+**Expected:** the filed Sam's owner is Dee
+**Refs:** crc-Claims.md
+**Code:** `src/net/authority.test.ts`
+**Alarm:** 26
+**Fire alarm:** leave `desk` out of renamed; red: the filed Sam's owner stays Dana
+**Inject:** src/net/claims.ts:renamed
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with desk left out of renamed, the filed Sam stayed Dana's; restored clean

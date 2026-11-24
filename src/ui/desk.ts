@@ -1,10 +1,12 @@
-// CRC: crc-Desk.md | R509, R511, R512, R513, R514, R515, R516, R517
+// CRC: crc-Desk.md | R509, R511, R512, R513, R514, R515, R516, R517, R520, R526, R527
 // The desk on the bar: a little roll-top whose pigeonholes hold the paper supplies. A press opens the
 // strip of pigeonholes and follows the pointer: dragged across them it holds each one's piece small,
 // dragged out it hands the piece to the page to make and carry, and let go it decides what the
 // release means (release, pure).
 
-import type { PointerLike } from './gesture.ts';
+import { gesture, type PointerLike } from './gesture.ts';
+import { LABEL, drawers, inDrawer } from '../rules/drawers.ts';
+import type { Desk, Drawer } from '../model/records.ts';
 
 /** What a pigeonhole holds. */
 export type Paper = 'character' | 'sticky' | 'text' | 'image' | 'howto' | 'connections';
@@ -20,6 +22,10 @@ export type DeskWith = {
   take: (what: Exclude<Paper, 'image'>, down: PointerLike, move: PointerLike, mode: Mode) => void;
   /** R515: picked images, landing at `at` (null: the middle of the view); one alone carried with no button held when `carry`. */
   images: (files: File[], at: At | null, carry: boolean) => void;
+  /** R526: this page's drawers (its `desk` record). */
+  filed: () => Desk | undefined;
+  /** R527: entry `k` taken out of the desk under the pointer, and carried. */
+  takeOut: (k: number, move: PointerLike) => void;
 };
 
 /** What letting go means (R513-R516). */
@@ -68,7 +74,11 @@ const BELOW = 110;
 export class DeskView {
   readonly el: HTMLElement;
   #w: DeskWith;
+  /** The panel below the desk: the pigeonholes, and on the open desk the drawers. */
   #strip: HTMLElement;
+  #drawers: HTMLElement;
+  /** R526: the drawer pulled out, if any. */
+  #pulled: Drawer | null = null;
   #image: HTMLElement;
   #imageSays: { text: string; title: string };
   #file: HTMLInputElement;
@@ -88,13 +98,16 @@ export class DeskView {
     // R509, R510: a little roll-top, right after the wordmark.
     this.el = el('div', 'desk', '', 'The desk: press for paper; click to open it');
     this.el.append(el('div', 'rolltop'), el('div', 'desktop'));
-    this.#strip = el('div', 'pigeonholes');
+    this.#strip = el('div', 'deskpanel');
+    const holes = el('div', 'pigeonholes');
+    this.#drawers = el('div', 'drawers');
+    this.#strip.append(holes, this.#drawers);
     let image: HTMLElement | null = null;
     for (const [what, cls, text, title] of w.gm ? [...HOLES, LINKS] : HOLES) {
       const hole = el('div', 'hole', '', title), icon = el('div', cls, text);
       hole.dataset.paper = what;
       hole.append(icon);
-      this.#strip.append(hole);
+      holes.append(hole);
       if (what === 'image') image = icon;
     }
     this.#image = image ?? el('div', 'supply image');
@@ -113,7 +126,8 @@ export class DeskView {
       if (files.length) w.images(files, to?.at ?? null, !!to?.carry && files.length === 1);
     });
     this.el.append(this.#strip, this.#file);
-    this.el.addEventListener('pointerdown', ev => this.#press(ev));
+    this.el.addEventListener('pointerdown', ev => { if (!this.#drawers.contains(ev.target as Node)) this.#press(ev); });
+    this.render();
     // R516: an open desk closes on a press anywhere else.
     doc.addEventListener('pointerdown', ev => { if (this.#open && !this.el.contains(ev.target as Node)) this.#show(false); }, true);
   }
@@ -127,9 +141,45 @@ export class DeskView {
     this.el.classList.toggle('refused', !!r);
   }
 
+  // R526: the open desk's drawers: a front each, a brass pull and its label; the one pulled out lists
+  // what is filed in it, oldest first, by name; an entry dragged out comes back (R527).
+  /** Draws the drawers from the page's desk record. */
+  render(): void {
+    const doc = this.el.ownerDocument;
+    const make = (tag: string, cls: string, text = '', title = ''): HTMLElement => {
+      const e = doc.createElement(tag);
+      if (cls) e.className = cls;
+      if (text) e.textContent = text;
+      if (title) e.title = title;
+      return e;
+    };
+    const fronts = make('div', 'fronts');
+    for (const d of drawers(this.#w.gm)) {
+      const front = make('button', `drawerfront${this.#pulled === d ? ' pulled' : ''}`, '', `${LABEL[d]}: click to pull it out`);
+      front.dataset.drawer = d;
+      front.append(make('span', 'label', LABEL[d]), make('span', 'pull'));
+      front.addEventListener('click', () => { this.#pulled = this.#pulled === d ? null : d; this.render(); });
+      fronts.append(front);
+    }
+    if (!this.#pulled) {
+      this.#drawers.replaceChildren(fronts);
+      return;
+    }
+    const list = make('div', 'filed'), filed = inDrawer(this.#w.filed(), this.#pulled);
+    list.dataset.drawer = this.#pulled;
+    if (!filed.length) list.append(make('p', '', 'Nothing filed here.'));
+    for (const { k, entry } of filed) {
+      const b = make('button', '', entry.name, 'Drag this back onto the table');
+      gesture(b, { drag: (_down, move) => { this.#show(false); this.#w.takeOut(k, move); } });
+      list.append(b);
+    }
+    this.#drawers.replaceChildren(fronts, list);
+  }
+
   /** The strip shown (a press or the open desk) or hidden; `open` keeps it until a press elsewhere. */
   #show(on: boolean, open = false): void {
     this.#open = on && open;
+    if (!this.#open && this.#pulled) { this.#pulled = null; this.render(); }
     this.el.classList.toggle('pressed', on);
     this.el.classList.toggle('open', this.#open);
   }

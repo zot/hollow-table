@@ -44,3 +44,25 @@
 **Fire alarm:** open no picker on a drag out (release gives `close`); red: no file chooser after the drop
 **Inject:** src/ui/desk.ts:release
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with a drag out giving close, no file chooser came after the drop (Chromium, timed out); restored clean
+
+## Test: the GM files an NPC, and Dana's page loses it
+**Purpose:** R519-R521, R523, R524, R526, R527: let go over the GM's desk, Devreux is filed in NPCs with its cards, the hint saying "→ NPCs"; Dana's page holds nothing of it, not even its name; the open desk's NPCs drawer lists it; dragged out, it comes back where it is let go, with its cards, and Dana's page has it again
+**Input:** the GM and Dana; the GM drags Devreux's pool over the desk (checks the hint) and lets go; opens the desk and the NPCs drawer; drags Devreux out onto the table
+**Expected:** "→ NPCs" while over the desk; Devreux and its Influence cards gone from both pages' tables, in the GM's `desk` record and in no record of Dana's; the drawer lists "Devreux" (its pool's name, as Boot Hill names it); brought back, Devreux and its cards on both pages, the drawer empty ("Nothing filed here.")
+**Refs:** crc-Desk.md, crc-Drag.md, crc-Drawers.md, crc-Authority.md
+**Code:** `tests/desk.spec.ts`
+**Alarm:** 5
+**Fire alarm:** let `desk` out of isLocal; red: Dana's page holds the desk record with Devreux
+**Inject:** src/model/records.ts:isLocal
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with desk out of isLocal, Dana's page held the GM's desk with Devreux's whole sheet (Chromium); restored clean
+
+## Test: a player's drawer is her own
+**Purpose:** R521, R525: Dana's desk has Papers alone; her sticky filed there leaves the table on every page and is in her `desk` record alone, through a reload; her character let go over her desk is buried
+**Input:** Dana makes a sticky and lets it go over her desk; reloads; makes a character and lets its pool go over her desk
+**Expected:** one drawer, Papers; the sticky in her `desk` and on no page's table, still after the reload; the GM's page holds no `desk` entry of hers; her character buried on Boot Hill, not filed
+**Refs:** crc-Desk.md, crc-Drag.md, crc-Copy.md
+**Code:** `tests/desk.spec.ts`
+**Alarm:** 6
+**Fire alarm:** file characters on a player's page too (drawerOf ignoring `gm`); red: her character goes into her desk
+**Inject:** src/rules/drawers.ts:drawerOf
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with drawerOf ignoring gm, Dana's character lit her desk to be filed (Chromium); restored clean

@@ -93,6 +93,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Ledger.md → `src/ui/ledger.ts`
 - [x] crc-Bar.md → `src/ui/bar.ts`, `src/rules/supplies.ts`
 - [x] crc-Desk.md → `src/ui/desk.ts`
+- [x] crc-Drawers.md → `src/rules/drawers.ts`
 - [x] crc-Tray.md → `src/ui/tray.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
 - [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`, `tools/relays.ts`
@@ -154,6 +155,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] test-Exchange.md → `src/store/exchange.test.ts`
 - [x] test-Ledger.md → `src/ui/ledger.test.ts`
 - [x] test-Desk.md → `src/ui/desk.test.ts`, `tests/desk.spec.ts`
+- [x] test-Drawers.md → `src/rules/drawers.test.ts`
 - [x] test-Seat.md → `tests/seat.spec.ts`, `src/store/seat.test.ts`
 - [x] test-Stamps.md → `src/net/stamps.test.ts`, `src/net/moves.test.ts`
 - [x] test-Authority.md → `src/net/authority.test.ts`

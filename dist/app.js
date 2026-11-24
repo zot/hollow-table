@@ -52,7 +52,7 @@ function ridFor(r) {
 function minePaper(r) {
   return isPaper(r) && !!r.mine;
 }
-var LOCAL = /* @__PURE__ */ new Set(["book", "tape", "hill"]);
+var LOCAL = /* @__PURE__ */ new Set(["book", "tape", "hill", "desk"]);
 function isLocal(rid2) {
   return LOCAL.has(rid2) || isTorn(rid2) || isMine(rid2);
 }
@@ -183,6 +183,7 @@ var burial = fields({ name: str(CAPS.name), records: list(piece) }, { info: fiel
 var SINGLETONS = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool, items: list(burial) }), 100) }),
   hill: fields({ hill: list(fields({ yard: str(CAPS.name), burial }), 1e4) }),
+  desk: fields({ desk: list(fields({ drawer: oneOf("characters", "npcs", "papers"), name: str(CAPS.name), records: list(piece) }), 1e4) }),
   meta: fields({ round: int(0, 1e4), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 1e4), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1e3, 1e3) }),
   rows: fields({ rows: dict(fields(
@@ -1029,6 +1030,31 @@ function raised(records3, at3, z) {
 }
 var GRAB_POOL = { x: 30, y: 14 };
 var GRAB_PIECE = { x: 20, y: 14 };
+
+// src/rules/drawers.ts
+function drawers(gm) {
+  return gm ? ["characters", "npcs", "papers"] : ["papers"];
+}
+var LABEL = { characters: "Characters", npcs: "NPCs", papers: "Papers" };
+function drawerOf(piece2, gm) {
+  if (piece2.kind === "character") {
+    if (!gm) return null;
+    return piece2.owner === GM ? "npcs" : "characters";
+  }
+  return isPaper(piece2) ? "papers" : null;
+}
+function emptyDesk() {
+  return { desk: [] };
+}
+function filed(desk, drawer2, records3, name2) {
+  return { desk: [...desk.desk, { drawer: drawer2, name: name2, records: records3 }] };
+}
+function takeOut(desk, k) {
+  return { desk: { desk: desk.desk.filter((_, i) => i !== k) }, records: desk.desk[k]?.records ?? [] };
+}
+function inDrawer(desk, drawer2) {
+  return (desk?.desk ?? []).flatMap((entry, k) => entry.drawer === drawer2 ? [{ k, entry }] : []);
+}
 
 // src/rules/connections.ts
 var WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
@@ -3166,6 +3192,9 @@ function renamed(game, from, to) {
       if (rid2 === "yards") {
         const y = r;
         w.put(rid2, { ...y, yards: y.yards.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i, records: i.records.map((x) => follow(x)) })) })) });
+      } else if (rid2 === "desk") {
+        const d = r;
+        w.put(rid2, { desk: d.desk.map((e) => ({ ...e, records: e.records.map((x) => follow(x)) })) });
       } else {
         const f = follow(r);
         if (f !== r) w.put(rid2, f);
@@ -16001,7 +16030,11 @@ var BELOW = 110;
 var DeskView = class {
   el;
   #w;
+  /** The panel below the desk: the pigeonholes, and on the open desk the drawers. */
   #strip;
+  #drawers;
+  /** R526: the drawer pulled out, if any. */
+  #pulled = null;
   #image;
   #imageSays;
   #file;
@@ -16019,13 +16052,16 @@ var DeskView = class {
     };
     this.el = el4("div", "desk", "", "The desk: press for paper; click to open it");
     this.el.append(el4("div", "rolltop"), el4("div", "desktop"));
-    this.#strip = el4("div", "pigeonholes");
+    this.#strip = el4("div", "deskpanel");
+    const holes = el4("div", "pigeonholes");
+    this.#drawers = el4("div", "drawers");
+    this.#strip.append(holes, this.#drawers);
     let image2 = null;
     for (const [what, cls, text, title] of w.gm ? [...HOLES, LINKS] : HOLES) {
       const hole = el4("div", "hole", "", title), icon = el4("div", cls, text);
       hole.dataset.paper = what;
       hole.append(icon);
-      this.#strip.append(hole);
+      holes.append(hole);
       if (what === "image") image2 = icon;
     }
     this.#image = image2 ?? el4("div", "supply image");
@@ -16042,7 +16078,10 @@ var DeskView = class {
       if (files.length) w.images(files, to?.at ?? null, !!to?.carry && files.length === 1);
     });
     this.el.append(this.#strip, this.#file);
-    this.el.addEventListener("pointerdown", (ev) => this.#press(ev));
+    this.el.addEventListener("pointerdown", (ev) => {
+      if (!this.#drawers.contains(ev.target)) this.#press(ev);
+    });
+    this.render();
     doc.addEventListener("pointerdown", (ev) => {
       if (this.#open && !this.el.contains(ev.target)) this.#show(false);
     }, true);
@@ -16055,9 +16094,53 @@ var DeskView = class {
     this.#image.title = r ? r.why : this.#imageSays.title;
     this.el.classList.toggle("refused", !!r);
   }
+  // R526: the open desk's drawers: a front each, a brass pull and its label; the one pulled out lists
+  // what is filed in it, oldest first, by name; an entry dragged out comes back (R527).
+  /** Draws the drawers from the page's desk record. */
+  render() {
+    const doc = this.el.ownerDocument;
+    const make4 = (tag, cls, text = "", title = "") => {
+      const e = doc.createElement(tag);
+      if (cls) e.className = cls;
+      if (text) e.textContent = text;
+      if (title) e.title = title;
+      return e;
+    };
+    const fronts = make4("div", "fronts");
+    for (const d of drawers(this.#w.gm)) {
+      const front = make4("button", `drawerfront${this.#pulled === d ? " pulled" : ""}`, "", `${LABEL[d]}: click to pull it out`);
+      front.dataset.drawer = d;
+      front.append(make4("span", "label", LABEL[d]), make4("span", "pull"));
+      front.addEventListener("click", () => {
+        this.#pulled = this.#pulled === d ? null : d;
+        this.render();
+      });
+      fronts.append(front);
+    }
+    if (!this.#pulled) {
+      this.#drawers.replaceChildren(fronts);
+      return;
+    }
+    const list2 = make4("div", "filed"), filed2 = inDrawer(this.#w.filed(), this.#pulled);
+    list2.dataset.drawer = this.#pulled;
+    if (!filed2.length) list2.append(make4("p", "", "Nothing filed here."));
+    for (const { k, entry } of filed2) {
+      const b = make4("button", "", entry.name, "Drag this back onto the table");
+      gesture(b, { drag: (_down, move) => {
+        this.#show(false);
+        this.#w.takeOut(k, move);
+      } });
+      list2.append(b);
+    }
+    this.#drawers.replaceChildren(fronts, list2);
+  }
   /** The strip shown (a press or the open desk) or hidden; `open` keeps it until a press elsewhere. */
   #show(on, open = false) {
     this.#open = on && open;
+    if (!this.#open && this.#pulled) {
+      this.#pulled = null;
+      this.render();
+    }
     this.el.classList.toggle("pressed", on);
     this.el.classList.toggle("open", this.#open);
   }
@@ -16204,7 +16287,7 @@ function pops(before2, after) {
   }
   return out;
 }
-var LABEL = {
+var LABEL2 = {
   bonus: "Bonus",
   main: "Main",
   edge: "Edge",
@@ -16323,10 +16406,10 @@ function make3(doc, c, w) {
     const slot2 = el3(doc, "div", `slot slot-${s}`);
     slot2.dataset.slot = s;
     slot2.dataset.owner = c.oid;
-    const label2 = el3(doc, "span", "label", LABEL[s]);
-    label2.dataset.letter = LABEL[s][0];
+    const label2 = el3(doc, "span", "label", LABEL2[s]);
+    label2.dataset.letter = LABEL2[s][0];
     if (s === "stagger") label2.append(el3(doc, "small", "", "opposition only"));
-    slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL[s];
+    slot2.title = s === "stagger" ? "Stagger (opposition only)" : LABEL2[s];
     slot2.append(label2, el3(doc, "div", "pos"), el3(doc, "div", "neg"));
     gesture(slot2, {
       click: (ev) => {
@@ -16566,7 +16649,7 @@ var BarView = class {
     const mark2 = el4("div", "wordmark", "Hollow");
     mark2.append(el4("span", "stamp version", w.version, "Which version this is: a release's tag, or dev"));
     if (w.date) mark2.append(el4("span", "stamp date", w.date, "When it was released (on the test rig, when it was published)"));
-    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images });
+    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut });
     const chips = el4("div", "supplychips", "", "Influence chips: drag one out");
     for (const sign2 of [1, -1]) for (const points3 of [2, 4, 6, 1]) {
       const c = el4("div", `supply chip ${sign2 > 0 ? "pos" : "neg"}${points3 === 1 ? " one" : ""}`, chipFace({ sign: sign2, points: points3 }));
@@ -17965,7 +18048,7 @@ var Drag = class {
       const it = item2(last);
       hands.show(hand, [it], true);
       moves?.drag([it]);
-      this.#lightBar(doc, cy, c.buries);
+      this.#lightBar(doc, cx, cy, c.buries, c.files ?? null);
     });
     let at3 = { cx: move.clientX, cy: move.clientY };
     const to = (e) => pace.to(at3 = { cx: e.clientX, cy: e.clientY });
@@ -17980,12 +18063,13 @@ var Drag = class {
       pace.cancel();
       keepOut();
       last = c.frame(e.clientX, e.clientY);
-      const away = put2 || this.#overBar(doc, e.clientY);
-      this.#lightBar(doc, null, false);
+      const file = !put2 && !!c.files && this.#overDesk(doc, e.clientX, e.clientY);
+      const away = put2 || !file && this.#overBar(doc, e.clientY);
+      this.#lightBar(doc, null, null, false, null);
       doc.body.classList.remove("dragging", "tapping");
       hands.drop(hand, [], true);
       moves?.drop([item2(last)]);
-      const change3 = c.drop(last, away, z);
+      const change3 = c.drop(last, away, z, file);
       table.still(() => {
         if (change3) game.change(change3);
       });
@@ -18014,7 +18098,13 @@ var Drag = class {
         return card2 ? { ...f, aim: { card: ridOf(card2.oid) } } : f;
       },
       buries: rec.kind !== "reference" && rec.kind !== "connections" && !this.#fresh.has(rid2),
-      drop: (last, away, z) => away ? this.#putAway(rec) : this.#drop(rec, "card", from, last, z, last.aim),
+      // R19, R519: a fresh supply is never made, so never filed.
+      files: this.#fresh.has(rid2) ? null : drawerOf(rec, this.#w.gm),
+      drop: (last, away, z, file) => {
+        if (file) return this.#file(rec);
+        if (away) return this.#putAway(rec);
+        return this.#drop(rec, "card", from, last, z, last.aim);
+      },
       loose
     }, down, move);
   }
@@ -18031,9 +18121,12 @@ var Drag = class {
       part: "pool",
       frame: (cx, cy) => less(table.toWorld(cx, cy), grip),
       buries: !this.#fresh.has(rid2),
-      drop: (last, over, z) => {
-        away = over;
-        return over ? this.#putAway(c) : this.#drop(c, "pool", c.pool, last, z);
+      files: this.#fresh.has(rid2) ? null : drawerOf(c, this.#w.gm),
+      drop: (last, over, z, file) => {
+        away = over || file;
+        if (file) return this.#file(c);
+        if (over) return this.#putAway(c);
+        return this.#drop(c, "pool", c.pool, last, z);
       },
       done: () => {
         if (!away) done2?.();
@@ -18154,13 +18247,35 @@ var Drag = class {
     const bar = doc.getElementById("bar");
     return !!bar && cy < bar.getBoundingClientRect().bottom;
   }
-  #lightBar(doc, cy, buries) {
-    const bar = doc.getElementById("bar");
+  // R519: the desk on the bar, by the pointer.
+  #overDesk(doc, cx, cy) {
+    const r = doc.querySelector("#bar .desk")?.getBoundingClientRect();
+    return !!r && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+  }
+  // R288, R520: over the bar it is red, with the graveyard it would be buried in; over the desk, with
+  // the drawer it would be filed in instead.
+  #lightBar(doc, cx, cy, buries, files) {
+    const bar = doc.getElementById("bar"), desk = doc.querySelector("#bar .desk");
     if (!bar) return;
-    const over = cy !== null && this.#overBar(doc, cy);
+    const over = cy !== null && this.#overBar(doc, cy), file = !!files && cx !== null && cy !== null && this.#overDesk(doc, cx, cy);
     bar.classList.toggle("toss", over);
-    bar.classList.toggle("bury", over && buries);
+    bar.classList.toggle("bury", over && buries && !file);
     bar.dataset.yard = `\u2192 ${this.#w.yard().name || "Unnamed graveyard"}`;
+    desk?.classList.toggle("file", file);
+    if (desk && files) desk.dataset.drawer = `\u2192 ${LABEL[files]}`;
+  }
+  // R519, R523: filed in its drawer with what a burial would take, and gone from the table.
+  #file(rec) {
+    const { game, gm } = this.#w, drawer2 = drawerOf(rec, gm);
+    if (!drawer2) return () => {
+    };
+    const all2 = game.all().map(([, r]) => r).filter((r) => "kind" in r);
+    const { shared: shared2, own: own2 } = putAway(rec, all2), recs = [...shared2, ...own2];
+    const d = game.get("desk") ?? emptyDesk();
+    return (w) => {
+      w.put("desk", filed(d, drawer2, recs, graveName(rec)));
+      for (const r of recs) w.del(ridFor(r));
+    };
   }
   // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is
   // buried in the current graveyard, a character with its cards and pinned paper, under its name.
@@ -19142,6 +19257,20 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
       else if (rec.kind === "chip") drag?.startItem(rid2, down, e);
       else drag?.start(rid2, e, e, loose);
     },
+    // R526, R527: this page's drawers; an entry taken out comes back under the pointer with all it took, carried.
+    filed: () => game.get("desk"),
+    takeOut: (k, move) => {
+      const out = takeOut(game.get("desk") ?? emptyDesk(), k);
+      const recs = raised(out.records, table.toWorld(move.clientX, move.clientY), topZ());
+      if (!recs.length) return;
+      game.change((w) => {
+        w.put("desk", out.desk);
+        for (const r of recs) w.put(ridFor(r), r);
+      });
+      const lead = recs[0];
+      if (lead.kind === "character") drag?.startPool(ridOf(lead.oid), move, move);
+      else drag?.start(ridFor(lead), move, move);
+    },
     // R515: picked images land at the pointer, a step apart; one alone let go in its pigeonhole is carried loose.
     images: (files, at3, carry) => {
       const r = document.getElementById("table").getBoundingClientRect();
@@ -19153,6 +19282,9 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
         drag?.start(rid2, p, p, true);
       }));
     }
+  });
+  game.listen((rids) => {
+    if (rids.has("desk")) bar.desk.render();
   });
   const table = new TableView(document.getElementById("table"), document.getElementById("world"), {
     game,
@@ -19284,7 +19416,7 @@ function views(game, gameId, viewer, blobs, moves, hand, missing, ledger, rollin
   };
   const hands = new Hands({ game, table });
   table.after = () => hands.react();
-  drag = new Drag({ game, table, hands, hand, moves, mint: mint2, schedule: frame, yard, who: () => viewer?.name });
+  drag = new Drag({ game, table, hands, hand, moves, mint: mint2, schedule: frame, yard, who: () => viewer?.name, gm });
   const tape = new TapeView(document.getElementById("table"), {
     game,
     viewer,

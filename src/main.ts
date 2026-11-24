@@ -5,9 +5,10 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, isLocal, ridFor, ridOf, type Book, type Character, type Hill, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
+import { GM, isLocal, ridFor, ridOf, type Book, type Desk, type Character, type Hill, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
-import { buryInfo, buryRecord, empty as emptyYards, ownTorn } from './rules/yards.ts';
+import { buryInfo, buryRecord, empty as emptyYards, ownTorn, raised } from './rules/yards.ts';
+import { emptyDesk, takeOut } from './rules/drawers.ts';
 import { first, groupOf, keep as keepRow, nameOf, newConnections, pcsOf, published, rowOf, synced, tableOf } from './rules/connections.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
@@ -226,6 +227,16 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       else if (rec.kind === 'chip') drag?.startItem(rid, down, e);
       else drag?.start(rid, e, e, loose);
     },
+    // R526, R527: this page's drawers; an entry taken out comes back under the pointer with all it took, carried.
+    filed: () => game.get('desk') as Desk | undefined,
+    takeOut: (k, move) => {
+      const out = takeOut((game.get('desk') as Desk | undefined) ?? emptyDesk(), k);
+      const recs = raised(out.records, table.toWorld(move.clientX, move.clientY), topZ());
+      if (!recs.length) return;
+      game.change(w => { w.put('desk', out.desk); for (const r of recs) w.put(ridFor(r), r); });
+      const lead = recs[0]!;
+      if (lead.kind === 'character') drag?.startPool(ridOf(lead.oid), move, move); else drag?.start(ridFor(lead), move, move);
+    },
     // R515: picked images land at the pointer, a step apart; one alone let go in its pigeonhole is carried loose.
     images: (files, at, carry) => {
       const r = document.getElementById('table')!.getBoundingClientRect();
@@ -238,6 +249,8 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
       }));
     },
   });
+  // R526: the drawers are drawn again when this page's desk changes.
+  game.listen(rids => { if (rids.has('desk')) bar.desk.render(); });
   const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
     game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }), schedule: frame,
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
@@ -339,7 +352,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   // R298, R299: every hand, this page's and others', drawn alike, again after every redraw.
   const hands = new Hands({ game, table });
   table.after = () => hands.react();
-  drag = new Drag({ game, table, hands, hand, moves, mint, schedule: frame, yard, who: () => viewer?.name });
+  drag = new Drag({ game, table, hands, hand, moves, mint, schedule: frame, yard, who: () => viewer?.name, gm });
   // R110–R113: this page's tape, under the pieces; a torn roll is carried off like any piece.
   const tape = new TapeView(document.getElementById('table')!, {
     game, viewer, up: () => seat.tapeUp, setUp: up => keep({ ...seat, tapeUp: up }),
