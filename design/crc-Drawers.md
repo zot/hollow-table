@@ -1,5 +1,5 @@
 # Drawers
-**Requirements:** R519, R521, R523-525, R527, R546, R547, R549-551, R556
+**Requirements:** R519, R521, R523-525, R527, R546, R547, R549-551, R556, R564
 
 The desk's drawers, pure: which drawer a piece files in, filing it, and taking it out again. Like
 Yards, but each page's own (`desk`, Records.isLocal) and never shared.
@@ -27,6 +27,7 @@ Yards, but each page's own (`desk`, Records.isLocal) and never shared.
 - deskNext, deskPrev, deskRename (R551): as Yards' next, prev and rename, for desks: a new one "Desk N"
   one past the highest, an empty nameless one swept when left, the only one kept.
 - search(desks, query) (R546, R556): every desk's entries, each with its desk's index.
+- a desk set out (`out`), or holding a desktop, is never vacant; a sweep before it keeps it set out (R564).
 
 ## Collaborators
 - Records: the `desk` record and its pieces.

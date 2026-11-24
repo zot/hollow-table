@@ -95,6 +95,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Desk.md → `src/ui/desk.ts`
 - [x] crc-Drawers.md → `src/rules/drawers.ts`
 - [x] crc-Dockets.md → `src/rules/dockets.ts`
+- [x] crc-Desktops.md → `src/rules/desktops.ts`
 - [x] crc-Tray.md → `src/ui/tray.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
 - [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`, `tools/relays.ts`
@@ -121,6 +122,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [ ] ui-ledger.md → `src/ui/ledger.ts`
 
 ### Test Designs
+- [x] test-Desktops.md → `src/rules/desktops.test.ts`, `tests/desktops.spec.ts`
 - [x] test-Dockets.md → `src/rules/dockets.test.ts`, `src/rules/yards.test.ts`, `tests/dockets.spec.ts`
 - [x] test-Records.md → `src/model/records.test.ts`
 - [x] test-MarkedText.md → `src/text/marks.test.ts`
@@ -249,3 +251,4 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T63: R509 retired by R529 (2026-11-24 dockets: the desk gains a docket pigeonhole)
 - T64: R511 retired by R530 (2026-11-24 dockets: the docket's pigeonhole drawn small)
 - [ ] O16: Paper pinned to a gathered card is left behind when its pool is carried: Drag's pool drop moves the pool alone (a gathered card's record keeps its old place, and it is drawn under the pool), so the paper keeps its old place; Hands carries it along only while in hand. Seen 2026-11-24 by making the pool drop's change on the GM's page (the note stayed at 70,306 with the card drawn at 340,375). Before #66; Dockets.repin skips gathered cards for the same reason (R531).
+- T65: R554 retired by R562 (2026-11-24 desktops: the board's first desk is the one set out)

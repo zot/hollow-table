@@ -115,7 +115,22 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
   background: var(--paper); border: 0; border-radius: 2px; padding: 1px 8px; outline: none;
   box-shadow: 0 0 0 2px #c9a24e, 0 0 0 3px #7d6129; user-select: text; -webkit-user-select: text; }
 #bar .desknav .dname::placeholder { color: #9a8a74; }
-/* R554: carrying a piece to be filed, with several desks, a walnut board hangs from the desk's foot (no gap
+/* R559, R560: the knife switch beside the open desk's name: a slate base, two copper jaws and a copper blade
+   with a black handle; open, the blade stands raised off its jaws; thrown, it lies down in them. */
+#bar .desknav .knife { position: relative; width: 38px; height: 30px; flex: none; border: 0; padding: 0; cursor: pointer;
+  border-radius: 3px; background: #3c3f42; box-shadow: inset 0 0 0 1px #24272a; }
+#bar .desknav .knife::before { content: ""; position: absolute; left: 6px; right: 6px; bottom: 7px; height: 4px;
+  background: repeating-linear-gradient(90deg, #c9773a 0 4px, transparent 4px 10px); }
+#bar .desknav .knife::after { content: ""; position: absolute; left: 8px; bottom: 9px; width: 24px; height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, #c9773a 0 70%, #111 70%); transform-origin: left center; transform: rotate(-48deg);
+  transition: transform .2s; }
+#bar .desknav .knife:hover::after { transform: rotate(-40deg); }
+#bar .desknav .knife.thrown { cursor: default; box-shadow: inset 0 0 0 1px #24272a, 0 0 0 2px #d9b45a; }
+#bar .desknav .knife.thrown::after { transform: none; }
+/* R560: on the board, the row of the desk set out carries a tiny closed knife switch. */
+#bar .deskrow .switch { width: 16px; height: 10px; border-radius: 2px; background: #3c3f42;
+  box-shadow: inset 0 -4px 0 -1px #c9773a, inset 0 0 0 1px #24272a; }
+/* R562: carrying a piece to be filed, with several desks, a walnut board hangs from the desk's foot (no gap
    to cross, the hint on its top edge): a row each,
    a little roll-top and its name in a brass holder; the row under the piece rolls its lid up. */
 #bar .deskboard { display: none; position: absolute; top: 100%; left: -14px; z-index: 60; padding: 22px 6px 6px;

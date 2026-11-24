@@ -59,12 +59,40 @@ could show arrows and a desk name when you click it to expand"; "Same rules"; "G
   desks so if the GM drops on the desk it goes into the first one, but they can drag down to drop into
   another desk"). With more than one desk, carrying a piece that would be filed over the desk hangs a
   walnut board below it, a row per desk: let go on the desk and the piece is filed in the first, or
-  drag down the board and let go on another. The first is the desk open now ("Yes, the current desk"),
-  then the rest in order. Each row is a miniature roll-top and its name in a small brass label holder,
+  drag down the board and let go on another. The first is the desk set out ("Yes, the current desk";
+  Bill, 2026-11-24: "yes", once there was a switch), marked with a tiny closed knife switch, then the
+  rest in order. Each row is a miniature roll-top and its name in a small brass label holder,
   at least 44 px high; the row under the piece rolls its lid up, and down again when the piece leaves.
   The "→" hint names the desk and the drawer: "→ Act 2: NPCs".
 - **Search reads every desk**, and with more than one a result says its desk and drawer ("Act 2:
   NPCs").
+
+## Desktops and the knife switch
+
+From `carves/organizing.md`, Item 7. Bill (2026-11-23): "let's associate the desktop with the desk.
+Switching desks switches the desktop contents. The PCs are present on all desktops but switching desks
+moves the PCs to where they are for that desk."
+
+- **Each of the GM's desks carries a desktop**: what lies on the table while that desk is set out. One
+  desk is set out at a time, the first to begin with.
+- **A knife switch beside the open desk sets it out** ("Let's put a Frankenstein switch next to the
+  expanded GM desk"): thrown, everyone's table switches to that desk's desktop. It can be thrown only
+  for a desk that isn't set out; on the desk set out it shows thrown. Laying out a desktop means setting
+  it out, so Act 2 is arranged before the session or at a break. A new desk's desktop starts empty (Bill,
+  2026-11-24: "yes").
+- **What travels** ("Travels with player"): the PCs and open characters, with their pools, their
+  Influence cards, the chips and cards in their slots and what's pinned to them; and each player's own
+  paper and dockets, with what's pinned to those, as a real GM clears the scene and players keep their
+  notes. Each traveler has a place of its own on each desktop: switching moves it to where it lay on
+  that desktop, or, on a desktop it hasn't been on, leaves it where it is.
+- **Everything else stays with its desktop**: NPCs, the GM's paper (handouts too), the GM's dockets,
+  loose chips and cards, the reference card. **The Connection Table is the game's**, on every desktop
+  ("one per game -- it's supposed to track all the NPCs in the story"), and so are the Opinion Records.
+- **Players' pages hold only the desktop set out.** Another desktop is kept on the GM's page alone, with
+  the GM's drawers; its NPCs and papers reach the players when it's set out, not before.
+- **Setting out isn't a scene's end** ("Independent"): End does that, as now, so a split party can be
+  flipped between within one scene.
+- **A desk set out, or holding a desktop, is never empty**, so it never goes when left.
 
 ## Finding
 

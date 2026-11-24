@@ -61,8 +61,9 @@ test('names first', () => {
 
 test("the GM's desks, browsed as graveyards", () => {
   const names = (b: { desk: ReturnType<typeof emptyDesk>; cur: number }) => [b.desk.desks.map(x => x.name || '·').join(), b.cur];
-  // R551: › past the last makes "Desk N", one past the highest; not past an empty, nameless one.
-  assert.deepEqual(names(deskNext(emptyDesk(), 0)), ['Desk 1', 0], 'nothing past an empty nameless one');
+  // R551, R564: › past the last makes "Desk N", one past the highest; the desk set out is never empty, so
+  // a fresh one makes Desk 2 at once; but not past an empty, nameless desk that isn't set out.
+  assert.deepEqual(names(deskNext(emptyDesk(), 0)), ['Desk 1,Desk 2', 1], 'the desk set out is never empty');
   const first = filed(emptyDesk(), 0, 'papers', [{ kind: 'sticky', oid: 'aa000001', place: at, text: 'x' }], 'Note: x');
   let b = deskNext(first, 0);
   assert.deepEqual(names(b), ['Desk 1,Desk 2', 1]);
@@ -90,5 +91,16 @@ test('a desk from before reads as one desk', () => {
   assert.deepEqual(d.desks.map(x => [x.name, x.named, x.items.length]), [['Desk 1', false, 1]]);
   assert.deepEqual(desksOf(undefined), emptyDesk());
   assert.deepEqual(desksOf({ desks: [] }), emptyDesk());
+});
+
+test('the desk set out is never swept, and stays set out', () => {
+  // R564: Desk 3 set out; Desk 2, empty and nameless, swept when left: Desk 3 is still the one set out.
+  const d = { desks: [{ name: 'Act 1', named: true, items: [] }, { name: 'Desk 2', named: false, items: [] }, { name: 'Desk 3', named: false, items: [] }], out: 2 };
+  const b = deskPrev(d, 1);
+  assert.deepEqual([b.desk.desks.map(x => x.name), b.desk.out, b.cur], [['Act 1', 'Desk 3'], 1, 0]);
+  // Set out, empty and nameless, it stays when left; holding a desktop, too.
+  assert.equal(deskPrev({ ...d, out: 1 }, 1).desk.desks.length, 3);
+  const held = { desks: [d.desks[0]!, { ...d.desks[1]!, top: [{ kind: 'sticky' as const, oid: 'aa000003', place: at, text: 'kept' }] }, d.desks[2]!] };
+  assert.equal(deskPrev(held, 1).desk.desks.length, 3);
 });
 

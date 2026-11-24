@@ -1,4 +1,4 @@
-// CRC: crc-Drawers.md | R519, R521, R523, R524, R525, R527, R546, R547, R549, R550, R551, R556
+// CRC: crc-Drawers.md | R519, R521, R523, R524, R525, R527, R546, R547, R549, R550, R551, R556, R564
 // The desk's drawers, pure: which drawer a piece files in, filing it, and taking it out again. Like
 // Boot Hill's graveyards, but each page's own (`desk`) and never shared.
 
@@ -36,7 +36,7 @@ export function desksOf(rec: Desk | OldDesk | undefined): Desk {
   return rec.desks.length ? rec : emptyDesk();
 }
 
-const withDesk = (d: Desk, at: number, one: OneDesk): Desk => ({ desks: d.desks.map((x, i) => (i === at ? one : x)) });
+const withDesk = (d: Desk, at: number, one: OneDesk): Desk => ({ ...d, desks: d.desks.map((x, i) => (i === at ? one : x)) });
 
 // R523: an entry at the end of its drawer, with the records a burial would take, as they were.
 /** The desks with `records` filed in desk `at`'s `drawer` under `name`. */
@@ -64,19 +64,24 @@ function nextName(d: Desk): string {
   const ns = d.desks.flatMap(x => { const m = NUMBERED.exec(x.name); return m ? [Number(m[1])] : []; });
   return `Desk ${Math.max(0, ...ns) + 1}`;
 }
-const vacant = (x: OneDesk) => !x.items.length && !x.named;
+// R564: a desk set out, or holding a desktop, is never empty.
+const vacant = (d: Desk, at: number) => {
+  const x = d.desks[at]!;
+  return !x.items.length && !x.named && !x.top?.length && at !== (d.out ?? 0);
+};
 type Browse = { desk: Desk; cur: number };
-/** Drops desk `at` if it is empty and nameless and not the only one; cur follows. */
+/** Drops desk `at` if it is empty and nameless and not the only one; cur follows, and the desk set out stays so. */
 function sweep(d: Desk, at: number, cur: number): Browse {
-  if (d.desks.length < 2 || !vacant(d.desks[at]!)) return { desk: d, cur };
-  const desk = { desks: d.desks.filter((_, i) => i !== at) };
+  if (d.desks.length < 2 || !vacant(d, at)) return { desk: d, cur };
+  const out = d.out ?? 0;
+  const desk: Desk = { ...d, desks: d.desks.filter((_, i) => i !== at), ...(out > at && { out: out - 1 }) };
   return { desk, cur: Math.min(cur > at ? cur - 1 : cur, desk.desks.length - 1) };
 }
 /** ›: the next desk, or a new one past the last (unless the last is empty and nameless). */
 export function deskNext(d: Desk, cur: number): Browse {
   if (cur < d.desks.length - 1) return sweep(d, cur, cur + 1);
-  if (vacant(d.desks[cur]!)) return { desk: d, cur };
-  return { desk: { desks: [...d.desks, blank(nextName(d))] }, cur: cur + 1 };
+  if (vacant(d, cur)) return { desk: d, cur };
+  return { desk: { ...d, desks: [...d.desks, blank(nextName(d))] }, cur: cur + 1 };
 }
 /** ‹: the desk before, leaving this one (which goes if empty and nameless). */
 export function deskPrev(d: Desk, cur: number): Browse {

@@ -1,4 +1,4 @@
-// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500, R524, R525, R532, R533, R536, R542, R550
+// CRC: crc-Records.md | Seq: seq-save.md | R340, R341, R343, R347, R348, R362, R360, R381, R380, R407-409, R419, R426, R436, R439, R486, R488, R491, R498-R500, R524, R525, R532, R533, R536, R542, R550, R557
 // The game as typed records: plain data, no methods, so a record crosses the wire, the database
 // and an export file unchanged. Every record from outside passes `check` before anything reads it.
 
@@ -247,8 +247,11 @@ export type Drawer = 'characters' | 'npcs' | 'papers';
 export type Filed = { drawer: Drawer; name: string; records: PieceRecord[] };
 // R550: the desks, each its name, whether it was named, and what is filed in it. A desk record from
 // before held one desk's entries (`OldDesk`); Drawers.desksOf reads either.
-export type OneDesk = { name: string; named: boolean; items: Filed[] };
-export type Desk = { desks: OneDesk[] };
+// R557: a desk's desktop (`top`, kept while another is set out), and where each traveler last lay on it.
+export type Spot = { pool?: Place; card?: Place; gathered?: boolean; place?: Place };
+export type OneDesk = { name: string; named: boolean; items: Filed[]; top?: PieceRecord[]; spots?: Record<Oid, Spot> };
+/** R557: `out` is the desk set out, the first when absent. */
+export type Desk = { desks: OneDesk[]; out?: number };
 export type OldDesk = { desk: Filed[] };
 
 export type Rec = PieceRecord | Yards | Meta | World | Rows | Book | Tape | Hill | Desk | OldDesk | Tied;
@@ -364,7 +367,8 @@ const burial = fields({ name: str(CAPS.name), records: list(piece) }, { info: fi
 const SINGLETONS: Record<string, Shape> = {
   yards: fields({ yards: list(fields({ name: str(CAPS.name), named: bool, items: list(burial) }), 100) }),
   hill: fields({ hill: list(fields({ yard: str(CAPS.name), burial }), 10_000) }),
-  desk: v => fields({ desks: list(fields({ name: str(CAPS.name), named: bool, items: list(filedEntry, 10_000) }), 100) })(v)
+  desk: v => fields({ desks: list(fields({ name: str(CAPS.name), named: bool, items: list(filedEntry, 10_000) },
+    { top: list(piece, 10_000), spots: dict(fields({}, { pool: place, card: place, gathered: bool, place }), 10_000) }), 100) }, { out: int(0, 99) })(v)
     || fields({ desk: list(filedEntry, 10_000) })(v),   // R550: one from before
   meta: fields({ round: int(0, 10_000), rolls: int(0, 1e9) }, { counts: dict(int(0, 1e9), 10_000), marked: oneOf(true) }),
   world: fields({ set: bool, total: int(-1000, 1000) }),

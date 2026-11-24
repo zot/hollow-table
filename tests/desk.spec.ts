@@ -1,4 +1,4 @@
-// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R529, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527, R546, R547, R548, R549, R551, R552, R553, R554, R555, R556
+// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R529, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527, R546, R547, R548, R549, R551, R552, R553, R562, R555, R556
 // The desk on the bar: its pigeonholes hold the paper supplies; a press takes one out, small while
 // over the strip; let go in a pigeonhole it follows the pointer until the next press.
 import { expect, test, type Page } from '@playwright/test';
@@ -283,31 +283,32 @@ test("the GM's desks: browsed, named, and filed into by the board", async ({ pag
   await page.locator('#bar .desknav .dname').press('Enter');
   await expect.poll(async () => (await rec(page, 'desk')).desks.map((d: any) => d.name)).toEqual(['Act 1', 'Act 2']);
   await page.mouse.click(5, 400);
-  // R554, R555: carried over the desk, the board hangs below it, the open desk first; over the desk the
-  // hint names it, and dragged down onto Act 1's row, that one.
+  // R562, R560, R555: carried over the desk, the board hangs below it, the desk set out (Act 1) first and
+  // marked; over the desk the hint names it, and dragged down onto Act 2's row, that one.
   const name = await middle(page, `.obj.pool[data-rid="${DEVREUX}"] .name`);
   await lift(page, name, desk);
   await expect(page.locator('#bar .deskboard')).toBeVisible();
-  await expect(page.locator('#bar .deskrow .holder')).toHaveText(['Act 2', 'Act 1']);
-  await expect(page.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Act 2: NPCs');
-  const row = await middle(page, '#bar .deskrow[data-desk="0"]');
+  await expect(page.locator('#bar .deskrow .holder')).toHaveText(['Act 1', 'Act 2']);
+  await expect(page.locator('#bar .deskrow[data-desk="0"] .switch')).toHaveCount(1);
+  await expect(page.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Act 1: NPCs');
+  const row = await middle(page, '#bar .deskrow[data-desk="1"]');
   await page.mouse.move(desk.x, row.y - 30, { steps: 4 });
   await page.mouse.move(row.x, row.y, { steps: 6 });
-  await expect(page.locator('#bar .deskrow[data-desk="0"]')).toHaveClass(/\bover\b/);
-  await expect(page.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Act 1: NPCs');
+  await expect(page.locator('#bar .deskrow[data-desk="1"]')).toHaveClass(/\bover\b/);
+  await expect(page.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Act 2: NPCs');
   await page.mouse.up();
   await expect.poll(() => rec(page, DEVREUX)).toBeUndefined();
-  expect((await rec(page, 'desk')).desks.map((d: any) => d.items.map((e: any) => e.name))).toEqual([['Devreux'], []]);
+  expect((await rec(page, 'desk')).desks.map((d: any) => d.items.map((e: any) => e.name))).toEqual([[], ['Devreux']]);
   await expect(page.locator('#bar .deskboard')).toBeHidden();
-  // R552: Act 2 is still the one open; its NPCs drawer is empty. R556: search finds Devreux in Act 1.
+  // R552: Act 2 is still the one open; its NPCs drawer holds Devreux. R556: search says Act 2.
   await page.mouse.click(desk.x, desk.y);
   await expect(page.locator('#bar .desknav .dname')).toHaveValue('Act 2');
   await page.locator('#bar .search').click();
-  await expect(page.locator('#bar .filed button')).toHaveText(['DevreuxAct 1: NPCs']);
-  // R551: ‹ goes back to Act 1, whose NPCs drawer holds it.
+  await expect(page.locator('#bar .filed button')).toHaveText(['DevreuxAct 2: NPCs']);
+  // R551: ‹ goes back to Act 1, whose NPCs drawer is empty.
   await page.locator('#bar .deskprev').click();
   await expect(page.locator('#bar .desknav .dname')).toHaveValue('Act 1');
   await page.locator('#bar .drawerfront[data-drawer="npcs"]').click();
-  await expect(page.locator('#bar .filed button')).toHaveText(['Devreux']);
+  await expect(page.locator('#bar .filed p')).toHaveText('Nothing filed here.');
 });
 

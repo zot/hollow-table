@@ -1,4 +1,4 @@
-// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548, R551, R552, R553, R554, R556
+// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548, R551, R552, R553, R562, R556, R559, R560
 // The desk on the bar: a little roll-top whose pigeonholes hold the paper supplies. A press opens the
 // strip of pigeonholes and follows the pointer: dragged across them it holds each one's piece small,
 // dragged out it hands the piece to the page to make and carry, and let go it decides what the
@@ -29,6 +29,8 @@ export type DeskWith = {
   /** R552: the desk open (the GM's seat), and the desks changed with the one open after. */
   cur: () => number;
   setDesks: (desks: Desk, cur: number) => void;
+  /** R559: sets desk `to` out: everyone's table switches to its desktop. */
+  setOut: (to: number) => void;
 };
 
 /** What letting go means (R513-R516). */
@@ -75,6 +77,8 @@ const LINKS: [Paper, string, string, string] = ['connections', 'supply links', '
 const CLICK = 4;
 /** How far below the strip a piece put there on touch has its middle (R514). */
 const BELOW = 110;
+/** R559: the knife switch's hint while the open desk is not set out. */
+const THROW = 'Set this desk out: everyone\'s table switches to its desktop';
 
 export class DeskView {
   readonly el: HTMLElement;
@@ -91,7 +95,9 @@ export class DeskView {
   #body: HTMLElement;
   /** R551: the open desk's name, between its arrows (the GM's). */
   #name: HTMLInputElement;
-  /** R554: the board of desks hung below the desk while a piece would be filed. */
+  /** R559, R560: the knife switch beside the open desk's name (the GM's). */
+  #knife: HTMLElement | null = null;
+  /** R562: the board of desks hung below the desk while a piece would be filed. */
   #board: HTMLElement;
   #image: HTMLElement;
   #imageSays: { text: string; title: string };
@@ -142,10 +148,13 @@ export class DeskView {
       on.addEventListener('click', () => browse(deskNext));
       this.#name.addEventListener('input', () => {
         const d = w.filed(), cur = this.#cur(), n = this.#name.value;
-        w.setDesks({ desks: d.desks.map((x, i) => (i === cur ? { ...x, name: n, named: n.trim() !== '' } : x)) }, cur);
+        w.setDesks({ ...d, desks: d.desks.map((x, i) => (i === cur ? { ...x, name: n, named: n.trim() !== '' } : x)) }, cur);
       });
       this.#name.addEventListener('change', () => browse((d, cur) => deskRename(d, cur, this.#name.value)));
-      nav.append(back, this.#name, on);
+      // R559, R560: the knife switch: thrown, the open desk is set out; on the desk set out it shows thrown.
+      this.#knife = el('button', 'knife', '', THROW);
+      this.#knife.addEventListener('click', () => { const cur = this.#cur(); if (cur !== (w.filed().out ?? 0)) w.setOut(cur); });
+      nav.append(back, this.#name, on, this.#knife);
       this.#drawers.append(nav);
     }
     this.#drawers.append(this.#find, this.#body);
@@ -207,14 +216,21 @@ export class DeskView {
     };
     const desks = this.#w.filed(), cur = this.#cur(), several = desks.desks.length > 1;
     if (doc.activeElement !== this.#name) this.#name.value = desks.desks[cur]?.name ?? '';
-    // R554: the board: a row per desk, the open one first, each a little roll-top and its name.
+    // R562: the board: a row per desk, each a little roll-top and its name.
     this.el.classList.toggle('several', several);
-    const order = [cur, ...desks.desks.map((_, i) => i).filter(i => i !== cur)];
+    const out = Math.min(desks.out ?? 0, desks.desks.length - 1);
+    if (this.#knife) {
+      this.#knife.classList.toggle('thrown', cur === out);
+      this.#knife.title = cur === out ? 'This desk is set out' : THROW;
+    }
+    // R562, R560: the desk set out first, marked with a tiny closed knife switch.
+    const order = [out, ...desks.desks.map((_, i) => i).filter(i => i !== out)];
     this.#board.replaceChildren(...order.map(i => {
       const row = make('div', 'deskrow'), name = deskName(desks.desks[i]!);
       row.dataset.desk = String(i);
       row.dataset.name = name;
       row.append(make('span', 'minitop'), make('span', 'holder', name));
+      if (i === out) row.append(make('span', 'switch', '', 'Set out'));
       return row;
     }));
     const fronts = make('div', 'fronts');

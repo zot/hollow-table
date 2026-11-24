@@ -79,23 +79,23 @@
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with no list on focus, the search line spec failed in Chromium (no names with nothing typed); restored clean
 
 ## Test: the GM's desks: browsed, named, and filed into by the board
-**Purpose:** R551-R556: the GM's open desk names its desk between arrows; › makes another; carrying Devreux over the desk hangs the board, the open desk first; a row under the pointer lights and names itself in the hint, and letting go there files into it; search says the desk; ‹ goes back.
-**Input:** the GM names Desk 1 "Act 1", makes another with › and names it "Act 2", carries Devreux over the desk and down onto Act 1's row, lets go, then searches and goes back with ‹.
-**Expected:** "Desk 1" then the new "Desk 1" renamed; board rows Act 2, Act 1; hint "→ Act 2: NPCs" then "→ Act 1: NPCs" with the row lit; Devreux in Act 1; search shows "Act 1: NPCs"; ‹ shows Act 1's NPCs drawer holding Devreux. A player has no arrows.
+**Purpose:** R551-R556: the GM's open desk names its desk between arrows; › makes another; carrying Devreux over the desk hangs the board, the desk set out first; a row under the pointer lights and names itself in the hint, and letting go there files into it; search says the desk; ‹ goes back.
+**Input:** the GM names Desk 1 "Act 1", makes another with › and names it "Act 2", carries Devreux over the desk and down onto Act 2's row, lets go, then searches and goes back with ‹.
+**Expected:** "Desk 1" then the new "Desk 1" renamed; board rows Act 1 (set out, marked) and Act 2; hint "→ Act 1: NPCs" then "→ Act 2: NPCs" with the row lit; Devreux in Act 2; search shows "Act 2: NPCs"; ‹ shows Act 1's NPCs drawer empty. A player has no arrows.
 **Refs:** crc-Desk.md, crc-Drag.md, crc-Drawers.md
 **Code:** tests/desk.spec.ts
 **Alarm:** 8
-**Fire alarm:** file into the open desk whatever row is under the pointer (#deskAt ignores the row): Devreux lands in Act 2
+**Fire alarm:** file into the desk set out whatever row is under the pointer (#deskAt ignores the row): Devreux lands in Act 1
 **Inject:** src/ui/drag.ts:Drag
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with #deskAt ignoring the row, the GM's desks spec failed in Chromium at the row lighting (the row under the pointer not lit, the hint naming Act 2), before the drop; restored clean
 
-## Test: the board puts the open desk first
-**Purpose:** R554: the board's first row is the open desk, then the rest in order.
-**Input:** the GM's desks spec, Act 2 open when Devreux is carried over the desk.
-**Expected:** rows Act 2, Act 1.
+## Test: the board puts the desk set out first
+**Purpose:** R562, R560: the board's first row is the desk set out, marked with a closed knife switch, then the rest in order.
+**Input:** the GM's desks spec, Act 2 open and Act 1 set out when Devreux is carried over the desk.
+**Expected:** rows Act 1 (with the closed switch), Act 2.
 **Refs:** crc-Desk.md
 **Code:** tests/desk.spec.ts
 **Alarm:** 9
-**Fire alarm:** list the desks in their own order: Act 1 comes first
+**Fire alarm:** put the open desk first, as #68 did: Act 2 comes first
 **Inject:** src/ui/desk.ts:DeskView
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with the desks in their own order, the GM's desks spec failed in Chromium (rows Act 1, Act 2); restored clean

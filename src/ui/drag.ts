@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543, R554, R555
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543, R562, R555
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -27,8 +27,6 @@ export type DragWith = {
   who: () => string | undefined;
   /** The graveyard being browsed (the Seat), where a put-away piece is buried (R122, R288). */
   yard: () => { cur: number; name: string };
-  /** R552: the desk open, the board's first (the GM's seat). */
-  desk: () => number;
   /** R521: whether this is the GM's page, whose desk files characters too. */
   gm: boolean;
 };
@@ -320,7 +318,7 @@ export class Drag {
     return !!bar && cy < bar.getBoundingClientRect().bottom;
   }
 
-  // R519, R554: the desk on the bar, by the pointer, and the board of desks while it hangs below it.
+  // R519, R562: the desk on the bar, by the pointer, and the board of desks while it hangs below it.
   #overDesk(doc: Document, cx: number, cy: number): boolean {
     const inside = (r: DOMRect | undefined) => !!r && r.width > 0 && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
     return inside(doc.querySelector('#bar .desk')?.getBoundingClientRect()) || inside(doc.querySelector('#bar .deskboard')?.getBoundingClientRect());
@@ -329,10 +327,11 @@ export class Drag {
   /** This page's desks (its `desk` record). */
   #desks(): Desk { return desksOf(this.#w.game.get('desk') as Desk | undefined); }
 
-  // R555: the desk a piece let go here is filed in: the board's row under the pointer, else the open desk.
+  // R555, R562: the desk a piece let go here is filed in: the board's row under the pointer, else the desk set out.
   #deskAt(doc: Document, cx: number | null, cy: number | null): number {
     const row = cx === null || cy === null ? null : (doc.elementFromPoint(cx, cy) as HTMLElement | null)?.closest<HTMLElement>('.deskrow');
-    return row ? Number(row.dataset.desk) : Math.max(0, Math.min(this.#w.desk(), this.#desks().desks.length - 1));
+    const all = this.#desks();
+    return row ? Number(row.dataset.desk) : Math.max(0, Math.min(all.out ?? 0, all.desks.length - 1));
   }
   // R288, R520: over the bar it is red, with the graveyard it would be buried in; over the desk, with
   // the drawer it would be filed in instead.
@@ -344,7 +343,7 @@ export class Drag {
     bar.classList.toggle('bury', over && buries && !file);
     bar.dataset.yard = `→ ${this.#w.yard().name || 'Unnamed graveyard'}`;
     desk?.classList.toggle('file', file);
-    // R554, R555: the row under the pointer rolls its lid up; the hint names the desk too when there are several.
+    // R562, R555: the row under the pointer rolls its lid up; the hint names the desk too when there are several.
     const at = file ? this.#deskAt(doc, cx, cy) : -1;
     for (const row of doc.querySelectorAll<HTMLElement>('#bar .deskrow')) row.classList.toggle('over', Number(row.dataset.desk) === at);
     if (desk && files) {

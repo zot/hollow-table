@@ -1,5 +1,5 @@
 # Desk
-**Requirements:** R512-517, R520, R526, R527, R529, R530, R546-548, R551-554, R556
+**Requirements:** R512-517, R520, R526, R527, R529, R530, R546-548, R551-554, R556, R559, R560, R562
 
 The desk on the bar (`carves/organizing.md`): a little roll-top right after the wordmark, its
 pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
@@ -41,9 +41,11 @@ the drawers showing below the pigeonholes.
   from a drawer; none says "Nothing found."
 - desk nav (R551-R553): on the GM's page ‹, the open desk's name (an input, "Unnamed desk") and ›
   above the search line; the drawers list the open desk's (the seat's `desk.cur`). None on a player's.
-- the board (R554): `.deskboard`, hung below the desk while a piece that would be filed is over it and
-  there is more than one desk: a `.deskrow` per desk, the open one first, each with `data-desk`, its
+- the board (R562, R560): `.deskboard`, hung below the desk while a piece that would be filed is over it and
+  there is more than one desk: a `.deskrow` per desk, the one set out first (its row marked with a closed knife switch), each with `data-desk`, its
   roll-top and its name; Drag lights the row under the pointer.
+- the knife switch (R559, R560): beside the open desk's name on the GM's page; open while the open desk
+  isn't set out, a click sets it out (Desktops.setOut, one change); thrown and inert on the desk set out.
 
 ## Collaborators
 - Bar: makes it, in the bar after the wordmark, and passes its callbacks through.

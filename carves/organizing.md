@@ -16,7 +16,7 @@ Opened by Bill, 2026-11-23, and worked out with Daneel over 2026-11-23 and 24.
 - [x] ~~**Item 4 — dockets.**~~ **LANDED (2026-11-24 — `#66`.)** After Item 3.
 - [x] ~~**Item 5 — search and the list of names.**~~ **LANDED (2026-11-24 — `#67`.)** After Item 3.
 - [x] ~~**Item 6 — the GM's desks.**~~ **LANDED (2026-11-24 — `#68`.)** After Item 3.
-- [ ] **Item 7 — desktops and the knife switch.** **OPEN (not queued.)** After Item 6.
+- [x] ~~**Item 7 — desktops and the knife switch.**~~ **LANDED (2026-11-24 — `#69`.)** After Item 6.
 
 ## What the table has today
 
@@ -357,3 +357,15 @@ they are for that desk."
 DECIDED (Bill, 2026-11-23): "Separate set-out. Let's put a Frankenstein switch next to the expanded GM
 desk"; "Travels with player"; switching is "Independent" of ending a scene. DECIDED (Bill, 2026-11-24):
 the switch only for a desk not set out, and open characters travel ("These are all good").
+
+DECIDED (Bill, 2026-11-24), on Daneel's three questions before #69: **the Connection Table is one per
+game**, never a desktop's ("one per game -- it's supposed to track all the NPCs in the story"); **a new
+desk's desktop starts empty**, the travelers where they lie ("yes"); **the board's first desk is the
+one set out**, replacing the open desk #68 used until there was a switch ("yes"); and, as Daneel
+proposed, **everything not named as travelling stays with its desktop**: NPCs, the GM's paper
+(handouts too), the GM's dockets, loose chips and cards, and the reference card ("Yes, your other
+decisions were good").
+
+Specified in `specs/desk.md`, *Desktops and the knife switch*, as R557–R564 (#69), retiring R554 (the
+board's open desk first) for R562 (the desk set out first). The desk set out is never empty, so › from a
+fresh Desk 1 makes Desk 2 at once, where #68 waited for something filed or a name.
