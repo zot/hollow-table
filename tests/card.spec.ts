@@ -1,4 +1,4 @@
-// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567, R568, R569, R570, R571
+// CRC: crc-PieceView.md | Test: test-Table.md | R252, R253, R255, R256, R463, R268, R269, R270, R271, R272, R334, R335, R341, R342, R496, R565, R566, R567, R568, R572, R570, R571, R573
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
@@ -260,13 +260,17 @@ test('the thumbtack: pinned paper moves without coming off, and the tack moves t
   const pin = async () => (await rec(page, S))?.pin;
   await expect.poll(async () => (await pin())?.card).toBe('00000001');
   await expect(page.locator(`[data-rid="${S}"].tacked .tack`)).toBeVisible();
-  // R569: dragged off the card it stays pinned to Sam, at its new offset, the pin line showing while carried.
+  // R572: dragged off the card it stays pinned to Sam, at its new offset, the pin line showing while carried.
   const before = await pin(), s = await mid(`[data-rid="${S}"] .text`), to = await openTable(page);
   await page.mouse.move(s.x, s.y);
   await page.mouse.down();
   await page.mouse.move(s.x + 20, s.y + 20, { steps: 3 });
   await page.mouse.move(to.x, to.y, { steps: 8 });
   await expect(page.locator('.pinline line')).toHaveCount(1);
+  // R572: under the paper, over its card.
+  const z = await page.evaluate((sels: string[]) => sels.map(sel => Number(getComputedStyle(document.querySelector(sel)!).zIndex)), [`[data-rid="${S}"]`, SAMCARD, '.pinline']);
+  expect(z[2]).toBeLessThan(z[0]!);
+  expect(z[2]).toBeGreaterThanOrEqual(z[1]!);
   await page.mouse.up();
   await expect.poll(async () => { const p = await pin(); return [p?.card, p?.dx === before.dx]; }).toEqual(['00000001', false]);
   await expect(page.locator('.pinline')).toHaveCount(0);
@@ -286,7 +290,12 @@ test('the thumbtack: pinned paper moves without coming off, and the tack moves t
   await page.mouse.move(t.x, t.y);
   await page.mouse.down();
   await page.mouse.move(sam.x, sam.y, { steps: 8 });
+  // R573: its own card and the card pointed at raised, the paper above them; down again after Esc.
+  await expect(page.locator(`${DEVCARD}.pinraised`)).toHaveCount(1);
+  await expect(page.locator(`${SAMCARD}.pinraised`)).toHaveCount(1);
+  await expect(page.locator(`[data-rid="${S}"].pinpaper`)).toHaveCount(1);
   await page.keyboard.press('Escape');
+  await expect(page.locator('.pinraised, .pinpaper')).toHaveCount(0);
   await page.mouse.up();
   expect((await pin()).card).toBe('00000003');
   await expect(page.locator('.pinline')).toHaveCount(0);

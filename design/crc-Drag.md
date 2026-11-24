@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543, R555, R562, R569, R571
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543, R555, R562, R571-573
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -41,7 +41,7 @@ Lifting, carrying and dropping, and deciding what a drop means.
   - an Influence card on a drawer: home there (another character's drawer moves it);
   - anything on the bar: put away (bury, vanish, or go home, by kind);
   - a loose sticky, text or image on a card: pinned, its offset from the card kept; paper pinned to a
-    card, let go anywhere: still pinned to it at its new offset (R569); a card carries what's pinned to it;
+    card, let go anywhere: still pinned to it at its new offset (R572); a card carries what's pinned to it;
   - an Influence card anywhere else: home (a tap may stay loose);
   - the Base on a character: aim (RollRow);
   - otherwise: placed where dropped.
@@ -90,7 +90,7 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - filing among desks (R562, R555): over the desk or its hanging board, the desk is the row under the
   pointer or else the board's first (the desk set out); the hint names it and the drawer when there are
   several.
-- pinned paper's carry (R569): aimed at nothing, the pin line drawn from its tack to its card's center
+- pinned paper's carry (R572): aimed at nothing, the pin line drawn from its tack to its card's center
   each frame (TableView.pinLine), its drop keeping the pin at the new offset.
 - startTack(rid, down, move) (R571): the tack's drag: the pin line runs to the pointer, the card under it
   lit; let go on another card, the pin moves there with the paper where it lies; anywhere else, or Esc,

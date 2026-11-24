@@ -219,9 +219,14 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
   shadow; paper in a docket shows none, its red tape says so.
 - **Dragging pinned paper only moves it** ("we should make dragging the paper simply reposition it
   instead of unfastening it"): wherever it's let go, it stays pinned to its card, even over another card
-  or a docket's tape. While it's carried, the **pin line** runs from its tack to its card's center
-  ("Dragging a pinned card should show the pin line"), drawn like the line a roll row aims with, in
-  its amber ("Pin lines should be the same amber").
+  or a docket's tape. While it's carried, the **pin line** runs from the middle of its tack to its
+  card's center ("Dragging a pinned card should show the pin line"), drawn like the line a roll row
+  aims with, in its amber ("Pin lines should be the same amber"), under the paper and over the card
+  (Bill, 2026-11-24: "under the paper is better, so it's between the paper and the card in z-order").
+  While the line shows, its card and the paper with its tack are raised above everything else, the
+  line between them ("let's temporarily raise the card, paper, and tack during the drag, otherwise the
+  line can appear to be attached to an obscuring card"); during a tack's drag the card it points at
+  is raised too. They go back down when the line goes.
 - **The tack** pins, unpins and moves the pin. A click takes it out, and the paper lies loose where it
   is. A press shows the pin line; dragged, the line follows the pointer and the card under it lights;
   let go on another card, the paper is pinned to that one where it lies; let go on the table, or Esc,

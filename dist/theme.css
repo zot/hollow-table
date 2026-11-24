@@ -586,7 +586,11 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .obj.tacked > .tack { display: block; }
 .obj.piled > .tack { display: none; }
 .tack:focus-visible { outline: 2px solid var(--amber); }
-.pinline { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 3000000; }
+/* R573: while the pin line shows, its cards and the paper are raised over everything, the line between. */
+.obj.pinraised { z-index: 999998 !important; }
+.obj.pinpaper { z-index: 1000001 !important; }
+/* Its z-index is set one below the paper's, so it runs under the paper and over the card. */
+.pinline { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
 .pinline line { stroke: #ffd36b; stroke-width: 3; stroke-dasharray: 8 6; stroke-linecap: round; vector-effect: non-scaling-stroke;
   filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
 

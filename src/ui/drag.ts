@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543, R562, R555, R569, R571
+// CRC: crc-Drag.md | Seq: seq-drag.md#1.2, seq-drag.md#1.3, seq-drag.md#1.3.1, seq-drag.md#1.4, seq-drag.md#1.5, seq-drag.md#1.6, seq-drag.md#1.7 | R298, R299, R300, R211, R463, R215, R244, R240, R216, R217, R220, R221, R222, R223, R243, R225, R226, R21, R27, R32, R251, R48, R55, R57, R60, R183, R285, R119, R122, R288, R360, R409, R482, R488, R500, R513, R519, R520, R521, R522, R523, R532, R536, R538, R539, R540, R541, R543, R562, R555, R572, R571, R573
 // Lifting, carrying and dropping, and deciding what a drop means. Everything is carried one way
 // (carry): each frame works out the piece's place and aim, which Hands draws on this page and Moves
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
@@ -70,9 +70,6 @@ function leaveWriting(doc: Document): void {
 const less = (p: { x: number; y: number }, g: { x: number; y: number }) => ({ x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) });
 
 /** Where a paper lying at `at` has its tack: the middle of its top edge. */
-function tackOn(el: HTMLElement, at: { x: number; y: number }): { x: number; y: number } {
-  return { x: at.x + el.offsetWidth / 2, y: at.y };
-}
 
 export class Drag {
   #w: DragWith;
@@ -161,10 +158,10 @@ export class Drag {
     this.#carry({
       rid, ...(rec.kind === 'character' && { part: 'card' as const }),
       // R538, R536, R539: paper is aimed at the card under the pointer, else at the docket on top whose
-      // tape, drawn without it, it touches. R569: paper pinned to a card is aimed at nothing, its pin line drawn.
+      // tape, drawn without it, it touches. R572: paper pinned to a card is aimed at nothing, its pin line drawn.
       frame: (cx, cy) => {
         const f: Frame = less(table.toWorld(cx, cy), grip);
-        if (held) { table.pinLine(tackOn(el, f), this.#middle(held)); return f; }
+        if (held) { table.pinLine(rid, f, this.#middle(held), [ridOf(held.oid)]); return f; }
         const card = pins ? this.#cardAt(el.ownerDocument, cx, cy, el) : undefined;
         if (card) return { ...f, aim: { card: ridOf(card.oid) } };
         const docket = pins ? aimed(table.targets(rid), { left: f.x, top: f.y, right: f.x + el.offsetWidth, bottom: f.y + el.offsetHeight }) : null;
@@ -209,7 +206,7 @@ export class Drag {
     const { game, table } = this.#w;
     const rec = game.get(rid) as PieceRecord | undefined, el = table.element(rid), from = rec && this.#tackedTo(rec);
     if (!rec || !isPinnable(rec) || !el || !from) return;
-    const doc = el.ownerDocument, tack = tackOn(el, rec.place);
+    const doc = el.ownerDocument;
     let over: Character | undefined;
     const light = (c: Character | undefined) => {
       for (const e of doc.querySelectorAll('.obj.card.over')) e.classList.remove('over');
@@ -218,7 +215,7 @@ export class Drag {
     const to = (e: PointerLike) => {
       over = this.#cardAt(doc, e.clientX, e.clientY, el);
       light(over);
-      table.pinLine(tack, over ? this.#middle(over) : table.toWorld(e.clientX, e.clientY));
+      table.pinLine(rid, rec.place, over ? this.#middle(over) : table.toWorld(e.clientX, e.clientY), [ridOf(from.oid), ...(over ? [ridOf(over.oid)] : [])]);
     };
     const stop = () => { doc.removeEventListener('keydown', key, true); light(undefined); table.pinLine(null); };
     let gone = false;
@@ -537,7 +534,7 @@ export class Drag {
       }
       if (!isPinnable(rec)) { w.put(rid, { ...rec, place }); return; }
       // R27, R536: pinned to the card or docket it was aimed at, at its offset from it; else loose.
-      // R569: paper pinned to a card stays pinned to it, wherever it's let go.
+      // R572: paper pinned to a card stays pinned to it, wherever it's let go.
       const card = this.#tackedTo(rec) ?? (aim?.card ? game.get(aim.card) as Character | undefined : undefined);
       const docket = aim?.docket ? game.get(aim.docket) as Docket | undefined : undefined;
       let holder: { oid: Oid; at: { x: number; y: number } } | null = null;

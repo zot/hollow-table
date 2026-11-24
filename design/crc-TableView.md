@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R569, R571
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -74,7 +74,10 @@ DOM a view of the records.
 - tied piles (R542, R543): a tied docket's papers are drawn at Dockets.pile, marked piled (their insides take no presses), and a press on one carries the docket.
 - box(rid) (R537): a drawn piece's box in table coordinates, for the touch test.
 - tacked (R568): pinned paper whose holder is a card is marked `tacked`, so its tack shows.
-- pinLine(from, to) (R569, R571): one dashed amber line in table coordinates, over the pieces, or none.
+- pinLine(rid, at, to) (R572, R571): one dashed amber line in table coordinates from the middle of paper
+  `rid`'s tack (its corner at `at`, its tilt counted) to `to`, one below the paper's height, so under it
+  and over its card; or none. With it, the cards it names are raised (`pinraised`) and the paper above
+  them (`pinpaper`), above every other piece, the line between; taken away, they go back down (R573).
 
 ## Collaborators
 - Game, Seat, PieceView, PoolView, Drag

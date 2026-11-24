@@ -567,3 +567,25 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** make the tack's click do nothing: the sticky stays pinned to Devreux
 **Inject:** src/ui/piece.ts:tack
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with the tack's click doing nothing, the thumbtack spec failed in Chromium (still pinned at the end); restored clean
+
+## Test: the pin line lies under the paper, over its card
+**Purpose:** R572: while pinned paper is carried, the pin line's height is below the paper's and not below its card's.
+**Input:** the thumbtack spec's carry of the sticky off Sam's card.
+**Expected:** line z below the sticky's, at or above the card's.
+**Refs:** crc-TableView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 47
+**Fire alarm:** leave the line over everything, as #71 drew it: its z is above the paper's
+**Inject:** src/ui/table.ts:pinLine
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with the line over everything, as #71 drew it, the thumbtack spec failed in Chromium on the z check (3000000 not below the paper's 1000001); restored clean
+
+## Test: the pinned pair is raised while the line shows
+**Purpose:** R573: during a tack's drag the paper's own card and the card pointed at are raised, the paper above them, and all come down when the line goes.
+**Input:** the thumbtack spec's tack drag over Sam's card, cancelled with Esc.
+**Expected:** Devreux's and Sam's cards marked raised and the sticky raised during it; none after.
+**Refs:** crc-TableView.md, crc-Drag.md
+**Code:** tests/card.spec.ts
+**Alarm:** 48
+**Fire alarm:** raise nothing (pinLine ignores its cards): the cards aren't marked during the drag
+**Inject:** src/ui/table.ts:pinLine
+**Pulled:** 2026-11-24 — 2026-11-24 — rang: with pinLine raising no cards, the thumbtack spec failed in Chromium (Devreux's card not marked raised during the tack's drag); restored clean

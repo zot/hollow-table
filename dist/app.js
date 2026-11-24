@@ -18447,9 +18447,6 @@ function leaveWriting(doc) {
   doc.getSelection?.()?.removeAllRanges();
 }
 var less = (p, g) => ({ x: Math.round(p.x - g.x), y: Math.round(p.y - g.y) });
-function tackOn(el4, at4) {
-  return { x: at4.x + el4.offsetWidth / 2, y: at4.y };
-}
 var Drag = class {
   #w;
   constructor(w) {
@@ -18539,11 +18536,11 @@ var Drag = class {
       rid: rid2,
       ...rec.kind === "character" && { part: "card" },
       // R538, R536, R539: paper is aimed at the card under the pointer, else at the docket on top whose
-      // tape, drawn without it, it touches. R569: paper pinned to a card is aimed at nothing, its pin line drawn.
+      // tape, drawn without it, it touches. R572: paper pinned to a card is aimed at nothing, its pin line drawn.
       frame: (cx, cy) => {
         const f = less(table.toWorld(cx, cy), grip);
         if (held) {
-          table.pinLine(tackOn(el4, f), this.#middle(held));
+          table.pinLine(rid2, f, this.#middle(held), [ridOf(held.oid)]);
           return f;
         }
         const card2 = pins ? this.#cardAt(el4.ownerDocument, cx, cy, el4) : void 0;
@@ -18587,7 +18584,7 @@ var Drag = class {
     const { game: game2, table } = this.#w;
     const rec = game2.get(rid2), el4 = table.element(rid2), from = rec && this.#tackedTo(rec);
     if (!rec || !isPinnable(rec) || !el4 || !from) return;
-    const doc = el4.ownerDocument, tack2 = tackOn(el4, rec.place);
+    const doc = el4.ownerDocument;
     let over;
     const light = (c) => {
       for (const e of doc.querySelectorAll(".obj.card.over")) e.classList.remove("over");
@@ -18596,7 +18593,7 @@ var Drag = class {
     const to = (e) => {
       over = this.#cardAt(doc, e.clientX, e.clientY, el4);
       light(over);
-      table.pinLine(tack2, over ? this.#middle(over) : table.toWorld(e.clientX, e.clientY));
+      table.pinLine(rid2, rec.place, over ? this.#middle(over) : table.toWorld(e.clientX, e.clientY), [ridOf(from.oid), ...over ? [ridOf(over.oid)] : []]);
     };
     const stop = () => {
       doc.removeEventListener("keydown", key, true);
@@ -19439,15 +19436,20 @@ var TableView = class {
     const z = Math.max(0, ...papers.map((r) => parseInt(this.#els.get(r)?.style.zIndex || "0", 10)));
     Object.assign(b.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px`, zIndex: String(z + 1) });
   }
-  // R569, R571: the pin line, from a tack to a card's middle (or the pointer), over everything.
+  // R572, R571: the pin line, from the middle of a paper's tack (its tilt counted) to a card's middle or
+  // the pointer, under the paper and over its card: one below the paper's height.
   #pin = null;
-  /** Draws the pin line between two table points, or takes it away. */
-  pinLine(from, to) {
-    if (!from || !to) {
+  /** Draws the pin line from the tack of paper `rid`, its corner at `at`, to `to`, raising `cards`; or takes it away. */
+  pinLine(rid2, at4, to, cards = []) {
+    const e = rid2 ? this.#els.get(rid2) : void 0;
+    for (const x of this.#world.querySelectorAll(".pinraised, .pinpaper")) x.classList.remove("pinraised", "pinpaper");
+    if (!e || !at4 || !to) {
       this.#pin?.ownerSVGElement?.remove();
       this.#pin = null;
       return;
     }
+    for (const c of cards) this.#els.get(c)?.classList.add("pinraised");
+    e.classList.add("pinpaper");
     if (!this.#pin) {
       const doc = this.#world.ownerDocument, svg = doc.createElementNS(SVG, "svg");
       svg.classList.add("pinline");
@@ -19455,7 +19457,10 @@ var TableView = class {
       svg.append(this.#pin);
       this.#world.append(svg);
     }
+    const m = new DOMMatrix(getComputedStyle(e).transform), turn2 = Math.atan2(m.b, m.a), h = e.offsetHeight / 2;
+    const from = { x: at4.x + e.offsetWidth / 2 + h * Math.sin(turn2), y: at4.y + h - h * Math.cos(turn2) };
     const l = this.#pin, f = (n) => String(Math.round(n));
+    l.ownerSVGElement.style.zIndex = String((parseInt(getComputedStyle(e).zIndex, 10) || 1) - 1);
     l.setAttribute("x1", f(from.x));
     l.setAttribute("y1", f(from.y));
     l.setAttribute("x2", f(to.x));

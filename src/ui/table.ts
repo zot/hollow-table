@@ -1,4 +1,4 @@
-// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486, R534, R535, R537, R539, R542, R543, R568, R569, R571
+// CRC: crc-TableView.md | Seq: seq-save.md#1.4 | R2, R15, R16, R32, R33, R60, R128, R215, R220, R298, R269, R270, R271, R272, R273, R285, R419, R421, R438, R479, R480, R481, R482, R486, R534, R535, R537, R539, R542, R543, R568, R572, R571, R573
 // The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 // DOM a view of the records. Panning and zooming are the seat's: they never touch the game.
 
@@ -505,11 +505,17 @@ export class TableView {
     Object.assign(b.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px`, zIndex: String(z + 1) });
   }
 
-  // R569, R571: the pin line, from a tack to a card's middle (or the pointer), over everything.
+  // R572, R571: the pin line, from the middle of a paper's tack (its tilt counted) to a card's middle or
+  // the pointer, under the paper and over its card: one below the paper's height.
   #pin: SVGLineElement | null = null;
-  /** Draws the pin line between two table points, or takes it away. */
-  pinLine(from: Pt | null, to?: Pt): void {
-    if (!from || !to) { this.#pin?.ownerSVGElement?.remove(); this.#pin = null; return; }
+  /** Draws the pin line from the tack of paper `rid`, its corner at `at`, to `to`, raising `cards`; or takes it away. */
+  pinLine(rid: Rid | null, at?: Pt, to?: Pt, cards: Rid[] = []): void {
+    const e = rid ? this.#els.get(rid) : undefined;
+    // R573: the cards it ends at raised, and the paper above them, over every other piece; down again after.
+    for (const x of this.#world.querySelectorAll('.pinraised, .pinpaper')) x.classList.remove('pinraised', 'pinpaper');
+    if (!e || !at || !to) { this.#pin?.ownerSVGElement?.remove(); this.#pin = null; return; }
+    for (const c of cards) this.#els.get(c)?.classList.add('pinraised');
+    e.classList.add('pinpaper');
     if (!this.#pin) {
       const doc = this.#world.ownerDocument, svg = doc.createElementNS(SVG, 'svg');
       svg.classList.add('pinline');
@@ -517,7 +523,11 @@ export class TableView {
       svg.append(this.#pin);
       this.#world.append(svg);
     }
+    const m = new DOMMatrix(getComputedStyle(e).transform), turn = Math.atan2(m.b, m.a), h = e.offsetHeight / 2;
+    // The tack is at the top middle: the paper's middle, then half its height up, turned by its tilt.
+    const from = { x: at.x + e.offsetWidth / 2 + h * Math.sin(turn), y: at.y + h - h * Math.cos(turn) };
     const l = this.#pin, f = (n: number) => String(Math.round(n));
+    l.ownerSVGElement!.style.zIndex = String((parseInt(getComputedStyle(e).zIndex, 10) || 1) - 1);
     l.setAttribute('x1', f(from.x)); l.setAttribute('y1', f(from.y)); l.setAttribute('x2', f(to.x)); l.setAttribute('y2', f(to.y));
   }
 

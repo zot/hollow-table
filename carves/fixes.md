@@ -14,6 +14,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [ ] **Item 6 — the tape spec's reload race.** **OPEN (not queued.)** Gap O15.
 - [x] ~~**Item 7 — the name above a pool, written and tied to its card.**~~ **LANDED (2026-11-24 — `#70`.)** Bill, 2026-11-24.
 - [x] ~~**Item 8 — a thumbtack on paper pinned to a card.**~~ **LANDED (2026-11-24 — `#71`.)** Bill, 2026-11-24.
+- [ ] **Item 9 — pinned paper jumps when its pool is dragged.** **OPEN (not queued.)** Bill, 2026-11-24.
 
 ## Item 1
 
@@ -126,11 +127,27 @@ card it's attached to", and "Pin lines should be the same amber color we're usin
   opponent's ring). Daneel's reading: drawn like that line too, 3 px and dashed, with its shadow, since
   both say "this points at that".
 
-Specified in `specs/table.md` (a thumbtack holds pinned paper) as R568–R571 (#71). Found while building:
+DECIDED (Bill, 2026-11-24, after #71, by a screenshot of the line ending at the tack's top): "make the
+drag line come from the center of the thumbtack", and "under the paper is better, so it's between the
+paper and the card in z-order". R569 retired for R572. And (Bill, 2026-11-24): "let's temporarily raise
+the card, paper, and tack during the drag, otherwise the line can appear to be attached to an obscuring
+card" (R573).
+
+Specified in `specs/table.md` (a thumbtack holds pinned paper) as R568–R571 (#71), R572 after. Found while building:
 paper whose pin was taken out kept its "pinned" mark on the page (the redraw skipped paper with no `pin`
 at all), from before; fixed with the tack's own mark.
 
-## Decisions
+## Item 9
+
+Bill (2026-11-24): "dragging the paper and then dragging the pool mat makes the paper jump up. Dragging
+the paper after that makes it jump back down while it drags."
+
+Daneel's guess, not yet checked: the same root as Item 1. A gathered card is drawn under its pool, not
+where its record says (seen 2026-11-24: drawn at y 276 with its record at 300). A pin's offset is taken
+from the card's record, but while the pool is carried, Hands holds the pinned paper at the card's drawn
+place plus that offset, so the paper jumps by the difference; and the paper's own drag starts from its
+record. If so, Items 1 and 9 are one fix: a gathered card's record following its pool, so the record
+and the drawing agree.
 
 DECIDED (Bill, 2026-11-24): the carve takes gaps O9 and O12–O16 ("Those six gaps"); O1 and O10 stay as
 gaps.
