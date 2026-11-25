@@ -16,7 +16,10 @@ function isPinnable(r) {
   return r.kind === "sticky" || r.kind === "text" || r.kind === "image";
 }
 function isPrivate(r) {
-  return isPaper(r) && (!!r.to || !!r.mine);
+  return isPaper(r) && (!!r.to || !!r.mine || !!r.handed);
+}
+function ownerOf(r) {
+  return r.by ?? GM;
 }
 var DICE = ["W", "G", "R", "B", "Y"];
 var ROLL_TYPES = ["?", "skill", "influence", "phys", "mental", "psych", "infer", "impress", "request"];
@@ -121,7 +124,7 @@ var receipt = fields(
     )
   }
 );
-var readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true) };
+var readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true), handed: oneOf(true) };
 var DOCKET_NAME = 40;
 var PIECES = {
   character: fields({
@@ -1314,6 +1317,57 @@ function search(d, query) {
   return [...named4, ...worded];
 }
 
+// src/rules/ownership.ts
+var own = (viewer, c) => !!viewer && c.owner === (viewer.gm ? GM : viewer.name);
+function click(viewer, c) {
+  if (!viewer) return { refused: "Only someone at the table can take a character." };
+  if (c.owner === OPEN) return { owner: viewer.gm ? GM : viewer.name };
+  if (viewer.gm || own(viewer, c)) return { dock: true };
+  return { refused: `${c.name} is ${c.owner === GM ? "the GM's" : `${c.owner}'s`}.` };
+}
+function shiftClick(viewer, c) {
+  if (viewer && (viewer.gm || own(viewer, c))) return { owner: OPEN };
+  return { refused: `${c.name} isn't yours to open.` };
+}
+function mayChange(viewer, before2, after) {
+  if (viewer?.gm) return true;
+  if (!viewer) return false;
+  const mine = (c) => c.owner === viewer.name || c.owner === OPEN;
+  if (before2 && !mine(before2)) return false;
+  return !after || mine(after);
+}
+function mayWrite(viewer, c) {
+  return !!viewer && (viewer.gm || c.owner !== OPEN && c.owner === viewer.name);
+}
+function rewrites(before2, after) {
+  if (!before2 || !after) return false;
+  return before2.front !== after.front || before2.back.notes !== after.back.notes || before2.name !== after.name;
+}
+function handOver(r, who) {
+  const { to, mine, handed: _handed, ...rest } = r, base = { ...rest, by: who };
+  if (mine || ownerOf(r) === GM && to && !to.length) return { ...base, handed: true };
+  return to ? { ...base, to: to.filter((n) => n !== who) } : base;
+}
+function takeHanded(all2, self) {
+  const out = [];
+  for (const [from, r] of all2) {
+    if (!isPaper(r) || !r.handed || r.by !== self) continue;
+    const { handed: _handed, ...rest } = r;
+    const rec = self === GM ? { ...rest, to: [] } : { ...rest, mine: true };
+    out.push({ from, rid: ridFor(rec), rec });
+  }
+  return out;
+}
+var readers2 = (r) => JSON.stringify([r.to ?? null, r.mine ?? null, r.handed ?? null]);
+function reread(a, b) {
+  return readers2(a) !== readers2(b);
+}
+function handsOver(was, rec, who) {
+  if (rec.by === void 0) return false;
+  if (!was) return !!rec.handed && rec.by !== who;
+  return rec.by !== was.by && ownerOf(was) === who && !reread(rec, handOver(was, rec.by));
+}
+
 // src/rules/connections.ts
 var WORDS = ["Min", "Sig", "Maj", "Ext", "Exq"];
 function level(n) {
@@ -1684,33 +1738,6 @@ function groupChooser(text, w, gmCard) {
   text.addEventListener("focusout", () => close());
 }
 
-// src/rules/ownership.ts
-var own = (viewer, c) => !!viewer && c.owner === (viewer.gm ? GM : viewer.name);
-function click(viewer, c) {
-  if (!viewer) return { refused: "Only someone at the table can take a character." };
-  if (c.owner === OPEN) return { owner: viewer.gm ? GM : viewer.name };
-  if (viewer.gm || own(viewer, c)) return { dock: true };
-  return { refused: `${c.name} is ${c.owner === GM ? "the GM's" : `${c.owner}'s`}.` };
-}
-function shiftClick(viewer, c) {
-  if (viewer && (viewer.gm || own(viewer, c))) return { owner: OPEN };
-  return { refused: `${c.name} isn't yours to open.` };
-}
-function mayChange(viewer, before2, after) {
-  if (viewer?.gm) return true;
-  if (!viewer) return false;
-  const mine = (c) => c.owner === viewer.name || c.owner === OPEN;
-  if (before2 && !mine(before2)) return false;
-  return !after || mine(after);
-}
-function mayWrite(viewer, c) {
-  return !!viewer && (viewer.gm || c.owner !== OPEN && c.owner === viewer.name);
-}
-function rewrites(before2, after) {
-  if (!before2 || !after) return false;
-  return before2.front !== after.front || before2.back.notes !== after.back.notes || before2.name !== after.name;
-}
-
 // src/rules/visibility.ts
 function canSee(viewer, character2) {
   return !!viewer?.gm || character2.owner === OPEN || !!viewer && character2.owner === viewer.name;
@@ -1749,7 +1776,7 @@ function contribution(i, chars) {
   return !!home && home.owner !== pool.owner;
 }
 function reads(viewer, p) {
-  if (p.mine) return !!viewer && !viewer.gm && viewer.name === p.by;
+  if (p.mine || p.handed) return !!viewer && !viewer.gm && viewer.name === p.by;
   if (!p.to) return true;
   return !!viewer && (viewer.gm || viewer.name === p.by || p.to.includes(viewer.name));
 }
@@ -3130,97 +3157,117 @@ function tie(w, oid) {
   w.game.change((wr) => wr.put("tied", { tied: [...now2] }));
 }
 function readersOf(r, viewer) {
-  if (r.mine) return ["me"];
+  if (r.mine || r.handed) return ["me"];
   if (!r.to) return [];
   const me = selfName(viewer);
-  const others = [.../* @__PURE__ */ new Set([GM, ...r.by ? [r.by] : [], ...r.to])].filter((n) => n !== me);
+  const others = [.../* @__PURE__ */ new Set([GM, ownerOf(r), ...r.to])].filter((n) => n !== me);
   return others.length ? others : ["me"];
 }
 function withReaders(r, a) {
-  const { to: _to, mine: _mine, ...rest } = r;
-  if (a === "all") return rest;
-  if (a === "me") return { ...rest, mine: true };
-  return { ...rest, to: a === "gm" ? [] : a };
+  const { to: _to, mine: _mine, handed: _handed, ...rest } = r, base = { ...rest, by: ownerOf(r) };
+  if (a === "all") return base;
+  if (a === "me") return { ...base, mine: true };
+  return { ...base, to: a === "gm" ? [] : a };
 }
 function selfName(viewer) {
   return viewer?.gm ? GM : viewer?.name;
 }
-var maker = (r, viewer) => !!r.by && r.by === selfName(viewer);
-function setReaders(w, rid2, a) {
+var owns = (r, viewer) => ownerOf(r) === selfName(viewer);
+function rekey(w, rid2, next2) {
   const cur = w.game.get(rid2);
   if (!cur) return;
-  const next2 = withReaders(cur, a), to = ridFor(next2);
+  const rec = next2(cur), to = ridFor(rec);
   w.game.change((wr) => {
     if (to !== rid2) wr.del(rid2);
-    wr.put(to, next2);
+    wr.put(to, rec);
   });
 }
 function fold(e, r, w) {
   const doc = e.ownerDocument;
-  if (!r.by) {
-    for (const x of e.querySelectorAll(":scope > .fold, :scope > .readers, :scope > .foldpick")) x.remove();
-    return;
-  }
   const f = e.querySelector(":scope > .fold") ?? e.appendChild(el2(doc, "div", "fold"));
   const priv = isPrivate(r);
   e.classList.toggle("folded", priv);
   f.title = priv ? "Private" : "Everyone reads this";
   const tags2 = e.querySelector(":scope > .readers") ?? e.appendChild(el2(doc, "div", "readers"));
   tags2.replaceChildren(...readersOf(r, w.viewer).map((n) => el2(doc, "span", "tag", n)));
+  const mine = owns(r, w.viewer);
   let pick = e.querySelector(":scope > .foldpick");
-  if (!maker(r, w.viewer)) {
+  if (!mine && !w.viewer?.gm) {
     pick?.remove();
     e.querySelector(":scope > .readmenu")?.remove();
     return;
   }
   if (!pick) {
     pick = e.appendChild(el2(doc, "button", "foldpick"));
-    pick.setAttribute("aria-label", "Who reads this");
     gesture(pick, { click: () => {
       const was = e.querySelector(":scope > .readmenu");
       if (was) was.remove();
       else readMenu(e, w);
     } });
   }
+  pick.setAttribute("aria-label", mine ? "Who reads this" : "Give this to");
   const menu = e.querySelector(":scope > .readmenu");
   if (menu) fillMenu(menu, e, r, w);
 }
 function readMenu(e, w) {
   const r = w.game.get(e.dataset.rid);
   if (!r) return;
-  fillMenu(e.appendChild(el2(e.ownerDocument, "div", "readmenu")), e, r, w);
+  const doc = e.ownerDocument, m = e.appendChild(el2(doc, "div", "readmenu"));
+  fillMenu(m, e, r, w);
+  const close = (ev) => {
+    const t = ev.target;
+    if (m.isConnected && (m.contains(t) || e.querySelector(":scope > .foldpick")?.contains(t))) return;
+    m.remove();
+    doc.removeEventListener("pointerdown", close, true);
+  };
+  doc.addEventListener("pointerdown", close, true);
 }
 function fillMenu(m, e, r, w) {
-  const doc = e.ownerDocument, rid2 = e.dataset.rid;
-  const choice = (label2, on, a, close) => {
+  const doc = e.ownerDocument, rid2 = e.dataset.rid, owner = ownerOf(r), gmNote = owner === GM;
+  const choice = (label2, on, a) => {
     const b = el2(doc, "button", on ? "on" : "", label2);
     gesture(b, { click: () => {
-      if (close) m.remove();
-      setReaders(w, rid2, a);
+      m.remove();
+      rekey(w, rid2, (cur) => withReaders(cur, a));
     } });
     return b;
   };
-  if (!w.viewer?.gm) {
-    m.replaceChildren(choice("Everyone", !r.to && !r.mine, "all", true), choice("GM", !!r.to, "gm", true), choice("Just me", !!r.mine, "me", true));
-    return;
-  }
-  const to = new Set(r.to ?? []), shown3 = JSON.parse(m.dataset.names ?? "[]");
-  const names = [.../* @__PURE__ */ new Set([...shown3, ...w.players(), ...to])].sort();
-  m.dataset.names = JSON.stringify(names);
-  const boxes = names.map((n) => {
-    const l = el2(doc, "label", "reader"), box2 = doc.createElement("input");
-    box2.type = "checkbox";
-    box2.checked = to.has(n);
-    box2.addEventListener("change", () => {
-      const next2 = new Set(to);
-      if (box2.checked) next2.add(n);
-      else next2.delete(n);
-      setReaders(w, rid2, [...next2]);
+  const parts2 = [];
+  if (owns(r, w.viewer)) {
+    const to = new Set(r.to ?? []), shown3 = JSON.parse(m.dataset.names ?? "[]");
+    const names = [.../* @__PURE__ */ new Set([...shown3, ...w.players(), ...to])].filter((n) => n !== owner).sort();
+    m.dataset.names = JSON.stringify(names);
+    const boxes = names.map((n) => {
+      const l = el2(doc, "label", "reader"), box2 = doc.createElement("input");
+      box2.type = "checkbox";
+      box2.checked = to.has(n);
+      box2.addEventListener("change", () => {
+        const next2 = new Set(to);
+        if (box2.checked) next2.add(n);
+        else next2.delete(n);
+        rekey(w, rid2, (cur) => withReaders(cur, [...next2]));
+      });
+      l.append(box2, n);
+      return l;
     });
-    l.append(box2, n);
-    return l;
-  });
-  m.replaceChildren(choice("Everyone", !r.to, "all", true), choice("Just me", !!r.to && !r.to.length, "gm", true), ...boxes);
+    const toGM = !!r.to && !r.to.length;
+    parts2.push(
+      choice("Everyone", !r.to && !r.mine, "all"),
+      ...gmNote ? [] : [choice("GM", toGM, "gm")],
+      gmNote ? choice("Just me", toGM, "gm") : choice("Just me", !!r.mine, "me"),
+      ...boxes
+    );
+  }
+  const takers = [.../* @__PURE__ */ new Set([...w.players(), ...gmNote ? [] : [GM]])].filter((n) => n !== owner).sort();
+  if (takers.length) parts2.push(el2(doc, "div", "givehd", "Give to"), ...takers.map((n) => {
+    const b = el2(doc, "button", "give", n);
+    gesture(b, { click: () => {
+      m.remove();
+      rekey(w, rid2, (cur) => handOver(cur, n));
+    } });
+    return b;
+  }));
+  m.replaceChildren(...parts2);
 }
 function eyeMenu(e, oid, w) {
   const was = e.querySelector(".eyemenu");
@@ -3483,7 +3530,7 @@ function whoIs(game2, name2, browser) {
   }
   return held === browser ? name2 : null;
 }
-function handOver(game2, name2, browser) {
+function handOver2(game2, name2, browser) {
   const b = book(game2);
   game2.change((w) => w.put("book", { ...b, claims: { ...b.claims, [name2]: browser } }));
 }
@@ -3621,12 +3668,17 @@ var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters2 = (game2) => (oid) => game2.get(`o:${oid}`);
 var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
 var forged = (old, rec, who) => "kind" in rec && rec.kind === "chip" && rec.by !== void 0 && rec.by !== who && rec.by !== (old && "kind" in old && old.kind === "chip" ? old.by : void 0);
+var paperOf = (r) => r && "kind" in r && isPaper(r) ? r : void 0;
+var handing = (old, rec, who) => {
+  const p = paperOf(rec);
+  return !!p && handsOver(paperOf(old), p, who);
+};
 var misread = (old, rec, who) => {
-  if (!("kind" in rec) || !isPaper(rec)) return false;
-  const was = old && "kind" in old && isPaper(old) ? old : void 0;
-  if (!was) return rec.by !== void 0 && rec.by !== who;
-  if (rec.by !== was.by) return true;
-  return JSON.stringify(rec.to ?? null) !== JSON.stringify(was.to ?? null) && was.by !== who;
+  const p = paperOf(rec), was = paperOf(old);
+  if (!p || handing(old, rec, who)) return false;
+  if (!was) return p.by !== void 0 && p.by !== who;
+  if (p.by !== was.by) return true;
+  return reread(p, was) && ownerOf(was) !== who;
 };
 var ruled2 = (old, rec) => {
   const f = old && "kind" in old && old.kind === "influence" ? old.flag : void 0;
@@ -3710,7 +3762,7 @@ function judge(game2, edit, who, tab2) {
   const viewer = { name: who, gm: false };
   const mine = (old, rec) => {
     if (old && !seen(old, viewer, chars)) return false;
-    if (rec && !seen(rec, viewer, chars)) return false;
+    if (rec && !seen(rec, viewer, chars) && !handing(old, rec, who)) return false;
     const gms = (r) => !!r && "kind" in r && (r.kind === "connections" || r.kind === "opinion");
     if (gms(old) || gms(rec)) return false;
     const c = (r) => r && "kind" in r && r.kind === "character" ? r : void 0;
@@ -3989,6 +4041,7 @@ var Authority = class {
     };
     const taken = [...verdict.puts.map((p) => p.rid), ...verdict.dels];
     for (const rid2 of taken) theirs(rid2);
+    for (const p of verdict.puts) if (!redact(p.rec, this.#viewer(t), characters2(game2))) t.holds.set(p.rid, p.rec);
     const changed = game2.change((w) => {
       for (const p of verdict.puts) w.put(p.rid, p.rec);
       for (const rid2 of verdict.dels) w.del(rid2);
@@ -17526,12 +17579,12 @@ var blankBack2 = () => ({
   absorb: Object.fromEntries(DAMAGE.map((d) => [d, 0])),
   notes: ""
 });
-function newCharacter(oid, maker2, at4) {
+function newCharacter(oid, maker, at4) {
   const card2 = place2(at4, CARD.w, CARD.h);
   return {
     kind: "character",
     oid,
-    owner: maker2?.gm || !maker2 ? GM : maker2.name,
+    owner: maker?.gm || !maker ? GM : maker.name,
     name: "Name",
     pool: { ...card2, y: card2.y - POOL_H },
     card: card2,
@@ -19872,7 +19925,7 @@ function shown2(hands, cs, may = () => true) {
     if (g.dropped.length) hands?.drop(tab2, g.dropped, false);
   }
 }
-function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolling, checkpoint) {
+function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolling, checkpoint, self, present = () => []) {
   const who = viewer?.name ?? "nobody", gm = !!viewer?.gm;
   let seat = load(localStorage, gameId, who);
   const keep2 = (s) => {
@@ -19926,10 +19979,10 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
     redraw();
   };
   const topZ = () => 1 + Math.max(0, ...game2.all().map(([, r]) => ("kind" in r ? placeOf(r) : null)?.z ?? 0));
-  const maker2 = viewer?.gm ? GM : viewer?.name;
+  const maker = viewer?.gm ? GM : viewer?.name;
   const addImage = (file, at4) => blobs.add(file).then(({ blob, w: iw, h }) => {
     const oid = mint2()();
-    const image2 = { kind: "image", oid, place: { ...at4, z: topZ(), tilt: 0 }, blob, w: iw, h, ...maker2 && { by: maker2 } };
+    const image2 = { kind: "image", oid, place: { ...at4, z: topZ(), tilt: 0 }, blob, w: iw, h, ...maker && { by: maker } };
     game2.change((wr) => wr.put(ridOf(oid), image2));
     bar.refused(null);
     return ridOf(oid);
@@ -19943,14 +19996,14 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
       case "character":
         return newCharacter(oid, viewer, at4);
       case "sticky":
-        return newSticky(oid, at4, maker2);
+        return newSticky(oid, at4, maker);
       // R498
       case "text":
-        return newText(oid, at4, maker2);
+        return newText(oid, at4, maker);
       case "howto":
         return newHowTo(oid, at4);
       case "docket":
-        return newDocket(oid, at4, maker2);
+        return newDocket(oid, at4, maker);
       // R532
       default:
         return newChip(oid, what.sign, what.points, at4);
@@ -20090,7 +20143,8 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
     useAction: (oid, label2, alt) => rollRow?.action(oid, label2, alt) ?? false,
     react: (pc, npc) => rollRow?.react(pc, npc) ?? false,
     // R504: the names claimed at the table (the GM's page holds the claims), for the GM's checklist.
-    players: () => Object.keys(game2.get("book")?.claims ?? {}).sort(),
+    // R578: the names claimed at the table (the GM's page holds the claims) and the players present.
+    players: () => [.../* @__PURE__ */ new Set([...Object.keys(game2.get("book")?.claims ?? {}), ...present()])].sort(),
     inUse: (oid) => rollRow?.inUse(oid) ?? null,
     taking: () => taking,
     turnPage: (k) => {
@@ -20231,10 +20285,21 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
       for (const p of puts) w.put(p.rid, p.rec);
     });
   };
+  const handed = () => {
+    const takes = takeHanded(game2.all().filter(([, r]) => "kind" in r), self);
+    if (takes.length) game2.change((w) => {
+      for (const t of takes) {
+        if (t.rid !== t.from) w.del(t.from);
+        w.put(t.rid, t.rec);
+      }
+    });
+  };
   game2.listen((rids) => {
     for (const rid2 of rids) if (onTable(rid2) && !game2.get(rid2)) deleted.add(rid2.slice(2));
     queueMicrotask(repinned);
+    queueMicrotask(handed);
   });
+  handed();
   if (gm) {
     const sig = (c) => `${c.name.trim()}
 ${groupOf(c.front) ?? ""}`, seen3 = /* @__PURE__ */ new Map();
@@ -20443,7 +20508,20 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const v = views(game3, store.current.id, { name: name2, gm: false }, blobs, moves2, tab2, (hash) => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls2);
+    const v = views(
+      game3,
+      store.current.id,
+      { name: name2, gm: false },
+      blobs,
+      moves2,
+      tab2,
+      (hash) => images.missing.get(hash),
+      ledgerOf(store, blobs, true),
+      () => rolls2,
+      void 0,
+      name2,
+      () => [name2, ...[...presence.people.values()].filter((p) => p.role === "player").map((p) => p.name)]
+    );
     const { table: table2, drag: drag2, bar: bar2 } = v;
     hands2 = v.hands;
     new FolksView(bar2.folks, bar2.youAre, { me: () => ({
@@ -20528,7 +20606,8 @@ async function main() {
     ledgerOf(store, blobs, false),
     () => rolls,
     // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
-    (name2) => store.checkpoint(name2, true).finally(() => void store.images().then((i) => blobs.free(new Set(i))).catch(() => void 0))
+    (name2) => store.checkpoint(name2, true).finally(() => void store.images().then((i) => blobs.free(new Set(i))).catch(() => void 0)),
+    GM
   );
   new FolksView(bar.folks, bar.youAre, {
     me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
@@ -20540,7 +20619,7 @@ async function main() {
       table?.presence.rename(gmShown);
     },
     handOver: (name2, browser) => {
-      handOver(game2, name2, browser);
+      handOver2(game2, name2, browser);
       table?.authority.handedOver(name2);
     },
     table: { opened: () => !!table, open: () => void open(), invite: link, close },

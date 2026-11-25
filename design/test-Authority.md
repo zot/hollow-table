@@ -241,10 +241,10 @@ is tombed
 **Inject:** src/model/records.ts:isLocal
 **Pulled:** 2026-11-23 — rang: with `t:` out of isLocal, Dana's batches held the torn roll; restored clean
 
-## Test: only its maker says who reads paper
-**Purpose:** R506: a player can't make paper under another's name, nor change `by` or `to` of paper they didn't make; a reader may still write on it
-**Input:** Sam's note to the GM; changes from Dana: a new sticky with `by: Sam`; Sam's note with `to: [Dana]` (she can't read it: refused as unseen anyway); from the GM's handout to Sam: Sam rewrites its text, Sam sets its `to` to `[]`, Sam sets its `by` to Sam; Sam sets his own note's `to` to absent
-**Expected:** Dana's sticky refused; Sam's text taken; Sam's `to` and `by` changes to the handout refused; Sam's own note made public taken
+## Test: only its owner says who reads paper, or hands it over
+**Purpose:** R582: a player can't make paper under another's name but a handed note, nor change `to` of paper they don't own, and changes `by` only by handing over their own; a reader may still write on it; R577: paper without a maker is the GM's
+**Input:** Dana's note to the GM, the GM's handout to Dana; changes: Ann's sticky with `by: Dana`, Ann's own; Dana writes on the handout, sets its `to`, sets its `by`; Dana makes her note public; Ann writes on Dana's note; Dana hands her note to Ann (handOver), and with herself kept in `to`; Dana hands the GM's handout to Ann; Dana's "just me" note handed to Ann and to the GM (new to the GM's page); paper with no maker: Dana sets its `to`, takes it, writes on it
+**Expected:** Ann's sticky in Dana's name refused, her own taken; Dana's writing taken, her `to` and `by` changes to the handout refused; her note made public taken; Ann's writing refused; Dana's hand-over taken, put as she sent it, though she can't read it; with herself kept, refused; the handout's hand-over refused; both handed notes taken; on paper with no maker her `to` and taking it refused, her writing taken
 **Refs:** crc-Authority.md
 **Code:** `src/net/authority.test.ts`
 **Alarm:** 22

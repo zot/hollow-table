@@ -6,12 +6,12 @@
 import { connections, groupChooser, sheet } from './connections.ts';
 import type { Game } from '../model/game.ts';
 import {
-  CAPS, DAMAGE, DOCKET_NAME, GM, ROWS, isPrivate, ridFor, ridOf, type Character, type Docket, type Damage, type DamageSlot, type Image, type Oid, type Paper, type PieceRecord, type Place, type Reference,
+  CAPS, DAMAGE, DOCKET_NAME, GM, ROWS, isPrivate, ownerOf, ridFor, ridOf, type Character, type Docket, type Damage, type DamageSlot, type Image, type Oid, type Paper, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type Tied, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
 import { awaits, cardName, connection, fixed, level, opinionItems, recordsOn, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
-import { mayWrite } from '../rules/ownership.ts';
+import { handOver, mayWrite } from '../rules/ownership.ts';
 import { blankFront, blankInfo, canSee, type Viewer } from '../rules/visibility.ts';
 import { CATEGORIES, type Category, type Eyes } from './eyes.ts';
 import { clues, entries, type Entry } from '../rules/readmarks.ts';
@@ -61,7 +61,7 @@ export type PieceWith = {
   buryRecord: (oid: Oid, words: string) => void;
   /** R429: brings the PC's row up as a Reaction from the NPC's card; false when the viewer can't. */
   react: (pc: Oid, npc: Oid) => boolean;
-  /** R504: the players who have claimed names at the table, for the GM's checklist. */
+  /** R578: the players at the table, for the checklists: names claimed (the GM's page) and players present. */
   players: () => string[];
 };
 
@@ -784,100 +784,118 @@ function tie(w: PieceWith, oid: Oid): void {
 // R505: who reads a note, as its tags show them: everyone but the viewer, the GM as "GM"; "me" when only the viewer does.
 /** The names by a folded corner, for this viewer; none for paper everyone reads. */
 export function readersOf(r: Paper, viewer: Viewer): string[] {
-  if (r.mine) return ['me'];
+  if (r.mine || r.handed) return ['me'];
   if (!r.to) return [];
   const me = selfName(viewer);
-  const others = [...new Set([GM, ...(r.by ? [r.by] : []), ...r.to])].filter(n => n !== me);
+  const others = [...new Set([GM, ownerOf(r), ...r.to])].filter(n => n !== me);
   return others.length ? others : ['me'];   // the GM's note to no one but the GM
 }
 
-/** Who reads a note: everyone, the GM alone (a player's to the GM, or the GM's to no one), its maker alone, or these players. */
+/** Who reads a note: everyone, the GM alone (a player's to the GM, or the GM's to no one), its owner alone, or these players. */
 export type Readers = 'all' | 'gm' | 'me' | string[];
 
-// R499, R500: the note rewritten for its new readers; `mine` paper is kept under `m:` (ridFor).
+// R499, R500, R577: the note rewritten for its new readers, its owner written; `mine` paper is kept under
+// `m:` (ridFor).
 export function withReaders(r: Paper, a: Readers): Paper {
-  const { to: _to, mine: _mine, ...rest } = r;
-  if (a === 'all') return rest;
-  if (a === 'me') return { ...rest, mine: true };
-  return { ...rest, to: a === 'gm' ? [] : a };
+  const { to: _to, mine: _mine, handed: _handed, ...rest } = r, base = { ...rest, by: ownerOf(r) };
+  if (a === 'all') return base;
+  if (a === 'me') return { ...base, mine: true };
+  return { ...base, to: a === 'gm' ? [] : a };
 }
 
 /** The name the viewer goes by at the table: GM for the GM; none for someone who owns nothing. */
 function selfName(viewer: Viewer): string | undefined { return viewer?.gm ? GM : viewer?.name; }
 
-/** R504: only paper's maker picks who reads it. */
-const maker = (r: Paper, viewer: Viewer) => !!r.by && r.by === selfName(viewer);
+/** R578: only paper's owner picks who reads it. */
+const owns = (r: Paper, viewer: Viewer) => ownerOf(r) === selfName(viewer);
 
 // R500: one change; crossing to or from "just me" moves the note between `o:` and `m:`.
-function setReaders(w: PieceWith, rid: Rid, a: Readers): void {
+function rekey(w: PieceWith, rid: Rid, next: (cur: Paper) => Paper): void {
   const cur = w.game.get(rid) as Paper | undefined;
   if (!cur) return;
-  const next = withReaders(cur, a), to = ridFor(next);
-  w.game.change(wr => { if (to !== rid) wr.del(rid); wr.put(to, next); });
+  const rec = next(cur), to = ridFor(rec);
+  w.game.change(wr => { if (to !== rid) wr.del(rid); wr.put(to, rec); });
 }
 
-// R503-R505: paper with a maker shows a folded corner, folded when private, its readers' names by it, and
-// on its maker's page the ▾ that picks them.
+// R503, R505, R577, R578, R580: paper shows a folded corner, folded when private, its readers' names by it,
+// and on its owner's page the ▾ that picks them; on the GM's page, paper another owns has the ▾ to give it.
 function fold(e: HTMLElement, r: Paper, w: PieceWith): void {
   const doc = e.ownerDocument;
-  if (!r.by) {
-    for (const x of e.querySelectorAll(':scope > .fold, :scope > .readers, :scope > .foldpick')) x.remove();
-    return;
-  }
   const f = e.querySelector<HTMLElement>(':scope > .fold') ?? e.appendChild(el(doc, 'div', 'fold'));
   const priv = isPrivate(r);
   e.classList.toggle('folded', priv);
   f.title = priv ? 'Private' : 'Everyone reads this';
   const tags = e.querySelector<HTMLElement>(':scope > .readers') ?? e.appendChild(el(doc, 'div', 'readers'));
   tags.replaceChildren(...readersOf(r, w.viewer).map(n => el(doc, 'span', 'tag', n)));
+  const mine = owns(r, w.viewer);
   let pick = e.querySelector<HTMLElement>(':scope > .foldpick');
-  if (!maker(r, w.viewer)) { pick?.remove(); e.querySelector(':scope > .readmenu')?.remove(); return; }
+  if (!mine && !w.viewer?.gm) { pick?.remove(); e.querySelector(':scope > .readmenu')?.remove(); return; }
   if (!pick) {
     pick = e.appendChild(el(doc, 'button', 'foldpick'));
-    pick.setAttribute('aria-label', 'Who reads this');
     gesture(pick, { click: () => { const was = e.querySelector(':scope > .readmenu'); if (was) was.remove(); else readMenu(e, w); } });
   }
+  pick.setAttribute('aria-label', mine ? 'Who reads this' : 'Give this to');
   const menu = e.querySelector<HTMLElement>(':scope > .readmenu');
   if (menu) fillMenu(menu, e, r, w);
 }
 
-// R504: a player's menu offers Everyone, GM and Just me; the GM's, Everyone, Just me and a checkbox per player.
+// R583: a press outside the menu and its ▾ closes it, and goes on to do what it would have.
 function readMenu(e: HTMLElement, w: PieceWith): void {
   const r = w.game.get(e.dataset.rid!) as Paper | undefined;
   if (!r) return;
-  fillMenu(e.appendChild(el(e.ownerDocument, 'div', 'readmenu')), e, r, w);
+  const doc = e.ownerDocument, m = e.appendChild(el(doc, 'div', 'readmenu'));
+  fillMenu(m, e, r, w);
+  const close = (ev: Event) => {
+    const t = ev.target as Node;
+    if (m.isConnected && (m.contains(t) || e.querySelector(':scope > .foldpick')?.contains(t))) return;
+    m.remove();
+    doc.removeEventListener('pointerdown', close, true);
+  };
+  doc.addEventListener('pointerdown', close, true);
 }
 
+// R578: the owner's menu: Everyone, (a player's) GM, Just me and a checkbox per player; R579, R580: then
+// "Give to", the players but its owner and, for a player's note, GM; on the GM's page "Give to" alone
+// for paper another owns.
 function fillMenu(m: HTMLElement, e: HTMLElement, r: Paper, w: PieceWith): void {
-  const doc = e.ownerDocument, rid = e.dataset.rid!;
-  const choice = (label: string, on: boolean, a: Readers, close: boolean) => {
+  const doc = e.ownerDocument, rid = e.dataset.rid!, owner = ownerOf(r), gmNote = owner === GM;
+  const choice = (label: string, on: boolean, a: Readers) => {
     const b = el(doc, 'button', on ? 'on' : '', label);
-    gesture(b, { click: () => { if (close) m.remove(); setReaders(w, rid, a); } });
+    gesture(b, { click: () => { m.remove(); rekey(w, rid, cur => withReaders(cur, a)); } });
     return b;
   };
-  if (!w.viewer?.gm) {
-    m.replaceChildren(choice('Everyone', !r.to && !r.mine, 'all', true), choice('GM', !!r.to, 'gm', true), choice('Just me', !!r.mine, 'me', true));
-    return;
-  }
-  // The players at the table, and anyone it already went to who isn't; a name stays while the menu is
-  // open, so unticking someone who left doesn't take their box away.
-  const to = new Set(r.to ?? []), shown: string[] = JSON.parse(m.dataset.names ?? '[]');
-  const names = [...new Set([...shown, ...w.players(), ...to])].sort();
-  m.dataset.names = JSON.stringify(names);
-  const boxes = names.map(n => {
-    const l = el(doc, 'label', 'reader'), box = doc.createElement('input');
-    box.type = 'checkbox';
-    box.checked = to.has(n);
-    box.addEventListener('change', () => {
-      const next = new Set(to);
-      if (box.checked) next.add(n); else next.delete(n);
-      setReaders(w, rid, [...next]);
+  const parts: HTMLElement[] = [];
+  if (owns(r, w.viewer)) {
+    // The players at the table, and anyone it already went to who isn't; a name stays while the menu is
+    // open, so unticking someone who left doesn't take their box away.
+    const to = new Set(r.to ?? []), shown: string[] = JSON.parse(m.dataset.names ?? '[]');
+    const names = [...new Set([...shown, ...w.players(), ...to])].filter(n => n !== owner).sort();
+    m.dataset.names = JSON.stringify(names);
+    const boxes = names.map(n => {
+      const l = el(doc, 'label', 'reader'), box = doc.createElement('input');
+      box.type = 'checkbox';
+      box.checked = to.has(n);
+      box.addEventListener('change', () => {
+        const next = new Set(to);
+        if (box.checked) next.add(n); else next.delete(n);
+        rekey(w, rid, cur => withReaders(cur, [...next]));
+      });
+      l.append(box, n);
+      return l;
     });
-    l.append(box, n);
-    return l;
-  });
-  // "Just me" is the GM alone, as none checked is, reachable with no players at the table.
-  m.replaceChildren(choice('Everyone', !r.to, 'all', true), choice('Just me', !!r.to && !r.to.length, 'gm', true), ...boxes);
+    const toGM = !!r.to && !r.to.length;
+    // On the GM's, "Just me" is the GM alone, as none checked is, reachable with no players at the table.
+    parts.push(choice('Everyone', !r.to && !r.mine, 'all'),
+      ...(gmNote ? [] : [choice('GM', toGM, 'gm')]),
+      gmNote ? choice('Just me', toGM, 'gm') : choice('Just me', !!r.mine, 'me'), ...boxes);
+  }
+  const takers = [...new Set([...w.players(), ...(gmNote ? [] : [GM])])].filter(n => n !== owner).sort();
+  if (takers.length) parts.push(el(doc, 'div', 'givehd', 'Give to'), ...takers.map(n => {
+    const b = el(doc, 'button', 'give', n);
+    gesture(b, { click: () => { m.remove(); rekey(w, rid, cur => handOver(cur, n)); } });
+    return b;
+  }));
+  m.replaceChildren(...parts);
 }
 
 /** R393: the eye's category menu, under the arrow; a pick opens the eye on it. */

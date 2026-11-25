@@ -58,7 +58,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Odds.md → `src/rules/odds.ts`
 - [x] crc-Dice.md → `src/rules/dice.ts`
 - [x] crc-Visibility.md → `src/rules/visibility.ts`
-- [x] crc-Ownership.md → `src/rules/ownership.ts`
+- [x] crc-Ownership.md → `src/rules/ownership.ts`, `src/main.ts`
 - [x] crc-Game.md → `src/model/game.ts`
 - [x] crc-GameStore.md → `src/store/gamestore.ts`, `src/store/playtest.ts`
 - [x] crc-Db.md → `src/store/db.ts`
@@ -254,4 +254,8 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T65: R554 retired by R562 (2026-11-24 desktops: the board's first desk is the one set out)
 - [ ] O17: tests/table.spec.ts 'a pool carries its gathered card' failed once in Firefox in the full suite (2026-11-24, after #70 made the name above a pool writable, and that spec presses the name to carry the pool); not reproduced in 3 runs alone or 3 runs of the table, card and drag specs under 4 workers (126 passes). Watch for it: a press on the now-writable name may sometimes take the caret instead of carrying the pool.
 - T66: R569 retired by R572 (2026-11-24 fixes Item 8 after #71: the pin line from the tack's middle, under the paper and over the card)
-- [ ] O18: tests/desk.spec.ts 'the image pigeonhole opens the picker, let go in or dragged out' timed out at 60 s in Chromium under the full suite twice (2026-11-24, at #68 and after #71's pin line); it passes alone every time (3 of 3 in both browsers after the second). A wait for the file chooser that loses a race under load, most likely; the spec could wait for the picker's input before the release.
+- [ ] O18: tests/desk.spec.ts 'the image pigeonhole opens the picker, let go in or dragged out' timed out at 60 s in Chromium under the full suite twice (2026-11-24, at #68 and after #71's pin line); it passed alone 3 of 3 in both browsers after the second, but not always: measured 2026-11-25 at one worker (`--repeat-each`), it failed 1 of 6 with #75's change and 2 of 8 on HEAD without it, in Chromium, waiting for the file chooser (line 104), so load is not the cause. A wait for the file chooser that loses a race under load, most likely; the spec could wait for the picker's input before the release.
+- T67: R498 retired by R577 (fixes, Item 11: paper with no maker counts as the GM's)
+- T68: R504 retired by R578 (fixes, Item 11: every owner shares with a checklist of players)
+- T69: R506 retired by R582 (fixes, Item 11: the owner, or the GM, hands a note over)
+- [ ] O19: main.ts repins the table's shared paper (Dockets.repin with gm true) wherever the page holds a `book`, but every page's store is seeded with one (`src/store/playtest.ts`, singletons; measured on a player's page in tests/private.spec.ts), so a player's page repins shared paper too and sends the puts to the GM's page; found during fixes Item 11 (#75), whose take of handed notes passes the page's real name instead. Repin should ask the same.

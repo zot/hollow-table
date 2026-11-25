@@ -1,5 +1,5 @@
 # Bar
-**Requirements:** R9, R19, R20, R34, R35, R288, R305, R347, R498, R510, R518, R529, R530, R532
+**Requirements:** R9, R19, R20, R34, R35, R288, R305, R347, R510, R577, R518, R529, R530, R532
 
 The bar along the top: the wordmark, the desk with the paper supplies (crc-Desk.md), the chips, the
 people at the table, and the furniture at the right end.
@@ -12,7 +12,7 @@ people at the table, and the furniture at the right end.
   Ledger and Boot Hill append themselves after.
 - Supplies (`src/rules/supplies.ts`, pure): newCharacter (its maker's, its pool above its card,
   gathered, a blank card template), newSticky, newText ("Write here"), newHowTo, newChip, each with
-  its middle at the pointer (R512); a sticky, a text and an image record their maker as `by` (R498). The page makes the record, marks it fresh with Drag (dropped back
+  its middle at the pointer (R512); a sticky, a text and an image record their maker as `by` (R577). The page makes the record, marks it fresh with Drag (dropped back
   on the bar it is never made, R19), and carries it: a character by its pool (moved clear of the bar
   after the drop, its card sliding with it, R35), a chip as an item, the rest as pieces.
 - look (R510): a walnut-dark strip 92 px high: the wordmark and its version and date (selectable), the

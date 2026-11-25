@@ -5,6 +5,7 @@ import { Game } from '../model/game.ts';
 import { TOMBS, ridOf, type Book, type Character, type Desk, type Opinion, type PieceRecord, type Chip, type Influence, type Roller, type Rows, type Sticky, type TornRoll, type Yards } from '../model/records.ts';
 import { Authority, judge, type Batch, type Edit, type Sealed } from './authority.ts';
 import { redact } from '../rules/visibility.ts';
+import { handOver as giveNote } from '../rules/ownership.ts';
 import { burialOf, bury } from '../rules/yards.ts';
 import { handOver, oldClaims, renameWhy, renamed, whoIs } from './claims.ts';
 import { FakeRoom } from './fakeroom.ts';
@@ -481,8 +482,9 @@ test("a torn roll and the Hill never leave the GM's page", async () => {
 
 const PAPER_AT = { x: 0, y: 0, z: 0, tilt: 0 };
 
-test('only its maker says who reads paper', () => {
-  // R506: no paper under another's name; `by` and `to` are its maker's; a reader still writes on it.
+test('only its owner says who reads paper, or hands it over', () => {
+  // R582: no paper under another's name but a handed note; `to` is its owner's, `by` changes only as a
+  // hand-over by its owner; a reader still writes on it.
   const game = new Game();
   game.load(playtest('Dana', 'Ann'));
   const note: Sticky = { kind: 'sticky', oid: '0000e001', place: PAPER_AT, text: 'Is the mayor lying?', by: 'Dana', to: [] };
@@ -498,6 +500,21 @@ test('only its maker says who reads paper', () => {
   const { to: _to, ...open } = note;
   assert.deepEqual(one(open, 'Dana').refused, [], 'its maker makes it public');
   assert.deepEqual(one({ ...note, text: 'peeking' }, 'Ann').refused, [ridOf(note.oid)], "Ann can't touch a note she doesn't read");
+  // R579, R582: handing it over is its owner's, exactly as handOver writes it, though she can't read the result.
+  const given = giveNote(note, 'Ann');
+  assert.deepEqual(one(given, 'Dana'), { puts: [{ rid: ridOf(note.oid), rec: given }], dels: [], refused: [] }, 'Dana hands her note to Ann');
+  assert.deepEqual(one({ ...given, to: ['Dana'] }, 'Dana').refused, [ridOf(note.oid)], 'not keeping a way to read it');
+  assert.deepEqual(one(giveNote(handout, 'Ann'), 'Dana').refused, [ridOf(handout.oid)], "a reader can't hand it over");
+  // R581: a "just me" note the GM's page has never held comes only handed, for someone else.
+  const kept: Sticky = { kind: 'sticky', oid: '0000e007', place: PAPER_AT, text: 'my hunch', by: 'Dana', mine: true };
+  assert.deepEqual(one(giveNote(kept, 'Ann'), 'Dana').refused, [], 'her "just me" note handed to Ann');
+  assert.deepEqual(one(giveNote(kept, 'GM'), 'Dana').refused, [], 'and to the GM');
+  // R577: paper without a maker is the GM's.
+  const old: Sticky = { kind: 'sticky', oid: '0000e008', place: PAPER_AT, text: 'from before' };
+  game.change(w => w.put(ridOf(old.oid), old));
+  assert.deepEqual(one({ ...old, to: [] }, 'Dana').refused, [ridOf(old.oid)], "a player can't pick its readers");
+  assert.deepEqual(one(giveNote(old, 'Dana'), 'Dana').refused, [ridOf(old.oid)], 'nor take it');
+  assert.deepEqual(one({ ...old, text: 'written on' }, 'Dana').refused, [], 'but writes on it');
 });
 
 test('a private note goes only to its readers, and leaves a page that stops reading it', async () => {

@@ -123,15 +123,26 @@ the GM's view is unchanged
 **Pulled:** 2026-11-19 — rang: Dana got the whole flag, fed and its source with it; restored clean
 
 ## Test: private paper reaches only who reads it
-**Purpose:** R501: paper naming who reads it is whole for the GM, its maker and those in `to`, and nothing at all for anyone else
-**Input:** Sam's sticky to the GM (`by: Sam, to: []`); the GM's handout to Sam and Dana (`by: GM, to: [Sam, Dana]`); a public sticky with a maker; each redacted for the GM, Sam, Dana, Ann and nobody
-**Expected:** Sam's note: the GM and Sam whole, Dana, Ann and nobody nothing; the handout: the GM, Sam and Dana whole, Ann and nobody nothing; the public sticky whole for all
+**Purpose:** R501: paper naming who reads it is whole for the GM, its maker and those in `to`, and nothing at all for anyone else; R581: a `handed` note only for its new owner, a player
+**Input:** Sam's sticky to the GM (`by: Sam, to: []`); the GM's handout to Sam and Dana (`by: GM, to: [Sam, Dana]`); a public sticky with a maker; the public sticky handed to Dana and to the GM; each redacted for the GM, Sam, Dana, Ann and nobody
+**Expected:** Sam's note: the GM and Sam whole, Dana, Ann and nobody nothing; the handout: the GM, Sam and Dana whole, Ann and nobody nothing; the public sticky whole for all; handed to Dana, Dana's alone; handed to the GM, no player's
 **Refs:** crc-Visibility.md
 **Code:** `src/rules/visibility.test.ts`
 **Alarm:** 12
 **Fire alarm:** let anyone see paper with `to` (drop the paper case from redactPiece); red: Ann gets Sam's note
 **Inject:** src/rules/visibility.ts:redactPiece
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with paper unredacted, Ann and nobody got Sam's note; restored clean
+
+## Test: private paper reaches only who reads it: a handed note
+**Purpose:** R581: a `handed` note reaches only its new owner, a player
+**Input:** as "private paper reaches only who reads it"
+**Expected:** handed to Dana, Dana's alone; handed to the GM, no player's
+**Refs:** crc-Visibility.md
+**Code:** `src/rules/visibility.test.ts`
+**Alarm:** 14
+**Fire alarm:** read a `handed` note as its readers say (drop `handed` from reads); red: everyone gets the note handed to Dana
+**Inject:** src/rules/visibility.ts:reads
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with handed dropped from reads, private paper reaches only who reads it failed on the note handed to Dana; restored clean
 
 ## Test: a buried private note is left out of Boot Hill
 **Purpose:** R508: a burial of only paper a viewer can't read isn't listed for them; in a mixed burial only the unreadable paper goes

@@ -1,5 +1,5 @@
 # Authority
-**Requirements:** R168, R170, R174-176, R185, R186, R188, R191-193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464, R469, R486, R506, R508, R524, R567
+**Requirements:** R168, R170, R174-176, R185, R186, R188, R191-193, R296, R300, R360, R361, R375, R383, R406, R410, R435, R442, R444, R446, R448, R460, R464, R469, R486, R508, R582, R524, R567
 
 The GM's page as the game's keeper: sends what changed, each piece as each person may see it, and
 judges every player's change. (R460) It enforces who may see and touch what; a judgment call the book leaves to
@@ -51,8 +51,11 @@ the GM isn't refused here (it is to be flagged, prototype Item 14).
   - (R444) it puts or deletes a piece another tab changed after the copy it was made on (`last` newer
     than the edit's version, by a tab not the sender's);
   - it is a chip whose `by` changes to anyone but the sender (R360);
-  - (R506) it is paper whose `by` isn't as before (new paper: none, or the sender; a piece dug up from
-    Boot Hill: as buried), or whose `to` changes when its maker isn't the sender;
+  - (R582) it is paper whose `by` isn't as before (new paper: none, or the sender, or anyone on a
+    `handed` note, R581; a piece dug up from Boot Hill: as buried) unless the sender owns it and it is
+    exactly Ownership.handOver of it, or whose `to` changes when its owner (`by`, the GM without one)
+    isn't the sender; a hand-over is taken though the giver can't read the result, and the giver's copy
+    is then taken away from its page, sealed, as from a page that stops reading it (R501);
   - (R464) it drops or shrinks a card's flag: only the GM's page rules on a flag;
   - (R375) `rows` is merged, as Boot Hill's is: of a player's rows, only those of characters they own
     are taken, and of those only the action, its alternative, the type and the hand; the aim, the

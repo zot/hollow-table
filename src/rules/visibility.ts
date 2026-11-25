@@ -65,9 +65,10 @@ export function contribution(i: Chip | Influence, chars: Characters): boolean {
 }
 
 // R501: paper naming who reads it is the GM's, its maker's and its readers'; `mine` paper its maker's.
+// R581: a `handed` note is its new owner's alone, a player's; the GM's page takes the GM's as it holds it.
 /** Whether a viewer reads a piece of paper. */
 export function reads(viewer: Viewer, p: Paper): boolean {
-  if (p.mine) return !!viewer && !viewer.gm && viewer.name === p.by;
+  if (p.mine || p.handed) return !!viewer && !viewer.gm && viewer.name === p.by;
   if (!p.to) return true;
   return !!viewer && (viewer.gm || viewer.name === p.by || p.to.includes(viewer.name));
 }

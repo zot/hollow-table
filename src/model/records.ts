@@ -97,10 +97,11 @@ export type Chip = { kind: 'chip'; oid: Oid; where: Where; n: number; sign: Sign
 
 // R27, R536: paper pinned to a card or a docket (`card` names either), at its offset from the card or label.
 export type Pin = { card: Oid; dx: number; dy: number };
-// R498-R500: paper's maker (`by`; none on paper from before, which is everyone's), the players who read
-// it besides its maker (`to`; absent is everyone, and the GM reads any with `to`), and `mine`, its
-// maker's alone, kept under `m:`.
-export type Readers = { by?: Who; to?: string[]; mine?: true };
+// R499, R500, R577, R581: paper's owner, at first its maker (`by`; none on paper from before, which counts
+// as the GM's), the players who read it besides its owner (`to`; absent is everyone, and the GM reads any
+// with `to`), `mine`, its owner's alone, kept under `m:`, and `handed`, a "just me" note on the table on
+// its way to its new owner's page.
+export type Readers = { by?: Who; to?: string[]; mine?: true; handed?: true };
 // R248: `big` is the big sticky, for the GM's long notes.
 export type Sticky = { kind: 'sticky'; oid: Oid; place: Place; text: Marked; pin?: Pin; big?: boolean } & Readers;
 export type Text = { kind: 'text'; oid: Oid; place: Place; text: Marked; pin?: Pin } & Readers;
@@ -116,8 +117,10 @@ export function isPaper(r: { kind?: string }): r is Paper { return isPinnable(r)
 export function isPinnable(r: { kind?: string }): r is Pinnable { return r.kind === 'sticky' || r.kind === 'text' || r.kind === 'image'; }
 /** R542: the dockets tied on this page, a record of its own. */
 export type Tied = { tied: Oid[] };
-/** R499: paper that names who reads it, or is its maker's alone. */
-export function isPrivate(r: { kind?: string }): boolean { return isPaper(r) && (!!r.to || !!r.mine); }
+/** R499: paper that names who reads it, or is its owner's alone. */
+export function isPrivate(r: { kind?: string }): boolean { return isPaper(r) && (!!r.to || !!r.mine || !!r.handed); }
+/** R577: paper's owner: its `by`, the GM for paper without one. */
+export function ownerOf(r: Paper): Who { return r.by ?? GM; }
 
 export const DICE = ['W', 'G', 'R', 'B', 'Y'] as const;
 export type DieColor = (typeof DICE)[number];
@@ -335,7 +338,7 @@ export const receipt = fields(
       { done: fields({ resource: str(CAPS.name), moved: int(0, 5), extra: int(0, 5) }) }) });
 
 // R498-R500: paper's maker, its readers and whether it is its maker's alone.
-const readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true) };
+const readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf(true), handed: oneOf(true) };
 /** R532: how long a docket's name may be. */
 export const DOCKET_NAME = 40;
 const PIECES: Record<PieceRecord['kind'], Shape> = {

@@ -1,8 +1,8 @@
-// CRC: crc-Ownership.md | R142, R149, R567
+// CRC: crc-Ownership.md | R142, R149, R567, R579, R581, R582
 // What clicking or shift-clicking a character's die does to its owner. Pure: returns the new owner,
 // docking, or a refusal with its reason.
 
-import { GM, OPEN, type Character } from '../model/records.ts';
+import { GM, OPEN, isPaper, ownerOf, ridFor, type Character, type Paper, type PieceRecord, type Rid } from '../model/records.ts';
 import type { Viewer } from './visibility.ts';
 
 export type Result = { owner: string } | { dock: true } | { refused: string };
@@ -45,4 +45,40 @@ export function mayWrite(viewer: Viewer, c: Character): boolean {
 export function rewrites(before: Character | undefined, after: Character | undefined): boolean {
   if (!before || !after) return false;
   return before.front !== after.front || before.back.notes !== after.back.notes || before.name !== after.name;
+}
+
+// R579, R581: the note handed to `who`: they own it and leave its readers; everyone's stays everyone's, and
+// a "just me" note (a player's `mine`, or the GM's to no one) goes to the table `handed`, for their page to take.
+/** The note handed over to `who`. */
+export function handOver<P extends Paper>(r: P, who: string): P {
+  const { to, mine, handed: _handed, ...rest } = r, base = { ...rest, by: who };
+  if (mine || (ownerOf(r) === GM && to && !to.length)) return { ...base, handed: true } as P;
+  return (to ? { ...base, to: to.filter(n => n !== who) } : base) as P;
+}
+
+// R581: a page takes the `handed` notes it owns as its own "just me": a player's under `m:` as `mine`, the
+// GM's as its note to no one; the table's copy goes in the same change.
+/** The handed notes `self` takes, each from its table key to its own. */
+export function takeHanded(all: [Rid, PieceRecord][], self: string): { from: Rid; rid: Rid; rec: Paper }[] {
+  const out: { from: Rid; rid: Rid; rec: Paper }[] = [];
+  for (const [from, r] of all) {
+    if (!isPaper(r) || !r.handed || r.by !== self) continue;
+    const { handed: _handed, ...rest } = r;
+    const rec: Paper = self === GM ? { ...rest, to: [] } : { ...rest, mine: true };
+    out.push({ from, rid: ridFor(rec), rec });
+  }
+  return out;
+}
+
+const readers = (r: Paper) => JSON.stringify([r.to ?? null, r.mine ?? null, r.handed ?? null]);
+/** R582: whether paper's readers differ. */
+export function reread(a: Paper, b: Paper): boolean { return readers(a) !== readers(b); }
+
+// R582: a player hands a note over as its owner, exactly as handOver writes it; paper the GM's page hasn't
+// got is a "just me" note leaving its page, which may come only `handed`, for its new owner alone.
+/** Whether a player's paper change is a hand-over, which the GM's page takes though the giver can't read the result. */
+export function handsOver(was: Paper | undefined, rec: Paper, who: string): boolean {
+  if (rec.by === undefined) return false;
+  if (!was) return !!rec.handed && rec.by !== who;
+  return rec.by !== was.by && ownerOf(was) === who && !reread(rec, handOver(was, rec.by));
 }

@@ -350,3 +350,58 @@ by the drop
 **Fire alarm:** pick Just me as `to: []` under `o:` (no move to `m:`); red: the GM's page holds Dana's "just me" note
 **Inject:** src/ui/piece.ts
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with Just me kept under o: as to [], the GM's page still held Dana's note (line 70, Chromium); restored clean
+
+## Test: handing notes over, and paper from before
+**Purpose:** R577-R582 across pages: a player shares with another player; hands a note over and loses it; the GM hands a player's note on from a ▾ that only gives; a "just me" note handed to a player becomes theirs under `m:` and leaves every other page; paper with no maker is the GM's
+**Input:** GM, Dana and Sam; Dana makes a sticky, checks Sam, gives it to Sam; the GM gives it to Dana; Dana makes another, picks Just me, gives it to Sam; the GM puts a sticky with no maker and gives it to Sam
+**Expected:** Dana's menu offers Everyone, GM and Just me and a box for Sam; Sam's page holds the note tagged "GM, Dana"; given, it is Sam's with `to: []`, gone from Dana's page, with Sam's ▾ and tags "GM"; the GM's ▾ offers GM and Sam, then Dana and GM; given to Dana, Sam loses it; the "just me" note is under `m:` on Sam's page, his and `mine`, tagged "me", and under `o:` on no page; the paper from before shows a fold and no ▾ on Sam's page, and once given is his, with his ▾, and Dana still reads it
+**Refs:** crc-PieceView.md, crc-Ownership.md, crc-Authority.md, crc-Visibility.md
+**Code:** `tests/private.spec.ts`
+**Alarm:** 30
+**Fire alarm:** no sealed removal for the giver (drop the holds line in Authority's take); red: Dana's page still holds the handed note under `o:`
+**Inject:** src/net/authority.ts:Authority
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: without the giver's hold, Dana's page still held the handed note under o: (line 139, Chromium); restored clean, dist rebuilt
+
+## Test: handing notes over: a "just me" note taken
+**Purpose:** R581: the page a "just me" note is handed to takes it under `m:`
+**Input:** as "handing notes over, and paper from before"
+**Expected:** Sam's page holds the note under `m:`, his and `mine`
+**Refs:** crc-Ownership.md
+**Code:** `tests/private.spec.ts`
+**Alarm:** 31
+**Fire alarm:** a page takes nothing handed to it (skip the take in main); red: no `m:` note on Sam's page
+**Inject:** src/main.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the take skipped, no m: note reached Sam's page (toMatchObject, Chromium); restored clean, dist rebuilt
+
+## Test: handing notes over: paper from before
+**Purpose:** R577: paper with no maker shows a fold on every page, as the GM's
+**Input:** as "handing notes over, and paper from before"
+**Expected:** Sam's page shows the fold on the GM's sticky with no maker, and no ▾
+**Refs:** crc-PieceView.md
+**Code:** `tests/private.spec.ts`
+**Alarm:** 32
+**Fire alarm:** no fold for paper without a maker (fold returns early without `by`); red: Sam's page shows no fold on the paper from before
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with no fold for paper without by, Sam's page showed no fold on the paper from before (toBeVisible, Chromium); restored clean, dist rebuilt
+
+## Test: a press outside a note's menu closes it
+**Purpose:** R583: a press outside the open ▾ menu closes it
+**Input:** as "a note to the GM, a handout, and a note kept to oneself": the GM opens the ▾ on Dana's note, then drags on open table
+**Expected:** the menu is gone
+**Refs:** crc-PieceView.md
+**Code:** `tests/private.spec.ts`
+**Alarm:** 33
+**Fire alarm:** no listener for presses outside (skip adding it in readMenu); red: the menu is still open after the press
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with no listener for presses outside, the menu stayed open (line 53, Chromium); restored clean, dist rebuilt
+
+## Test: a press outside a note's menu still does its own work
+**Purpose:** R583: the press that closes the menu is not consumed
+**Input:** as "a press outside a note's menu closes it"
+**Expected:** the table panned: Dana's note moved right on the GM's page
+**Refs:** crc-PieceView.md
+**Code:** `tests/private.spec.ts`
+**Alarm:** 34
+**Fire alarm:** the close stops the press (`stopPropagation` in readMenu's listener); red: the table doesn't pan
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the close stopping the press, the table did not pan (line 54, Chromium); restored clean, dist rebuilt

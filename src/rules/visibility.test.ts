@@ -196,6 +196,10 @@ test('private paper reaches only who reads it', () => {
   assert.deepEqual(sees(toGm), [toGm, toGm, undefined, undefined, undefined], "Sam's note to the GM");
   assert.deepEqual(sees(handout), [handout, handout, handout, undefined, undefined], 'the handout to Sam and Dana');
   assert.deepEqual(sees(open), [open, open, open, open, open], 'everyone reads paper with no readers named');
+  // R581: a note handed over reaches its new owner's page alone, a player's; the GM's, no player's.
+  const handed: Sticky = { ...open, by: 'Dana', handed: true }, gms: Sticky = { ...open, by: 'GM', handed: true };
+  assert.deepEqual(sees(handed), [undefined, undefined, handed, undefined, undefined], 'to Dana');
+  assert.deepEqual(sees(gms).slice(1), [undefined, undefined, undefined, undefined], 'to the GM');
 });
 
 test('a buried private note is left out of Boot Hill', () => {

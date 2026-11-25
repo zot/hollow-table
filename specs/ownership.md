@@ -103,15 +103,29 @@ Bill (2026-11-23): "there should be a way for a player to make things they put o
 private ... let them reveal only to the GM. The GM could write on it as well to answer a quick
 question." The note passed across a real table, and the GM's handout (`carves/done/organizing.md`, Item 1).
 
-- **Paper has a maker.** A sticky, loose text or an image remembers who made it; paper from before
-  this has none and stays everyone's, with no fold.
-- **Its maker picks who reads it**: everyone, or a few. A player's paper goes to the GM, or to no one
-  but them ("just me"); the GM's goes to any of the players, or to no one but the GM. The GM reads
-  every note but a player's "just me".
+- **Paper has an owner**, at first its maker: a sticky, loose text or an image remembers who made it.
+  Paper from before this has no maker and counts as the GM's (Bill, 2026-11-24: "Unowned notes should
+  count as owned by the GM"): everyone still reads it until the GM picks otherwise, and it shows a fold
+  as the GM's paper does.
+- **Its owner picks who reads it**: everyone, or a few. Paper goes to any of the players, and a
+  player's to the GM, or to no one but its owner ("just me"). The GM reads every note but a player's
+  "just me" (Bill, 2026-11-25: "The owner should be able to ... share with several people or the whole
+  table").
 - **A folded corner** says which: flat for everyone, folded for a few ("Let's do a folded corner").
-  Beside it, on its maker's page, a dropdown picks: a player's offers Everyone, GM and Just me; the
-  GM's offers Everyone, Just me, and a checklist of the players ("Several players"), none checked being
-  the GM alone too; the list holds the players at the table and anyone the note already went to. Only its maker changes who reads it.
+  Beside it, on its owner's page, a dropdown picks: Everyone, Just me, and a checklist of the players
+  ("Several players"); a player's adds GM, the note to the GM alone, and on the GM's none checked is
+  the GM alone, as Just me is. The list holds the players at the table and anyone the note already
+  went to, its owner left out. Only its owner changes who reads it. A press anywhere outside the
+  dropdown closes it and still does what it would have (Bill, 2026-11-25: "a mousedown that's not in
+  the dropdown close it without consuming the event"), so a press on another note both closes it and
+  picks that note up.
+- **Handing a note over** (Bill, 2026-11-25: "The owner should be able to reassign ownership"): under
+  the readers, the dropdown's "Give to" lists the players at the table, and the GM for a player's
+  note. Whoever gets it becomes its owner, and the giver no longer reads it unless everyone does, as a
+  note handed across a real table is gone from your hand. The rest who read it still do. A "just me"
+  note becomes the new owner's "just me", private now to them. The GM can hand over any note the GM
+  can see (Bill, 2026-11-24: "The GM should be able to reassign visible notes"), so on the GM's page a
+  note someone else owns has a dropdown with "Give to" alone.
 - **By the fold, who else reads it** (Bill, 2026-11-23: "Names by the fold"), as name tags in the hand
   font: everyone who reads it but you, "GM" for the GM, so Sam's note to the GM shows "GM" on Sam's
   page and "Sam" on the GM's, and the GM's handout to Sam and Dana shows "Sam, Dana" on the GM's page
@@ -127,6 +141,9 @@ question." The note passed across a real table, and the GM's handout (`carves/do
 - **A "just me" note is that page's own** ("Player's page only"), as a torn tape is: never sent, kept
   through reloads on that page, buried in that page's Boot Hill, and not in the game the GM saves.
   Turned public or sent to the GM, it goes to the table; turned "just me", it leaves every other page.
+  Handed to someone, it crosses the table to their page alone, which takes it as its own "just me".
+  Since no other page reads it, the GM's page lets a player hand a "just me" note to someone though it
+  holds no copy to check, where it never lets a player make paper under another's name.
 - **Renaming** a player carries their paper with them: what they made, and what was sent to them.
 
 ## Identity and viewing as

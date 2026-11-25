@@ -16,7 +16,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [x] ~~**Item 8 — a thumbtack on paper pinned to a card.**~~ **LANDED (2026-11-24 — `#71`.)** Bill, 2026-11-24.
 - [x] ~~**Item 9 — pinned paper jumps when its pool is dragged.**~~ **LANDED (2026-11-24 — `#72`.)** Bill, 2026-11-24.
 - [x] ~~**Item 10 — Gather, and a drawer's growing, bring the card's paper with it.**~~ **LANDED (2026-11-24 — `#74`.)** Bill, 2026-11-24.
-- [ ] **Item 11 — paper with no maker is the GM's.** **OPEN (not queued.)** Bill, 2026-11-24.
+- [x] ~~**Item 11 — paper's owner: no maker is the GM's; owners reassign and share.**~~ **LANDED (2026-11-25 — `#75`.)** Bill, 2026-11-24.
 
 ## Item 1
 
@@ -194,11 +194,25 @@ and the GM can hand it to someone.
 DECIDED (Bill, 2026-11-24): "The GM should be able to reassign visible notes": any note the GM can see,
 a player's too, and their private notes while the GM views as them ([the GM's backup](backup.md), Item 3).
 
-@undecided: Daneel's questions before this is built:
-- **"Reassign"**: does the GM give the note to a player, so it becomes theirs (their fold and ▾, the GM
-  no longer its maker)? Or pick who reads it, as the GM's ▾ already does for the GM's own paper?
-- **Paper with no maker as it is read**: does it stay everyone's until the GM picks readers (the GM's
-  ▾ starting at Everyone), as today?
+DECIDED (Bill, 2026-11-25): "The owner should be able to reassign ownership and also share with several
+people or the whole table."
+
+- **Reassigning hands the note over**: whoever gets it becomes its owner (its maker, `by`), with its fold
+  and ▾; the one who gave it no longer is.
+- **The owner reassigns**, as the GM may for any note the GM can see.
+- **Every owner shares as the GM does**: Everyone, Just me, or a checklist of the players, so a player
+  can share a note with several players too, not only with the GM. (The GM reads every note but a
+  player's "just me", as now; with [the GM's backup](backup.md), that one too, by viewing as them.)
+
+DECIDED (Bill, 2026-11-25), on Daneel's proposals: "those are good".
+
+- **Paper with no maker keeps the readers it has** (everyone) when it becomes the GM's, so nothing
+  changes for anyone until the GM picks.
+- **The one who gave it away no longer reads it**, unless it's shared with them or with everyone: a note
+  handed across a real table is gone from your hand.
+- **A "just me" note handed over becomes the new owner's "just me"**, so it stays private, now to them.
+- **Reassigning lives in the ▾**: a "Give to" list of the players (and the GM, for a player's note),
+  beside the readers.
 
 DECIDED (Bill, 2026-11-24): the carve takes gaps O9 and O12–O16 ("Those six gaps"); O1 and O10 stay as
 gaps.

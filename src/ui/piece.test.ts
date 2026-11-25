@@ -68,4 +68,8 @@ test("a note's readers by its fold, and its readers changed", () => {
   assert.deepEqual(withReaders(note, 'gm'), { ...note, to: [] });
   assert.equal(ridFor(withReaders(note, 'me')), 'm:0000e001', 'just me is the page\'s own');
   assert.deepEqual(withReaders(withReaders(note, 'me'), ['Ann']), { ...note, to: ['Ann'] }, 'no `mine` left over');
+  // R577: paper without a maker is the GM's: picking its readers writes its owner.
+  const { by: _by, ...old } = note;
+  assert.deepEqual(withReaders(old, 'gm'), { ...old, by: 'GM', to: [] }, 'the GM picks for paper from before');
+  assert.deepEqual(readersOf({ ...note, handed: true }, dana), ['me'], 'a note handed over, on its way');
 });

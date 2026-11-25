@@ -1,12 +1,12 @@
-// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442, R486, R506, R508, R567
+// CRC: crc-Authority.md | Seq: seq-sync.md#1.1, seq-sync.md#1.2, seq-sync.md#1.3, seq-sync.md#1.4, seq-sync.md#1.5, seq-sync.md#1.6, seq-edit.md#1.4, seq-edit.md#1.5, seq-edit.md#1.7 | R170, R174, R175, R176, R185, R186, R188, R191, R192, R193, R300, R360, R361, R375, R383, R410, R435, R442, R486, R508, R582, R567
 // The GM's page as the game's keeper. After each change it sends what changed: every piece as
 // someone who owns nothing sees it, and, sealed to each player's tab, the pieces that tab sees
 // differently. It judges every change a player sends, takes what it may, and answers the rest with
 // its own version.
 
 import { same, type Game } from '../model/game.ts';
-import { TOMBS, isLocal, isPaper, isPiece, oidOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
-import { mayChange, mayWrite, rewrites } from '../rules/ownership.ts';
+import { TOMBS, isLocal, isPaper, isPiece, oidOf, ownerOf, type Book, type Burial, type Character, type PieceRecord, type Rec, type Rid, type Yards, type Rows } from '../model/records.ts';
+import { handsOver, mayChange, mayWrite, reread, rewrites } from '../rules/ownership.ts';
 import { reads, redact, type Characters, type Viewer } from '../rules/visibility.ts';
 import { renameWhy, renamed, why, whoIs } from './claims.ts';
 import { editBody } from './envelope.ts';
@@ -38,14 +38,17 @@ const seen = (rec: Rec, viewer: Viewer, chars: Characters) => same(redact(rec, v
 const forged = (old: Rec | undefined, rec: Rec, who: string) => 'kind' in rec && rec.kind === 'chip'
   && rec.by !== undefined && rec.by !== who && rec.by !== (old && 'kind' in old && old.kind === 'chip' ? old.by : undefined);
 
-// R506: only paper's maker says who reads it, and a player makes paper under their own name alone. A
-// piece dug up from Boot Hill is judged against its buried copy.
+// R582: only paper's owner says who reads it, and only by a hand-over does its owner change; a player makes
+// paper under their own name alone, but for a "just me" note handed over. A piece dug up from Boot Hill is
+// judged against its buried copy.
+const paperOf = (r: Rec | undefined) => r && 'kind' in r && isPaper(r) ? r : undefined;
+const handing = (old: Rec | undefined, rec: Rec | undefined, who: string) => { const p = paperOf(rec); return !!p && handsOver(paperOf(old), p, who); };
 const misread = (old: Rec | undefined, rec: Rec, who: string) => {
-  if (!('kind' in rec) || !isPaper(rec)) return false;
-  const was = old && 'kind' in old && isPaper(old) ? old : undefined;
-  if (!was) return rec.by !== undefined && rec.by !== who;
-  if (rec.by !== was.by) return true;
-  return JSON.stringify(rec.to ?? null) !== JSON.stringify(was.to ?? null) && was.by !== who;
+  const p = paperOf(rec), was = paperOf(old);
+  if (!p || handing(old, rec, who)) return false;
+  if (!was) return p.by !== undefined && p.by !== who;
+  if (p.by !== was.by) return true;
+  return reread(p, was) && ownerOf(was) !== who;
 };
 
 // R464: only the GM's page rules on a flag: a player's change may add to one (another flagged tap), but
@@ -147,7 +150,7 @@ export function judge(game: Game, edit: Edit, who: string | null, tab?: string):
   const viewer: Viewer = { name: who, gm: false };
   const mine = (old: Rec | undefined, rec: Rec | undefined) => {
     if (old && !seen(old, viewer, chars)) return false;                                     // R186
-    if (rec && !seen(rec, viewer, chars)) return false;
+    if (rec && !seen(rec, viewer, chars) && !handing(old, rec, who)) return false;           // R582: a giver may lose sight of it
     // R410, R435: the Connection Table and the Opinion Records are written by the GM's page alone, however
     // much of a record a player can see.
     const gms = (r: Rec | undefined) => !!r && 'kind' in r && (r.kind === 'connections' || r.kind === 'opinion');
@@ -179,7 +182,7 @@ export function judge(game: Game, edit: Edit, who: string | null, tab?: string):
     else if (kindOf(rec) === 'tornroll') refused.push(rid);                                  // R486: each page's own
     else if (stale(rid)) refused.push(rid);                                                  // R444
     else if (forged(game.get(rid), rec, who)) refused.push(rid);                             // R360
-    else if (misread(game.get(rid) ?? buried.get(oidOf(rid)), rec, who)) refused.push(rid);  // R506
+    else if (misread(game.get(rid) ?? buried.get(oidOf(rid)), rec, who)) refused.push(rid);  // R582
     else if (ruled(game.get(rid), rec)) refused.push(rid);                                   // R464
     else if (mine(game.get(rid), rec)) puts.push({ rid, rec });
     else refused.push(rid);
@@ -433,6 +436,8 @@ export class Authority {
     };
     const taken = [...verdict.puts.map(p => p.rid), ...verdict.dels];
     for (const rid of taken) theirs(rid);
+    // R582: a put its sender can't read is a hand-over; the giver holds the copy it sent, which goes, sealed.
+    for (const p of verdict.puts) if (!redact(p.rec, this.#viewer(t), characters(game))) t.holds.set(p.rid, p.rec);
     const changed = game.change(w => {
       for (const p of verdict.puts) w.put(p.rid, p.rec);
       for (const rid of verdict.dels) w.del(rid);

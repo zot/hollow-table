@@ -1,5 +1,5 @@
 # Visibility
-**Requirements:** R143-145, R150, R185, R313, R341, R348, R356-359, R377, R378, R381, R394, R399, R406, R410, R427, R435, R464, R501, R508
+**Requirements:** R143-145, R150, R185, R313, R341, R348, R356-359, R377, R378, R381, R394, R399, R406, R410, R427, R435, R464, R501, R508, R581
 
 Who may read what, and each record as a given viewer may see it. Pure. The invariant it serves: no
 page ever holds, in the clear, a secret its person may not read.
@@ -33,7 +33,8 @@ page ever holds, in the clear, a secret its person may not read.
   - A burial in Boot Hill: each record in it redacted the same way; an Info card's burial, for anyone
     but the GM, is `{name: "GM card", records: []}` (R406).
   - Paper naming who reads it (R501): the GM, its maker and those in `to` see it whole; anyone else
-    nothing at all. `mine` paper is never sent, so it is only ever its maker's.
+    nothing at all. `mine` paper is never sent, so it is only ever its maker's. A `handed` note (R581)
+    goes to its owner's page alone, a player's; none goes to a player's page for the GM's.
   - (R508) In a burial, records a viewer can't read are left out, and a burial holding nothing but
     paper they can't read is left out whole.
   - The world's number (R348): for anyone but the GM, `{set, total: 0}`: whether the tray is set,

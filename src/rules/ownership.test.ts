@@ -1,8 +1,8 @@
 // CRC: crc-Ownership.md | Test: test-Ownership.md
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Character } from '../model/records.ts';
-import { click, mayChange, mayWrite, shiftClick, type Result } from './ownership.ts';
+import type { Character, PieceRecord, Rid, Sticky } from '../model/records.ts';
+import { click, handOver, handsOver, mayChange, mayWrite, shiftClick, takeHanded, type Result } from './ownership.ts';
 import { canSee, type Viewer } from './visibility.ts';
 import { BEAUFORD, DEVREUX, SAM, scene } from '../store/playtest.ts';
 
@@ -66,3 +66,39 @@ test('who writes a character', () => {
   assert.equal(mayWrite(null, sam), false);
 });
 
+
+const AT = { x: 0, y: 0, z: 0, tilt: 0 };
+const note = (more: Partial<Sticky>): Sticky => ({ kind: 'sticky', oid: '0000f001', place: AT, text: 'a note', ...more });
+
+test('handing a note over', () => {
+  // R579: the new owner leaves its readers; everyone's stays everyone's; the giver no longer reads it.
+  assert.deepEqual(handOver(note({ by: 'Sam' }), 'Dana'), note({ by: 'Dana' }), 'everyone still reads it');
+  assert.deepEqual(handOver(note({ by: 'Sam', to: ['Dana', 'Ann'] }), 'Dana'), note({ by: 'Dana', to: ['Ann'] }), 'Ann still does, Sam no longer');
+  assert.deepEqual(handOver(note({ by: 'Sam', to: [] }), 'GM'), note({ by: 'GM', to: [] }), 'a note to the GM, given to the GM');
+  assert.deepEqual(handOver(note({ by: 'GM', to: ['Sam'] }), 'Dana'), note({ by: 'Dana', to: ['Sam'] }), "the GM's handout to Sam, given to Dana");
+  assert.deepEqual(handOver(note({ text: 'from before' }), 'Sam'), note({ text: 'from before', by: 'Sam' }), 'paper without a maker');
+  // R581: a "just me" note becomes the new owner's, on its way as `handed`.
+  assert.deepEqual(handOver(note({ by: 'Sam', mine: true }), 'Dana'), note({ by: 'Dana', handed: true }), "Sam's own, to Dana");
+  assert.deepEqual(handOver(note({ by: 'GM', to: [] }), 'Sam'), note({ by: 'Sam', handed: true }), "the GM's own, to Sam");
+});
+
+test('a page takes what is handed to it', () => {
+  // R581: a player's under `m:` as `mine`; the GM's as a note to no one; nobody else's.
+  const all: [Rid, PieceRecord][] = [['o:0000f001', note({ by: 'Dana', handed: true })], ['o:0000f002', { ...note({ by: 'GM', handed: true }), oid: '0000f002' }],
+    ['o:0000f003', { ...note({ by: 'Dana', to: [] }), oid: '0000f003' }]];
+  assert.deepEqual(takeHanded(all, 'Dana'), [{ from: 'o:0000f001', rid: 'm:0000f001', rec: note({ by: 'Dana', mine: true }) }], 'Dana takes hers');
+  assert.deepEqual(takeHanded(all, 'GM'), [{ from: 'o:0000f002', rid: 'o:0000f002', rec: { ...note({ by: 'GM', to: [] }), oid: '0000f002' } }], "the GM's page the GM's");
+  assert.deepEqual(takeHanded(all, 'Sam'), [], 'Sam nothing');
+});
+
+test('what the GM\'s page takes as a hand-over', () => {
+  // R582: by its owner, exactly as handOver writes it; with no copy, a handed note for someone else.
+  const sams = note({ by: 'Sam', to: ['Dana'] });
+  assert.ok(handsOver(sams, handOver(sams, 'Dana'), 'Sam'), 'Sam gives his');
+  assert.ok(!handsOver(sams, handOver(sams, 'Dana'), 'Dana'), "Dana can't give Sam's");
+  assert.ok(!handsOver(sams, { ...handOver(sams, 'Dana'), to: ['Sam'] }, 'Sam'), 'nor keep a way to read it');
+  assert.ok(!handsOver(sams, sams, 'Sam'), 'no change of owner, no hand-over');
+  assert.ok(handsOver(undefined, note({ by: 'Dana', handed: true }), 'Sam'), 'his "just me" note, handed to Dana');
+  assert.ok(!handsOver(undefined, note({ by: 'Dana' }), 'Sam'), 'not paper made in her name');
+  assert.ok(!handsOver(undefined, note({ by: 'Sam', handed: true }), 'Sam'), 'nor handed to himself');
+});

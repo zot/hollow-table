@@ -40,3 +40,37 @@
 **Fire alarm:** let anyone write an open character (as anyone may claim it): Dana writes it
 **Inject:** src/rules/ownership.ts:mayWrite
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with an open character anyone's to write, 'who writes a character' failed; restored clean
+
+## Test: handing a note over
+**Purpose:** R579, R581: handOver: the new owner leaves `to`; everyone's stays everyone's; the giver no longer reads it; a "just me" note goes `handed`
+**Input:** Sam's notes: public, to Dana and Ann, to the GM; the GM's handout to Sam; paper with no maker; Sam's `mine` note; the GM's note to no one; each handed over
+**Expected:** `by` the new owner each time; Dana dropped from `[Dana, Ann]`; `to: []` kept for the GM; `[Sam]` kept when the GM's handout goes to Dana; the two "just me" notes come `handed` with no `to` or `mine`
+**Refs:** crc-Ownership.md
+**Code:** `src/rules/ownership.test.ts`
+**Alarm:** 4
+**Fire alarm:** keep the new owner in `to`; red: "Ann still does, Sam no longer" gets `[Dana, Ann]`
+**Inject:** src/rules/ownership.ts:handOver
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the new owner kept in to, handing a note over failed its assertion (to [Dana, Ann]); restored clean
+
+## Test: a page takes what is handed to it
+**Purpose:** R581: takeHanded: a player's page takes a `handed` note it owns under `m:` as `mine`, the GM's page the GM's as `to: []`, and nobody else's
+**Input:** a note handed to Dana, one handed to the GM, Dana's note to the GM; taken as Dana, the GM and Sam
+**Expected:** Dana takes hers from `o:` to `m:`; the GM's page puts the GM's back under `o:` with `to: []`; Sam takes nothing
+**Refs:** crc-Ownership.md
+**Code:** `src/rules/ownership.test.ts`
+**Alarm:** 5
+**Fire alarm:** take every `handed` note whoever owns it; red: Sam takes two
+**Inject:** src/rules/ownership.ts:takeHanded
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: taking every handed note, a page takes what is handed to it failed (Sam took notes not his); restored clean
+
+## Test: what the GM's page takes as a hand-over
+**Purpose:** R582: handsOver: by its owner and exactly handOver of it; with no copy, a `handed` note for someone else
+**Input:** Sam's note to Dana handed to Dana, by Sam, by Dana, by Sam keeping himself a reader, unchanged; with no copy: a note handed to Dana, one in Dana's name not handed, one handed to Sam by Sam
+**Expected:** only Sam's own hand-over and the note handed to Dana are hand-overs
+**Refs:** crc-Ownership.md, crc-Authority.md
+**Code:** `src/rules/ownership.test.ts`
+**Alarm:** 6
+**Fire alarm:** drop the owner check; red: "Dana can't give Sam's" is a hand-over
+**Inject:** src/rules/ownership.ts:handsOver
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: without the owner check, Dana giving Sam's note was a hand-over, and the GM page's paper test took it too; restored clean
+

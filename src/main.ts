@@ -11,6 +11,7 @@ import { buryInfo, buryRecord, empty as emptyYards, ownTorn, raised } from './ru
 import { repin } from './rules/dockets.ts';
 import { setOut } from './rules/desktops.ts';
 import { desksOf, takeOut } from './rules/drawers.ts';
+import { takeHanded } from './rules/ownership.ts';
 import { first, groupOf, keep as keepRow, nameOf, newConnections, pcsOf, published, rowOf, synced, tableOf } from './rules/connections.ts';
 import { placeOf, type Taking } from './ui/piece.ts';
 import { Authority } from './net/authority.ts';
@@ -108,7 +109,7 @@ function shown(hands: Hands | undefined, cs: Command[], may: (c: Command) => boo
 }
 
 function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, hand: string, missing: (hash: string) => string | undefined, ledger: LedgerWith,
-  rolling: () => Rolls, checkpoint?: (name: string) => Promise<unknown>): { table: TableView; drag: Drag; bar: BarView; hands: Hands } {
+  rolling: () => Rolls, checkpoint: ((name: string) => Promise<unknown>) | undefined, self: string, present: () => string[] = () => []): { table: TableView; drag: Drag; bar: BarView; hands: Hands } {
   const who = viewer?.name ?? 'nobody', gm = !!viewer?.gm;
   let seat: Seat = loadSeat(localStorage, gameId, who);
   const keep = (s: Seat) => { seat = s; saveSeat(localStorage, gameId, who, s); };
@@ -291,7 +292,8 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     useAction: (oid, label, alt) => rollRow?.action(oid, label, alt) ?? false,
     react: (pc, npc) => rollRow?.react(pc, npc) ?? false,
     // R504: the names claimed at the table (the GM's page holds the claims), for the GM's checklist.
-    players: () => Object.keys((game.get('book') as Book | undefined)?.claims ?? {}).sort(),
+    // R578: the names claimed at the table (the GM's page holds the claims) and the players present.
+    players: () => [...new Set([...Object.keys((game.get('book') as Book | undefined)?.claims ?? {}), ...present()])].sort(),
     inUse: oid => rollRow?.inUse(oid) ?? null,
     taking: () => taking,
     turnPage: k => { if (taking) { taking = { ...taking, k: Math.max(0, Math.min(k, taking.pages.length - 1)) }; redraw(); } },
@@ -409,10 +411,18 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     deleted.clear();
     if (puts.length) game.change(w => { for (const p of puts) w.put(p.rid, p.rec); });
   };
+  // CRC: crc-Ownership.md | R581: a "just me" note handed to this page's person is taken as its own, the GM's
+  // page taking the GM's whoever it is viewed as.
+  const handed = () => {
+    const takes = takeHanded(game.all().filter(([, r]) => 'kind' in r) as [Rid, PieceRecord][], self);
+    if (takes.length) game.change(w => { for (const t of takes) { if (t.rid !== t.from) w.del(t.from); w.put(t.rid, t.rec); } });
+  };
   game.listen(rids => {
     for (const rid of rids) if (onTable(rid) && !game.get(rid)) deleted.add(rid.slice(2));
     queueMicrotask(repinned);
+    queueMicrotask(handed);
   });
+  handed();
   // R412, R415: a GM card's row follows its name and group as they change; a card first seen is only
   // remembered, so a row the GM cleared stays cleared until its card is renamed.
   if (gm) {
@@ -586,7 +596,8 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const v = views(game, store.current!.id, { name, gm: false }, blobs, moves, tab, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls);
+    const v = views(game, store.current!.id, { name, gm: false }, blobs, moves, tab, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls, undefined, name,
+      () => [name, ...[...presence.people.values()].filter(p => p.role === 'player').map(p => p.name)]);
     const { table, drag, bar } = v;
     hands = v.hands;
     new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }),
@@ -652,7 +663,7 @@ async function main() {
   const gmSeat = loadSeat(localStorage, store.current!.id, GM), viewer: Viewer = gmSeat.viewAs ? { name: gmSeat.viewAs, gm: false } : { name: GM, gm: true };
   const { table: view, drag, bar, hands } = views(game, store.current!.id, viewer, blobs, moves, tab, hash => table?.images.missing.get(hash), ledgerOf(store, blobs, false), () => rolls,
     // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
-    name => store.checkpoint(name, true).finally(() => void store.images().then(i => blobs.free(new Set(i))).catch(() => undefined)));
+    name => store.checkpoint(name, true).finally(() => void store.images().then(i => blobs.free(new Set(i))).catch(() => undefined)), GM);
   new FolksView(bar.folks, bar.youAre, {
     me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
     people: () => table ? here(table.presence) : [],
