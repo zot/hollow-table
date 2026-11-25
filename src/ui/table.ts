@@ -502,32 +502,21 @@ export class TableView {
   /** Draws the tapes, the pieces leading hands now (and their aims) given by Hands. */
   tapes(leads?: Map<Rid, Rid | undefined>): void {
     if (leads) this.#leads = leads;
-    const doc = this.#tapeLayer.ownerDocument, tied = tiedHere(this.#w.game), seen = new Set<Rid>();
+    const doc = this.#tapeLayer.ownerDocument, tied = tiedHere(this.#w.game), dockets = this.#dockets();
+    // The pieces placed first, piled or back where their records say, so each tape reads where they lie.
     const piled = new Set<HTMLElement>();
-    for (const k of this.#dockets()) {
-      seen.add(k.rid);
-      const isTied = tied.has(k.d.oid);
+    for (const k of dockets) {
+      const isTied = tied.has(k.d.oid), label = isTied ? this.box(k.rid) : null;
       this.#els.get(k.rid)?.classList.toggle('tied', isTied);
-      // A paper or card of this docket in hand is in its tape only while aimed back at it; another aimed at it is in.
-      const back = (r: Rid) => !this.#leads.has(r) || this.#leads.get(r) === k.rid;
-      const kept = k.papers.filter(back), keptChars = k.chars.filter(back);
-      const boxes = this.#boxes({ ...k, papers: kept, chars: keptChars }, null, isTied);
-      for (const [r, at] of this.#leads) if (at === k.rid && !k.papers.includes(r) && !k.chars.includes(r)) { const b = this.box(r); if (b) boxes.push(b); }
-      if (isTied) {
-        const label = this.box(k.rid), free = (r: Rid) => !this.#leads.has(r) && !this.#held.has(r);
-        if (label) for (const [key, p] of this.#pile(label, k.papers.filter(free), k.chars.filter(free))) {
-          const e = this.#elOf(key);
-          if (!e || this.#held.has(key)) continue;
-          e.style.left = `${p.x}px`; e.style.top = `${p.y}px`;
-          piled.add(e);
-        }
+      if (!label) continue;
+      const free = (r: Rid) => !this.#leads.has(r) && !this.#held.has(r);
+      for (const [key, p] of this.#pile(label, k.papers.filter(free), k.chars.filter(free))) {
+        const e = this.#elOf(key);
+        if (!e || this.#held.has(key)) continue;
+        e.style.left = `${p.x}px`; e.style.top = `${p.y}px`;
+        piled.add(e);
       }
-      let line = this.#tapes.get(k.rid);
-      if (!line) { line = doc.createElementNS(SVG, 'path'); this.#tapeLayer.append(line); this.#tapes.set(k.rid, line); }
-      line.setAttribute('d', path(tapeOf(boxes)));
-      this.#bow(k.rid, isTied ? boxes.slice(1) : [], [...k.papers, ...k.chars]);
     }
-    for (const [rid, line] of this.#tapes) if (!seen.has(rid)) { line.remove(); this.#tapes.delete(rid); this.#bow(rid, [], []); }
     // Untied, or out of the docket: back where its record says.
     for (const e of this.#world.querySelectorAll<HTMLElement>('.obj.piled')) {
       if (piled.has(e)) continue;
@@ -539,6 +528,20 @@ export class TableView {
       if (r.kind === 'character' && !pool) this.#snap(rid);   // R33: a gathered card back under its pool
     }
     for (const e of piled) e.classList.add('piled');
+    const seen = new Set<Rid>();
+    for (const k of dockets) {
+      seen.add(k.rid);
+      const isTied = tied.has(k.d.oid);
+      // A paper or card of this docket in hand is in its tape only while aimed back at it; another aimed at it is in.
+      const back = (r: Rid) => !this.#leads.has(r) || this.#leads.get(r) === k.rid;
+      const boxes = this.#boxes({ ...k, papers: k.papers.filter(back), chars: k.chars.filter(back) }, null, isTied);
+      for (const [r, at] of this.#leads) if (at === k.rid && !k.papers.includes(r) && !k.chars.includes(r)) { const b = this.box(r); if (b) boxes.push(b); }
+      let line = this.#tapes.get(k.rid);
+      if (!line) { line = doc.createElementNS(SVG, 'path'); this.#tapeLayer.append(line); this.#tapes.set(k.rid, line); }
+      line.setAttribute('d', path(tapeOf(boxes)));
+      this.#bow(k.rid, isTied ? boxes.slice(1) : [], [...k.papers, ...k.chars]);
+    }
+    for (const [rid, line] of this.#tapes) if (!seen.has(rid)) { line.remove(); this.#tapes.delete(rid); this.#bow(rid, [], []); }
   }
 
   // R542: the red tape crossed over a tied pile in a bow, above its papers.

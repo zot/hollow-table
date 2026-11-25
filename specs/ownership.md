@@ -118,7 +118,9 @@ question." The note passed across a real table, and the GM's handout (`carves/do
   went to, its owner left out. Only its owner changes who reads it. A press anywhere outside the
   dropdown closes it and still does what it would have (Bill, 2026-11-25: "a mousedown that's not in
   the dropdown close it without consuming the event"), so a press on another note both closes it and
-  picks that note up.
+  picks that note up. Open, the dropdown lies over everything on the table, papers pinned to its own
+  docket too (Bill, 2026-11-25: "The docket menu needs a z-index boost -- it's occluded by an item
+  inside").
 - **Handing a note over** (Bill, 2026-11-25: "The owner should be able to reassign ownership"): under
   the readers, the dropdown's "Give to" lists the players at the table, and the GM for a player's
   note. Whoever gets it becomes its owner, and the giver no longer reads it unless everyone does, as a

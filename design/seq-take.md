@@ -3,7 +3,7 @@
 ```
 Target's owner: Tape, PieceView      Absorb          GM: Rolls                          Attacker: Tape
     |                                   |                 |                                    |
-1   |--Take N (receipt.attack, untaken) |                 |                                    |
+1.  |--Take N (receipt.attack, untaken) |                 |                                    |
 1.1 |--card to its back, the column     |                 |                                    |
 1.2 |--pages(card, kind, N)------------>|                 |                                    |
 1.3 |--‹ k of n ›, the Slots shown; Escape backs out      |                                    |
@@ -12,7 +12,7 @@ Target's owner: Tape, PieceView      Absorb          GM: Rolls                  
 1.4.2                                   |<--fill(card, kind, page, attacker)-----|              |
 1.4.3                                   |                 |--change; attack taken, waiting names|
 1.5 |<--the receipt again, every tape (as a CRIT)---------|--------------------------------->|
-2   |                                   |                 |<--name {id, column, row, name}-----|
+2.  |                                   |                 |<--name {id, column, row, name}-----|
 2.1                                     |                 |--attacker's owner or GM? waiting?   |
 2.2                                     |                 |--the slot named; no longer waiting  |
 2.3 |<--the receipt again, every tape-------------------------------------------------------->|

@@ -1085,7 +1085,7 @@ const QUICK = [
   '2. ROLL ALL DICE AND CHECK **WHITE / GREEN / RED** RESULT',
   '  4-6: Clean **Success**',
   '  3: **Success** with cost, like +1 **Stagger**',
-  '  1-2: **Fail**, may cause +1 **Stagger**',
+  '  1-2: **Fail**, may cause +1 **Stagger** and **Level** -1 **Fumble**',
   '3. RESULT IS **BLUE** + **YELLOW**(S) + BONUS (IF ANY)',
   '4. CRIT! ON **WHITE** 6 & **BLUE** 5 OR 6',
   '  Player doubles result *or* changes **Blue** & **Yellow** to 6s',

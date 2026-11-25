@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md, crc-TableView.md, crc-PieceView.md, crc-Dockets.md | Test: test-Dockets.md | R591, R530, R531, R532, R535, R536, R538, R539, R541, R542, R543, R544, R545, R584, R585, R586, R587, R588, R589
+// CRC: crc-Drag.md, crc-TableView.md, crc-PieceView.md, crc-Dockets.md | Test: test-Dockets.md | R591, R530, R531, R532, R535, R536, R538, R539, R541, R542, R543, R544, R545, R584, R585, R586, R587, R588, R589, R596, R534
 // Dockets: a label from the desk, the paper in its red tape pinned to it, moved within and taken out,
 // carried by its label, tied up, filed and brought back; across pages, paper the carrier can't read.
 import { expect, test, type Page } from '@playwright/test';
@@ -229,3 +229,38 @@ test("across pages: a docket's NPC follows a player's carry; a player's desk bur
   await expect.poll(async () => (await rec(gm, 'yards')).yards.flatMap((y: any) => y.items).map((i: any) => i.name), { timeout: 15_000 }).toContain('Wren');
 });
 
+
+test("a docket's open menu lies over the paper pinned to it", async ({ page }) => {
+  await open(page);
+  const D = 'o:dd000002';
+  await seed(page, [
+    { kind: 'docket', oid: 'dd000002', place: P(300, 120, 10), name: 'Clues', by: 'GM' },
+    { kind: 'sticky', oid: 'aa000003', place: P(300, 140, 11), text: 'under the menu', pin: { card: 'dd000002', dx: 0, dy: 20 } },
+  ]);
+  await page.locator(`[data-rid="${D}"] > .foldpick`).click();
+  // R596: the sticky lies where the menu opens, and the menu is on top there.
+  const m = await box(page, `[data-rid="${D}"] > .readmenu`), s = await box(page, '[data-rid="o:aa000003"]');
+  const x = Math.max(m.x, s.x) + 4, y = Math.max(m.y, s.y) + 4;
+  expect(x < Math.min(m.x + m.width, s.x + s.width) && y < Math.min(m.y + m.height, s.y + s.height)).toBe(true);
+  expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('.readmenu'), [x, y])).toBe(true);
+});
+
+test('untied, the tape goes round the papers where they lie again', async ({ page }) => {
+  await open(page);
+  const D = 'o:dd000003';
+  await seed(page, [
+    { kind: 'docket', oid: 'dd000003', place: P(300, 120, 10), name: 'Leads', by: 'GM' },
+    { kind: 'sticky', oid: 'aa000004', place: P(320, 400, 11), text: 'far below', pin: { card: 'dd000003', dx: 20, dy: 280 } },
+    { kind: 'sticky', oid: 'aa000005', place: P(600, 200, 12), text: 'off right', pin: { card: 'dd000003', dx: 300, dy: 80 } },
+  ]);
+  const tape = () => page.locator('.tapes path').first().getAttribute('d');
+  await expect.poll(tape).toBeTruthy();
+  const before = await tape();
+  // R534, R542: tied, the tape goes round the pile; untied, round the papers where their records say again.
+  await page.locator(`[data-rid="${D}"] .knot`).click();
+  await expect(page.locator('.bow')).toHaveCount(1);
+  expect(await tape()).not.toBe(before);
+  await page.locator(`[data-rid="${D}"] .knot`).click();
+  await expect(page.locator('.bow')).toHaveCount(0);
+  expect(await tape()).toBe(before);
+});

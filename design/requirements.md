@@ -460,6 +460,7 @@
 - **R581:** A "just me" note handed over goes to the table marked `handed`, which only its new owner's page receives: a player's page takes it under its own `m:` key as `mine`, and the GM's page as the GM's note to no one, deleting the table's copy in the same change.
 - **R582:** Everyone who reads a note may write on it, move it and put it away; only its owner (the GM for paper without a maker) changes `to`, and its owner or the GM changes `by`, only as a hand-over (R579); a player can't make paper with another's name as its maker, except a `handed` note.
 - **R583:** A press outside the paper's open ▾ menu, anywhere but the menu and its ▾, closes the menu without stopping the press, which goes on to do what it would have.
+- **R596:** While a paper's ▾ menu is open, the paper and its menu lie over every other piece on the table, papers pinned to its own docket too, though not over a piece being carried or a pin line's pair.
 
 ## Feature: the network
 **Source:** specs/network.md

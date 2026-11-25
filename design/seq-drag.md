@@ -3,7 +3,8 @@
 ```
 Person          Gesture           Drag (carry)          Hands / PoolView      Moves          Game
   |                |                |                         |                  |               |
-1 |--press chip--->|                |                         |                  |               |
+1.
+  |--press chip--->|                |                         |                  |               |
 1.1                |--moved 5 px--->|                         |                  |               |
 1.2                |                |--lift: shadow, hold------|----------------->|               |
 1.3                |                |--each frame: place, aim->|--show(own)        |               |

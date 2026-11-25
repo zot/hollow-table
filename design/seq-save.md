@@ -3,7 +3,7 @@
 ```
 Person/peer        View/Net            Game                    GameStore            Db           Net (GM's page)
     |                  |                 |                          |                 |                 |
-1   |--drop chip------>|                 |                          |                 |                 |
+1.  |--drop chip------>|                 |                          |                 |                 |
 1.1 |                  |--change(fn)---->|                          |                 |                 |
 1.2 |                  |                 |--check, apply, mark dirty|                 |                 |
 1.3 |                  |<--changed rids--|---changed rids---------->|-----------------|---------------->|

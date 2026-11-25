@@ -3462,7 +3462,7 @@ var QUICK = [
   "2. ROLL ALL DICE AND CHECK **WHITE / GREEN / RED** RESULT",
   "  4-6: Clean **Success**",
   "  3: **Success** with cost, like +1 **Stagger**",
-  "  1-2: **Fail**, may cause +1 **Stagger**",
+  "  1-2: **Fail**, may cause +1 **Stagger** and **Level** -1 **Fumble**",
   "3. RESULT IS **BLUE** + **YELLOW**(S) + BONUS (IF ANY)",
   "4. CRIT! ON **WHITE** 6 & **BLUE** 5 OR 6",
   "  Player doubles result *or* changes **Blue** & **Yellow** to 6s",
@@ -19643,28 +19643,43 @@ var TableView = class {
   /** Draws the tapes, the pieces leading hands now (and their aims) given by Hands. */
   tapes(leads) {
     if (leads) this.#leads = leads;
-    const doc = this.#tapeLayer.ownerDocument, tied = tiedHere(this.#w.game), seen3 = /* @__PURE__ */ new Set();
+    const doc = this.#tapeLayer.ownerDocument, tied = tiedHere(this.#w.game), dockets = this.#dockets();
     const piled = /* @__PURE__ */ new Set();
-    for (const k of this.#dockets()) {
+    for (const k of dockets) {
+      const isTied = tied.has(k.d.oid), label2 = isTied ? this.box(k.rid) : null;
+      this.#els.get(k.rid)?.classList.toggle("tied", isTied);
+      if (!label2) continue;
+      const free2 = (r) => !this.#leads.has(r) && !this.#held.has(r);
+      for (const [key, p] of this.#pile(label2, k.papers.filter(free2), k.chars.filter(free2))) {
+        const e = this.#elOf(key);
+        if (!e || this.#held.has(key)) continue;
+        e.style.left = `${p.x}px`;
+        e.style.top = `${p.y}px`;
+        piled.add(e);
+      }
+    }
+    for (const e of this.#world.querySelectorAll(".obj.piled")) {
+      if (piled.has(e)) continue;
+      e.classList.remove("piled");
+      const rid2 = e.dataset.rid, r = this.#w.game.get(rid2), pool = e.classList.contains("pool");
+      if (!r || this.#held.has(pool ? `${rid2}#pool` : rid2)) continue;
+      const at4 = r.kind === "character" ? pool ? r.pool : r.card : "place" in r ? r.place : null;
+      if (at4) {
+        e.style.left = `${at4.x}px`;
+        e.style.top = `${at4.y}px`;
+      }
+      if (r.kind === "character" && !pool) this.#snap(rid2);
+    }
+    for (const e of piled) e.classList.add("piled");
+    const seen3 = /* @__PURE__ */ new Set();
+    for (const k of dockets) {
       seen3.add(k.rid);
       const isTied = tied.has(k.d.oid);
-      this.#els.get(k.rid)?.classList.toggle("tied", isTied);
       const back3 = (r) => !this.#leads.has(r) || this.#leads.get(r) === k.rid;
-      const kept = k.papers.filter(back3), keptChars = k.chars.filter(back3);
-      const boxes = this.#boxes({ ...k, papers: kept, chars: keptChars }, null, isTied);
+      const boxes = this.#boxes({ ...k, papers: k.papers.filter(back3), chars: k.chars.filter(back3) }, null, isTied);
       for (const [r, at4] of this.#leads) if (at4 === k.rid && !k.papers.includes(r) && !k.chars.includes(r)) {
         const b = this.box(r);
         if (b) boxes.push(b);
-      }
-      if (isTied) {
-        const label2 = this.box(k.rid), free2 = (r) => !this.#leads.has(r) && !this.#held.has(r);
-        if (label2) for (const [key, p] of this.#pile(label2, k.papers.filter(free2), k.chars.filter(free2))) {
-          const e = this.#elOf(key);
-          if (!e || this.#held.has(key)) continue;
-          e.style.left = `${p.x}px`;
-          e.style.top = `${p.y}px`;
-          piled.add(e);
-        }
       }
       let line = this.#tapes.get(k.rid);
       if (!line) {
@@ -19680,19 +19695,6 @@ var TableView = class {
       this.#tapes.delete(rid2);
       this.#bow(rid2, [], []);
     }
-    for (const e of this.#world.querySelectorAll(".obj.piled")) {
-      if (piled.has(e)) continue;
-      e.classList.remove("piled");
-      const rid2 = e.dataset.rid, r = this.#w.game.get(rid2), pool = e.classList.contains("pool");
-      if (!r || this.#held.has(pool ? `${rid2}#pool` : rid2)) continue;
-      const at4 = r.kind === "character" ? pool ? r.pool : r.card : "place" in r ? r.place : null;
-      if (at4) {
-        e.style.left = `${at4.x}px`;
-        e.style.top = `${at4.y}px`;
-      }
-      if (r.kind === "character" && !pool) this.#snap(rid2);
-    }
-    for (const e of piled) e.classList.add("piled");
   }
   // R542: the red tape crossed over a tied pile in a bow, above its papers.
   #bow(rid2, pileBoxes, papers) {

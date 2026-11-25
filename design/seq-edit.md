@@ -3,7 +3,7 @@
 ```
 Player: Game          Copy                      Seal          GM: Authority                   GM: Game
     |                   |                          |                  |                             |
-1   |--changed rids---->|                          |                  |                             |
+1.  |--changed rids---->|                          |                  |                             |
 1.1 |                   |--stamp each (Stamps.next), base = seen      |                             |
 1.2 |                   |--pending[rid] = {s, base}|                  |                             |
 1.3 |                   |--edit, sealed to GM----->|----------------->|                             |
@@ -17,7 +17,7 @@ Player: Game          Copy                      Seal          GM: Authority     
 1.6 |                   |                          |                  |<-changed: out to everyone (seq-sync.md)
 1.7 |                   |<--refused: GM's version under the player's number, as the answer-------|
 1.8 |                   |--answer clears pending   |                  |                             |
-2   |                   |  (no answer within 3 s)  |                  |                             |
+2.  |                   |  (no answer within 3 s)  |                  |                             |
 2.1 |                   |--resend as it is now, same group and base   |                             |
 2.2 |                   |--after 5 tries: ask for the whole table     |                             |
 ```

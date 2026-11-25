@@ -106,7 +106,7 @@
 
 ## Test: the name on a card
 **Purpose:** R566: the name is the first line's words before a group and before the first comma, marks left out.
-**Input:** "<head>Mistress Devreux (Unton folk), Rank 3</head>", "<head>Samuel Diamond, Rank 3</head>", "<head>Name, Rank _</head>", an empty front.
+**Input:** `<head>Mistress Devreux (Unton folk), Rank 3</head>`, `<head>Samuel Diamond, Rank 3</head>`, `<head>Name, Rank _</head>`, an empty front.
 **Expected:** "Mistress Devreux", "Samuel Diamond", "Name", "".
 **Refs:** crc-Connections.md
 **Code:** src/rules/connections.test.ts

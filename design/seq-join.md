@@ -3,7 +3,7 @@
 ```
 Player page                 Wire (player)          Relays          Wire (GM)              GM page
     |                            |                    |                 |                      |
-1   |--join(room from invite)--->|--announce--------->|<--announce------|                      |
+1.  |--join(room from invite)--->|--announce--------->|<--announce------|                      |
 1.1 |                            |<==== introduced; WebRTC data channel opens ====>|           |
 1.2 |                            |<==== Trystero's handshake: both browsers' keys proved ====>|
 1.3 |                            |--hi (seal key, tab)----------------->|                      |

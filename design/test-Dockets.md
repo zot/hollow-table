@@ -198,3 +198,25 @@
 **Fire alarm:** Drag's filing takes no characters out of a player's docket; red: Dana's drawer holds Wren's records too
 **Inject:** src/ui/drag.ts
 **Pulled:** 2026-11-25 — 2026-11-25 — rang: with no characters taken out of a player's docket, Dana's drawer held Wren too (line 222, Chromium); restored clean, dist rebuilt
+
+## Test: a docket's open menu lies over the paper pinned to it
+**Purpose:** R596: a paper's open ▾ menu is raised with its paper over every other piece, the docket's own pinned paper too.
+**Input:** the GM's docket "Clues" with a sticky pinned just under its label; the GM opens the docket's ▾.
+**Expected:** where the menu and the sticky overlap, the topmost element is the menu.
+**Refs:** crc-PieceView.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 17
+**Fire alarm:** the open menu's paper is not raised; red: the sticky is on top where they overlap
+**Inject:** src/ui/theme.css
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the `:has(> .readmenu)` rule removed, the sticky lay over the menu (Chromium and Firefox); restored clean, dist rebuilt
+
+## Test: untied, the tape goes round the papers where they lie again
+**Purpose:** R534, R542: tying and untying a docket leaves its tape as it was, round its papers where their records say.
+**Input:** the GM's docket "Leads" with two stickies pinned well apart; the knot tied, then untied.
+**Expected:** tied, the tape changes to go round the pile; untied, it is the same path as before the tie.
+**Refs:** crc-TableView.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 18
+**Fire alarm:** TableView.tapes reads the boxes before the untied papers go back; red: the untied tape still goes round the pile
+**Inject:** src/ui/table.ts:tapes
+**Pulled:** 2026-11-25 — 2026-11-25 — rang before the fix, the bug itself: untied, the tape kept the pile's shape (Chromium and Firefox); passes after

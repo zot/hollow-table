@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503, R505, R577-580, R532, R533, R542, R566-568, R570, R571, R583, R592, R593, R594, R595
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503, R505, R577-580, R532, R533, R542, R566-568, R570, R571, R583, R592, R593, R594, R595, R596
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and the reference sheet.
@@ -25,7 +25,8 @@ stickies, loose text, images, torn rolls and the reference sheet.
 - giving (R579-R581, R583): under the readers the menu has "Give to", the players at the table but its
   owner and, for a player's note, GM; on the GM's page paper someone else owns has a ▾ with "Give to"
   alone. Open, the menu listens for presses on the page, capturing: one outside the menu and its ▾
-  closes it, never stopping the press, and the listener goes when the menu does. A pick puts Ownership.handOver of the note, in one change; a `mine` note leaves `m:` for the
+  closes it, never stopping the press, and the listener goes when the menu does. While the menu is open
+  its paper is raised over every other piece but one carried or a pin line's (`:has(> .readmenu)`, R596). A pick puts Ownership.handOver of the note, in one change; a `mine` note leaves `m:` for the
   table in it (ridFor). By a folded
   corner, tags in the hand font name everyone who reads it but the viewer ("GM" for the GM), or "me"
   when only the viewer reads it.

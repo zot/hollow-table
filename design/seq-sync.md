@@ -3,7 +3,7 @@
 ```
 GM page: Game        Authority                 Visibility        Seal            Player page: Copy        Game (player)
     |                    |                          |               |                    |                     |
-1   |--flush (changed)-->|                          |               |                    |                     |
+1.  |--flush (changed)-->|                          |               |                    |                     |
 1.1 |                    |--gv += 1                 |               |                    |                     |
 1.2 |                    |--view for nobody-------->|               |                    |                     |
 1.3 |                    |--for each tab: its view->|               |                    |                     |

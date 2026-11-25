@@ -24,6 +24,7 @@ test('a reference sheet: given once, turned, kept, put away, given again', async
   await expect(sheet.locator('.rhd')).toHaveText(/Quick reference/i);
   await expect(sheet.locator('p.in', { hasText: /^4-6:/ })).toHaveText('4-6: Clean Success');
   await expect(sheet.locator('p.in', { hasText: /^3:/ })).toHaveText('3: Success with cost, like +1 Stagger');
+  await expect(sheet.locator('p.in', { hasText: /^1-2:/ })).toHaveText('1-2: Fail, may cause +1 Stagger and Level -1 Fumble');
   await turn(page, 'Next page');
   await expect(sheet.locator('.rhd')).toHaveText(/Quick character creation/i);
   await expect(sheet.locator('td').first()).toHaveText('Smart');
