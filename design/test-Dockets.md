@@ -78,7 +78,7 @@
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with burialOf's docket line dropped, 'a docket is paper, buried and filed with its papers' failed (the docket buried alone); restored clean
 
 ## Test: the docket in the browser
-**Purpose:** R532, R536, R538, R539, R541, R542, R543, R544, R529, R530, R535: making, filling, moving, tying and putting away a docket, across the GM's page and a player's.
+**Purpose:** R532, R536, R538, R539, R541, R542, R543, R544, R591, R530, R535: making, filling, moving, tying and putting away a docket, across the GM's page and a player's.
 **Input:** the GM takes a docket from the desk and names it; drops a sticky inside its tape, one on its cord, one far off; drags a docket's note within the tape and clear of it; drops a note on a card inside the tape; Sam carries the docket by its label while a GM-only note is in it; the GM ties it; a press on the pile carries it; the GM files it and takes it out.
 **Expected:** the docket's name reads as typed; the two touching notes are pinned to it, the far one loose; the note dragged within stays pinned at its new place, the one dragged clear is loose; the note on the card is pinned to the card; on the GM's page the GM-only note followed Sam's move; tied, the notes pile under the label on the GM's page while Sam's still lie spread; carried by its pile the whole docket moves; filed and taken out, it comes back with its notes laid out as before.
 **Refs:** crc-Drag.md, crc-TableView.md, crc-PieceView.md, crc-Dockets.md

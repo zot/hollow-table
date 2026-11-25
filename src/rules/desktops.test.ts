@@ -29,7 +29,7 @@ test('who travels', () => {
   assert.ok(!all.some(r => r.kind === 'influence' && r.home === DEVREUX && go.has(r.oid) && !(typeof r.where === 'object' && 'slot' in r.where && [SAM, BEAUFORD].includes(r.where.slot))), "the NPC's cards stay");
   assert.ok(['dd000001', 'a0000001', 'a0000002', 'a0000003'].every(o => go.has(o)));
   assert.ok(!go.has('a0000004') && !go.has('a0000005'));
-  assert.ok(!all.some(r => (r.kind === 'connections' || r.kind === 'reference') && go.has(r.oid)), 'neither the Table nor the reference card');
+  assert.ok(!all.some(r => (r.kind === 'connections' || r.kind === 'reference') && go.has(r.oid)), 'nor the Connection Table');
 });
 
 const recs = (rs: PieceRecord[]): [Rid, PieceRecord][] => rs.map(r => [ridFor(r), r]);
@@ -43,9 +43,12 @@ const apply = (all: PieceRecord[], c: NonNullable<ReturnType<typeof setOut>>) =>
 test('setting out and back', () => {
   let desk: Desk = { desks: [...emptyDesk().desks, { name: 'Desk 2', named: false, items: [] }] };
   let table = base;
-  // R559: out to Desk 2: the NPC and the reference card leave the table into Desk 1's desktop; Sam stays.
-  const c = setOut(desk, recs(table), 1)!;
+  // R559: out to Desk 2: the NPC leaves the table into Desk 1's desktop; Sam stays. R593: so does this
+  // page's reference sheet, its own.
+  const sheet: PieceRecord = { kind: 'reference', oid: '0000f001', place: at(0, 0), which: 'quick' };
+  const c = setOut(desk, recs([...table, sheet]), 1)!;
   assert.ok(c.dels.includes(`o:${DEVREUX}`) && !c.dels.includes(`o:${SAM}`));
+  assert.ok(!c.dels.includes('m:0000f001') && !c.desk.desks[0]!.top!.some(r => r.oid === '0000f001'), 'the sheet stays on the table');
   assert.ok(!c.dels.some(d => (table.find(r => ridFor(r) === d)?.kind === 'connections')), 'the Connection Table stays');
   assert.equal(c.desk.out, 1);
   assert.ok(c.desk.desks[0]!.top!.some(r => r.oid === DEVREUX));

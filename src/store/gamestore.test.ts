@@ -48,7 +48,7 @@ test('checkpoints and restore', async () => {
   const info = await store.start();
   assert.equal(info.name, PLAYTEST);
   const pieces = () => store.game.all().filter(([rid]) => rid.startsWith('o:'));
-  assert.equal(pieces().length, 10);
+  assert.equal(pieces().length, 9);
   assert.equal((store.game.get('meta') as Meta).round, 0);
   assert.deepEqual((store.game.get('yards') as Yards).yards.map(y => y.items.length), [0]);
   assert.equal(pieces().filter(([, r]) => 'kind' in r && r.kind === 'image').length, 0);
@@ -128,7 +128,7 @@ test('games and copies', async () => {
   advance(1000);
   await store.open(first.id);
   assert.equal((store.game.get('meta') as Meta).round, 0);
-  assert.equal(store.game.all().filter(([rid]) => rid.startsWith('o:')).length, 10);
+  assert.equal(store.game.all().filter(([rid]) => rid.startsWith('o:')).length, 9);
   advance(1000);
   await store.open(second.id);
   assert.equal((store.game.get('meta') as Meta).round, 3);

@@ -1,12 +1,12 @@
 # Bar
-**Requirements:** R9, R19, R20, R34, R35, R288, R305, R347, R510, R577, R518, R529, R530, R532
+**Requirements:** R590, R19, R20, R34, R35, R288, R305, R347, R510, R577, R518, R591, R530, R532
 
 The bar along the top: the wordmark, the desk with the paper supplies (crc-Desk.md), the chips, the
 people at the table, and the furniture at the right end.
 
 ## Does
 - refused(why): passed to the desk's image pigeonhole (Desk.refused, R517).
-- BarView (`src/ui/bar.ts`) draws the wordmark with the version and date, the desk (DeskView, R529),
+- BarView (`src/ui/bar.ts`) draws the wordmark with the version and date, the desk (DeskView, R591),
   the chip grid, the slot for the Opposition button and its tray (`oppo`, filled
   by TrayView, crc-Tray.md), and the slots for the people and "You are"; the register,
   Ledger and Boot Hill append themselves after.
@@ -23,7 +23,7 @@ people at the table, and the furniture at the right end.
   (`below`); a chip from the bar, made and lifted at the press. images(files, at, carry) (R515): the
   picked images land at `at` (the pointer), 24 px apart, one alone carried loose when `carry`.
 - over (R288): while anything is carried over the bar it turns red (`toss`); if it would be buried,
-  "→ <current graveyard>" shows by the gravestone (`bury`). Plain chips, +1s and the reference card
+  "→ <current graveyard>" shows by the gravestone (`bury`). Plain chips, +1s and the reference sheet
   vanish; an Influence card goes home.
 - chips 2, 4, 6 and +1 in each sign, on the bar itself; each starts a Drag.
 - the Connection Table's supply (R518), in the GM's desk alone: taken while none is out, it makes the

@@ -5,7 +5,7 @@
 // object, `window.hollow`, for Playwright, and nothing otherwise.
 
 import { Game } from './model/game.ts';
-import { GM, isLocal, onTable, ridFor, ridOf, type Book, type Desk, type OldDesk, type Character, type Hill, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Rid, type Yards } from './model/records.ts';
+import { GM, isLocal, isPiece, onTable, ridFor, ridOf, type Book, type Desk, type OldDesk, type Character, type Hill, type Connections, type Image, type Opinion, type Meta, type Oid, type PieceRecord, type Receipt, type Rid, type Yards } from './model/records.ts';
 import { COLUMN_OF, pages } from './rules/absorb.ts';
 import { buryInfo, buryRecord, empty as emptyYards, ownTorn, raised } from './rules/yards.ts';
 import { repin } from './rules/dockets.ts';
@@ -221,7 +221,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     // R512-R514: made at the pointer and carried on the press or loose, or put just below the strip.
     take: (what, down, e, mode) => {
       if (what === 'connections') { takeTable(e, mode); return; }
-      const oid = mint()(), rid = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
+      const oid = mint()(), rec = made(what, oid, table.toWorld(e.clientX, e.clientY)), rid = ridFor(rec);   // R593: a sheet under `m:`
       game.change(w => w.put(rid, rec));
       if (mode === 'below') { if (rec.kind === 'character') clearOfBar(rid); return; }
       drag?.fresh(rid);
@@ -417,12 +417,31 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     const takes = takeHanded(game.all().filter(([, r]) => 'kind' in r) as [Rid, PieceRecord][], self);
     if (takes.length) game.change(w => { for (const t of takes) { if (t.rid !== t.from) w.del(t.from); w.put(t.rid, t.rec); } });
   };
+  // R595: the GM's page deletes older games' shared reference cards: every page has its own sheet.
+  const unshared = () => {
+    if (self !== GM) return;
+    const old = game.all().filter(([rid, r]) => isPiece(rid) && (r as PieceRecord).kind === 'reference').map(([rid]) => rid);
+    if (old.length) game.change(w => { for (const rid of old) w.del(rid); });
+  };
   game.listen(rids => {
     for (const rid of rids) if (onTable(rid) && !game.get(rid)) deleted.add(rid.slice(2));
     queueMicrotask(repinned);
     queueMicrotask(handed);
+    queueMicrotask(unshared);
   });
   handed();
+  unshared();
+  // R594: a page is given its reference sheet, open at How to play the table, the first time it opens a
+  // game, in the middle of its view once that is fitted (R271); remembered on the seat of the page's own
+  // person, whoever it views as.
+  void table.settled.then(() => {
+    const own = who === self ? seat : loadSeat(localStorage, gameId, self);
+    if (own.given) return;
+    const at = table.toWorld(innerWidth / 2, innerHeight / 2), sheet = newHowTo(mint()(), at);
+    const rec = { ...sheet, place: { ...sheet.place, z: topZ() } };
+    game.change(w => w.put(ridFor(rec), rec));
+    if (who === self) keep({ ...own, given: true }); else saveSeat(localStorage, gameId, self, { ...own, given: true });
+  });
   // R412, R415: a GM card's row follows its name and group as they change; a card first seen is only
   // remembered, so a row the GM cleared stays cleared until its card is renamed.
   if (gm) {

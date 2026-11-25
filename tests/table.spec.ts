@@ -16,7 +16,7 @@ const put = (page: Page, rid: string, f: string) => page.evaluate(async ([rid, f
 test.beforeEach(async ({ page }) => { await open(page); });
 
 test('the bar holds the supplies', async ({ page }) => {
-  // R529, R20: the desk holds the paper supplies; the chips stay on the bar.
+  // R591, R20: the desk holds the paper supplies; the chips stay on the bar.
   await expect(page.locator('#bar .desk')).toBeVisible();
   await expect(page.locator('#bar > .supply')).toHaveCount(0);
   await expect(page.locator('#bar .hole')).toHaveCount(7);
@@ -325,7 +325,7 @@ test('the GM adds, writes, buries and gets back an Info card', async ({ page }) 
 test('the GM keeps the Connection Table', async ({ page }) => {
   // R518: the GM's desk has the supply; R407, R416, R417: the seeded rows by name, an X where a row
   // meets itself, the book's Levels, and the PCs' columns after the thick line.
-  await fromDesk(page, 'connections', 500, 420);
+  await fromDesk(page, 'connections', 200, 640);
   const sheet = page.locator('.obj.connections');
   await expect(sheet).toHaveCount(1);
   await expect(sheet.locator('th.rowname')).toHaveText(['Beatrice', 'Devreux', 'Eliza', 'Jake', 'Jameson', 'Jephthah', 'Maggie', 'Obed']);

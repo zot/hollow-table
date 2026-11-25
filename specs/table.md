@@ -38,8 +38,9 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 - **Every control is a thing at the table.** Buttons are register keys, tags, tabs, glyphs and pages
   of a book, never web buttons, pills, dropdowns or floating panels. A panel opens as the object it
   belongs to (the Ledger as a ledger page, Boot Hill as its graveyard list).
-- **Say it once, on paper.** Instructions are not permanent chrome. They live on a "How to play the
-  table" reference card, taken from the supplies like any other paper and put away when known.
+- **Say it once, on paper.** Instructions are not permanent chrome. They live on the reference sheet's
+  "How to play the table" page, which every page is given once and puts away when known (see
+  *Pieces*).
 - **One shape, one job.** Controls that do different things look different, even when they are
   small and sit side by side on one card.
 - **Nothing depends on color alone.** Where color carries meaning (green and red chips, Bias, Affliction and Injury),
@@ -104,8 +105,8 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 The bar runs along the top. It holds:
 
 - **The desk** (`carves/done/organizing.md`, Item 2), right after the wordmark: its pigeonholes hold the
-  paper supplies, a character, a sticky note, loose text, an image, the "How to play the table"
-  reference card and a docket (see `dockets.md`), and on the GM's desk the Connection Table (see
+  paper supplies, a character, a sticky note, loose text, an image, the reference sheet and a
+  docket (see `dockets.md`), and on the GM's desk the Connection Table (see
   `connections.md`). Taken from a
   pigeonhole, one is made; dropped back on the bar, nothing is.
 - **Chips** (2, 4, 6 and +1 in each color) stay on the bar, outside the desk (Bill, 2026-11-23: "Chips
@@ -124,7 +125,7 @@ report; the desk, a little roll-top; the chips, 2, 4, 6 and +1 in each color, in
 the register, the Ledger and Boot Hill.
 - **Pressing the desk shows its pigeonholes** (Bill, 2026-11-23): a strip opens below it, one pigeonhole
   for each paper supply, each holding its supply drawn small: a character as a little stack of white
-  card, a note as a yellow square, "Aa" for loose text, an image, the reference card, a docket's label
+  card, a note as a yellow square, "Aa" for loose text, an image, the reference sheet, a docket's label
   on its red tape, and on the GM's the Connection Table.
 - **Dragging across the pigeonholes** puts each one's piece in your hand, small; **dragging out of the
   strip** makes it, its full size, its middle under the pointer, carried as any piece is. Loose text
@@ -148,7 +149,7 @@ the register, the Ledger and Boot Hill.
   for another reason), its tooltip saying why, until an image is added; while it does, the desk on the
   bar is edged red too.
 - **Over the bar**, anything you carry turns the bar red; if letting go would bury it, "→" and the
-  current graveyard's name show by the gravestone. Plain chips, +1s and the reference card vanish
+  current graveyard's name show by the gravestone. Plain chips, +1s and the reference sheet vanish
   there; an Influence card goes home to its drawer.
 - **Putting away:** dropping something on the bar puts it away. Characters, stickies, loose writing,
   images and roll receipts are buried on Boot Hill (see `boothill.md`); plain chips just vanish;
@@ -206,6 +207,21 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
 - **Sticky note**: yellow, handwritten, edited in place. It comes in two sizes: the note from the
   supply, and a **big sticky** (330 by 300) for the GM's long notes (Bill, 11-12).
 - **Loose text**: handwriting straight on the table.
+- **The reference sheet** (`carves/fixes.md`, Item 13): a printed page of the rules, in PT Mono, with
+  pages turned at its foot, "‹ 1 of 3 ›": **How to play the table**, then Bunkum's **Quick Reference**
+  and **Quick Character Creation** (its Appendices B and A), under their own titles and in their words.
+  The Quick Reference reads the Resolution Die as Hollow Folks and the table's dice do, 4-6 a clean
+  Success and only a 3 a Success with cost (Bill, 2026-11-25: "4-6 is a clean success and only a 3 is
+  succeed at cost", Bunkum's page 18 updated to match).
+- **The reference sheet is each page's own** (Bill, 2026-11-25: "reference cards seem special to me --
+  I think they shouldn't be shared, just local to each peer"), as a player aid is at a real table:
+  never sent, kept through reloads, its moves and its turned page this page's alone; put away, it
+  vanishes. A desktop set out leaves it on the table.
+- **Every page is given one** ("new peers should get a how to play card on their table
+  automatically"), the GM's too: once per game, open at How to play the table, on open table in view.
+  Put away, it doesn't come back on a reload; the desk's pigeonhole gives another.
+- **The shared reference cards of older games go**: the GM's page deletes them from the game, since
+  every page has its own sheet.
 - **Image**: taken from the desk's image pigeonhole (a file picker), or **image files dropped from the
   desktop onto the table**, each where it was dropped, several stepped a little apart (Bill, 11-12).
   Images belong to the game and survive a reload.

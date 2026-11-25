@@ -9,7 +9,7 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   flip, not pills.
 - **The type tag says what the roll is** (Bill, 11-13): *?*, *Skill*, *Create Influence*, *Phys
   Attack*, *Mental Attack*, *Psych Attack*, *Infer*, *Impress* or *Request*, the actions on the
-  reference card plus plain Skill use, and *?* for not saying. Clicking it opens the list. The tag
+  reference sheet's Quick Reference plus plain Skill use, and *?* for not saying. Clicking it opens the list. The tag
   itself reads short, as the cards spell them (*Influence*, *Mental Atk*), so the dice keep their room. **The
   action's label preselects it** when it says (*Mental Atk* → Mental Attack, *Phys* or *Physical*
   with *Atk* or *Attack* → Phys Attack, *Infer*, *Impress*, *Req* or *Request*, *Influence*); a label

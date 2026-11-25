@@ -3,7 +3,7 @@
 
 ## Test: who travels
 **Purpose:** R558: players' and open characters with their cards, slot chips and pinned paper; players' paper and dockets with theirs; nothing else, and never the Connection Table or an Opinion Record.
-**Input:** the playtest scene with an open character, a player's sticky pinned to an NPC, the GM's note pinned to a PC, a player's docket holding the GM's note, a loose chip, the reference card.
+**Input:** the playtest scene with an open character, a player's sticky pinned to an NPC, the GM's note pinned to a PC, a player's docket holding the GM's note, a loose chip, and this page's reference sheet.
 **Expected:** exactly the travelers named in the purpose.
 **Refs:** crc-Desktops.md
 **Code:** src/rules/desktops.test.ts
@@ -44,3 +44,14 @@
 **Fire alarm:** let the game's pieces onto the desktop: the Connection Table is deleted with the NPCs
 **Inject:** src/rules/desktops.ts:setOut
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with the game's pieces let onto the desktop, 'setting out and back' failed (the Connection Table among the deletions); restored clean
+
+## Test: a page's reference sheet stays on its table
+**Purpose:** R593: setting a desk out leaves a page's reference sheet on the table.
+**Input:** the setting out and back test's scene, with a reference sheet under `m:`.
+**Expected:** the sheet is not among the deletions, nor in Desk 1's desktop.
+**Refs:** crc-Desktops.md
+**Code:** src/rules/desktops.test.ts
+**Alarm:** 5
+**Fire alarm:** setOut takes reference sheets as it takes other page-own paper; red: the sheet is deleted into the desktop
+**Inject:** src/rules/desktops.ts:setOut
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with setOut taking reference sheets, 'setting out and back' failed (the sheet deleted into the desktop); restored clean, dist rebuilt

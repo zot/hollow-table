@@ -1,5 +1,5 @@
 # UI: the table and the bar
-**Requirements:** R9, R15, R19, R20, R161, R529, R510, R530
+**Requirements:** R590, R15, R19, R20, R161, R591, R510, R530
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -26,7 +26,7 @@
   Opposition button (a brass plate; its brass tray slides out under the bar with the world's number), the people at
   the table (name tags; the GM's renames on click), Copy invite / Open the table, then the
   register, the Ledger (▤) and Boot Hill (⛫) at the right end.
-- "how to" is the "How to play the table" reference card, in its pigeonhole; there is no instruction
+- "how to" is the reference sheet, open at How to play the table, in its pigeonhole; there is no instruction
   text in the bar.
 - The tape hangs from the register at the table's right edge.
 - Refs: crc-TableView.md, crc-Bar.md, crc-Desk.md, crc-Tray.md, crc-PoolView.md, crc-RollRow.md, crc-Tape.md

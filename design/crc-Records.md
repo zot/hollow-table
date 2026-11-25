@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R98, R126, R130, R191, R209, R211, R248, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R360, R362, R380, R381, R391, R400, R407-409, R419, R426, R429, R436, R439, R462-464, R486, R488, R491, R499, R500, R577, R581, R524, R525, R532, R533, R536, R542, R550, R557, R584
+**Requirements:** R23, R26, R28, R36, R38, R47, R98, R126, R130, R191, R209, R211, R248, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R360, R362, R380, R381, R391, R400, R407-409, R419, R426, R429, R436, R439, R462-464, R486, R488, R491, R499, R500, R577, R581, R524, R525, R532, R533, R536, R542, R550, R557, R584, R592, R593
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -57,7 +57,7 @@ record crosses the wire, the database and an export file unchanged.
   went to.
 - Desk (R524, R525): `{desk: [{drawer: 'characters' | 'npcs' | 'papers', name, records}]}`, this page's own
   drawers: the GM's saved with the game, a player's with their copy; never sent.
-- Reference: `{kind: 'reference', oid, place, which: 'howto' | 'actions'}`.
+- Reference (R592, R593): `{kind: 'reference', oid, place, which: SheetPage}`, the reference sheet open at one of SHEET_PAGES (`howto`, `quick`, `creation`); its page's own, keyed `m:` by ridFor and refused under `o:` by check, as `mine` paper is.
 - Opinion (R419, R426, R436): `{kind: 'opinion', oid, holder, of, text, shown?, on?, name?}`, an Opinion
   Record (crc-Connections.md), with no place; `shown` its revealed lines by their words, and, once one
   is, `on` the cards it shows under and `name` what it is of, written by the GM's page.

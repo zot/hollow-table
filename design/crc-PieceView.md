@@ -1,8 +1,8 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503, R505, R577-580, R532, R533, R542, R566-568, R570, R571, R583
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503, R505, R577-580, R532, R533, R542, R566-568, R570, R571, R583, R592, R593, R594, R595
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
-stickies, loose text, images, torn rolls and reference cards.
+stickies, loose text, images, torn rolls and the reference sheet.
 
 ## Knows
 - The record it shows, and the viewer (for redacted faces drawn face-down).
@@ -92,7 +92,14 @@ stickies, loose text, images, torn rolls and reference cards.
 - image: from BlobStore by hash; striped and marked missing with why when absent.
 - tornroll: its receipts, scrolling inside (the wheel scrolls it rather than zooming); its element
   carries its `t:` rid (Records.ridFor, R486).
-- reference: the static "How to play the table" and actions cards.
+- reference sheet (R592, R593): a printed page in PT Mono, its page (`which`) drawn when it differs from
+  the one shown: How to play the table, then Bunkum's Quick Reference and Quick Character Creation in its
+  words, with "‹ n of 3 ›" at its foot, whose turns write `which` on this page's own record (`m:`).
+- the sheet given (R594, main.ts): the first time a page opens a game, a sheet open at How to play the
+  table is put in the middle of its view, and the seat of the page's own person (`self`, whoever it views
+  as) remembers `given`, so neither a reload nor a sheet put away brings another.
+- shared cards gone (R595, main.ts): the GM's page deletes any `reference` under `o:`, at start and after
+  every change, since every page has its own sheet.
 - records (R419, R426): an NPC's pink Opinion Records follow its Info cards in the slide-out, those
   of its row (its group's, for a member), alphabetical by their character's name, each tab that name;
   slid out, the paper shows "➔ <name> (Connection <Level>)" underlined over the GM's writing. An edit

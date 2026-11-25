@@ -59,7 +59,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 }
 #bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
 #bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; text-align: center; margin-top: 2px; user-select: text; -webkit-user-select: text; cursor: text; }
-/* R529, R510, R530: the desk, a little roll-top after the wordmark; pressed, its pigeonholes open below the bar,
+/* R591, R510, R530: the desk, a little roll-top after the wordmark; pressed, its pigeonholes open below the bar,
    each holding its paper supply drawn small. R510: the chips in two rows on the bar itself. */
 #bar .desk { position: relative; width: 66px; height: 58px; flex: none; cursor: grab; touch-action: none; }
 #bar .desk .rolltop { position: absolute; left: 5px; right: 5px; top: 3px; height: 24px; border-radius: 16px 16px 2px 2px;
@@ -501,12 +501,25 @@ body.dragging, body.panning { user-select: none; -webkit-user-select: none; }
 .pen-head { --barrel: var(--ink); --cap: #4a4a4a; color: #f3e9d2; }
 @media (prefers-reduced-motion: reduce) { .pen { transition: none; } }
 
-/* ---- the reference card, as printed (PT Mono) ---- */
-.reference { width: 430px; height: 316px; background: var(--card); border: 1.5px solid var(--card-edge); border-radius: 22px;
-  box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 16px 20px; font: 13.5px/1.35 var(--mono); }
-.reference .rhd { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 8px; }
-.reference .rhd em { font-style: italic; }
-.reference p { margin: 0 0 7px; }
+/* ---- R592: the reference sheet, a printed page (PT Mono), its pages turned at its foot ---- */
+.reference { width: 540px; height: 860px; background: var(--card); border: 1.5px solid var(--card-edge); border-radius: 4px;
+  box-shadow: 0 3px 6px rgba(0,0,0,.35); padding: 22px 26px 40px; font: 11px/1.25 var(--mono); }
+.reference .rhd { font: 700 14px var(--mono); text-transform: uppercase; margin-bottom: 10px; }
+.reference h3 { font: 700 11px var(--mono); text-transform: uppercase; background: #ddd; display: inline-block; padding: 0 4px;
+  margin: 7px 0 2px; }
+.reference h4 { font: 400 11px var(--mono); margin: 3px 0 1px; }
+.reference p { margin: 0 0 2px; }
+.reference[data-page="howto"] { font-size: 13px; line-height: 1.35; }
+.reference[data-page="howto"] p { margin-bottom: 9px; }
+.reference p.in { padding-left: 14px; }
+.reference p.dot { padding-left: 14px; text-indent: -10px; }
+.reference p.dot::before { content: "• "; }
+.reference table { border-collapse: collapse; margin: 6px 0 12px; }
+.reference th, .reference td { border-bottom: 1px solid #555; padding: 3px 14px 3px 4px; text-align: left; font-weight: 400; }
+.reference th:first-child, .reference td:first-child { border-right: 2px solid #222; }
+.reference .rfoot { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12px; }
+.reference .turn { font: 700 15px var(--mono); border: 0; background: none; cursor: pointer; padding: 0 8px; }
+.reference .turn:disabled { opacity: .25; cursor: default; }
 
 /* ---- the sticky note, with its folded corner ---- */
 .sticky {

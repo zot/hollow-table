@@ -12,7 +12,7 @@ Lifting, carrying and dropping, and deciding what a drop means.
   `mine` paper, a character's pinned `mine` paper included, are buried each alone in this page's Hill
   under the current graveyard's name, Yards.buryOwn, R488, R500, and Boot Hill gets no burial when
   nothing of it is the table's): a
-  fresh supply is never made (R19), the reference card vanishes, the Connection Table is put away
+  fresh supply is never made (R19), the reference sheet vanishes (under `m:`, its own), the Connection Table is put away
   (`away`, kept for its supply, and no "→", R409), anything else is buried in the
   current graveyard with the table's share of burialOf's records under graveName (R119, R122, R290). Chips and cards go
   by their own bar target (vanish, or home).

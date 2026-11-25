@@ -8,7 +8,7 @@
 2. Dana edits the sticky and the edit is dropped on the way: the GM's page still has the old text;
    the edit is pending
 3. 3 s later it goes again: the GM's page has it; nothing pending
-4. the GM's page away: Dana writes on the sticky, drags Sam and drags the reference card; three
+4. the GM's page away: Dana writes on the sticky, drags Sam and drags a second sticky everyone reads; three
    changes pending
 5. the GM's page back (a new key): it asks for the whole table, then has the sticky text and Sam's
    place; Dana's page: synced, nothing pending, same sticky

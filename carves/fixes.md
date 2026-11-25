@@ -18,6 +18,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [x] ~~**Item 10 — Gather, and a drawer's growing, bring the card's paper with it.**~~ **LANDED (2026-11-24 — `#74`.)** Bill, 2026-11-24.
 - [x] ~~**Item 11 — paper's owner: no maker is the GM's; owners reassign and share.**~~ **LANDED (2026-11-25 — `#75`.)** Bill, 2026-11-24.
 - [x] ~~**Item 12 — characters in dockets.**~~ **LANDED (2026-11-25 — `#76`.)** Bill, 2026-11-25.
+- [x] ~~**Item 13 — reference pages, each page's own.**~~ **LANDED (2026-11-25 — `#77`.)** Bill, 2026-11-25.
 
 ## Item 1
 
@@ -271,3 +272,76 @@ DECIDED (Bill, 2026-11-25), on three more of Daneel's questions:
 - **Tied, a character's card and pool pile** (picked "Card and pool pile"), on that page alone.
 - **Filed, a docket goes in Papers with its characters** (picked "Papers drawer, all in"); on a
   player's desk, which takes paper only, its characters are buried, as a character dropped there is.
+
+## Item 13
+
+Bill (2026-11-25): "I don't see how to make a skill use reference card once it's removed." The printed
+actions card ("SKILL USE / ACTIONS") is a `reference` record that only the playtest seed makes
+(`src/store/playtest.ts`): the desk has no pigeonhole for it, and once put away, it vanishes (R288) and
+nothing makes another. The specs never made it a supply: every supply list says "the reference card",
+meaning "How to play the table". Bill (2026-11-25): "Maybe put it on the back of the how to play card."
+Then: "reference cards seem special to me -- I think they shouldn't be shared, just local to each peer.
+Also, new peers should get a how to play card on their table automatically."
+
+DECIDED (Bill, 2026-11-25), on Daneel's readings: "Those are good".
+
+- **A reference card is each page's own**, as a "just me" note is: never sent, kept through reloads,
+  its moves never shown on another page. At a real table every player has their own player aid, and
+  putting yours away or turning it over doesn't touch anyone else's.
+- **The actions are on the back of the "How to play the table" card**, turned at the corner as a
+  character card is; turning it is this page's own. So the pigeonhole's card carries both.
+- **Every page gets a "How to play" card once per game**, the GM's too, on open table in view when it
+  arrives. Put away, it doesn't come back on a reload; the pigeonhole still gives another.
+- **The shared reference cards already in saved games go**: the GM's page deletes them from the game
+  (the playtest seed's actions card, `o:00000009`), since every page now has its own.
+
+Bill (2026-11-25), on two more quick-reference sheets from the rules: "Maybe we should change the
+format to a page, rather than a playing card because some of them are larger." The two:
+
+- **Making rolls**: Compare total Influence (the +10 to −10 table), the White / Green / Red result,
+  Blue + Yellow + bonus, CRIT!, then Actions, Concessions, Special Influences (the Stagger, Edge and
+  Bias pools) and Stagger. Its Actions section is the actions card's text, grown. Not found in the
+  Markdown exports or anywhere as text under `HollowRpg/`: it is a figure, Bill (2026-11-25):
+  "Bunkum.pdf pages 20 and 21". Read there 2026-11-25 (pdftoppm through mise): PDF page 21, the
+  book's page 18, is "APPENDIX B: QUICK REFERENCE", matching Bill's screenshot.
+- **Bunkum's character building**: "APPENDIX A: QUICK CHARACTER CREATION", PDF page 20, the book's
+  page 17: "Some 16XP Attribute combinations" (the Cha / Int / Wis table) and "Example Fields"
+  (`Bunkum.md`, from line 354), Bunkum's own.
+
+Daneel's readings, for Bill's yes or otherwise:
+
+1. **A reference page, not a card**: a sheet the shape of a printed page, in the reference font (R3),
+   that the table's zoom brings close enough to read. It stays each page's own, by the rulings above.
+2. **One sheet with pages to turn**, "‹ 1 of 3 ›" at its foot, the way a tape's pages turn
+   (`rolls.md`): How to play the table, then the book's Quick Reference and Quick Character Creation
+   under its own titles. That replaces the front-and-back card, since the Quick Reference holds the
+   actions. The pigeonhole and the one given per game
+   are this sheet, opened at How to play.
+3. **Quick Character Creation is on every sheet for now.** Its Fields and costs are Bunkum's, but a game
+   doesn't record its setting: the table already plays Bunkum's rules, the Connection Table among them,
+   in every game. Showing it only in Bunkum games would first need a game to say which it is, a
+   change of its own.
+4. **The text is the book's**, checked against Hollow Folks (dice, Levels, CRIT!) before it is built,
+   with the book winning where a sheet disagrees.
+
+DECIDED (Bill, 2026-11-25), on the four readings above: "Those are good". A reference page, each page's
+own, with pages to turn: How to play the table, then Bunkum's Quick Reference and Quick Character
+Creation under their own titles, on every sheet for now, the text the book's, checked against Hollow
+Folks before it is built.
+
+
+Found checking the Quick Reference against Hollow Folks (2026-11-25): the books read the Resolution Die
+differently. Hollow Folks, *3. Resolve the Outcome*: 1-2 Fail, 3 Succeed at Cost, 4-6 Succeed; the
+table's dice do this (R91). Bunkum's Quick Reference: 1-2 Fail, 3-4 Success with cost, 5-6 Clean
+Success, as Bunkum's worked example has it (Jane's White 3, Green 4: "Succeed at Cost"). Bill
+(2026-11-25): "I think I adjusted that because the players were complaining that Stagger happened too
+often. So I went to the old standby of 50% success. I'm still on the fence about this." Not ruled.
+Meanwhile the sheet says what the table rolls: its Making Rolls reads 4-6 Success, 3 Success with cost,
+1-2 Fail, the rest of Bunkum's sheet as printed; if Bill rules 3-4, the dice and the sheet change
+together.
+
+DECIDED (Bill, 2026-11-25), after simulating it in another session: "4-6 is a clean success and only a 3
+is succeed at cost". Hollow Folks and the table's dice (R91) already read it so; Bill saved Bunkum.pdf
+with page 18, the Quick Reference, updated to match ("4-6: Clean Success", "3: Success with cost"), so
+the sheet copies the book with no exception and the dice code needs no change.
+

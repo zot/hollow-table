@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573, R575, R576, R585, R588
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573, R575, R576, R585, R588, R594
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -53,7 +53,8 @@ DOM a view of the records.
 - fit (R271): with no view in the Seat, the first render that draws anything fits it all: fitView
   takes the pieces' box in world coordinates and the table's size and gives the view (centred, zoom
   at most 1, a 20 px margin each side and 14 px from the top), which is kept in the Seat. Never on
-  resize.
+  resize. `settled` resolves once the view is fitted, or at once when the Seat kept one, so the page's
+  reference sheet is given in the middle of the fitted view and the fit never takes it in (R594).
 - images (R272): image files dropped on the table go to addImage with the world point, each a step
   of 24 further; the page stores the bytes (BlobStore.add) and puts the Image record.
 - pins (R273): a pinned piece is drawn at least one above its card (pinnedZ) and marked `pinned`;

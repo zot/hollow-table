@@ -6,12 +6,20 @@ import type { Browser, Page } from '@playwright/test';
 export const RELAY = 'ws://127.0.0.1:8782';
 
 /** Opens the page (the GM's, or an invite) with the test hook and waits until it is assembled. */
-export async function open(page: Page, path = '/'): Promise<void> {
+/** Opens the table. R594: every page is given its reference sheet; a test that isn't about it puts it away
+ * first, as someone who knows the table would (`keepSheet` keeps it). */
+export async function open(page: Page, path = '/', keepSheet = false): Promise<void> {
   const url = new URL(path, 'http://x/');
   url.searchParams.set('test', '');
   await page.goto(`${url.pathname}${url.search}`);
   await page.waitForFunction(() => (window as unknown as { hollow?: { ready: Promise<unknown> } }).hollow?.ready);
   await page.evaluate(() => (window as unknown as { hollow: { ready: Promise<unknown> } }).hollow.ready);
+  // The sheet is given once the view is settled (fitted, on a first visit).
+  await page.evaluate(async () => { await (await (window as any).hollow.ready).view.settled; });
+  if (!keepSheet) await page.evaluate(async () => {
+    const g = (await (window as any).hollow.ready).store.game, sheets = g.all().filter(([rid, r]: [string, any]) => rid.startsWith('m:') && r.kind === 'reference');
+    if (sheets.length) g.change((w: any) => { for (const [rid] of sheets) w.del(rid); });
+  });
   // The hand-drawn fonts reflow the cards when they arrive: measure only after.
   await page.evaluate(() => document.fonts.ready.then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))));
 }

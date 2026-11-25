@@ -25,6 +25,7 @@ var DICE = ["W", "G", "R", "B", "Y"];
 var ROLL_TYPES = ["?", "skill", "influence", "phys", "mental", "psych", "infer", "impress", "request"];
 var ATTACKS = ["phys", "mental", "psych"];
 var isAttack = (t) => ATTACKS.includes(t);
+var SHEET_PAGES = ["howto", "quick", "creation"];
 var WORLD = "world";
 var KEPT = 200;
 var TOMBS = 3e3;
@@ -52,11 +53,11 @@ function onTable(rid2) {
 }
 function ridFor(r) {
   if (r.kind === "tornroll") return "t:" + r.oid;
-  if (minePaper(r)) return "m:" + r.oid;
+  if (ownPiece(r)) return "m:" + r.oid;
   return ridOf(r.oid);
 }
-function minePaper(r) {
-  return isPaper(r) && !!r.mine;
+function ownPiece(r) {
+  return r.kind === "reference" || isPaper(r) && !!r.mine;
 }
 var LOCAL = /* @__PURE__ */ new Set(["book", "tape", "hill", "desk", "tied"]);
 function isLocal(rid2) {
@@ -173,7 +174,7 @@ var PIECES = {
   }, { pin, ...readers }),
   docket: fields({ kind: oneOf("docket"), oid: isOid, place, name: str(DOCKET_NAME) }, readers),
   tornroll: fields({ kind: oneOf("tornroll"), oid: isOid, place, receipts: list(receipt, 1e4) }),
-  reference: fields({ kind: oneOf("reference"), oid: isOid, place, which: oneOf("howto", "actions") }),
+  reference: fields({ kind: oneOf("reference"), oid: isOid, place, which: oneOf(...SHEET_PAGES) }),
   connections: fields({
     kind: oneOf("connections"),
     oid: isOid,
@@ -238,9 +239,9 @@ var SINGLETONS = {
   tied: fields({ tied: list(isOid, 1e4) })
 };
 function check(rid2, value2) {
-  if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2) && !minePaper(value2);
+  if (isPiece(rid2)) return piece(value2) && value2.oid === oidOf(rid2) && !ownPiece(value2);
   if (isTorn(rid2)) return PIECES.tornroll(value2) && value2.oid === oidOf(rid2);
-  if (isMine(rid2)) return piece(value2) && minePaper(value2) && value2.oid === oidOf(rid2);
+  if (isMine(rid2)) return piece(value2) && ownPiece(value2) && value2.oid === oidOf(rid2);
   return Object.hasOwn(SINGLETONS, rid2) && SINGLETONS[rid2](value2);
 }
 
@@ -340,54 +341,54 @@ function parse(source2) {
   return source2.split("\n").map(parseLine);
 }
 var runSource = (r) => typeof r === "string" ? r : `<${r.mark}>${r.text}</${r.mark}>`;
-function serialize(lines) {
-  return lines.map((l) => l.map(runSource).join("")).join("\n");
+function serialize(lines2) {
+  return lines2.map((l) => l.map(runSource).join("")).join("\n");
 }
 function plain(line) {
   return line.map((r) => typeof r === "string" ? r : r.text).join("");
 }
-function marks(lines, tag) {
+function marks(lines2, tag) {
   const out = [];
-  lines.forEach((l, line) => l.forEach((r, run2) => {
+  lines2.forEach((l, line) => l.forEach((r, run2) => {
     if (typeof r !== "string" && (!tag || r.mark === tag)) out.push({ line, run: run2, mark: r.mark, text: r.text });
   }));
   return out;
 }
 var fits = (mark2, text) => !text.includes("\n") && !text.includes(`</${mark2}>`);
-function replaceLine(lines, i, line) {
-  return lines.map((l, j) => j === i ? line : l);
+function replaceLine(lines2, i, line) {
+  return lines2.map((l, j) => j === i ? line : l);
 }
-function setMark(lines, at4, text) {
-  const r = lines[at4.line]?.[at4.run];
-  if (!r || typeof r === "string" || !fits(r.mark, text)) return lines;
-  return replaceLine(lines, at4.line, lines[at4.line].map((x, k) => k === at4.run ? { mark: r.mark, text } : x));
+function setMark(lines2, at4, text) {
+  const r = lines2[at4.line]?.[at4.run];
+  if (!r || typeof r === "string" || !fits(r.mark, text)) return lines2;
+  return replaceLine(lines2, at4.line, lines2[at4.line].map((x, k) => k === at4.run ? { mark: r.mark, text } : x));
 }
-function mark(lines, range, tag) {
-  const r = lines[range.line]?.[range.run];
-  if (typeof r !== "string" || range.start < 0 || range.end > r.length || range.start >= range.end) return lines;
+function mark(lines2, range, tag) {
+  const r = lines2[range.line]?.[range.run];
+  if (typeof r !== "string" || range.start < 0 || range.end > r.length || range.start >= range.end) return lines2;
   const text = r.slice(range.start, range.end);
-  if (!fits(tag, text)) return lines;
+  if (!fits(tag, text)) return lines2;
   const parts2 = [r.slice(0, range.start), { mark: tag, text }, r.slice(range.end)].filter((x) => x !== "");
-  const line = lines[range.line];
-  return replaceLine(lines, range.line, [...line.slice(0, range.run), ...parts2, ...line.slice(range.run + 1)]);
+  const line = lines2[range.line];
+  return replaceLine(lines2, range.line, [...line.slice(0, range.run), ...parts2, ...line.slice(range.run + 1)]);
 }
-function unmark(lines, at4) {
-  const line = lines[at4.line], r = line?.[at4.run];
-  if (!line || !r || typeof r === "string") return lines;
+function unmark(lines2, at4) {
+  const line = lines2[at4.line], r = line?.[at4.run];
+  if (!line || !r || typeof r === "string") return lines2;
   const out = [];
   line.forEach((x, k) => {
     const run2 = k === at4.run ? r.text : x, last = out[out.length - 1];
     if (typeof run2 === "string" && typeof last === "string") out[out.length - 1] = last + run2;
     else out.push(run2);
   });
-  return replaceLine(lines, at4.line, out);
+  return replaceLine(lines2, at4.line, out);
 }
 function labelEnd(mark2, text) {
   return mark2 === "act" || mark2 === "def" ? text.indexOf(":") + 1 : 0;
 }
-function render(lines, el4) {
+function render(lines2, el4) {
   const doc = el4.ownerDocument;
-  el4.replaceChildren(...lines.map((l) => {
+  el4.replaceChildren(...lines2.map((l) => {
     const div = doc.createElement("div");
     for (const r of l) {
       if (typeof r === "string") {
@@ -414,12 +415,12 @@ function locate(el4, node, offset) {
   return scan(el4, { node, offset }).pos;
 }
 function scan(el4, at4) {
-  const lines = [[]];
+  const lines2 = [[]];
   let pos = null;
-  const cur = () => lines[lines.length - 1];
+  const cur = () => lines2[lines2.length - 1];
   const here2 = (extra = 0) => {
     const line = cur(), last = line[line.length - 1];
-    return typeof last === "string" ? { line: lines.length - 1, run: line.length - 1, offset: last.length + extra } : { line: lines.length - 1, run: line.length, offset: extra };
+    return typeof last === "string" ? { line: lines2.length - 1, run: line.length - 1, offset: last.length + extra } : { line: lines2.length - 1, run: line.length, offset: extra };
   };
   const push = (r) => {
     const line = cur(), last = line[line.length - 1];
@@ -429,7 +430,7 @@ function scan(el4, at4) {
   const walk = (n, top) => {
     const kids = Array.from(n.childNodes);
     kids.forEach((c, k) => {
-      if (c.nodeType === 1 && c.tagName === "DIV" && top && k > 0) lines.push([]);
+      if (c.nodeType === 1 && c.tagName === "DIV" && top && k > 0) lines2.push([]);
       if (at4?.node === n && at4.offset === k) pos ??= here2();
       if (c.nodeType === 3) {
         if (at4?.node === c) pos = here2(at4.offset);
@@ -437,9 +438,9 @@ function scan(el4, at4) {
       }
       if (c.nodeType !== 1) return;
       const e = c, cls = e.className;
-      if (e.tagName === "BR") return void (k < kids.length - 1 && lines.push([]));
+      if (e.tagName === "BR") return void (k < kids.length - 1 && lines2.push([]));
       if (e.tagName === "SPAN" && isMark(cls) && fits(cls, e.textContent ?? "")) {
-        if (at4 && e.contains(at4.node)) pos = { line: lines.length - 1, run: cur().length, offset: offsetIn(e, at4.node, at4.offset) };
+        if (at4 && e.contains(at4.node)) pos = { line: lines2.length - 1, run: cur().length, offset: offsetIn(e, at4.node, at4.offset) };
         return push({ mark: cls, text: e.textContent ?? "" });
       }
       walk(e, false);
@@ -447,7 +448,7 @@ function scan(el4, at4) {
     if (at4?.node === n && at4.offset >= kids.length) pos ??= here2();
   };
   walk(el4, true);
-  return { lines: lines.map((l) => l.length ? l : [""]), pos };
+  return { lines: lines2.map((l) => l.length ? l : [""]), pos };
 }
 function offsetIn(el4, node, offset) {
   let n = 0;
@@ -677,12 +678,12 @@ function entries(front) {
 }
 var skillName = (text) => text.replace(/^\s*✓\s*/, "").replace(/\s+\d+\s*$/, "").replace(/\s*\(x\d+[^)]*\)/gi, "").trim();
 function points2(front, att = "Cha") {
-  const lines = parse(front), out = [], attrs = {};
-  for (const l of lines) for (const r of l) if (typeof r !== "string" && r.mark === "att") Object.assign(attrs, attributes(r.text));
+  const lines2 = parse(front), out = [], attrs = {};
+  for (const l of lines2) for (const r of l) if (typeof r !== "string" && r.mark === "att") Object.assign(attrs, attributes(r.text));
   const value2 = att ? attrs[att] ?? 0 : 0;
   const plus = (level2) => ` ${level2}` + (att ? ` + ${att} ${value2}` : "");
   let fieldLevel = null;
-  lines.forEach((l, line) => {
+  lines2.forEach((l, line) => {
     let at4 = 0, onlySkills = true, sawField = false;
     for (const r of l) {
       const len = (typeof r === "string" ? r : r.text).length;
@@ -1214,7 +1215,7 @@ function at(r, s) {
 function setOut(desk, all2, to) {
   const from = desk.out ?? 0;
   if (to === from || !desk.desks[to]) return null;
-  const table = all2.filter(([rid2, r]) => (isPiece(rid2) || isMine(rid2)) && !game(r));
+  const table = all2.filter(([rid2, r]) => (isPiece(rid2) || isMine(rid2)) && !game(r) && r.kind !== "reference");
   const go = travelers(table.map(([, r]) => r));
   const spots = {}, top = [], dels = [];
   for (const [rid2, r] of table) {
@@ -1417,9 +1418,9 @@ function keep(t, c, id) {
   return { ...t, rows: t.rows.map((r) => r === mine ? { ...r, name: name2, oid: c.oid } : r) };
 }
 function regroup(front, to) {
-  const lines = front.split("\n");
-  lines[0] = lines[0].replace(/\(([^()]*)\)/, `(${to})`);
-  return lines.join("\n");
+  const lines2 = front.split("\n");
+  lines2[0] = lines2[0].replace(/\(([^()]*)\)/, `(${to})`);
+  return lines2.join("\n");
 }
 function rename2(t, id, name2, chars) {
   const row2 = t.rows.find((r) => r.id === id), to = name2.trim();
@@ -1526,9 +1527,9 @@ function first(t, records3, holder, of, npc, pc) {
   });
   known.sort((a, b) => Math.abs(b.mine) - Math.abs(a.mine) || Math.abs(b.theirs) - Math.abs(a.theirs) || b.theirs - a.theirs);
   const best = known[0];
-  const lines = [best ? `Reputation ${level(best.mine < 0 ? -best.theirs : best.theirs)}` : "Reaction ?"];
+  const lines2 = [best ? `Reputation ${level(best.mine < 0 ? -best.theirs : best.theirs)}` : "Reaction ?"];
   const pr = respect(npc.front, pc.front);
-  return [...lines, ...pr ? [pr] : []].join("\n");
+  return [...lines2, ...pr ? [pr] : []].join("\n");
 }
 function synced(t, r) {
   return { ...t, cells: { ...t.cells, [`${r.holder}>${r.of}`]: connection(r.text) } };
@@ -1538,9 +1539,9 @@ var reactionOf = (d62) => DEFAULT_REACTION[d62 - 1] ?? 0;
 var AWAITING = /^\s*Reaction \?\s*$/;
 var awaits = (text) => text.split("\n").some((l) => AWAITING.test(l));
 function reacted(text, n) {
-  const lines = text.split("\n"), k = lines.findIndex((l) => AWAITING.test(l));
-  if (k >= 0) lines[k] = `Reaction ${level(n)}`;
-  return lines.join("\n");
+  const lines2 = text.split("\n"), k = lines2.findIndex((l) => AWAITING.test(l));
+  if (k >= 0) lines2[k] = `Reaction ${level(n)}`;
+  return lines2.join("\n");
 }
 function recordOf(records3, t, npc, of) {
   const row2 = rowOf(t, npc);
@@ -1944,25 +1945,25 @@ var OPINION_SOURCE = /^o([0-9a-f]{8})\/(.+)$/;
 function inOpinion(char, rest, chars) {
   const m = OPINION_SOURCE.exec(rest), rec = m ? chars(m[1]) : void 0;
   if (rec?.kind !== "opinion") return null;
-  const lines = rec.text.split("\n"), reading = (l) => influence(unadjusted(l));
-  const k = lines.findIndex((l) => {
+  const lines2 = rec.text.split("\n"), reading = (l) => influence(unadjusted(l));
+  const k = lines2.findIndex((l) => {
     const r2 = reading(l);
     return !!r2 && r2.name === m[2] && !!r2.sign && !!r2.level;
   });
   if (k < 0) return null;
-  const line = lines[k], r = reading(line);
+  const line = lines2[k], r = reading(line);
   return {
     char,
     name: `${char.name}: ${r.name}`,
     sign: r.sign,
     left: motiveLeft(line),
     mot: true,
-    spend: (n) => ({ ...rec, text: lines.map((l, i) => i === k ? adjust(l, n) ?? l : l).join("\n") })
+    spend: (n) => ({ ...rec, text: lines2.map((l, i) => i === k ? adjust(l, n) ?? l : l).join("\n") })
   };
 }
 function inFront(char, name2) {
-  const lines = parse(char.front);
-  for (const m of [...marks(lines, "res"), ...marks(lines, "mot")]) {
+  const lines2 = parse(char.front);
+  for (const m of [...marks(lines2, "res"), ...marks(lines2, "mot")]) {
     const r = influence(m.text), mot = m.mark === "mot";
     if (r?.name !== name2 || !r.level) continue;
     const write = (n) => (mot ? adjust(m.text, n) : spend(m.text, n)) ?? m.text;
@@ -1972,7 +1973,7 @@ function inFront(char, name2) {
       sign: r.sign ?? 1,
       left: mot ? motiveLeft(m.text) : levelsOf(r),
       ...mot && { mot: true },
-      spend: (n) => ({ ...char, front: serialize(setMark(lines, m, write(n))) })
+      spend: (n) => ({ ...char, front: serialize(setMark(lines2, m, write(n))) })
     };
   }
   return null;
@@ -2124,9 +2125,9 @@ function mildGone(card2) {
   return { ...card2, points: Math.max(MIN, card2.points - STEP * lost), tap: { ledger: keep2, current } };
 }
 function rechargeMotives(char) {
-  let lines = parse(char.front);
-  for (const m of marks(lines, "mot")) lines = setMark(lines, m, unadjusted(m.text));
-  return { ...char, front: serialize(lines) };
+  let lines2 = parse(char.front);
+  for (const m of marks(lines2, "mot")) lines2 = setMark(lines2, m, unadjusted(m.text));
+  return { ...char, front: serialize(lines2) };
 }
 
 // src/ui/gesture.ts
@@ -2252,28 +2253,28 @@ function before(a, b) {
   if (a.run !== b.run) return a.run < b.run;
   return a.offset <= b.offset;
 }
-function apply(lines, a, b, tag) {
+function apply(lines2, a, b, tag) {
   const [from, to] = before(a, b) ? [a, b] : [b, a];
   for (const p of [from, to]) {
-    const r2 = lines[p.line]?.[p.run];
-    if (r2 && typeof r2 !== "string") return unmark(lines, p);
+    const r2 = lines2[p.line]?.[p.run];
+    if (r2 && typeof r2 !== "string") return unmark(lines2, p);
   }
-  const line = lines[from.line] ?? [];
+  const line = lines2[from.line] ?? [];
   if (from.line === to.line && from.run === to.run && from.offset === to.offset) {
     const r2 = line[from.run], prev2 = line[from.run - 1], next2 = line[from.run + 1];
-    if (from.offset === 0 && prev2 && typeof prev2 !== "string") return unmark(lines, { line: from.line, run: from.run - 1 });
-    if (typeof r2 === "string" && from.offset === r2.length && next2 && typeof next2 !== "string") return unmark(lines, { line: from.line, run: from.run + 1 });
+    if (from.offset === 0 && prev2 && typeof prev2 !== "string") return unmark(lines2, { line: from.line, run: from.run - 1 });
+    if (typeof r2 === "string" && from.offset === r2.length && next2 && typeof next2 !== "string") return unmark(lines2, { line: from.line, run: from.run + 1 });
   }
-  if (from.line !== to.line || from.run !== to.run) return lines;
+  if (from.line !== to.line || from.run !== to.run) return lines2;
   const r = line[from.run];
-  if (typeof r !== "string") return lines;
-  if (from.offset !== to.offset) return mark(lines, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag);
+  if (typeof r !== "string") return lines2;
+  if (from.offset !== to.offset) return mark(lines2, { line: from.line, run: from.run, start: from.offset, end: to.offset }, tag);
   if (tag === "res" || tag === "mot") {
     const each = entries2(r, tag);
-    if (each) return replaceRun(lines, from.line, from.run, each);
+    if (each) return replaceRun(lines2, from.line, from.run, each);
   }
   const start = r.length - r.trimStart().length, end = r.trimEnd().length;
-  return mark(lines, { line: from.line, run: from.run, start, end }, tag);
+  return mark(lines2, { line: from.line, run: from.run, start, end }, tag);
 }
 function entries2(run2, tag = "res") {
   const parts2 = run2.split(",");
@@ -2297,25 +2298,25 @@ function entries2(run2, tag = "res") {
   });
   return out;
 }
-function replaceRun(lines, line, run2, runs) {
-  return lines.map((l, i) => i === line ? [...l.slice(0, run2), ...runs, ...l.slice(run2 + 1)] : l);
+function replaceRun(lines2, line, run2, runs) {
+  return lines2.map((l, i) => i === line ? [...l.slice(0, run2), ...runs, ...l.slice(run2 + 1)] : l);
 }
-function heading(lines, line) {
+function heading(lines2, line) {
   for (let i = line - 1; i >= 0; i--) {
-    const h = lines[i].find((r) => typeof r !== "string" && r.mark === "head");
+    const h = lines2[i].find((r) => typeof r !== "string" && r.mark === "head");
     if (h && typeof h !== "string") return h.text;
   }
   return null;
 }
-function offered(lines, line) {
-  const l = lines[line];
+function offered(lines2, line) {
+  const l = lines2[line];
   if (!l || l.some((r) => typeof r !== "string")) return null;
   const text = plain(l).trim();
-  return text ? offer(text, heading(lines, line), underField(lines, line)) : null;
+  return text ? offer(text, heading(lines2, line), underField(lines2, line)) : null;
 }
-function underField(lines, line) {
+function underField(lines2, line) {
   for (let k = line - 1; k >= 0; k--) {
-    const marks2 = lines[k].filter((r) => typeof r !== "string" && !!r.text.trim());
+    const marks2 = lines2[k].filter((r) => typeof r !== "string" && !!r.text.trim());
     if (marks2.some((r) => r.mark === "fld")) return true;
     if (marks2.some((r) => r.mark !== "skl")) return false;
   }
@@ -2370,8 +2371,8 @@ function tray(piece2) {
     const t = last;
     const ends = t && selection(t);
     if (!t || !ends) return shake2(b);
-    const lines = read(t), out = apply(lines, ends[0], ends[1], tag);
-    if (out === lines) return shake2(b);
+    const lines2 = read(t), out = apply(lines2, ends[0], ends[1], tag);
+    if (out === lines2) return shake2(b);
     render(out, t);
     t.dispatchEvent(new Event("input", { bubbles: true }));
     caretAt(t, Math.min(ends[0].line, ends[1].line));
@@ -2411,14 +2412,14 @@ function tray(piece2) {
   return box2;
 }
 function markFields(front) {
-  const lines = parse(front);
-  lines.forEach((l, k) => {
-    const m = offered(lines, k);
+  const lines2 = parse(front);
+  lines2.forEach((l, k) => {
+    const m = offered(lines2, k);
     if (m !== "fld" && m !== "skl") return;
     const text = plain(l), t = text.trim(), at4 = text.indexOf(t);
-    lines[k] = [text.slice(0, at4), { mark: m, text: t }, text.slice(at4 + t.length)].filter((r) => r !== "");
+    lines2[k] = [text.slice(0, at4), { mark: m, text: t }, text.slice(at4 + t.length)].filter((r) => r !== "");
   });
-  return serialize(lines);
+  return serialize(lines2);
 }
 function markOlder(game2) {
   const meta = game2.get("meta");
@@ -2543,14 +2544,14 @@ function writable(doc, cls, source2, save2) {
     const typed3 = ev.inputType === "insertText" ? ev.data ?? "" : ev.inputType === "insertFromPaste" ? ev.dataTransfer?.getData("text/plain") ?? "" : ev.inputType === "insertParagraph" || ev.inputType === "insertLineBreak" ? "\n" : ev.inputType.startsWith("delete") ? "" : null;
     if (typed3 === null) return;
     ev.preventDefault();
-    const lines = typed3.split(/\r?\n/).map((l) => {
+    const lines2 = typed3.split(/\r?\n/).map((l) => {
       const d = doc.createElement("div");
       if (l) d.textContent = l;
       else d.append(doc.createElement("br"));
       return d;
     });
-    t.replaceChildren(...lines);
-    const end = doc.createRange(), last = lines.at(-1);
+    t.replaceChildren(...lines2);
+    const end = doc.createRange(), last = lines2.at(-1);
     end.selectNodeContents(last);
     end.collapse(false);
     sel.removeAllRanges();
@@ -2685,7 +2686,6 @@ function make(doc, r, w) {
       break;
     }
     case "reference":
-      e.append(...reference(doc, r));
       break;
     case "connections":
       connections(e, rid2, w);
@@ -2744,6 +2744,10 @@ function update(e, r, w) {
       tornroll(e, r);
       break;
     case "reference":
+      if (e.dataset.page !== r.which) {
+        e.replaceChildren(...referenceSheet(e.ownerDocument, e.dataset.rid, r, w));
+        e.dataset.page = r.which;
+      }
       break;
     case "connections":
       sheet(e, r, w);
@@ -2984,12 +2988,12 @@ function rag(oid, line) {
   return (h >>> 0) % 6;
 }
 function torn(text, c, secret, draft, cat, read2 = entries, name2 = true) {
-  const src = text.dataset.source ?? "", lines = src.split("\n"), doc = text.ownerDocument, by = /* @__PURE__ */ new Map();
+  const src = text.dataset.source ?? "", lines2 = src.split("\n"), doc = text.ownerDocument, by = /* @__PURE__ */ new Map();
   if (draft) for (const e of read2(src)) by.set(e.line, [...by.get(e.line) ?? [], e]);
   [...text.children].forEach((div, k) => {
-    const d = div, es = by.get(k), whole = secret ? lines[k] !== "" : !!draft && name2 && k === 0;
+    const d = div, es = by.get(k), whole = secret ? lines2[k] !== "" : !!draft && name2 && k === 0;
     d.classList.toggle("torn", whole);
-    if (whole) d.style.setProperty("--rag", String(rag(c.oid, lines[k] ?? "")));
+    if (whole) d.style.setProperty("--rag", String(rag(c.oid, lines2[k] ?? "")));
     else d.style.removeProperty("--rag");
     if (!es || !draft) return;
     const any = es.some((e) => draft.has(e.key)), parts2 = [];
@@ -3387,11 +3391,11 @@ function skillIndents(front) {
   close();
   return out;
 }
-function toggleCheck(lines, line) {
-  if (!skillIndents(serialize(lines)).has(line)) return lines;
-  const runs = lines[line], k = runs.findIndex((r2) => typeof r2 !== "string" && r2.mark === "skl"), r = runs[k];
+function toggleCheck(lines2, line) {
+  if (!skillIndents(serialize(lines2)).has(line)) return lines2;
+  const runs = lines2[line], k = runs.findIndex((r2) => typeof r2 !== "string" && r2.mark === "skl"), r = runs[k];
   const text = /^\s*✓/.test(r.text) ? r.text.replace(/^(\s*)✓\s*/, "$1") : r.text.replace(/^(\s*)/, "$1\u2713 ");
-  return lines.map((l, i) => i === line ? l.map((x, j) => j === k ? { ...r, text } : x) : l);
+  return lines2.map((l, i) => i === line ? l.map((x, j) => j === k ? { ...r, text } : x) : l);
 }
 function checkPress(ev, t) {
   if (t.ownerDocument.activeElement !== t) return;
@@ -3399,8 +3403,8 @@ function checkPress(ev, t) {
   if (line?.parentElement !== t || !line.classList.contains("sklpad")) return;
   const box2 = line.getBoundingClientRect(), scale2 = box2.width / line.offsetWidth || 1;
   if (ev.clientX >= box2.left + parseFloat(getComputedStyle(line).paddingLeft) * scale2) return;
-  const k = [...t.children].indexOf(line), lines = read(t), out = toggleCheck(lines, k);
-  if (out === lines) return;
+  const k = [...t.children].indexOf(line), lines2 = read(t), out = toggleCheck(lines2, k);
+  if (out === lines2) return;
   ev.preventDefault();
   render(out, t);
   t.dispatchEvent(new Event("input", { bubbles: true }));
@@ -3427,35 +3431,122 @@ function slotGlyphs(line, s, base, w) {
   for (const g of line.querySelectorAll(".glyph")) g.remove();
   for (const source2 of want) name2.before(glyph(doc, source2, w));
 }
-function reference(doc, r) {
-  const p = (bold, rest = "") => {
-    const e = el2(doc, "p");
-    e.append(el2(doc, "b", "", bold), rest);
-    return e;
-  };
-  const hd = (left, right) => {
-    const e = el2(doc, "div", "rhd");
-    e.append(el2(doc, "span", "", left), el2(doc, "em", "", right));
-    return e;
-  };
-  if (r.which === "actions") {
-    return [
-      hd("SKILL USE", "ACTIONS"),
-      p("CREATE INFLUENCE"),
-      p("ATTACK", ": Create a Bias or Conviction"),
-      p("INFER", ": Find out an NPC's Skills, Resources, Motivations, Opinions, or information on another character"),
-      p("IMPRESS", ": change an NPC's Opinions"),
-      p("REQUEST", ": get an NPC to transfer a Resource or perform a task")
-    ];
+function said(doc, tag, cls, text) {
+  const e = el2(doc, tag, cls);
+  for (const [k, part] of text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/).entries()) {
+    if (!part) continue;
+    e.append(k % 2 === 0 ? part : part.startsWith("**") ? el2(doc, "b", "", part.slice(2, -2)) : el2(doc, "i", "", part.slice(1, -1)));
   }
-  return [
-    hd("How to play the table", "put me away when known"),
-    p("Move", ": drag anything; drag empty table to pan, the wheel or a two-finger pinch zooms."),
-    p("Write", ": click paper to write; the pens mark what the table should read."),
-    p("Shift-click", " (or press and hold) lowers, opens and deletes."),
-    p("Put away", ": drop it on the bar; Boot Hill keeps what was buried."),
-    p("Roll", ": the die by a pool's name docks your dice there.")
-  ];
+  return e;
+}
+var HOWTO = [
+  "**Move**: drag anything; drag empty table to pan, the wheel or a two-finger pinch zooms.",
+  "**Write**: click paper to write; the pens mark what the table should read.",
+  "**Shift-click** (or press and hold) lowers, opens and deletes.",
+  "**Put away**: drop it on the bar; Boot Hill keeps what was buried.",
+  "**Roll**: the die by a pool's name docks your dice there.",
+  "**Turn the page** below: the rules at a glance, then building a character. Put this away when you know the table; the desk gives it back."
+];
+var QUICK = [
+  "# Making rolls",
+  "1. COMPARE TOTAL **INFLUENCE**",
+  "  **+10:** Automatic success, check for **CRIT!**",
+  "  **+7 to +9:** **White** & **Green**, take highest, +1 to roll",
+  "  **+5 to +6:** **White** & **Green**, take highest",
+  "  **+3 to +4:** +1 to roll",
+  "  **-2 to +2:** White",
+  "  **-3 to -4:** -1 to roll",
+  "  **-5 to -6:** **White** & **Red**, take lowest",
+  "  **-7 to -9:** **White** & **Red**, take lowest, -1 to roll",
+  "  **-10:** Automatic failure, but check for **CRIT!**",
+  "2. ROLL ALL DICE AND CHECK **WHITE / GREEN / RED** RESULT",
+  "  4-6: Clean **Success**",
+  "  3: **Success** with cost, like +1 **Stagger**",
+  "  1-2: **Fail**, may cause +1 **Stagger**",
+  "3. RESULT IS **BLUE** + **YELLOW**(S) + BONUS (IF ANY)",
+  "4. CRIT! ON **WHITE** 6 & **BLUE** 5 OR 6",
+  "  Player doubles result *or* changes **Blue** & **Yellow** to 6s",
+  "# Actions",
+  "- **USE SKILL**",
+  "- **CREATE INFLUENCE** (or change an **Influence Level**)",
+  "- **ATTACK**: create **Bias**, **Conviction**, **Stagger**, or **Concession**.",
+  "- **INFER**: Find out an NPCs **Skills**, **Resources**, **Motivations**, **Opinions**, or information on a character",
+  "- **IMPRESS**: change an NPC's **Opinions**",
+  "- **REQUEST**: get an NPC to transfer a **Resource** or perform a task",
+  "# Concessions",
+  "- Attacker must have Edge",
+  "- Opponent must have Difficulty",
+  "- Skilled attacker must win 2 in a row",
+  "- Unskilled attacker must win 4 in a row",
+  "# Special influences",
+  "## STAGGER POOL",
+  "- **STAGGER**: negative **Influence** countered by rest.",
+  "## EDGE POOL",
+  "- **EDGE**: long-term advantage. Required to create a **Difficulty**.",
+  "- **DIFFICULTY**: long-term disadvantage, disappears when Edge does",
+  "## BIAS POOL",
+  "- **BIAS**: short-term belief",
+  "- **CONVICTION**: long-term belief",
+  "# Stagger",
+  "## STAGGER INCREASES FROM",
+  "- Success with cost (usually)",
+  "- Failure (sometimes)",
+  "- Attack to Stagger",
+  "## RECOVER STAGGER WITH REST"
+];
+var ATTRIBUTES = [
+  ["Smart", 4, 0, 0],
+  ["Achiever", 3, 1, 1],
+  ["Achiever, shrewd", 3, 0, 4],
+  ["Balanced", 2, 2, 2],
+  ["Balanced, shrewd", 2, 1, 5],
+  ["Sharp", 1, 3, 3],
+  ["Sharp, arch skeptic", 1, 0, 12],
+  ["Insightful", 0, 4, 4],
+  ["Insightful, arch skeptic", 0, 2, 10]
+];
+var FIELDS = [
+  "Example Fields",
+  "## Snake Oil Salesman (5XP / Level)",
+  "  Rhetoric (x2) -- *requires at least same Level of* Int",
+  "  Finesse (x2, Rhetoric) -- *add Level to successful Attacks and Requests but suffer a Mitigated* Tricky-Sig",
+  "  Rationalization",
+  "## Private Investigator (5XP / Level)",
+  "  Investigation (x2)",
+  "  Advocacy (x2)",
+  "  Lock Picking",
+  "## Public Speaker (5XP / Level)",
+  "  Advocacy (x2)",
+  "  Oratory (x2)",
+  "  Rationalization"
+];
+function lines(doc, text) {
+  return text.map((t) => t.startsWith("# ") ? said(doc, "h3", "", t.slice(2)) : t.startsWith("## ") ? said(doc, "h4", "", t.slice(3)) : t.startsWith("- ") ? said(doc, "p", "dot", t.slice(2)) : t.startsWith("  ") ? said(doc, "p", "in", t.slice(2)) : said(doc, "p", "", t));
+}
+function referenceSheet(doc, rid2, r, w) {
+  const at4 = SHEET_PAGES.indexOf(r.which), n = SHEET_PAGES.length;
+  let body;
+  if (r.which === "howto") body = [el2(doc, "div", "rhd", "How to play the table"), ...lines(doc, HOWTO)];
+  else if (r.which === "quick") body = [el2(doc, "div", "rhd", "Quick reference"), ...lines(doc, QUICK)];
+  else {
+    const table = doc.createElement("table"), row2 = (cells, tag) => {
+      const tr = doc.createElement("tr");
+      for (const c of cells) tr.append(el2(doc, tag, "", String(c)));
+      return tr;
+    };
+    table.append(row2(["Description", "Cha (4)", "Int (3)", "Wis (1)"], "th"), ...ATTRIBUTES.map((a) => row2(a, "td")));
+    body = [el2(doc, "div", "rhd", "Quick character creation"), said(doc, "p", "", "Some 16XP **Attribute** combinations:"), table, ...lines(doc, FIELDS)];
+  }
+  const turn2 = (to, label2, glyph2) => {
+    const b = el2(doc, "button", "turn", glyph2);
+    b.setAttribute("aria-label", label2);
+    b.disabled = to < 0 || to >= n;
+    gesture(b, { click: () => change(w, rid2, (s) => ({ ...s, which: SHEET_PAGES[to] })) });
+    return b;
+  };
+  const foot = el2(doc, "div", "rfoot");
+  foot.append(turn2(at4 - 1, "Previous page", "\u2039"), ` ${at4 + 1} of ${n} `, turn2(at4 + 1, "Next page", "\u203A"));
+  return [...body, foot];
 }
 
 // src/net/identity.ts
@@ -4724,8 +4815,8 @@ function roll2(row2, yellows, bonus2, rng) {
 
 // src/rules/request.ts
 var same3 = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
-function resource(lines, name2) {
-  return marks(lines, "res").find((m) => same3(influence(m.text)?.name ?? "", name2));
+function resource(lines2, name2) {
+  return marks(lines2, "res").find((m) => same3(influence(m.text)?.name ?? "", name2));
 }
 function levelOf(front, name2) {
   const m = resource(parse(front), name2), r = m && influence(m.text);
@@ -4738,12 +4829,12 @@ function givable(npc, pc, sl) {
   });
 }
 function added(front, text) {
-  const lines = front.split("\n"), head = lines.findIndex((l) => /^<head>\s*Resources\s*<\/head>\s*$/i.test(l.trim()));
+  const lines2 = front.split("\n"), head = lines2.findIndex((l) => /^<head>\s*Resources\s*<\/head>\s*$/i.test(l.trim()));
   const res = `<res>${text}</res>`;
-  if (head < 0) return [...lines, "<head>Resources</head>", res].join("\n");
+  if (head < 0) return [...lines2, "<head>Resources</head>", res].join("\n");
   let at4 = head + 1;
-  while (at4 < lines.length && lines[at4].trim() && !lines[at4].trim().startsWith("<head>")) at4++;
-  return [...lines.slice(0, at4), res, ...lines.slice(at4)].join("\n");
+  while (at4 < lines2.length && lines2[at4].trim() && !lines2[at4].trim().startsWith("<head>")) at4++;
+  return [...lines2.slice(0, at4), res, ...lines2.slice(at4)].join("\n");
 }
 function transfer(npc, pc, name2, sl) {
   if (!givable(npc, pc, sl).some((n) => same3(n, name2))) return null;
@@ -16096,10 +16187,10 @@ function caretIn(text, e) {
   const range = pos ? null : doc.caretRangeFromPoint?.(e.clientX, e.clientY);
   const node = pos?.offsetNode ?? range?.startContainer, offset = pos?.offset ?? range?.startOffset;
   if (!node || offset === void 0 || !text.contains(node)) return null;
-  const lines = [...text.children], line = lines.findIndex((l) => l.contains(node));
+  const lines2 = [...text.children], line = lines2.findIndex((l) => l.contains(node));
   if (line < 0) return null;
   const upTo = doc.createRange();
-  upTo.setStart(lines[line], 0);
+  upTo.setStart(lines2[line], 0);
   upTo.setEnd(node, offset);
   return { line, offset: upTo.toString().length };
 }
@@ -16421,7 +16512,7 @@ var HOLES = [
   ["text", "supply aa", "Aa", "Write on the table"],
   ["image", "supply image", "image", "Add an image"],
   ["howto", "supply howto", "how to play", 'The "How to play the table" card'],
-  // R529, R530: a docket's label on its red tape.
+  // R591, R530: a docket's label on its red tape.
   ["docket", "supply docket", "docket", "A docket: a named bundle of paper, tied in red tape"]
 ];
 var LINKS = ["connections", "supply links", "connections", "The Connection Table: how the characters view each other"];
@@ -17134,7 +17225,7 @@ var BarView = class {
   folks;
   /** Where the GM's "You are" goes. */
   youAre;
-  /** R529: the desk, after the wordmark. */
+  /** R591: the desk, after the wordmark. */
   desk;
   // R517: an image the browser won't keep is said on the desk's image pigeonhole until one is added.
   /** Marks the image pigeonhole refused (`label`, and `why` on hover), or plain again with null. */
@@ -17577,6 +17668,7 @@ Shift-click or long-press to close the table.`;
 // src/rules/supplies.ts
 var place2 = (at4, w, h) => ({ x: Math.round(at4.x - w / 2), y: Math.round(at4.y - h / 2), z: 0, tilt: 0 });
 var CARD = { w: 430, h: 316 };
+var SHEET = { w: 540, h: 860 };
 var STICKY = { w: 230, h: 150 };
 var TEXT = { w: 120, h: 30 };
 var DOCKET = { w: 130, h: 40 };
@@ -17623,7 +17715,7 @@ function newDocket(oid, at4, by) {
   return { kind: "docket", oid, place: place2(at4, DOCKET.w, DOCKET.h), name: "Docket", ...by && { by } };
 }
 function newHowTo(oid, at4) {
-  return { kind: "reference", oid, place: place2(at4, CARD.w, CARD.h), which: "howto" };
+  return { kind: "reference", oid, place: place2(at4, SHEET.w, SHEET.h), which: "howto" };
 }
 function newChip(oid, sign2, points3, at4) {
   return { kind: "chip", oid, where: { table: place2(at4, CHIP, CHIP) }, n: 0, sign: sign2, points: points3, rider: false };
@@ -17882,7 +17974,6 @@ var infl = (oid, name2, points3, n) => {
 function scene(sam = "Player 1", beauford = "Player 2") {
   const chip2 = { kind: "chip", oid: "00000007", where: { slot: BEAUFORD, name: "stagger" }, n: 0, sign: -1, points: 2, rider: false, by: "GM" };
   const sticky = { kind: "sticky", oid: "00000008", place: at3(1430, 20), text: STICKY2, big: true };
-  const ref = { kind: "reference", oid: "00000009", place: at3(1430, 650), which: "actions" };
   return [
     character(SAM, sam, "Sam", 40, SAM_FRONT, back2({ min: 2 }, "Fire tools. Lantern. 6 Candles.\nPocket knife. Bedroll. Canteen.\nRope. Notebook and pencil.")),
     character(BEAUFORD, beauford, "Beauford", 500, BEAUFORD_FRONT, back2({ min: 1 })),
@@ -17892,7 +17983,6 @@ function scene(sam = "Player 1", beauford = "Player 2") {
     infl("00000006", "Old Sympathy for Sparkers", 2, 2),
     chip2,
     sticky,
-    ref,
     // R418: the Connection Table, put away, holding the adventure's *Connections in Unton*.
     seed("0000000a", at3(1430, 900), DEVREUX)
   ];
@@ -19125,7 +19215,13 @@ var TableView = class {
   #bows = /* @__PURE__ */ new Map();
   /** R539: each piece leading a hand now, and the docket it is aimed at, if any (Hands). */
   #leads = /* @__PURE__ */ new Map();
+  /** R271, R594: resolves once the view is settled: fitted on a first visit, else at once. */
+  settled;
+  #settle;
   constructor(root, world, w) {
+    this.settled = new Promise((res) => {
+      this.#settle = res;
+    });
     this.#root = root;
     this.#world = world;
     this.#w = w;
@@ -19139,7 +19235,11 @@ var TableView = class {
     this.#panZoom();
     this.#images();
     this.#raisePins();
-    if (!w.view) w.schedule(() => w.schedule(() => this.#fit()));
+    if (!w.view) w.schedule(() => w.schedule(() => {
+      this.#fit();
+      this.#settle();
+    }));
+    else this.#settle();
     world.addEventListener("transitionend", (e) => {
       const t = e.target;
       if (t.parentElement === world && (e.propertyName === "left" || e.propertyName === "top")) t.classList.remove("glide");
@@ -20095,8 +20195,8 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
     bar.refused(null);
     return ridOf(oid);
   }, (e) => {
-    const full = e?.name === "QuotaExceededError", said = e instanceof Error ? e.message : String(e);
-    bar.refused(full ? { label: "storage full", why: `${file.name} not added: this browser's storage is full (${said})` } : { label: "not added", why: `${file.name} not added: ${said}` });
+    const full = e?.name === "QuotaExceededError", said2 = e instanceof Error ? e.message : String(e);
+    bar.refused(full ? { label: "storage full", why: `${file.name} not added: this browser's storage is full (${said2})` } : { label: "not added", why: `${file.name} not added: ${said2}` });
     return void 0;
   });
   const made = (what, oid, at4) => {
@@ -20151,7 +20251,7 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
         takeTable(e, mode);
         return;
       }
-      const oid = mint2()(), rid2 = ridOf(oid), rec = made(what, oid, table.toWorld(e.clientX, e.clientY));
+      const oid = mint2()(), rec = made(what, oid, table.toWorld(e.clientX, e.clientY)), rid2 = ridFor(rec);
       game2.change((w) => w.put(rid2, rec));
       if (mode === "below") {
         if (rec.kind === "character") clearOfBar(rid2);
@@ -20402,12 +20502,30 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
       }
     });
   };
+  const unshared = () => {
+    if (self !== GM) return;
+    const old = game2.all().filter(([rid2, r]) => isPiece(rid2) && r.kind === "reference").map(([rid2]) => rid2);
+    if (old.length) game2.change((w) => {
+      for (const rid2 of old) w.del(rid2);
+    });
+  };
   game2.listen((rids) => {
     for (const rid2 of rids) if (onTable(rid2) && !game2.get(rid2)) deleted.add(rid2.slice(2));
     queueMicrotask(repinned);
     queueMicrotask(handed);
+    queueMicrotask(unshared);
   });
   handed();
+  unshared();
+  void table.settled.then(() => {
+    const own2 = who === self ? seat : load(localStorage, gameId, self);
+    if (own2.given) return;
+    const at4 = table.toWorld(innerWidth / 2, innerHeight / 2), sheet2 = newHowTo(mint2()(), at4);
+    const rec = { ...sheet2, place: { ...sheet2.place, z: topZ() } };
+    game2.change((w) => w.put(ridFor(rec), rec));
+    if (who === self) keep2({ ...own2, given: true });
+    else save(localStorage, gameId, self, { ...own2, given: true });
+  });
   if (gm) {
     const sig = (c) => `${c.name.trim()}
 ${groupOf(c.front) ?? ""}`, seen3 = /* @__PURE__ */ new Map();
@@ -20582,9 +20700,9 @@ async function main() {
     wire.on("claims", (b, from) => {
       if (from.browser === invited.gm) claims = b.claims;
     });
-    let said = null, saidUntil = 0;
+    let said2 = null, saidUntil = 0;
     const say = (why3) => {
-      said = why3;
+      said2 = why3;
       saidUntil = clock.now() + 4e3;
     };
     wire.on("rename", (b, from) => {
@@ -20635,7 +20753,7 @@ async function main() {
     new FolksView(bar2.folks, bar2.youAre, { me: () => ({
       ...meOf(presence, name2, false),
       ...notYours !== null && { notYours },
-      ...said !== null && clock.now() < saidUntil && { said }
+      ...said2 !== null && clock.now() < saidUntil && { said: said2 }
     }), people: () => here(presence), held: (n) => claims[n], rename: rename3 });
     return { version: "dev", date: "", role: "player", tab: tab2, identity: identity2, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
   }

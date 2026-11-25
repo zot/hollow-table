@@ -2,11 +2,11 @@
 **Source:** crc-TableView.md
 
 One page (the GM's, through the test hook), in Chromium and Firefox, from the playtest scene (Sam:
-Player 1, Beauford: Player 2, Devreux: GM; the big sticky; the reference card). Pieces are taken and
+Player 1, Beauford: Player 2, Devreux: GM; the big sticky). Pieces are taken and
 carried with the mouse, as a person does; measurements wait for the web fonts.
 
 ## Test: characters and pools
-**Purpose:** the bar's desk and chips (R529); making, carrying, burying and digging up characters; the strips
+**Purpose:** the bar's desk and chips (R591); making, carrying, burying and digging up characters; the strips
 **Expected:**
 - the bar holds the desk (its six pigeonholes on the GM's page), eight chips, Boot Hill and the register, and no paper supply of its own;
   under the wordmark, a local build says just "dev" (R305)
@@ -644,3 +644,80 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** let repin skip gathered cards again: the sticky stays behind when the record moves
 **Inject:** src/rules/dockets.ts:repin
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with repin skipping gathered cards, 'paper follows its holder' failed in the unit tests; restored clean
+
+## Test: every page is given a reference sheet
+**Purpose:** R594: a page opening a game for the first time is given a sheet, open at How to play the table.
+**Input:** the GM's page opened afresh, its sheet kept.
+**Expected:** one reference under `m:`, at `howto`, its heading "How to play the table".
+**Refs:** crc-PieceView.md
+**Code:** tests/reference.spec.ts
+**Alarm:** 54
+**Fire alarm:** main gives no sheet; red: no reference on the page
+**Inject:** src/main.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with no sheet given, the page held no reference (line 15, Chromium); restored clean, dist rebuilt
+
+## Test: a sheet is given once per game
+**Purpose:** R594: a reload neither loses the sheet nor gives another.
+**Input:** the sheet turned to Quick Character Creation, saved, then the page reloaded.
+**Expected:** the one sheet, at `creation`.
+**Refs:** crc-PieceView.md
+**Code:** tests/reference.spec.ts
+**Alarm:** 55
+**Fire alarm:** the seat never remembers `given`; red: a second sheet after the reload
+**Inject:** src/main.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with given never remembered, the reload gave a second sheet (line 36, Chromium); restored clean, dist rebuilt
+
+## Test: the sheet turns its pages
+**Purpose:** R592: "›" turns the sheet to the Quick Reference, then Quick Character Creation.
+**Input:** the given sheet, "Next page" pressed twice.
+**Expected:** the Quick Reference's heading, then Quick Character Creation's table; "Next page" disabled on the last.
+**Refs:** crc-PieceView.md
+**Code:** tests/reference.spec.ts
+**Alarm:** 56
+**Fire alarm:** a turn writes nothing; red: the heading stays How to play the table
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with a turn writing nothing, the heading stayed How to play the table (line 24, Chromium); restored clean, dist rebuilt
+
+## Test: the Quick Reference reads the die as the dice do
+**Purpose:** R592: Making Rolls says 4-6 Clean Success and 3 Success with cost, as R91 rolls and Bunkum's page 18 now prints.
+**Input:** the sheet at the Quick Reference.
+**Expected:** "4-6: Clean Success" and "3: Success with cost, like +1 Stagger".
+**Refs:** crc-PieceView.md
+**Code:** tests/reference.spec.ts
+**Alarm:** 57
+**Fire alarm:** the older printing (5-6 Clean Success, 3-4 with cost); red: no "4-6" line
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the older 5-6 printing, there was no 4-6 line (line 25, Chromium); restored clean, dist rebuilt
+
+## Test: the sheet is its page's own
+**Purpose:** R593: each page's sheet is under `m:` and never reaches another page.
+**Input:** the GM's page and Dana's, each opened afresh, their sheets kept.
+**Expected:** each holds one sheet; Dana's page holds nothing of the GM's.
+**Refs:** crc-Records.md
+**Code:** tests/reference.spec.ts
+**Alarm:** 58
+**Fire alarm:** Records.ridFor and check treat a reference as the table's; red: a sheet keyed `o:`
+**Inject:** src/model/records.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with a reference keyed o:, the GM's own sheet went to the table and the GM's page deleted it as a shared card, leaving none (line 15, Chromium); restored clean, dist rebuilt
+
+## Test: the desk gives a sheet of the page's own
+**Purpose:** R591, R593: the "how to play" pigeonhole makes a sheet under `m:`, open at How to play the table.
+**Input:** the GM's page with no sheet; the pigeonhole's piece let go on the table.
+**Expected:** one sheet, keyed `m:`, at `howto`.
+**Refs:** crc-Desk.md
+**Code:** tests/reference.spec.ts
+**Alarm:** 59
+**Fire alarm:** main keys a supply by ridOf; red: no sheet made (the put is refused under `o:`)
+**Inject:** src/main.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the supply keyed by ridOf, no m: sheet was made (line 48, Chromium); restored clean, dist rebuilt
+
+## Test: older games' shared cards go
+**Purpose:** R595: the GM's page deletes a reference held under `o:`.
+**Input:** a shared reference card loaded into the GM's game, as an older game holds one.
+**Expected:** it is gone.
+**Refs:** crc-PieceView.md
+**Code:** tests/reference.spec.ts
+**Alarm:** 60
+**Fire alarm:** the GM's page deletes no shared card; red: the card is still there
+**Inject:** src/main.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with no shared cards deleted, o:0000c0de stayed (line 53, Chromium); restored clean, dist rebuilt

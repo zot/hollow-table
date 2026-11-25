@@ -159,7 +159,8 @@ test('a player cannot aim', async ({ page }) => {
 test('the tape, and the register', async ({ page }) => {
   // R110, R282: rolls print newest first on the tape under the register.
   await page.locator(`${DPOOL} .die-own`).click();
-  for (let k = 0; k < 5; k++) await page.locator(`${DPOOL} .roller .roll`).click();
+  // Pressed from the keyboard: the tape printing under the register may come to lie over the key.
+  for (let k = 0; k < 5; k++) await page.locator(`${DPOOL} .roller .roll`).press('Enter');
   const receipts = page.locator('#tape .strip .receipt');
   await expect(receipts).toHaveCount(5);
   await expect(receipts.first().locator('.title')).toHaveText('Devreux, roll 5');

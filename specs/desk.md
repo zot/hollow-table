@@ -16,7 +16,7 @@ The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/d
   is the GM's game, so a character a player drops on their desk is buried, as anywhere else on the
   bar, and so are the characters in a docket a player files.
 - **What isn't filed** does on the desk what it does on the bar: plain chips vanish, an Influence card
-  goes home, the reference card vanishes, the Connection Table is put away, a torn tape is buried on
+  goes home, the reference sheet vanishes, the Connection Table is put away, a torn tape is buried on
   its own page.
 - **A filed character takes its things with it** (Bill, 2026-11-24: "All go with it"), as a burial
   does: its card, the Influence cards of its drawer and pool, and the paper pinned to it. Its Info
@@ -87,7 +87,8 @@ moves the PCs to where they are for that desk."
   notes. Each traveler has a place of its own on each desktop: switching moves it to where it lay on
   that desktop, or, on a desktop it hasn't been on, leaves it where it is.
 - **Everything else stays with its desktop**: NPCs, the GM's paper (handouts too), the GM's dockets,
-  loose chips and cards, the reference card. **The Connection Table is the game's**, on every desktop
+  loose chips and cards. A page's reference sheet is its own and stays on its table (`table.md`).
+  **The Connection Table is the game's**, on every desktop
   ("one per game -- it's supposed to track all the NPCs in the story"), and so are the Opinion Records.
 - **Players' pages hold only the desktop set out.** Another desktop is kept on the GM's page alone, with
   the GM's drawers; its NPCs and papers reach the players when it's set out, not before.

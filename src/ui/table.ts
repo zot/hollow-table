@@ -95,7 +95,12 @@ export class TableView {
   /** R539: each piece leading a hand now, and the docket it is aimed at, if any (Hands). */
   #leads = new Map<Rid, Rid | undefined>();
 
+  /** R271, R594: resolves once the view is settled: fitted on a first visit, else at once. */
+  readonly settled: Promise<void>;
+  #settle!: () => void;
+
   constructor(root: HTMLElement, world: HTMLElement, w: TableWith) {
+    this.settled = new Promise(res => { this.#settle = res; });
     this.#root = root;
     this.#world = world;
     this.#w = w;
@@ -110,7 +115,8 @@ export class TableView {
     this.#images();
     this.#raisePins();
     // R271: with no view kept, fit once the first draw has settled (pools sized, cards snapped).
-    if (!w.view) w.schedule(() => w.schedule(() => this.#fit()));
+    if (!w.view) w.schedule(() => w.schedule(() => { this.#fit(); this.#settle(); }));
+    else this.#settle();
     // R226: a glide lasts until the piece arrives.
     world.addEventListener('transitionend', e => {
       const t = e.target as HTMLElement;

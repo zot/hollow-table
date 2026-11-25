@@ -1,4 +1,4 @@
-// CRC: crc-Desk.md | R529, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548, R551, R552, R553, R562, R556, R559, R560
+// CRC: crc-Desk.md | R591, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548, R551, R552, R553, R562, R556, R559, R560
 // The desk on the bar: a little roll-top whose pigeonholes hold the paper supplies. A press opens the
 // strip of pigeonholes and follows the pointer: dragged across them it holds each one's piece small,
 // dragged out it hands the piece to the page to make and carry, and let go it decides what the
@@ -67,7 +67,7 @@ const HOLES: [Paper, string, string, string][] = [
   ['text', 'supply aa', 'Aa', 'Write on the table'],
   ['image', 'supply image', 'image', 'Add an image'],
   ['howto', 'supply howto', 'how to play', 'The "How to play the table" card'],
-  // R529, R530: a docket's label on its red tape.
+  // R591, R530: a docket's label on its red tape.
   ['docket', 'supply docket', 'docket', 'A docket: a named bundle of paper, tied in red tape'],
 ];
 // R518: the GM's alone.
@@ -115,7 +115,7 @@ export class DeskView {
       if (title) e.title = title;
       return e;
     };
-    // R529, R510: a little roll-top, right after the wordmark.
+    // R591, R510: a little roll-top, right after the wordmark.
     this.el = el('div', 'desk', '', 'The desk: press for paper; click to open it');
     this.el.append(el('div', 'rolltop'), el('div', 'desktop'));
     this.#strip = el('div', 'deskpanel');

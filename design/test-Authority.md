@@ -167,7 +167,7 @@ is tombed
 **Pulled:** 2026-11-19 — re-pulled after R469 (Authority gained rename): rang; restored clean *Earlier —* 2026-11-19 — re-pulled after R448 (judge and the batch changed): rang, a claims message went after the sticky's batch; restored clean *Earlier —* 2026-11-19 — rang: a claims message went after the sticky's batch (3, not 2); restored clean
 ## Test: a copy older than what the book has forgotten is refused whole
 **Purpose:** R448: when the caps drop entries, the book keeps the newest version dropped, and a change from a copy older than it is refused whole
-**Input:** the sticky deleted and tombed at version 1, with 2,999 later tombstones and the table at 3,000; the GM deletes the reference card; Dana puts the sticky back from a copy at 0, then from one at the current version
+**Input:** the sticky deleted and tombed at version 1, with 2,999 later tombstones and the table at 3,000; the GM deletes Beauford's Stagger chip; Dana puts the sticky back from a copy at 0, then from one at the current version
 **Expected:** the sticky's tombstone dropped and the floor 1; from the copy at 0 the sticky is refused; from the current copy it is taken
 **Refs:** crc-Authority.md, seq-edit.md, seq-sync.md
 **Code:** `src/net/authority.test.ts`

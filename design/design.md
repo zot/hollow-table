@@ -81,7 +81,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Yards.md → `src/rules/yards.ts`
 - [x] crc-Connections.md → `src/rules/connections.ts`, `src/ui/connections.ts`
 - [x] crc-TableView.md → `src/ui/table.ts`
-- [x] crc-PieceView.md → `src/ui/piece.ts`
+- [x] crc-PieceView.md → `src/ui/piece.ts`, `src/main.ts`
 - [x] crc-PoolView.md → `src/ui/pool.ts`, `src/ui/actions.ts`
 - [x] crc-Gesture.md → `src/ui/gesture.ts`
 - [x] crc-Drag.md → `src/ui/drag.ts`
@@ -259,3 +259,5 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - T68: R504 retired by R578 (fixes, Item 11: every owner shares with a checklist of players)
 - T69: R506 retired by R582 (fixes, Item 11: the owner, or the GM, hands a note over)
 - [ ] O19: TableView's #snap (R576) keeps a gathered card's record under its pool wherever the page holds a `book`, but every page's store is seeded with one (`src/store/playtest.ts`, singletons; measured on a player's page in tests/private.spec.ts), so a player's page sends those puts to the GM's page too; found during fixes Item 11 (#75). Dockets.repin had the same test and asks for the GM's page by its real name since fixes Item 12 (#76), where characters in dockets made a player's repin send NPC moves; #snap should ask the same.
+- T70: R9 retired by R590 (fixes, Item 13: the How to play card is the reference sheet's first page)
+- T71: R529 retired by R591 (fixes, Item 13: the desk holds the reference sheet)

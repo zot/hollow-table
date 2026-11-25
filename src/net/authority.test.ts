@@ -387,7 +387,7 @@ test('a copy older than what the book has forgotten is refused whole', async () 
   game.change(w => w.del(STICKY));
   await room.settle();
   game.change(w => w.put('book', { ...(game.get('book') as Book), gv: TOMBS, tomb }));
-  game.change(w => w.del(ridOf('00000009')));   // the reference card, which everyone sees
+  game.change(w => w.del(ridOf('00000007')));   // Beauford's Stagger chip, which everyone sees (R360)
   await room.settle();
   const book = game.get('book') as Book;
   assert.equal(book.tomb[STICKY], undefined, "the cap dropped the sticky's tombstone");

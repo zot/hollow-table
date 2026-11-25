@@ -12,7 +12,7 @@
 - **R6:** Pool slot labels use the print's mat lettering or PT Mono, in sentence case; no system sans serif and no all-caps labels.
 - **R7:** Every control is a thing at the table (key, tag, tab, glyph, book page); there are no web buttons, pills, dropdowns or floating panels.
 - **R8:** A panel opens as the object it belongs to.
-- **R9:** Instructions live on a "How to play the table" reference card in the supplies, not in permanent chrome.
+- **~~R9:~~** (Retired T70 — see R590) Instructions live on a "How to play the table" reference card in the supplies, not in permanent chrome.
 - **R10:** Controls that do different things have different shapes.
 - **R11:** Where color carries meaning, a sign or a word carries it too.
 - **R12:** Every control shows visible keyboard focus.
@@ -130,9 +130,15 @@
 - **R496:** At Con or Wis −1 a Damage column's Mild Slot, at −2 or below its Mild and Min Slots, are worth only 1 point: each absorbs 1 point of an Attack instead of 2, and the back shows it beside its Level word, "Mild (1)".
 - **R565:** A character's name, above its pool, is written in place there, 200 characters at most: a nickname, kept until the name on its card changes.
 - **R566:** An edit to a card's front that changes the name on its first line (its words before a group in parentheses and before the first comma, marks left out, trimmed) sets the character's name to that name in full; an edit that leaves that name alone leaves the character's name alone.
-- **R529:** The bar holds, right after the wordmark, a desk whose pigeonholes hold the paper supplies (character, sticky, loose text, image, the "How to play the table" card and a docket, and on the GM's desk the Connection Table); the chips 2, 4, 6 and +1 in each color stay on the bar; the people, and the register, the Ledger and Boot Hill at its right end.
+- **~~R529:~~** (Retired T71 — see R591) The bar holds, right after the wordmark, a desk whose pigeonholes hold the paper supplies (character, sticky, loose text, image, the "How to play the table" card and a docket, and on the GM's desk the Connection Table); the chips 2, 4, 6 and +1 in each color stay on the bar; the people, and the register, the Ledger and Boot Hill at its right end.
 - **R530:** Pressing the desk opens a strip below it, a pigeonhole per supply, each holding its supply drawn small (a stack of white card, a yellow note, "Aa", an image, the reference card, a docket's label on red tape, the Connection Table); while the press lasts, the pointer over a pigeonhole holds that supply's small piece in hand.
 - **R531:** Paper pinned to a card or a docket goes with it on every page that holds it, to the holder's place plus the paper's offset: the GM's page moves the shared paper a change moved the holder without, and each page its own "just me" paper.
+- **R590:** Instructions live on the reference sheet's "How to play the table" page, not in permanent chrome.
+- **R591:** The bar holds, right after the wordmark, a desk whose pigeonholes hold the paper supplies (character, sticky, loose text, image, the reference sheet and a docket, and on the GM's desk the Connection Table); the chips 2, 4, 6 and +1 in each color stay on the bar; the people, and the register, the Ledger and Boot Hill at its right end.
+- **R592:** The reference sheet is a printed page in PT Mono with three pages, turned by "‹ n of 3 ›" at its foot: How to play the table, then Bunkum's Quick Reference and Quick Character Creation (its Appendices B and A) under their own titles and in their words (its Making Rolls, like the table's dice, R91: 4-6 Success, 3 Success with cost, 1-2 Fail).
+- **R593:** A reference sheet is its page's own, under `m:`, never sent: kept through reloads, its carry shown and its page turned on this page alone; put away, it vanishes; a desktop set out leaves it on the table; a reference under `o:` is refused.
+- **R594:** Every page, the GM's too, is given a reference sheet open at How to play the table the first time it opens a game, on the table in the middle of its view, and remembers so per game, so a reload or a sheet put away doesn't bring another.
+- **R595:** The GM's page deletes the reference records the game holds under `o:` (older games' shared cards), whenever it holds any.
 
 ## Feature: Influence
 **Source:** specs/influence.md

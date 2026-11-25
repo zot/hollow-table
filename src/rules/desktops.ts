@@ -47,7 +47,8 @@ export type SetOut = { desk: Desk; puts: { rid: Rid; rec: Rec }[]; dels: Rid[] }
 export function setOut(desk: Desk, all: [Rid, PieceRecord][], to: number): SetOut | null {
   const from = desk.out ?? 0;
   if (to === from || !desk.desks[to]) return null;
-  const table = all.filter(([rid, r]) => (isPiece(rid) || isMine(rid)) && !game(r));
+  // R593: a page's reference sheet stays on its table, as a torn roll does.
+  const table = all.filter(([rid, r]) => (isPiece(rid) || isMine(rid)) && !game(r) && r.kind !== 'reference');
   const go = travelers(table.map(([, r]) => r));
   const spots: Record<Oid, Spot> = {}, top: PieceRecord[] = [], dels: Rid[] = [];
   for (const [rid, r] of table) {

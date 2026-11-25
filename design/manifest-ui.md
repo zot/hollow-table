@@ -9,7 +9,7 @@ furniture; the chrome is the bar.
 | Token | Value | Use |
 |---|---|---|
 | `--walnut` | `#3E2C22` + faint grain | the table surface |
-| `--card` / `--card-edge` | `#FFFFFF` / `#888` | character and reference cards |
+| `--card` / `--card-edge` | `#FFFFFF` / `#888` | character cards and the reference sheet |
 | `--sticky` | `#FFF200` | sticky notes |
 | `--paper` | `#FBFAF6` | receipts, the tape, ledger pages |
 | `--chip-pos` / `--chip-neg` | `#93C47D` / `#E06666` | chips (a red chip also shows its sign) |
@@ -72,7 +72,7 @@ What a carried thing would land on lights up while it's over it.
 ## Type
 
 - **Caveat**: all handwriting (cards, stickies, loose text, headings on cards).
-- **PT Mono**: reference cards, receipts, slot labels, the bar's small chrome.
+- **PT Mono**: the reference sheet, receipts, slot labels, the bar's small chrome.
 - **Sancreek**: the wordmark, once.
 - Sentence case everywhere; no all-caps labels.
 

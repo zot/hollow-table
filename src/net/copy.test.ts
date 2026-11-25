@@ -11,14 +11,17 @@ import { Stamps } from './stamps.ts';
 import { fakeClock, memoryStorage } from '../store/fakes.ts';
 import { SAM, playtest } from '../store/playtest.ts';
 
-const STICKY = ridOf('00000008'), REF = ridOf('00000009');
+const STICKY = ridOf('00000008'), NOTE = ridOf('00000009');
+/** The playtest, with a second sticky everyone reads (the shared reference card's old place, R593). */
+const scene = () => [...playtest('Dana', 'Ann'),
+  [NOTE, { kind: 'sticky', oid: '00000009', place: { x: 1430, y: 650, z: 1, tilt: 0 }, text: 'everyone reads this' }] as [Rid, Sticky]];
 
 /** The GM's page, and players' pages that can reload, over one room and one clock. */
 async function table() {
   const room = new FakeRoom(), { clock, advance } = fakeClock();
   const gmSession = memoryStorage();
   let gmGame = new Game();
-  gmGame.load(playtest('Dana', 'Ann'));
+  gmGame.load(scene());
   const gm = { game: gmGame, authority: null as unknown as Authority, sealKey: '', stamps: null as unknown as Stamps };
   const players = new Map<string, { game: Game; copy: Copy; sealKey: string; stamps: Stamps }>();
   const storage = new Map<string, { session: ReturnType<typeof memoryStorage>; local: ReturnType<typeof memoryStorage> }>();
@@ -97,9 +100,9 @@ test('pending until answered', async () => {
   t.room.online('gm', false);
   write(dana().game, 'While you were out');
   nudge(dana().game, ridOf(SAM), 50);
-  nudge(dana().game, REF, -30);
+  nudge(dana().game, NOTE, -30);
   await t.seconds(4);
-  assert.deepEqual(dana().copy.pending().sort(), [ridOf(SAM), REF, STICKY].sort());
+  assert.deepEqual(dana().copy.pending().sort(), [ridOf(SAM), NOTE, STICKY].sort());
 
   // 5: back with a new key: the whole table, then the pending changes.
   await t.gmLoad();
@@ -142,7 +145,7 @@ test('catch-up and gaps', async () => {
   // A copy with an extra piece the GM doesn't have, and a new piece of its own still pending.
   const extra: Sticky = { kind: 'sticky', oid: '0000000f', place: { x: 0, y: 0, z: 0, tilt: 0 }, text: 'stale' };
   const own: Sticky = { ...extra, oid: '0000000e', text: 'mine' };
-  const copy = await t.playerLoad('dana', [...playtest('Dana', 'Ann'), [ridOf(extra.oid), extra]]);
+  const copy = await t.playerLoad('dana', [...scene(), [ridOf(extra.oid), extra]]);
   const dana = () => t.players.get('dana')!;
   dana().game.change(w => w.put(ridOf(own.oid), own));
   await t.room.settle();
@@ -188,7 +191,7 @@ test('deletions, the book, and silence', async () => {
   const t = await table();
   // Nothing goes before the table arrives.
   t.room.online('gm', false);
-  await t.playerLoad('dana', playtest('Dana', 'Ann'));
+  await t.playerLoad('dana', scene());
   const dana = () => t.players.get('dana')!;
   write(dana().game, 'Before the table');
   await t.seconds(4);
@@ -229,7 +232,7 @@ test('deletions, the book, and silence', async () => {
   await t.seconds(26);
   t.room.online('gm', true);
   const before = t.room.log.length;
-  nudge(t.gm.game, REF, 10);
+  nudge(t.gm.game, NOTE, 10);
   await t.seconds(2);
   assert.ok(t.room.log.slice(before).some(m => m.kind === 'sync' && m.from.tab === 'dana'), 'asked for the table');
 });

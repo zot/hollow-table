@@ -23,6 +23,8 @@ export type Seat = {
   open: { used: Oid[]; piles: Oid[]; slots: string[]; columns: string[]; info: string[] };
   /** R364: the roll type this viewer last chose for each action on each card, by `<oid>:<label>`. */
   types: Record<string, RollType>;
+  /** R594: this page was given its reference sheet in this game. */
+  given?: true;
 };
 
 export const seatKey = (game: string, viewer: string) => `hollow.seat.${game}.${viewer}`;

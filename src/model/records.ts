@@ -162,7 +162,11 @@ export type Receipt = {
 };
 
 export type TornRoll = { kind: 'tornroll'; oid: Oid; place: Place; receipts: Receipt[] };
-export type Reference = { kind: 'reference'; oid: Oid; place: Place; which: 'howto' | 'actions' };
+// R592, R593: the reference sheet, each page's own, open at one of its pages.
+export type Reference = { kind: 'reference'; oid: Oid; place: Place; which: SheetPage };
+/** R592: the reference sheet's pages, in order. */
+export const SHEET_PAGES = ['howto', 'quick', 'creation'] as const;
+export type SheetPage = (typeof SHEET_PAGES)[number];
 
 /** R407, R412, R413: a Connection Table row: an NPC's, linked to its card by `oid` once it has one, or a group's. */
 export type ConnRow = { id: Oid; name: string; oid?: Oid; group?: true };
@@ -270,18 +274,18 @@ export function oidOf(rid: Rid): Oid { return rid.slice(2); }
 export function ridOf(oid: Oid): Rid { return 'o:' + oid; }
 /** R486: a torn roll is this page's own, under `t:` and its oid. */
 export function isTorn(rid: Rid): boolean { return rid.startsWith('t:'); }
-/** R500: a player's "just me" paper is this page's own, under `m:` and its oid. */
+/** R500, R593: a player's "just me" paper, and a reference sheet, are this page's own, under `m:` and its oid. */
 export function isMine(rid: Rid): boolean { return rid.startsWith('m:'); }
 /** Drawn on the table: the table's pieces, and this page's torn rolls and own paper. */
 export function onTable(rid: Rid): boolean { return isPiece(rid) || isTorn(rid) || isMine(rid); }
-/** A piece's key: `t:` for a torn roll, `m:` for `mine` paper (R500), else ridOf. */
+/** A piece's key: `t:` for a torn roll, `m:` for `mine` paper (R500) and a reference sheet (R593), else ridOf. */
 export function ridFor(r: PieceRecord): Rid {
   if (r.kind === 'tornroll') return 't:' + r.oid;
-  if (minePaper(r)) return 'm:' + r.oid;
+  if (ownPiece(r)) return 'm:' + r.oid;
   return ridOf(r.oid);
 }
-/** R500: paper that is its maker's alone. */
-function minePaper(r: PieceRecord): boolean { return isPaper(r) && !!r.mine; }
+/** R500, R593: a piece that is its page's own: paper its maker's alone, or a reference sheet. */
+function ownPiece(r: PieceRecord): boolean { return r.kind === 'reference' || (isPaper(r) && !!r.mine); }
 const LOCAL = new Set<Rid>(['book', 'tape', 'hill', 'desk', 'tied']);
 /** R486, R500, R524, R542: each page's own, never sent: the GM's book, every page's tape, its Hill, desk and tied dockets, its torn rolls and its own paper. */
 export function isLocal(rid: Rid): boolean { return LOCAL.has(rid) || isTorn(rid) || isMine(rid); }
@@ -358,7 +362,7 @@ const PIECES: Record<PieceRecord['kind'], Shape> = {
     w: int(1, 100_000), h: int(1, 100_000) }, { pin, ...readers }),
   docket: fields({ kind: oneOf('docket'), oid: isOid, place, name: str(DOCKET_NAME) }, readers),
   tornroll: fields({ kind: oneOf('tornroll'), oid: isOid, place, receipts: list(receipt, 10_000) }),
-  reference: fields({ kind: oneOf('reference'), oid: isOid, place, which: oneOf('howto', 'actions') }),
+  reference: fields({ kind: oneOf('reference'), oid: isOid, place, which: oneOf(...SHEET_PAGES) }),
   connections: fields({ kind: oneOf('connections'), oid: isOid, place,
     rows: list(fields({ id: isOid, name: str(CAPS.name) }, { oid: isOid, group: oneOf(true) }), 200),
     cells: dict(int(-5, 5), 40_000) }, { away: oneOf(true) }),
@@ -399,9 +403,9 @@ const SINGLETONS: Record<string, Shape> = {
  * caps. Anything off rejects the record whole. A piece's oid must match its key.
  */
 export function check(rid: Rid, value: unknown): value is Rec {
-  // R500: `mine` paper is never the table's.
-  if (isPiece(rid)) return piece(value) && (value as PieceRecord).oid === oidOf(rid) && !minePaper(value as PieceRecord);
+  // R500, R593: `mine` paper and a reference sheet are never the table's.
+  if (isPiece(rid)) return piece(value) && (value as PieceRecord).oid === oidOf(rid) && !ownPiece(value as PieceRecord);
   if (isTorn(rid)) return PIECES.tornroll(value) && (value as PieceRecord).oid === oidOf(rid);   // R486
-  if (isMine(rid)) return piece(value) && minePaper(value as PieceRecord) && (value as PieceRecord).oid === oidOf(rid);   // R500
+  if (isMine(rid)) return piece(value) && ownPiece(value as PieceRecord) && (value as PieceRecord).oid === oidOf(rid);   // R500, R593
   return Object.hasOwn(SINGLETONS, rid) && SINGLETONS[rid]!(value);
 }

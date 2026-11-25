@@ -6,7 +6,7 @@
 import { connections, groupChooser, sheet } from './connections.ts';
 import type { Game } from '../model/game.ts';
 import {
-  CAPS, DAMAGE, DOCKET_NAME, GM, ROWS, isPrivate, ownerOf, ridFor, ridOf, type Character, type Docket, type Damage, type DamageSlot, type Image, type Oid, type Paper, type PieceRecord, type Place, type Reference,
+  CAPS, DAMAGE, DOCKET_NAME, GM, ROWS, isPrivate, ownerOf, ridFor, ridOf, SHEET_PAGES, type Character, type Docket, type Damage, type DamageSlot, type Image, type Oid, type Paper, type PieceRecord, type Place, type Reference,
   type Rid, type RowName, type Sticky, type Text, type Tied, type TornRoll,
   type AttackKind, type Lasting, type LastingColumn, type Opinion,
 } from '../model/records.ts';
@@ -259,7 +259,7 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       e.append(img, tack(doc, rid, w));
       break;
     }
-    case 'reference': e.append(...reference(doc, r)); break;
+    case 'reference': break;
     case 'connections': connections(e, rid, w); break;
     case 'tornroll':
       // R283: the wheel scrolls a torn roll, and zooms the table only once it can scroll no further.
@@ -316,7 +316,7 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
       break;
     }
     case 'tornroll': tornroll(e, r); break;
-    case 'reference': break;
+    case 'reference': if (e.dataset.page !== r.which) { e.replaceChildren(...referenceSheet(e.ownerDocument, e.dataset.rid!, r, w)); e.dataset.page = r.which; } break;
     case 'connections': sheet(e, r, w); break;
   }
 }
@@ -1048,20 +1048,122 @@ function slotGlyphs(line: HTMLElement, s: DamageSlot, base: string, w: PieceWith
   for (const source of want) name.before(glyph(doc, source, w));
 }
 
-// ---- reference cards: the "How to play the table" card (R9) and the printed actions card ----
+// ---- R590, R592: the reference sheet: How to play the table, then Bunkum's Quick Reference and Quick
+// Character Creation (its Appendices B and A), in its words (Making Rolls reads the die as the dice do, R91).
 
-function reference(doc: Document, r: Reference): HTMLElement[] {
-  const p = (bold: string, rest = '') => { const e = el(doc, 'p'); e.append(el(doc, 'b', '', bold), rest); return e; };
-  const hd = (left: string, right: string) => { const e = el(doc, 'div', 'rhd'); e.append(el(doc, 'span', '', left), el(doc, 'em', '', right)); return e; };
-  if (r.which === 'actions') {
-    return [hd('SKILL USE', 'ACTIONS'), p('CREATE INFLUENCE'), p('ATTACK', ': Create a Bias or Conviction'),
-      p('INFER', ": Find out an NPC's Skills, Resources, Motivations, Opinions, or information on another character"),
-      p('IMPRESS', ": change an NPC's Opinions"), p('REQUEST', ': get an NPC to transfer a Resource or perform a task')];
+/** A line of the sheet, its `**bold**` and `*italic*` runs set as the book sets them. */
+function said(doc: Document, tag: string, cls: string, text: string): HTMLElement {
+  const e = el(doc, tag, cls);
+  for (const [k, part] of text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/).entries()) {
+    if (!part) continue;
+    e.append(k % 2 === 0 ? part : part.startsWith('**') ? el(doc, 'b', '', part.slice(2, -2)) : el(doc, 'i', '', part.slice(1, -1)));
   }
-  return [hd('How to play the table', 'put me away when known'),
-    p('Move', ': drag anything; drag empty table to pan, the wheel or a two-finger pinch zooms.'),
-    p('Write', ': click paper to write; the pens mark what the table should read.'),
-    p('Shift-click', ' (or press and hold) lowers, opens and deletes.'),
-    p('Put away', ': drop it on the bar; Boot Hill keeps what was buried.'),
-    p('Roll', ": the die by a pool's name docks your dice there.")];
+  return e;
+}
+
+// Each line: `# ` a section's heading, `## ` a sub-heading, `- ` a bullet, `  ` indented, else a line.
+const HOWTO = [
+  '**Move**: drag anything; drag empty table to pan, the wheel or a two-finger pinch zooms.',
+  '**Write**: click paper to write; the pens mark what the table should read.',
+  '**Shift-click** (or press and hold) lowers, opens and deletes.',
+  '**Put away**: drop it on the bar; Boot Hill keeps what was buried.',
+  "**Roll**: the die by a pool's name docks your dice there.",
+  '**Turn the page** below: the rules at a glance, then building a character. Put this away when you know the table; the desk gives it back.',
+];
+const QUICK = [
+  '# Making rolls',
+  '1. COMPARE TOTAL **INFLUENCE**',
+  '  **+10:** Automatic success, check for **CRIT!**',
+  '  **+7 to +9:** **White** & **Green**, take highest, +1 to roll',
+  '  **+5 to +6:** **White** & **Green**, take highest',
+  '  **+3 to +4:** +1 to roll',
+  '  **-2 to +2:** White',
+  '  **-3 to -4:** -1 to roll',
+  '  **-5 to -6:** **White** & **Red**, take lowest',
+  '  **-7 to -9:** **White** & **Red**, take lowest, -1 to roll',
+  '  **-10:** Automatic failure, but check for **CRIT!**',
+  '2. ROLL ALL DICE AND CHECK **WHITE / GREEN / RED** RESULT',
+  '  4-6: Clean **Success**',
+  '  3: **Success** with cost, like +1 **Stagger**',
+  '  1-2: **Fail**, may cause +1 **Stagger**',
+  '3. RESULT IS **BLUE** + **YELLOW**(S) + BONUS (IF ANY)',
+  '4. CRIT! ON **WHITE** 6 & **BLUE** 5 OR 6',
+  '  Player doubles result *or* changes **Blue** & **Yellow** to 6s',
+  '# Actions',
+  '- **USE SKILL**',
+  '- **CREATE INFLUENCE** (or change an **Influence Level**)',
+  '- **ATTACK**: create **Bias**, **Conviction**, **Stagger**, or **Concession**.',
+  '- **INFER**: Find out an NPCs **Skills**, **Resources**, **Motivations**, **Opinions**, or information on a character',
+  "- **IMPRESS**: change an NPC's **Opinions**",
+  '- **REQUEST**: get an NPC to transfer a **Resource** or perform a task',
+  '# Concessions',
+  '- Attacker must have Edge',
+  '- Opponent must have Difficulty',
+  '- Skilled attacker must win 2 in a row',
+  '- Unskilled attacker must win 4 in a row',
+  '# Special influences',
+  '## STAGGER POOL',
+  '- **STAGGER**: negative **Influence** countered by rest.',
+  '## EDGE POOL',
+  '- **EDGE**: long-term advantage. Required to create a **Difficulty**.',
+  '- **DIFFICULTY**: long-term disadvantage, disappears when Edge does',
+  '## BIAS POOL',
+  '- **BIAS**: short-term belief',
+  '- **CONVICTION**: long-term belief',
+  '# Stagger',
+  '## STAGGER INCREASES FROM',
+  '- Success with cost (usually)',
+  '- Failure (sometimes)',
+  '- Attack to Stagger',
+  '## RECOVER STAGGER WITH REST',
+];
+const ATTRIBUTES: [string, number, number, number][] = [
+  ['Smart', 4, 0, 0], ['Achiever', 3, 1, 1], ['Achiever, shrewd', 3, 0, 4], ['Balanced', 2, 2, 2], ['Balanced, shrewd', 2, 1, 5],
+  ['Sharp', 1, 3, 3], ['Sharp, arch skeptic', 1, 0, 12], ['Insightful', 0, 4, 4], ['Insightful, arch skeptic', 0, 2, 10],
+];
+const FIELDS = [
+  'Example Fields',
+  '## Snake Oil Salesman (5XP / Level)',
+  '  Rhetoric (x2) -- *requires at least same Level of* Int',
+  '  Finesse (x2, Rhetoric) -- *add Level to successful Attacks and Requests but suffer a Mitigated* Tricky-Sig',
+  '  Rationalization',
+  '## Private Investigator (5XP / Level)',
+  '  Investigation (x2)', '  Advocacy (x2)', '  Lock Picking',
+  '## Public Speaker (5XP / Level)',
+  '  Advocacy (x2)', '  Oratory (x2)', '  Rationalization',
+];
+
+/** The sheet's lines as elements. */
+function lines(doc: Document, text: string[]): HTMLElement[] {
+  return text.map(t => t.startsWith('# ') ? said(doc, 'h3', '', t.slice(2))
+    : t.startsWith('## ') ? said(doc, 'h4', '', t.slice(3))
+    : t.startsWith('- ') ? said(doc, 'p', 'dot', t.slice(2))
+    : t.startsWith('  ') ? said(doc, 'p', 'in', t.slice(2)) : said(doc, 'p', '', t));
+}
+
+/** The reference sheet open at its page, and its foot, "‹ n of 3 ›", which turns it on this page alone (R593). */
+function referenceSheet(doc: Document, rid: Rid, r: Reference, w: PieceWith): HTMLElement[] {
+  const at = SHEET_PAGES.indexOf(r.which), n = SHEET_PAGES.length;
+  let body: HTMLElement[];
+  if (r.which === 'howto') body = [el(doc, 'div', 'rhd', 'How to play the table'), ...lines(doc, HOWTO)];
+  else if (r.which === 'quick') body = [el(doc, 'div', 'rhd', 'Quick reference'), ...lines(doc, QUICK)];
+  else {
+    const table = doc.createElement('table'), row = (cells: (string | number)[], tag: 'th' | 'td') => {
+      const tr = doc.createElement('tr');
+      for (const c of cells) tr.append(el(doc, tag, '', String(c)));
+      return tr;
+    };
+    table.append(row(['Description', 'Cha (4)', 'Int (3)', 'Wis (1)'], 'th'), ...ATTRIBUTES.map(a => row(a, 'td')));
+    body = [el(doc, 'div', 'rhd', 'Quick character creation'), said(doc, 'p', '', 'Some 16XP **Attribute** combinations:'), table, ...lines(doc, FIELDS)];
+  }
+  const turn = (to: number, label: string, glyph: string) => {
+    const b = el(doc, 'button', 'turn', glyph) as HTMLButtonElement;
+    b.setAttribute('aria-label', label);
+    b.disabled = to < 0 || to >= n;
+    gesture(b, { click: () => change<Reference>(w, rid, s => ({ ...s, which: SHEET_PAGES[to]! })) });
+    return b;
+  };
+  const foot = el(doc, 'div', 'rfoot');
+  foot.append(turn(at - 1, 'Previous page', '‹'), ` ${at + 1} of ${n} `, turn(at + 1, 'Next page', '›'));
+  return [...body, foot];
 }

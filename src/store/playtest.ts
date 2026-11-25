@@ -3,7 +3,7 @@
 // Influences, Beauford's Stagger chip, the sticky and the reference card. The first visit makes a
 // game of it, and the tests use it. Owners are parameters so each test can name its players.
 
-import { damageSlots, ridOf, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Place, type RowName, type Sticky, type Reference, type Rec, type Rid } from '../model/records.ts';
+import { damageSlots, ridOf, type CardBack, type Character, type Chip, type Influence, type Oid, type PieceRecord, type Place, type RowName, type Sticky, type Rec, type Rid } from '../model/records.ts';
 import { empty } from '../rules/yards.ts';
 import { seed } from '../rules/connections.ts';
 
@@ -124,7 +124,6 @@ export function scene(sam = 'Player 1', beauford = 'Player 2'): PieceRecord[] {
   // R360: the GM put the Stagger on Beauford, a player's character: a contribution, public.
   const chip: Chip = { kind: 'chip', oid: '00000007', where: { slot: BEAUFORD, name: 'stagger' }, n: 0, sign: -1, points: 2, rider: false, by: 'GM' };
   const sticky: Sticky = { kind: 'sticky', oid: '00000008', place: at(1430, 20), text: STICKY, big: true };
-  const ref: Reference = { kind: 'reference', oid: '00000009', place: at(1430, 650), which: 'actions' };
   return [
     character(SAM, sam, 'Sam', 40, SAM_FRONT, back({ min: 2 }, 'Fire tools. Lantern. 6 Candles.\nPocket knife. Bedroll. Canteen.\nRope. Notebook and pencil.')),
     character(BEAUFORD, beauford, 'Beauford', 500, BEAUFORD_FRONT, back({ min: 1 })),
@@ -132,7 +131,7 @@ export function scene(sam = 'Player 1', beauford = 'Player 2'): PieceRecord[] {
     infl('00000004', 'Keep the Peace', 4, 0),
     infl('00000005', 'Self-Preservation', 4, 1),
     infl('00000006', 'Old Sympathy for Sparkers', 2, 2),
-    chip, sticky, ref,
+    chip, sticky,
     // R418: the Connection Table, put away, holding the adventure's *Connections in Unton*.
     seed('0000000a', at(1430, 900), DEVREUX),
   ];

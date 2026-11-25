@@ -13,7 +13,7 @@
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with touch ignored, a touch let go in the sticky's pigeonhole gave loose; restored clean
 
 ## Test: the desk holds the paper supplies
-**Purpose:** R529, R510, R530, R512, R518: the bar shows the desk and the chips, no paper supplies; pressing the desk opens its pigeonholes (the Connection Table's on the GM's alone); dragging across them holds each one small; dragging out makes the piece under the pointer
+**Purpose:** R591, R510, R530, R512, R518: the bar shows the desk and the chips, no paper supplies; pressing the desk opens its pigeonholes (the Connection Table's on the GM's alone); dragging across them holds each one small; dragging out makes the piece under the pointer
 **Input:** the GM's page and Dana's; the GM presses the desk, moves across the sticky's, the text's and the sticky's pigeonholes again, and drags out onto the table
 **Expected:** no `.supply.note` in the bar, eight chips; the strip shows six pigeonholes on the GM's page, five on Dana's; the ghost shows the sticky, the text, the sticky; a sticky (no loose text) lands with its middle at the pointer; the strip closes
 **Refs:** crc-Desk.md, crc-Bar.md

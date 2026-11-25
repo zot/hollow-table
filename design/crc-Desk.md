@@ -1,5 +1,5 @@
 # Desk
-**Requirements:** R512-517, R520, R526, R527, R529, R530, R546-548, R551-554, R556, R559, R560, R562
+**Requirements:** R512-517, R520, R526, R527, R591, R530, R546-548, R551-554, R556, R559, R560, R562
 
 The desk on the bar (`carves/done/organizing.md`): a little roll-top right after the wordmark, its
 pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
@@ -7,7 +7,7 @@ strip of pigeonholes; the press, wherever it goes, decides what is taken and how
 the drawers showing below the pigeonholes.
 
 ## Knows
-- holes: the pigeonholes in order: character, sticky, text, image, howto, and on the GM's desk
+- holes: the pigeonholes in order: character, sticky, text, image, howto (the reference sheet, R591), and on the GM's desk
   connections; each draws its supply small, as the bar drew them.
 - open: whether the whole desk is open (a click), its pigeonholes staying until a press elsewhere.
 - held: the supply whose small piece is in hand during a press, or none.
@@ -35,7 +35,7 @@ the drawers showing below the pigeonholes.
   pointer, and the desk closes; the page brings its records back under the pointer and carries them.
 - the hint (R520): Drag marks the desk `file` with the drawer's name while a piece that would be filed
   is over it; the desk shows "→ <drawer>" beneath itself.
-- the docket's pigeonhole (R529, R530): a label on red tape, between the reference card and the Connection Table.
+- the docket's pigeonhole (R591, R530): a label on red tape, between the reference sheet and the Connection Table.
 - search line (R546-R548): an input at the top of the open desk's drawers; while it has the caret or
   holds words it lists Drawers.search's results, each its name and its drawer's label, dragged out as
   from a drawer; none says "Nothing found."

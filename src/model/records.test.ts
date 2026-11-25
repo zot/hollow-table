@@ -111,3 +111,14 @@ test("paper's maker and readers, and a page's own paper", () => {
   assert.ok(!check('m:0000e001', note), 'm: holds only mine paper');
   assert.ok(isLocal('m:0000e001') && onTable('m:0000e001'), 'the page\'s own, on its table');
 });
+
+test('a reference sheet is its page\'s own', () => {
+  // R593: keyed m:, never the table's; its pages are the sheet's three.
+  const sheet = { kind: 'reference', oid: '0000f001', place: { x: 0, y: 0, z: 0, tilt: 0 }, which: 'howto' } as const;
+  assert.equal(ridFor(sheet), 'm:0000f001');
+  assert.ok(check('m:0000f001', sheet), 'under m:');
+  assert.ok(check('m:0000f001', { ...sheet, which: 'creation' }), 'open at any of its pages');
+  assert.ok(!check('m:0000f001', { ...sheet, which: 'actions' }), 'the old actions card is no page');
+  assert.ok(!check(ridOf(sheet.oid), sheet), "never the table's");
+});
+
