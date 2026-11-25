@@ -17,6 +17,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [x] ~~**Item 9 — pinned paper jumps when its pool is dragged.**~~ **LANDED (2026-11-24 — `#72`.)** Bill, 2026-11-24.
 - [x] ~~**Item 10 — Gather, and a drawer's growing, bring the card's paper with it.**~~ **LANDED (2026-11-24 — `#74`.)** Bill, 2026-11-24.
 - [x] ~~**Item 11 — paper's owner: no maker is the GM's; owners reassign and share.**~~ **LANDED (2026-11-25 — `#75`.)** Bill, 2026-11-24.
+- [x] ~~**Item 12 — characters in dockets.**~~ **LANDED (2026-11-25 — `#76`.)** Bill, 2026-11-25.
 
 ## Item 1
 
@@ -216,3 +217,57 @@ DECIDED (Bill, 2026-11-25), on Daneel's proposals: "those are good".
 
 DECIDED (Bill, 2026-11-24): the carve takes gaps O9 and O12–O16 ("Those six gaps"); O1 and O10 stay as
 gaps.
+
+## Item 12
+
+Bill (2026-11-25): "Let's allow characters to be in dockets -- had we ruled that out before?"
+
+No ruling kept them out. Bill ruled that paper dropped on a card pins to the card and leaves its docket
+("card is more specific") and that a docket never joins a docket ("doesn't join"), both 2026-11-24 in
+[organizing](done/organizing.md). The words "a card or a chip" in `specs/dockets.md`'s list of what
+never joins were Daneel's, read from that carve's "bundle of paper", with no ruling behind them; R536
+("Paper (a sticky, loose text or an image) ...") follows them. This item rewrites both.
+
+A character is more than one piece: its card, its pool and the chips in it, its drawer of Influence
+cards, and the paper pinned to the card. So a docket holding one has questions paper never raised.
+Daneel's readings, for Bill's yes or otherwise:
+
+1. **What joins.** The card, let go touching the tape or on the label, as paper joins: pinned to the
+   docket with its offset from the label, and the paper pinned to the card riding with it as it does
+   now. Its pool stays where it is, as when a card is dragged off its pool. A gathered card (drawn under
+   its pool) joins only by being dragged out first. Not sure: whether Bill means the card or the whole
+   character, pool and all.
+2. **Carrying.** Dragging the label carries the card and the paper pinned to it, not its pool.
+3. **Burying and filing.** Burying or filing a docket leaves its characters on the table, loose where
+   they lie, as a paper the page can't read is left; a character goes to Boot Hill or the desk by itself.
+   Burying a docket shouldn't bury a character without anyone meaning to.
+4. **Who may put one in or take it out.** Whoever writes the card: its owner or the GM, the GM alone for
+   an open character (R567's rule for writing a card). So a player can't put the GM's NPC in their
+   docket, and the GM's page refuses it as it refuses other changes to a card.
+5. **Chips and Influence cards stay out.**
+6. **Seeing.** A card in a docket shows as it does anywhere: face-down to whoever can't read it, as R535
+   has a paper's own readers decide, not its docket's.
+
+DECIDED (Bill, 2026-11-25), on Daneel's readings: **the card is what joins** (picked "The card"), and
+"putting the character in the docket means the whole thing is in there, but the table just shows the
+character being inside. Burying or filing the docket does so to the character, the pool mat, and any
+thing attached to it. This lets a docket manage several NPCs."
+
+DECIDED (Bill, 2026-11-25): **dragging the label carries** "card and pool and also anything attached to
+the character".
+
+So, ruled: the card joins as paper does, and the tape is drawn round the card; the character is in the
+docket whole, so carrying the label carries the card, its pool mat and everything attached to either,
+and burying or filing the docket takes them all (reversing reading 3). Readings 4 (whoever writes the
+card puts it in or takes it out), 5 (chips and Influence cards stay out) and 6 (a card in a docket shows
+as it does anywhere) stand, not contradicted.
+
+
+DECIDED (Bill, 2026-11-25), on three more of Daneel's questions:
+
+- **Characters a carrier may not move follow anyway** (picked "They follow anyway"): the GM's page brings
+  them to the label, as it brings paper the carrier can't read (R531); at a real table anyone can push
+  the bundle.
+- **Tied, a character's card and pool pile** (picked "Card and pool pile"), on that page alone.
+- **Filed, a docket goes in Papers with its characters** (picked "Papers drawer, all in"); on a
+  player's desk, which takes paper only, its characters are buried, as a character dropped there is.

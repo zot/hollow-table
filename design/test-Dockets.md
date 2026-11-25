@@ -110,3 +110,91 @@
 **Inject:** src/ui/drag.ts:start
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with Drag.start's tied redirect dropped, the docket browser spec failed in Chromium; restored clean
 
+
+## Test: a character's card joins a docket
+**Purpose:** R584: a character's card let go just under a docket's label puts the character in.
+**Input:** the GM's page: a docket "NPCs" and Gant, an NPC; Gant's card dragged by its corner to just under the label.
+**Expected:** Gant's record pins it to the docket.
+**Refs:** crc-Drag.md, crc-Records.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 9
+**Fire alarm:** Drag's drop never pins a character (docketed keeps the character as it was); red: Gant has no pin
+**Inject:** src/ui/drag.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the drop never pinning a character, Gant had no pin (line 163, Chromium); restored clean, dist rebuilt
+
+## Test: a character's pool decides by its card
+**Purpose:** R584: a pool let go alone keeps its character in while its card still touches the tape.
+**Input:** as "a character's card joins a docket", then Gant's pool dragged a little, then far.
+**Expected:** after the little drag Gant is still in, its offset changed; after the far one, out.
+**Refs:** crc-Drag.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 10
+**Fire alarm:** a carried pool aims at no docket (startPool's frame without the aim); red: the little drag takes Gant out
+**Inject:** src/ui/drag.ts:startPool
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with a carried pool aimed at no docket, the little pool drag took Gant out (line 171, Chromium); restored clean, dist rebuilt
+
+## Test: the tape goes round a character's card
+**Purpose:** R585: a docket's tape takes in the cards of its characters.
+**Input:** as "a character's card joins a docket".
+**Expected:** the tape reaches below Gant's card.
+**Refs:** crc-TableView.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 11
+**Fire alarm:** TableView's dockets list no characters; red: the tape stops at the label
+**Inject:** src/ui/table.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with TableView listing no characters, the tape stopped short of the card (line 166, Chromium); restored clean, dist rebuilt
+
+## Test: the label carries a character's card and pool together
+**Purpose:** R586: the drop of a carried docket moves each character's card and pool by the same amount.
+**Input:** as "a character's card joins a docket", then the docket carried by its label.
+**Expected:** Gant's card and pool moved by the same amount.
+**Refs:** crc-Drag.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 12
+**Fire alarm:** the docket's drop moves a character's card but not its pool; red: the pool's move differs from the card's
+**Inject:** src/ui/drag.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the docket drop leaving the pool, the pool moved differently from the card (line 185, Chromium); restored clean, dist rebuilt
+
+## Test: a tied docket piles its characters
+**Purpose:** R588: tied, a docket piles each character's pool mat and card.
+**Input:** as "a character's card joins a docket", then the knot clicked twice.
+**Expected:** tied, two pieces piled (Gant's pool mat and card); untied, none.
+**Refs:** crc-TableView.md, crc-Dockets.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 13
+**Fire alarm:** TableView's pile leaves characters out; red: nothing piled
+**Inject:** src/ui/table.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with the pile leaving characters out, nothing piled (line 189, Chromium); restored clean, dist rebuilt
+
+## Test: a buried docket takes its characters
+**Purpose:** R589: burying a docket buries the characters in it, with everything on them.
+**Input:** as "a character's card joins a docket", then the docket dropped on the bar.
+**Expected:** Gant is gone from the table, and the burial "Docket: NPCs" holds Gant's record.
+**Refs:** crc-Yards.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 14
+**Fire alarm:** Yards.burialOf of a docket leaves its characters out; red: Gant is still on the table
+**Inject:** src/rules/yards.ts:burialOf
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with burialOf leaving characters out, Gant stayed on the table (line 196, Chromium); restored clean, dist rebuilt
+
+## Test: a docket's NPC follows a player's carry
+**Purpose:** R587: the GM's page brings a character the carrier may not move to its docket's label.
+**Input:** the GM's docket "NPCs" holding Gant, the GM's NPC; Dana, a player, carries the docket by its label.
+**Expected:** on the GM's page Gant's card is back at the label plus its offset, its pool as far from the card as before.
+**Refs:** crc-Dockets.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 15
+**Fire alarm:** Dockets.repin brings no character; red: Gant stays where it was
+**Inject:** src/rules/dockets.ts:repin
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with repin bringing no character, Gant stayed where it was on the GM's page (line 216, Chromium); restored clean, dist rebuilt
+
+## Test: a player's desk buries a docket's characters
+**Purpose:** R589: a player filing a docket on their desk files the docket and buries the characters in it.
+**Input:** Dana's docket "Mine" holding Wren, her character; Dana drops the docket on her desk.
+**Expected:** Dana's drawer holds "Docket: Mine" with the docket alone; Wren is gone from the table and buried.
+**Refs:** crc-Drag.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 16
+**Fire alarm:** Drag's filing takes no characters out of a player's docket; red: Dana's drawer holds Wren's records too
+**Inject:** src/ui/drag.ts
+**Pulled:** 2026-11-25 — 2026-11-25 — rang: with no characters taken out of a player's docket, Dana's drawer held Wren too (line 222, Chromium); restored clean, dist rebuilt

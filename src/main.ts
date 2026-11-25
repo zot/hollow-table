@@ -401,13 +401,13 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   });
   // R404: on the GM's page, Ctrl+Z / ⌘Z outside written text digs up the newest Info card buried.
   if (gm) addEventListener('keydown', ev => { if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault(); });
-  // R531, R545: pinned paper follows its holder: on the page holding the game (its book, whoever it is
-  // viewed as) the table's paper; on every page its own "just me" paper. A holder was deleted when the book
+  // R531, R545, R587: pinned paper and a docket's characters follow their holder: on the GM's page (whoever
+  // it is viewed as) the table's; on every page its own "just me" paper. A holder was deleted when the book
   // holds its tombstone or this page saw it go (a docket another page put away).
   const deleted = new Set<Oid>();
   const repinned = () => {
     const book = game.get('book') as Book | undefined;
-    const puts = repin(game.all().filter(([, r]) => 'kind' in r) as [Rid, PieceRecord][], !!book, oid => deleted.has(oid) || !!book?.tomb[ridOf(oid)]);
+    const puts = repin(game.all().filter(([, r]) => 'kind' in r) as [Rid, PieceRecord][], self === GM, oid => deleted.has(oid) || !!book?.tomb[ridOf(oid)]);
     deleted.clear();
     if (puts.length) game.change(w => { for (const p of puts) w.put(p.rid, p.rec); });
   };

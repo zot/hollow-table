@@ -1,5 +1,5 @@
 # Drag
-**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543, R555, R562, R571-575
+**Requirements:** R19, R21, R34, R35, R48, R83, R113, R119, R120, R122, R211, R215-217, R220-223, R225, R226, R240, R243, R244, R251, R273, R288, R298-300, R409, R451, R463, R482, R488, R500, R513, R519-523, R532, R536, R538-541, R543, R555, R562, R571-575, R584, R586, R588, R589
 
 Lifting, carrying and dropping, and deciding what a drop means.
 
@@ -50,7 +50,8 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - file (R519-R523): letting go over the desk (overDesk, by the pointer's x and y) files a piece
   Drawers.drawerOf gives a drawer, on this page's `gm`: its burialOf records (less `mine` paper on the
   GM's page, which holds none) go into the `desk` record's drawer under graveName, and are deleted from
-  the table in the same change. Anything else over the desk is as over the bar. While a fileable piece
+  the table in the same change. On a player's page, which files paper only, a docket's characters are
+  buried instead, each a burial of its own (bury), in that change (R589). Anything else over the desk is as over the bar. While a fileable piece
   is over the desk the bar is lit `file` with "→ <drawer>" (R520), not `bury`.
 - loose (R513): start, startPool and startItem may carry with no button held, from a pointer
   position: the piece follows every pointer move until the next press, which is taken (its default
@@ -85,8 +86,9 @@ Lifting, carrying and dropping, and deciding what a drop means.
 - land (R217, R226): a drop is one Game change made inside TableView.still, so the piece is drawn
   where it was let go with no glide.
 - A card dragged alone leaves its pool from where it was drawn and is ungathered.
-- docket carry (R541, R543): a docket's label, or a press on a tied docket's pile, carries the docket; its papers follow (Hands) and the drop moves them by the same offset. A fresh docket, let go on the table, has its name selected (R532).
+- docket carry (R541, R543, R586, R588): a docket's label, or a press on a tied docket's pile (a paper, or a character's pool, card or the paper on its card: tiedIn), carries the docket; its papers and characters follow (Hands) and the drop moves them by the same offset: the papers, and the characters this page may move (may, Ownership.mayChange) with the paper on their cards; the GM's page brings the rest (Dockets.repin, R587). A fresh docket, let go on the table, has its name selected (R532).
 - docket aim (R536, R538, R539): carried paper not aimed at a card is aimed at the docket on top whose tape, drawn without the carried paper, it touches (Dockets.aimed); let go so, it is pinned to that docket at its offset from the label; let go clear, it is loose.
+- a character in a docket (R584): a card carried by someone who may move it is aimed as paper is, by its own box; a pool carried alone is aimed by its card's box where the card is headed. Let go so, the character is pinned to the docket at its card's offset from the label; let go clear, it is out.
 - filing among desks (R562, R555): over the desk or its hanging board, the desk is the row under the
   pointer or else the board's first (the desk set out); the hint names it and the drawer when there are
   several.

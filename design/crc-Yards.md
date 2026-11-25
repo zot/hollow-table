@@ -1,5 +1,5 @@
 # Yards
-**Requirements:** R119-125, R290, R403-405, R428, R487-489, R500, R544
+**Requirements:** R119-125, R290, R403-405, R428, R487-489, R500, R544, R589
 
 Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
 
@@ -39,7 +39,8 @@ Boot Hill's rules, pure: graveyards, burials, numbering and deleting forever.
 - ownTorn(all, yards, hill) (R487): the GM's page's own of what was shared: each `o:` torn roll moved
   to `t:`, and each burial in `yards` holding only torn rolls moved into Hill with its graveyard's name.
   ownedTorn(records): the same made on a checkpoint's records, before GameStore.restore loads them.
-- burialOf a docket (R544): the docket and the paper pinned to it; graveName "Docket: " and its name.
+- burialOf a docket (R544, R589): the docket, the paper pinned to it, and each character in it with its
+  own burialOf; graveName "Docket: " and its name.
 
 ## Collaborators
 - Records

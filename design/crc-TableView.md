@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573, R575, R576
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573, R575, R576, R585, R588
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -70,8 +70,8 @@ DOM a view of the records.
 - gathered: a gathered card is drawn GATHER_GAP (14 px) under its pool's drawer, following the
   drawer as it grows (a ResizeObserver); the same on every page, since it's derived, not stored.
 - A chip or card changing redraws the pools (it may have moved between two).
-- tapes(leads) (R534, R539, R542): draws each docket's red tape in one SVG layer under the pieces, round its label and the papers pinned to it that this page holds (Dockets.tapeOf, Dockets.path), leaving out a carried paper unless it is aimed at that docket; on a tied docket, round the pile, with the cross and bow drawn over it.
-- tied piles (R542, R543): a tied docket's papers are drawn at Dockets.pile, marked piled (their insides take no presses), and a press on one carries the docket.
+- tapes(leads) (R534, R539, R542, R585): draws each docket's red tape in one SVG layer under the pieces, round its label, the papers pinned to it that this page holds and the cards of its characters, not their pools (Dockets.tapeOf, Dockets.path), leaving out a carried paper or card unless it is aimed at that docket; on a tied docket, round the pile, with the cross and bow drawn over it.
+- tied piles (R542, R543, R588): a tied docket's papers, and each of its characters as its pool mat, its card and the paper on its card (Dockets.pileKeys), are drawn at Dockets.pile, marked piled (their insides take no presses), and a press on one carries the docket. Untied, each goes back where its record says: a pool to `pool`, a card to `card` (or under its pool, gathered).
 - box(rid) (R537): a drawn piece's box in table coordinates, for the touch test.
 - tacked (R568): pinned paper whose holder is a card is marked `tacked`, so its tack shows.
 - pinLine(rid, at, to) (R572, R571): one dashed amber line in table coordinates from the middle of paper

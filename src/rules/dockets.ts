@@ -2,7 +2,7 @@
 // Dockets, pure: the red tape's shape and the touch test, where a tied docket's papers pile, and which
 // pinned paper must be moved to its holder or let loose. Boxes come in, places and paths go out.
 
-import { isMine, isPiece, isPinnable, type Oid, type PieceRecord, type Pinnable, type Rid } from '../model/records.ts';
+import { isMine, isPiece, isPinnable, type Character, type Oid, type PieceRecord, type Pinnable, type Rid } from '../model/records.ts';
 
 export type Point = { x: number; y: number };
 export type Box = { left: number; top: number; right: number; bottom: number };
@@ -121,6 +121,13 @@ export function aimed(targets: Target[], box: Box): Oid | null {
   return best?.oid ?? null;
 }
 
+// R588: a tied docket's pile, bottom up by z: a paper by itself; a character as its pool mat (`rid#pool`),
+// its card, then the paper pinned to its card (`on`).
+/** The keys of a tied docket's pile, in order. */
+export function pileKeys(items: { rid: Rid; z: number; on?: Rid[] }[]): string[] {
+  return [...items].sort((a, b) => a.z - b.z).flatMap(i => i.on ? [`${i.rid}#pool`, i.rid, ...i.on] : [i.rid]);
+}
+
 // R542: squarely under the label, a step right and down each, in z order.
 /** Where each of a tied docket's papers lies, by rid. */
 export function pile(label: Box, papers: { rid: Rid; z: number }[]): Map<Rid, Point> {
@@ -131,15 +138,29 @@ export function pile(label: Box, papers: { rid: Rid; z: number }[]): Map<Rid, Po
 // R531, R545: pinned paper goes to its holder plus its offset, and is let loose where it lies when its
 // holder was deleted (`gone`, the GM's page's tombstones; a holder merely not here, a "just me" docket on
 // another page, is left alone): shared paper on the GM's page, and on every page its own `mine` paper. A
-// gathered card counts by its record, which the GM's page keeps under its pool (R576).
-/** The puts that bring pinned paper to its holder, or let it loose. */
-export function repin(all: [Rid, PieceRecord][], gm: boolean, gone: (oid: Oid) => boolean): { rid: Rid; rec: Pinnable }[] {
-  const holders = new Map<Oid, Point>();
-  for (const [, r] of all) {
-    if (r.kind === 'character') holders.set(r.oid, r.card);   // R576: a gathered card's record follows its pool
-    else if (r.kind === 'docket') holders.set(r.oid, r.place);
+// gathered card counts by its record, which the GM's page keeps under its pool (R576). R587: on the GM's
+// page a character in a docket goes first, card and pool together, so the paper on its card follows it.
+/** The puts that bring pinned paper and characters to their holders, or let them loose. */
+export function repin(all: [Rid, PieceRecord][], gm: boolean, gone: (oid: Oid) => boolean): { rid: Rid; rec: Pinnable | Character }[] {
+  const labels = new Map<Oid, Point>();
+  for (const [, r] of all) if (r.kind === 'docket') labels.set(r.oid, r.place);
+  const puts: { rid: Rid; rec: Pinnable | Character }[] = [], holders = new Map<Oid, Point>(labels);
+  for (const [rid, r] of all) {
+    if (r.kind !== 'character') continue;
+    let c = r;
+    if (gm && r.pin) {
+      const label = labels.get(r.pin.card);
+      if (!label && gone(r.pin.card)) { const { pin: _was, ...out } = r; c = out; puts.push({ rid, rec: c }); }
+      else if (label) {
+        const dx = label.x + r.pin.dx - r.card.x, dy = label.y + r.pin.dy - r.card.y;
+        if (dx || dy) {
+          c = { ...r, card: { ...r.card, x: r.card.x + dx, y: r.card.y + dy }, pool: { ...r.pool, x: r.pool.x + dx, y: r.pool.y + dy } };
+          puts.push({ rid, rec: c });
+        }
+      }
+    }
+    holders.set(r.oid, c.card);   // R576: a gathered card's record follows its pool
   }
-  const puts: { rid: Rid; rec: Pinnable }[] = [];
   for (const [rid, r] of all) {
     if (!isPinnable(r) || !r.pin || !(isMine(rid) || (gm && isPiece(rid)))) continue;
     if (!holders.has(r.pin.card)) {

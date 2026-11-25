@@ -1,4 +1,4 @@
-// CRC: crc-Drag.md, crc-TableView.md, crc-PieceView.md, crc-Dockets.md | Test: test-Dockets.md | R529, R530, R531, R532, R535, R536, R538, R539, R541, R542, R543, R544, R545
+// CRC: crc-Drag.md, crc-TableView.md, crc-PieceView.md, crc-Dockets.md | Test: test-Dockets.md | R529, R530, R531, R532, R535, R536, R538, R539, R541, R542, R543, R544, R545, R584, R585, R586, R587, R588, R589
 // Dockets: a label from the desk, the paper in its red tape pinned to it, moved within and taken out,
 // carried by its label, tied up, filed and brought back; across pages, paper the carrier can't read.
 import { expect, test, type Page } from '@playwright/test';
@@ -133,3 +133,99 @@ test("across pages: a note the carrier can't read follows the docket, and stays 
   await expect.poll(() => pinOf(gm, 'o:aa000002'), { timeout: 15_000 }).toBeUndefined();
   expect((await rec(gm, 'o:aa000002')).place).toMatchObject({ x: lay.x, y: lay.y });
 });
+
+const P = (x: number, y: number, z = 5) => ({ x, y, z, tilt: 0 });
+/** Clears the GM's table and puts these pieces: a character is the table's first, copied with what's given. */
+async function seed(gm: Page, pieces: Record<string, unknown>[]): Promise<void> {
+  await gm.evaluate(async ps => {
+    const g = (await (window as any).hollow.ready).store.game;
+    const { shown: _s, info: _i, pin: _p, ...tpl } = g.all().map(([, r]: any) => r).find((r: any) => r.kind === 'character');
+    g.change((w: any) => {
+      for (const [rid] of g.all()) if (rid.startsWith('o:')) w.del(rid);
+      for (const p of ps) w.put(`o:${p.oid}`, p.kind === 'character' ? { ...tpl, gathered: false, ...p } : p);
+    });
+  }, pieces);
+}
+/** An element's box once it has stopped moving (a drop's glide done). */
+async function settled(page: Page, sel: string) {
+  let last = '';
+  await expect.poll(async () => { const b = JSON.stringify(await box(page, sel)), same = b === last; last = b; return same; }, { intervals: [100] }).toBe(true);
+  return box(page, sel);
+}
+const cardOf = (rid: string) => `.obj.card[data-rid="${rid}"]`, poolOf = (rid: string) => `.obj.pool[data-rid="${rid}"]`;
+
+test('characters in a docket: in by the card, out by the pool, carried whole, tied, buried with it', async ({ page }) => {
+  await open(page);
+  const D = 'o:dd000001', C = 'o:cc000001';
+  await seed(page, [
+    { kind: 'docket', oid: 'dd000001', place: P(300, 120, 10), name: 'NPCs', by: 'GM' },
+    { kind: 'character', oid: 'cc000001', owner: 'GM', name: 'Gant', card: P(300, 480), pool: P(800, 430) },
+  ]);
+  await expect(page.locator(cardOf(C))).toBeVisible();
+
+  // R584: the card let go just under the label puts the character in.
+  const lb = await box(page, `[data-rid="${D}"]`), cb = await box(page, cardOf(C));
+  await dragFromTo(page, cb.x + 6, cb.y + 6, lb.x + 6, lb.y + lb.height + 4);
+  await expect.poll(() => pinOf(page, C).then(p => p?.card)).toBe('dd000001');
+  // R585: the tape goes round the card.
+  const tape = await box(page, '.tapes path'), card = await box(page, cardOf(C));
+  expect(tape.y + tape.height).toBeGreaterThan(card.y + card.height);
+
+  // R584: its pool dragged a little, the card still in the tape, it stays in; dragged far, it comes out.
+  const dx0 = (await pinOf(page, C)).dx, pn = await middle(page, `${poolOf(C)} .name`);
+  await dragFromTo(page, pn.x, pn.y, pn.x + 20, pn.y + 10);
+  await expect.poll(() => pinOf(page, C).then(p => p?.dx)).toBeGreaterThan(dx0);
+  expect((await pinOf(page, C)).card).toBe('dd000001');
+  const pn2 = await middle(page, `${poolOf(C)} .name`);
+  await dragFromTo(page, pn2.x, pn2.y, pn2.x + 300, pn2.y + 260);
+  await expect.poll(() => pinOf(page, C)).toBeUndefined();
+  const lb2 = await box(page, `[data-rid="${D}"]`), cb2 = await settled(page, cardOf(C));
+  await dragFromTo(page, cb2.x + 6, cb2.y + 6, lb2.x + 6, lb2.y + lb2.height + 4);
+  await expect.poll(() => pinOf(page, C).then(p => p?.card)).toBe('dd000001');
+
+  // R586: carried by its label, card and pool come along by the same amount.
+  const was = await rec(page, C), g = await grip(page, D);
+  await dragFromTo(page, g.x, g.y, g.x + 60, g.y + 40);
+  await expect.poll(async () => (await rec(page, C)).card.x).not.toBe(was.card.x);
+  const now = await rec(page, C);
+  expect([now.card.x - was.card.x, now.card.y - was.card.y]).toEqual([now.pool.x - was.pool.x, now.pool.y - was.pool.y]);
+
+  // R588: tied, its pool mat and card pile under the label; untied, back where they lie.
+  await page.locator(`[data-rid="${D}"] .knot`).click();
+  await expect(page.locator('.obj.piled')).toHaveCount(2);
+  await page.locator(`[data-rid="${D}"] .knot`).click();
+  await expect(page.locator('.obj.piled')).toHaveCount(0);
+
+  // R589: buried, the docket takes the character with it.
+  const g2 = await grip(page, D), bar = await barMiddle(page);
+  await dragFromTo(page, g2.x, g2.y, bar.x, bar.y);
+  await expect.poll(() => rec(page, C)).toBeUndefined();
+  const burial = (await rec(page, 'yards')).yards.flatMap((y: any) => y.items).find((i: any) => i.name === 'Docket: NPCs');
+  expect(burial.records.map((r: any) => r.oid)).toContain('cc000001');
+});
+
+test("across pages: a docket's NPC follows a player's carry; a player's desk buries their character", async ({ browser }) => {
+  const { gm, invite } = await gmTable(browser);
+  await seed(gm, [
+    { kind: 'docket', oid: 'dd000001', place: P(300, 120, 10), name: 'NPCs', by: 'GM' },
+    { kind: 'character', oid: 'cc000001', owner: 'GM', name: 'Gant', card: P(300, 200), pool: P(800, 200), pin: { card: 'dd000001', dx: 0, dy: 80 } },
+    { kind: 'docket', oid: 'dd000002', place: P(300, 560, 10), name: 'Mine', by: 'Dana' },
+    { kind: 'character', oid: 'cc000002', owner: 'Dana', name: 'Wren', card: P(300, 640), pool: P(800, 600), pin: { card: 'dd000002', dx: 0, dy: 80 } },
+  ]);
+  const dana = await join(browser, invite, 'Dana', gm);
+  await expect(dana.locator(cardOf('o:cc000001'))).toBeVisible();
+  // R586, R587: Dana carries the GM's docket; the GM's page brings its NPC, card and pool, to the label.
+  const g = await grip(dana, 'o:dd000001');
+  await dragFromTo(dana, g.x, g.y, g.x + 150, g.y + 90);
+  await expect.poll(async () => (await rec(gm, 'o:dd000001')).place.x, { timeout: 15_000 }).toBeGreaterThan(300);
+  const d = (await rec(gm, 'o:dd000001')).place;
+  await expect.poll(async () => { const c = await rec(gm, 'o:cc000001'); return [c.card.x - d.x, c.card.y - d.y, c.pool.x - c.card.x]; }, { timeout: 15_000 })
+    .toEqual([0, 80, 500]);
+  // R589: Dana files her docket on her desk: the docket is filed, her character buried.
+  const g2 = await grip(dana, 'o:dd000002'), desk = await middle(dana, '#bar .desk');
+  await dragFromTo(dana, g2.x, g2.y, desk.x, desk.y);
+  await expect.poll(() => rec(gm, 'o:cc000002'), { timeout: 15_000 }).toBeUndefined();
+  expect((await rec(dana, 'desk')).desks[0].items.map((e: any) => [e.name, e.records.map((r: any) => r.oid)])).toEqual([['Docket: Mine', ['dd000002']]]);
+  await expect.poll(async () => (await rec(gm, 'yards')).yards.flatMap((y: any) => y.items).map((i: any) => i.name), { timeout: 15_000 }).toContain('Wren');
+});
+

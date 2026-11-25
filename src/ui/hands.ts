@@ -4,8 +4,8 @@
 // is sent or saved; each page draws the aims in its own layout.
 
 import type { Game } from '../model/game.ts';
-import { isPinnable, ridOf, type Oid, type PieceRecord, type Pin, type Pinnable, type Rid, type SlotName } from '../model/records.ts';
-import { pile } from '../rules/dockets.ts';
+import { isPinnable, ridOf, type Character, type Oid, type PieceRecord, type Pin, type Pinnable, type Rid, type SlotName } from '../model/records.ts';
+import { pile, pileKeys } from '../rules/dockets.ts';
 import { tiedHere } from './piece.ts';
 import type { Item } from '../rules/pool.ts';
 import type { Aim, MoveItem } from '../net/moves.ts';
@@ -78,23 +78,34 @@ export class Hands {
     this.react();
   }
 
-  // R541, R542: a docket brings the papers pinned to it that this page holds, where they lie from its label,
-  // or piled under it when it is tied here.
-  /** Holds a docket's papers for its label at `at`; the keys. */
+  // R541, R542, R586, R588: a docket brings the papers pinned to it that this page holds, and its characters
+  // (each card, its pool mat and the paper on its card), where they lie from its label, or piled under it
+  // when it is tied here.
+  /** Holds a docket's papers and characters for its label at `at`; the keys. */
   #papers(oid: Oid, rid: Rid, at: { x: number; y: number }, own: boolean): string[] {
-    const { table, game } = this.#w, label = table.element(rid);
-    const papers: [Rid, Pinnable & { pin: Pin }][] = [];
-    for (const [r2, o] of game.all()) {
+    const { table, game } = this.#w, label = table.element(rid), all = game.all();
+    const papers: [Rid, Pinnable & { pin: Pin }][] = [], chars: [Rid, Character & { pin: Pin }][] = [];
+    const onCard = (c: Oid) => all.filter(([r2, q]) => isPinnable(q as PieceRecord) && (q as Pinnable).pin?.card === c && table.element(r2)) as [Rid, Pinnable & { pin: Pin }][];
+    for (const [r2, o] of all) {
       const q = o as PieceRecord;
       if (isPinnable(q) && q.pin?.card === oid && table.element(r2)) papers.push([r2, q as Pinnable & { pin: Pin }]);
+      else if (q.kind === 'character' && q.pin?.card === oid && table.element(r2)) chars.push([r2, q as Character & { pin: Pin }]);
     }
     const keys: string[] = [];
     if (label && tiedHere(game).has(oid)) {
       const box = { left: at.x, top: at.y, right: at.x + label.offsetWidth, bottom: at.y + label.offsetHeight };
-      for (const [r2, p] of pile(box, papers.map(([r2, q]) => ({ rid: r2, z: q.place.z })))) keys.push(...this.#hold(r2, r2, p, own));
+      const items = [...papers.map(([r2, q]) => ({ rid: r2, z: q.place.z })), ...chars.map(([r2, c]) => ({ rid: r2, z: c.card.z, on: onCard(c.oid).map(([r3]) => r3) }))];
+      for (const [key, p] of pile(box, pileKeys(items).map((r2, z) => ({ rid: r2, z })))) {
+        keys.push(...this.#hold(key, key.endsWith('#pool') ? key.slice(0, -5) : key, p, own));
+      }
       return keys;
     }
     for (const [r2, { pin }] of papers) keys.push(...this.#hold(r2, r2, { x: at.x + pin.dx, y: at.y + pin.dy }, own));
+    for (const [r2, c] of chars) {
+      const card = { x: at.x + c.pin.dx, y: at.y + c.pin.dy }, spot = (c.gathered ? table.gatheredAt(r2) : null) ?? c.card;
+      keys.push(...this.#hold(r2, r2, card, own), ...this.#hold(`${r2}#pool`, r2, { x: card.x + c.pool.x - spot.x, y: card.y + c.pool.y - spot.y }, own));
+      for (const [r3, q] of onCard(c.oid)) keys.push(...this.#hold(r3, r3, { x: card.x + q.pin.dx, y: card.y + q.pin.dy }, own));
+    }
     return keys;
   }
 

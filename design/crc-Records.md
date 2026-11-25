@@ -1,5 +1,5 @@
 # Records
-**Requirements:** R23, R26, R28, R36, R38, R47, R98, R126, R130, R191, R209, R211, R248, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R360, R362, R380, R381, R391, R400, R407-409, R419, R426, R429, R436, R439, R462-464, R486, R488, R491, R499, R500, R577, R581, R524, R525, R532, R533, R536, R542, R550, R557
+**Requirements:** R23, R26, R28, R36, R38, R47, R98, R126, R130, R191, R209, R211, R248, R264, R266, R278, R279, R312, R317, R340, R341, R343, R347, R348, R360, R362, R380, R381, R391, R400, R407-409, R419, R426, R429, R436, R439, R462-464, R486, R488, R491, R499, R500, R577, R581, R524, R525, R532, R533, R536, R542, R550, R557, R584
 
 The game as typed records: the lingua franca every other part speaks. What is saved, sent, redacted,
 checkpointed and exported is these records; the DOM is a view of them. Plain data, no methods, so a
@@ -18,7 +18,8 @@ record crosses the wire, the database and an export file unchanged.
 - Character: `{kind: 'character', oid, owner: Who, name, pool: Place, card: Place, flipped,
   gathered, front: Marked, back: CardBack, shown?: string[]}`. `name` is public; `front` and `back` are
   secret. `info` (R400) is an NPC's Info cards, a text each, absent when none. `shown` (R391) is the front's revealed lines, each by its text, for an NPC the GM reveals
-  lines of; absent when none.
+  lines of; absent when none. `pin` (R584) is the docket it is in, a Pin naming the docket, at its card's
+  offset from the label; absent when in none.
 - Damage: `bias | affliction | injury`, the back's columns (Hollow Folks, *Injury, Bias, and
   Affliction Pools*), named as their pool slots. Level rows:
   `mild | min | sig | maj`.

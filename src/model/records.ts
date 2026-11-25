@@ -72,6 +72,8 @@ export type Character = {
   shown?: string[];
   /** R400: an NPC's Info cards, a text each; absent when none. */
   info?: Marked[];
+  /** R584: the docket it is in, at its card's offset from the label; absent when in none. */
+  pin?: Pin;
 };
 
 /** A tapped card's ledger: Levels put in by each source (`<character oid>:<name>`). */
@@ -95,7 +97,8 @@ export type Flag = { why: string; fed?: Record<string, number>; plain?: true };
 // R360: `by` is who put it in a pool; none on a Roll Up's chip or one from before.
 export type Chip = { kind: 'chip'; oid: Oid; where: Where; n: number; sign: Sign; points: number; rider: boolean; by?: Who };
 
-// R27, R536: paper pinned to a card or a docket (`card` names either), at its offset from the card or label.
+// R27, R536, R584: paper pinned to a card or a docket (`card` names either), at its offset from the card or label;
+// a character in a docket, its card at its offset from the label.
 export type Pin = { card: Oid; dx: number; dy: number };
 // R499, R500, R577, R581: paper's owner, at first its maker (`by`; none on paper from before, which counts
 // as the GM's), the players who read it besides its owner (`to`; absent is everyone, and the GM reads any
@@ -343,7 +346,7 @@ const readers = { by: str(CAPS.name), to: list(str(CAPS.name), 200), mine: oneOf
 export const DOCKET_NAME = 40;
 const PIECES: Record<PieceRecord['kind'], Shape> = {
   character: fields({ kind: oneOf('character'), oid: isOid, owner: str(CAPS.name), name: str(CAPS.name), pool: place,
-    card: place, flipped: bool, gathered: bool, front: marked, back }, { shown: list(marked), info: list(marked, 20) }),
+    card: place, flipped: bool, gathered: bool, front: marked, back }, { shown: list(marked), info: list(marked, 20), pin }),
   influence: fields({ kind: oneOf('influence'), oid: isOid, home: isOid, where, n: int(0, CAPS.list), name: str(CAPS.name),
     sign, points, used: bool, crit: bool },
     { tap: fields({ ledger: dict(int(0, 100)), current: str(CAPS.name) }), damage: oneOf(...DAMAGE), mot: oneOf(true), once: oneOf(true),

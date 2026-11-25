@@ -11,9 +11,10 @@ The desk itself and its pigeonholes are in `table.md`, *The bar*. From `carves/d
   the bar it names the graveyard.
 - **The drawers are fixed by kind** (Bill, 2026-11-23: "fixed by kind"). The GM's desk has three:
   **Characters** (a character a player owns, or an open one), **NPCs** (the GM's own characters), and
-  **Papers** (stickies, loose text, images and dockets, a docket with its papers). A player's desk has **Papers** alone (Bill,
-  2026-11-24: "Paper only"): a character is the GM's game, so a character a player drops on their desk
-  is buried, as anywhere else on the bar.
+  **Papers** (stickies, loose text, images and dockets, a docket with its papers and its characters,
+  see `dockets.md`). A player's desk has **Papers** alone (Bill, 2026-11-24: "Paper only"): a character
+  is the GM's game, so a character a player drops on their desk is buried, as anywhere else on the
+  bar, and so are the characters in a docket a player files.
 - **What isn't filed** does on the desk what it does on the bar: plain chips vanish, an Influence card
   goes home, the reference card vanishes, the Connection Table is put away, a torn tape is buried on
   its own page.

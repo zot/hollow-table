@@ -1,5 +1,5 @@
 # Dockets
-**Requirements:** R531, R534, R536-539, R542, R543, R545, R576
+**Requirements:** R531, R534, R536-539, R542, R543, R545, R576, R587, R588
 
 Dockets, pure: the red tape's shape and the touch test, where a docket's papers pile when it is tied,
 and which pinned paper must be moved to its holder or let loose. No DOM: boxes come in, places and
@@ -24,13 +24,18 @@ paths go out.
   never offers a docket for a docket.
 - pile(label, papers) (R542, R543): where each of a tied docket's papers lies: squarely under the
   label, each PILE_STEP right and down from the last, in their z order.
-- repin(all, gm, gone) (R531, R545, R576): the puts that bring pinned paper to its holder (a card's card,
+- pileKeys(items) (R588): a tied docket's pile, bottom up by z, as keys for pile: a paper by itself; a
+  character as its pool mat (`rid#pool`), its card, then the paper pinned to its card.
+- repin(all, gm, gone) (R531, R545, R576, R587): the puts that bring pinned paper to its holder (a card's card,
   gathered or not, or a docket's label) plus its offset, and that unpin paper whose holder was deleted
   (`gone`: the GM's page's tombstones): shared paper on the GM's page, and on every page its own `mine`
-  paper. A holder merely not on the page keeps its paper. Nothing when all is where it belongs.
+  paper. A holder merely not on the page keeps its paper. On the GM's page a character in a docket goes
+  first, to the label plus its card's offset, card and pool by the same amount, or out of it where it
+  lies when its docket was deleted; the paper on its card then follows its new place in the same pass.
+  Nothing when all is where it belongs.
 
 ## Collaborators
-- Records: Pin, Docket and the paper it pins; ridFor for what to put.
+- Records: Pin, Docket and the paper and characters it pins; ridFor for what to put.
 
 ## Sequences
 - none

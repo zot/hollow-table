@@ -39,8 +39,9 @@ const withYard = (y: Yards, at: number, g: Graveyard): Yards => ({ yards: y.yard
 // pool's slots, and whatever is pinned to it.
 /** The records a piece is buried with: itself, and for a character everything on it. */
 export function burialOf(piece: PieceRecord, all: PieceRecord[]): PieceRecord[] {
-  // R544: a docket goes with the paper pinned to it.
-  if (piece.kind === 'docket') return [piece, ...all.filter(r => isPinnable(r) && r.pin?.card === piece.oid)];
+  // R544, R589: a docket goes with the paper pinned to it, and its characters with everything on them.
+  if (piece.kind === 'docket') return [piece, ...all.flatMap(r =>
+    !('pin' in r) || r.pin?.card !== piece.oid ? [] : r.kind === 'character' ? burialOf(r, all) : [r])];
   if (piece.kind !== 'character') return [piece];
   const oid: Oid = piece.oid;
   const inSlot = (r: PieceRecord) => (r.kind === 'chip' || r.kind === 'influence') && typeof r.where === 'object' && 'slot' in r.where && r.where.slot === oid;

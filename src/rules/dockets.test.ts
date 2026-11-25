@@ -66,7 +66,7 @@ test('paper follows its holder', () => {
     ['o:a0000003', note('a0000003', 'd0000001', 510, 520)],             // where it belongs
   ];
   const gm = repin(all, true, () => false);
-  assert.deepEqual(gm.map(p => [p.rid, p.rec.place.x, p.rec.place.y]), [['o:a0000001', 310, 320], ['m:a0000002', 510, 520]]);
+  assert.deepEqual(gm.map(p => [p.rid, (p.rec as Sticky).place.x, (p.rec as Sticky).place.y]), [['o:a0000001', 310, 320], ['m:a0000002', 510, 520]]);
   assert.deepEqual(repin(all, false, () => false).map(p => p.rid), ['m:a0000002'], "a player's page moves only its own");
   // R576: a gathered card counts by its record too, which the GM's page keeps under its pool.
   assert.deepEqual(repin([['o:c0000001', { ...card, gathered: true }], all[2]!], true, () => false).map(p => p.rid), ['o:a0000001']);
@@ -77,7 +77,23 @@ test('paper whose holder is gone', () => {
   const gone = (oid: string) => oid === 'd0000009';
   const [p] = repin(all, true, gone);
   assert.equal(p!.rec.pin, undefined);
-  assert.deepEqual([p!.rec.place.x, p!.rec.place.y], [40, 50]);
+  assert.deepEqual([(p!.rec as Sticky).place.x, (p!.rec as Sticky).place.y], [40, 50]);
   assert.deepEqual(repin(all, false, gone), [], "a player's page leaves the table's paper alone");
   assert.deepEqual(repin(all, true, () => false), [], 'a holder merely not here (a "just me" docket elsewhere) keeps it');
 });
+
+test('a character in a docket follows its label, card and pool together', () => {
+  // R587: the card goes to the label plus its offset, the pool by as much, and the card's paper after it.
+  const inIt = { ...card, pin: { card: 'd0000001', dx: 50, dy: 60 } } as Character;
+  const all: [Rid, PieceRecord][] = [['o:d0000001', docket], ['o:c0000001', inIt], ['o:a0000001', note('a0000001', 'c0000001', 310, 320)]];
+  const puts = repin(all, true, () => false);
+  const c = puts.find(p => p.rid === 'o:c0000001')!.rec as Character, n = puts.find(p => p.rid === 'o:a0000001')!.rec as Sticky;
+  assert.deepEqual([c.card.x, c.card.y, c.pool.x, c.pool.y], [550, 560, 250, 260]);
+  assert.deepEqual([n.place.x, n.place.y], [560, 580], "the card's paper follows its new place in the same pass");
+  assert.deepEqual(repin(all, false, () => false), [], "a player's page moves no character");
+  // R587, R545: its docket deleted, it comes out where it lies.
+  const out = repin([['o:c0000001', inIt]], true, oid => oid === 'd0000001');
+  assert.deepEqual(out.map(p => [p.rid, (p.rec as Character).pin, (p.rec as Character).card.x]), [['o:c0000001', undefined, 300]]);
+  assert.deepEqual(repin([['o:c0000001', inIt]], true, () => false), [], 'a docket merely not here keeps it');
+});
+

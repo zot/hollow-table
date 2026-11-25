@@ -172,3 +172,13 @@ test('a docket is paper, buried and filed with its papers', async () => {
   assert.deepEqual(own.map(r => r.oid), ['a0000002']);
   assert.equal(graveName(d), 'Docket: Clues');
 });
+
+test('a docket is buried with its characters and everything on them', () => {
+  // R589: Devreux in the docket goes with it, with his cards and the paper on his card; Beauford, out, stays.
+  const d: PieceRecord = { kind: 'docket', oid: 'd0000001', place: { x: 0, y: 0, z: 1, tilt: 0 }, name: 'NPCs' };
+  const onCard: PieceRecord = { kind: 'sticky', oid: '0000000b', place: { x: 0, y: 0, z: 0, tilt: 0 }, text: 'x', pin: { card: DEVREUX, dx: 1, dy: 1 } };
+  const devreux = { ...piece(DEVREUX), pin: { card: 'd0000001', dx: 5, dy: 5 } } as PieceRecord;
+  const all = [d, ...records.map(r => r.oid === DEVREUX ? devreux : r), onCard];
+  assert.deepEqual(burialOf(d, all).map(r => r.oid), ['d0000001', DEVREUX, '00000004', '00000005', '00000006', '0000000b']);
+});
+

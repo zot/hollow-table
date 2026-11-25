@@ -4,12 +4,13 @@
 // sends to the room; the drop is one Game.change. Each kind gives only its place, aim and drop.
 
 import type { Game } from '../model/game.ts';
-import { isPinnable, ridFor, ridOf, type Character, type Docket, type Hill, type Desk, type Drawer, type Oid, type PieceRecord, type Place, type Rid, type SlotName, type Yards } from '../model/records.ts';
+import { GM, isPinnable, ridFor, ridOf, type Character, type Docket, type Hill, type Desk, type Drawer, type Oid, type PieceRecord, type Place, type Rid, type SlotName, type Yards } from '../model/records.ts';
 import { aimed } from '../rules/dockets.ts';
+import { mayChange } from '../rules/ownership.ts';
 import type { Item } from '../rules/pool.ts';
 import { gapAt } from './pool.ts';
 import { killCard, mergeTap, tapOut, toDrawer, toSlot, toTable, vanish, type Change } from './actions.ts';
-import { bury, buryOwn, empty, graveName, putAway } from '../rules/yards.ts';
+import { burialOf, bury, buryOwn, empty, graveName, putAway } from '../rules/yards.ts';
 import { LABEL, deskName, desksOf, drawerOf, filed } from '../rules/drawers.ts';
 import type { Aim, MoveItem, Moves } from '../net/moves.ts';
 import { paced, type PointerLike } from './gesture.ts';
@@ -144,11 +145,9 @@ export class Drag {
     const { game, table } = this.#w;
     const rec = game.get(rid) as PieceRecord | undefined, at = rec && placeOf(rec), el = table.element(rid);
     if (!rec || !at || !el) return;
-    // R543: a press on a docket tied here carries the whole docket.
-    if (isPinnable(rec) && rec.pin && tiedHere(game).has(rec.pin.card) && table.element(ridOf(rec.pin.card))) {
-      this.start(ridOf(rec.pin.card), down, move, loose);
-      return;
-    }
+    // R543, R588: a press on a docket tied here carries the whole docket, its characters' parts too.
+    const tied = this.#tiedIn(rec);
+    if (tied) { this.start(tied, down, move, loose); return; }
     // R532: a docket just made, let go on the table, has its name selected, so typing names it.
     const named = rec.kind === 'docket' && this.#fresh.has(rid);
     // R32: a card dragged alone leaves its pool from where it was drawn (gathered, under the drawer).
@@ -164,7 +163,9 @@ export class Drag {
         if (held) { table.pinLine(rid, f, this.#middle(held), [ridOf(held.oid)]); return f; }
         const card = pins ? this.#cardAt(el.ownerDocument, cx, cy, el) : undefined;
         if (card) return { ...f, aim: { card: ridOf(card.oid) } };
-        const docket = pins ? aimed(table.targets(rid), { left: f.x, top: f.y, right: f.x + el.offsetWidth, bottom: f.y + el.offsetHeight }) : null;
+        // R584: a character's card is aimed at a docket as paper is, by whoever may move it.
+        const joins = pins || (rec.kind === 'character' && this.#may(rec));
+        const docket = joins ? aimed(table.targets(rid), { left: f.x, top: f.y, right: f.x + el.offsetWidth, bottom: f.y + el.offsetHeight }) : null;
         return docket ? { ...f, aim: { docket: ridOf(docket) } } : f;
       },
       buries: rec.kind !== 'reference' && rec.kind !== 'connections' && !this.#fresh.has(rid),
@@ -191,6 +192,25 @@ export class Drag {
     if (!isPinnable(rec) || !rec.pin) return null;
     const c = this.#w.game.get(ridOf(rec.pin.card)) as PieceRecord | undefined;
     return c?.kind === 'character' ? c : null;
+  }
+
+  // R543, R588: the tied docket a press on this piece carries instead: the docket a paper or character is
+  // pinned to, or the one the character a paper is pinned to is in, when it is tied here.
+  /** The rid of the docket tied here that this piece is part of, if any. */
+  #tiedIn(rec: PieceRecord): Rid | null {
+    const { game, table } = this.#w, tied = tiedHere(game);
+    let pin = isPinnable(rec) || rec.kind === 'character' ? rec.pin : undefined;
+    if (pin && isPinnable(rec)) {
+      const holder = game.get(ridOf(pin.card)) as PieceRecord | undefined;
+      if (holder?.kind === 'character') pin = holder.pin;
+    }
+    return pin && tied.has(pin.card) && table.element(ridOf(pin.card)) ? ridOf(pin.card) : null;
+  }
+
+  /** R584, R586: whether this page may move a character (Ownership.mayChange). */
+  #may(c: Character): boolean {
+    const { gm, who } = this.#w;
+    return mayChange(gm ? { name: GM, gm: true } : { name: who() ?? '', gm: false }, c, c);
   }
 
   // R575: a gathered card belongs under its pool (TableView.gatheredAt), which its record may not say yet;
@@ -251,20 +271,30 @@ export class Drag {
     const { game, table } = this.#w;
     const c = game.get(rid) as Character | undefined;
     if (!c || c.kind !== 'character' || !table.pool(rid)) return;
+    // R588: a pool in a docket tied here carries the whole docket.
+    const tied = this.#tiedIn(c);
+    if (tied) { this.start(tied, down, move, loose); return; }
     const p0 = table.toWorld(down.clientX, down.clientY), grip = { x: p0.x - c.pool.x, y: p0.y - c.pool.y };
     // R574: where its card is drawn before the carry; while carried it is drawn where it is headed.
-    const spot = this.#spot(c);
+    const spot = this.#spot(c), cardEl = table.element(rid), may = this.#may(c);
     let away = false;
     this.#carry({
       rid, part: 'pool',
-      frame: (cx, cy) => less(table.toWorld(cx, cy), grip),
+      // R584: a pool let go alone decides by where its card lands: its card is aimed at a docket.
+      frame: (cx, cy) => {
+        const f: Frame = less(table.toWorld(cx, cy), grip);
+        if (!cardEl || !may) return f;
+        const x = spot.x + f.x - c.pool.x, y = spot.y + f.y - c.pool.y;
+        const docket = aimed(table.targets(rid), { left: x, top: y, right: x + cardEl.offsetWidth, bottom: y + cardEl.offsetHeight });
+        return docket ? { ...f, aim: { docket: ridOf(docket) } } : f;
+      },
       buries: !this.#fresh.has(rid),
       files: this.#fresh.has(rid) ? null : drawerOf(c, this.#w.gm),
       drop: (last, over, z, file) => {
         away = over || file !== null;
         if (file !== null) return this.#file(c, file);
         if (over) return this.#putAway(c);
-        return this.#drop(c, 'pool', c.pool, last, z, undefined, spot);
+        return this.#drop(c, 'pool', c.pool, last, z, last.aim, spot);
       },
       done: () => { if (!away) done?.(); },
       loose,
@@ -423,35 +453,47 @@ export class Drag {
     const { game, gm } = this.#w, drawer = drawerOf(rec, gm);
     if (!drawer) return () => {};
     const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
-    const { shared, own } = putAway(rec, all), recs = [...shared, ...own];
+    // R589: a player's desk takes paper only: a docket's characters filed there are buried, each as itself.
+    const chars = gm || rec.kind !== 'docket' ? [] : all.filter(r => r.kind === 'character' && r.pin?.card === rec.oid);
+    const buried = new Set(chars.flatMap(c => burialOf(c, all)).map(ridFor)), bury = this.#bury(chars);
+    const { shared, own } = putAway(rec, all), recs = [...shared, ...own].filter(r => !buried.has(ridFor(r)));
     const d = this.#desks();
     return w => {
       w.put('desk', filed(d, at, drawer, recs, graveName(rec)));
       for (const r of recs) w.del(ridFor(r));
+      bury(w);
     };
   }
 
   // R119, R122, R288, R290: put away on the bar: the reference card vanishes; anything else is
   // buried in the current graveyard, a character with its cards and pinned paper, under its name.
   #putAway(rec: PieceRecord): Change {
-    const { game } = this.#w, rid = ridFor(rec);
+    const rid = ridFor(rec);
     // R19: a supply dropped back on the bar makes nothing.
     if (this.#fresh.delete(rid) || rec.kind === 'reference') return w => w.del(rid);
     // R409: the Connection Table is put away, kept for its supply, not buried.
     if (rec.kind === 'connections') return w => w.put(rid, { ...rec, away: true });
-    // R488, R500: a torn roll and `mine` paper are buried on this page alone, in its Hill under the
-    // graveyard's name (a character's pinned `mine` paper apart from it); the rest in Boot Hill.
-    const all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
-    const { shared, own } = putAway(rec, all), y = (game.get('yards') as Yards | undefined) ?? empty();
-    const cur = Math.min(this.#w.yard().cur, y.yards.length - 1);
+    return this.#bury([rec]);
+  }
+
+  // R488, R500: a torn roll and `mine` paper are buried on this page alone, in its Hill under the
+  // graveyard's name (a character's pinned `mine` paper apart from it); the rest in Boot Hill.
+  /** Buries each piece, a burial apiece, in one change. */
+  #bury(pieces: PieceRecord[]): Change {
+    const { game } = this.#w, all = game.all().map(([, r]) => r).filter((r): r is PieceRecord => 'kind' in r);
+    let y = (game.get('yards') as Yards | undefined) ?? empty(), h = (game.get('hill') as Hill | undefined) ?? { hill: [] };
+    const cur = Math.min(this.#w.yard().cur, y.yards.length - 1), gone: PieceRecord[] = [];
+    let shares = false, owns = false;
+    for (const rec of pieces) {
+      const { shared, own } = putAway(rec, all);
+      if (shared.length) { y = bury(y, cur, shared, graveName(rec)); shares = true; }
+      for (const r of own) { h = buryOwn(h, this.#w.yard().name, [r], graveName(r)); owns = true; }
+      gone.push(...shared, ...own);
+    }
     return w => {
-      if (shared.length) w.put('yards', bury(y, cur, shared, graveName(rec)));
-      if (own.length) {
-        let h = (game.get('hill') as Hill | undefined) ?? { hill: [] };
-        for (const r of own) h = buryOwn(h, this.#w.yard().name, [r], graveName(r));
-        w.put('hill', h);
-      }
-      for (const r of [...shared, ...own]) w.del(ridFor(r));
+      if (shares) w.put('yards', y);
+      if (owns) w.put('hill', h);
+      for (const r of gone) w.del(ridFor(r));
     };
   }
 
@@ -528,26 +570,38 @@ export class Drag {
         if ('kind' in q && isPinnable(q) && q.pin?.card === holder) w.put(r2, { ...q, place: moved(q.place) });
       }
     };
+    // R584: a character let go aimed at a docket is in it, at its card's offset from the label; else out.
+    const docketed = (c: Character): Character => {
+      const d = aim?.docket ? game.get(aim.docket) as Docket | undefined : undefined, { pin: _was, ...out } = c;
+      return d?.kind === 'docket' ? { ...out, pin: { card: d.oid, dx: c.card.x - d.place.x, dy: c.card.y - d.place.y } } : out;
+    };
     return w => {
       if (rec.kind === 'character') {
         // R574: a gathered card's record goes where it is drawn, moved with the pool; its paper comes too.
         if (part === 'pool') {
           const s = cardFrom ?? this.#spot(rec);
           const card = rec.gathered ? { ...rec.card, x: Math.round(s.x + dx), y: Math.round(s.y + dy) } : moved(rec.card);
-          w.put(rid, { ...rec, pool: moved(rec.pool), card });
+          w.put(rid, docketed({ ...rec, pool: moved(rec.pool), card }));
           bringPapers(w, rec.oid);
           return;
         }
-        w.put(rid, { ...rec, card: { ...rec.card, x: to.x, y: to.y, z }, gathered: false });
+        w.put(rid, docketed({ ...rec, card: { ...rec.card, x: to.x, y: to.y, z }, gathered: false }));
         bringPapers(w, rec.oid);
         return;
       }
       if (!('place' in rec)) return;
       const place = moved(rec.place);
-      // R541: a docket brings its papers, by the same offset.
+      // R541, R586: a docket brings its papers, and its characters with what's on them, by the same offset;
+      // the GM's page brings those this page may not move (R587).
       if (rec.kind === 'docket') {
         w.put(rid, { ...rec, place });
         bringPapers(w, rec.oid);
+        for (const [r2, o] of game.all()) {
+          const c = o as PieceRecord;
+          if (c.kind !== 'character' || c.pin?.card !== rec.oid || !this.#may(c)) continue;
+          w.put(r2, { ...c, card: moved(c.card), pool: moved(c.pool) });
+          bringPapers(w, c.oid);
+        }
         return;
       }
       if (!isPinnable(rec)) { w.put(rid, { ...rec, place }); return; }
