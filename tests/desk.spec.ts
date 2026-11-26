@@ -94,6 +94,9 @@ test('let go in a pigeonhole, and it follows until the next press', async ({ pag
 });
 
 test('the image pigeonhole opens the picker, let go in or dragged out', async ({ page }) => {
+  // A standing listener keeps Playwright catching file pickers for the whole test; without it the picker is
+  // caught only once each wait has reached the browser, which a quick release can beat.
+  page.on('filechooser', () => {});
   await open(page);
   const desk = await middle(page, '#bar .desk');
   // R515: let go in the image pigeonhole: the picker, then the image carried until a press.
