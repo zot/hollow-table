@@ -14,7 +14,7 @@ export function worldFrom(text: string): World | null {
   return /^[-+]?\d{1,3}$/.test(t) ? { set: true, total: Number(t) } : null;
 }
 
-export type TrayWith = { game: Game; viewer: Viewer };
+export type TrayWith = { game: Game; viewer: Viewer; signal: AbortSignal };
 
 export class TrayView {
   #w: TrayWith;
@@ -55,7 +55,7 @@ export class TrayView {
     }
     this.#tray.append(label, this.#value);
     slot.replaceChildren(this.#button, this.#tray);
-    w.game.listen(() => this.render());
+    w.game.listen(() => this.render(), w.signal);
     this.render();
   }
 

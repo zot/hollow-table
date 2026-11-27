@@ -141,6 +141,7 @@
 - **R595:** The GM's page deletes the reference records the game holds under `o:` (older games' shared cards), whenever it holds any.
 - **R597:** The desk on the bar is a little writing desk seen a little from above: a gallery of arched pigeonholes with paper standing in them (white, yellow, manila) and three little drawers between them, a green leather top, two drawers below with brass rings, and four tapered legs.
 - **R598:** Under the pointer, or pressed, the desk's pigeonholes light; on the board of desks, the row under a carried piece lights its miniature's pigeonholes.
+- **R601:** The table never calls the browser's dialogs; it asks on a card of its own laid in the middle of the table, the page dimmed behind it: the question, a line to write in or Yes and No, OK and Cancel, Enter answering and Escape cancelling. A name on arrival, a player's and the GM's renames, a checkpoint's name and handing a name over ask on it.
 
 ## Feature: Influence
 **Source:** specs/influence.md
@@ -463,6 +464,9 @@
 - **R582:** Everyone who reads a note may write on it, move it and put it away; only its owner (the GM for paper without a maker) changes `to`, and its owner or the GM changes `by`, only as a hand-over (R579); a player can't make paper with another's name as its maker, except a `handed` note.
 - **R583:** A press outside the paper's open ▾ menu, anywhere but the menu and its ▾, closes the menu without stopping the press, which goes on to do what it would have.
 - **R596:** While a paper's ▾ menu is open, the paper and its menu lie over every other piece on the table, papers pinned to its own docket too, though not over a piece being carried or a pin line's pair.
+- **R599:** Choosing someone in "You are" redraws the GM's page as that person without leaving the table: the room, its connections and the GM's presence hold, so no page sees the GM go.
+- **R600:** After a switch in "You are", nothing of the views drawn for the viewer before acts: one press, key or change does what the new views do, once.
+- **R603:** Viewing as a player ("You are"), the GM's page draws each record as it would reach that player: an Opinion Record only once a line of it is revealed, only that line, and on the cards it is published on; the Connection Table, paper they don't read and burials they wouldn't see not at all. The page's own records stay whole.
 
 ## Feature: the network
 **Source:** specs/network.md
@@ -474,7 +478,7 @@
 - **R160:** Every page uses the same pinned list of relays.
 - **R161:** Name tags in the bar show who is at the table; the GM's tag is clickable to rename.
 - **R293:** Name tags read in the hand font beside a dot, green and glowing when live; the GM's reddish, your own outlined; the GM first, then you, then the rest alphabetically; a tag dims after 25 s unheard and goes after 60 s; the GM renames by a prompt (32 characters, blank is "GM"); red tags with no dot mark someone holding another browser's name (the GM can hand it over), "not yours", and "offline" with why.
-- **R294:** Copy invite says "Copied" for about a second, or shows the link if the clipboard refuses; arriving by an invite asks for a name until one that isn't "GM" is given (cancel gives "Player").
+- **R294:** Copy invite says "Copied" for about a second, or shows the link if the clipboard refuses (under the button, R602); arriving by an invite asks for a name until one that isn't "GM" is given (cancel gives "Player").
 - **R162:** A page that connects is greeted and answers; a connection that closes counts as leaving.
 - **R163:** A page is live while a relay or a peer is reachable, offline (with why) after 15 s with neither, and keeps trying.
 - **~~R164:~~** (Retired T54 — see R474) Each browser makes a non-extractable signing key pair once and keeps it; its id derives from the public key and survives reloads.
@@ -535,6 +539,7 @@
 - **R475:** Each player name a browser takes has its own non-extractable signing key pair, made when the name is first taken there and kept; a page of that name uses it, so its id survives reloads and two tabs of one name are one player.
 - **R476:** The plain page is the GM's, and an invite makes a player, whose name is the tab's: a reload keeps it without asking; arriving by an invite in a new tab asks, listing the names this browser holds; one of those, in any case, is that name, and any other is a new name.
 - **R477:** The name a browser had before names were per tab keeps the browser's own key, becoming the first name it holds, so its id and claims hold.
+- **R602:** When the clipboard refuses Copy invite, the link shows in a line just under the button, selected, until a press elsewhere or Escape puts it away.
 
 ## Feature: connections
 **Source:** specs/connections.md

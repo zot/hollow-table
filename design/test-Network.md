@@ -301,7 +301,7 @@ by the drop
 **Pulled:** 2026-11-23 — re-pulled after R483-R485 (main changed): rang, no message for the old invite (Chromium); restored clean *Earlier —* 2026-11-23 — re-pulled after R476 (main changed): rang (Chromium), falling through, no old-invite message was shown; restored clean *Earlier —* 2026-11-22 — rang (Chromium): falling through, no old-invite message was shown; restored clean
 ## Test: two tabs of one browser are two players
 **Purpose:** R475, R476: a name is the tab's, with its own key, so one browser seats two players; a reload keeps the tab's name without asking, and a new tab offers the names held
-**Expected:** in one browser, a tab arriving as Dana and another as Sam both show on the GM's page, each with its own id; the second tab's prompt lists Dana; Dana's tab reloads as Dana without being asked
+**Expected:** in one browser, a tab arriving as Dana and another as Sam both show on the GM's page, each with its own id; the second tab's question card lists Dana (R601); Dana's tab reloads as Dana without being asked
 **Refs:** crc-Identity.md, crc-Presence.md, seq-join.md
 **Code:** `tests/sync.spec.ts`
 **Alarm:** 25
@@ -405,3 +405,103 @@ by the drop
 **Fire alarm:** the close stops the press (`stopPropagation` in readMenu's listener); red: the table doesn't pan
 **Inject:** src/ui/piece.ts
 **Pulled:** 2026-11-25 — 2026-11-25 — rang: with the close stopping the press, the table did not pan (line 54, Chromium); restored clean, dist rebuilt
+
+## Test: "You are" switches without leaving the table
+**Purpose:** R599, R600: switching "You are" on the GM's page redraws it as the person chosen on the same page and connection, so no page sees the GM go, and leaves no listener of the views before.
+**Input:** the GM's table open, Dana joined; Dana's page counts each 50 ms it doesn't see the GM; the GM's page notes its wire, then switches to Dana and back to the GM.
+**Expected:** as Dana, six pigeonholes (no Connection Table's); back as the GM, seven; the same wire throughout; as many listening to the game as before; one bar; Dana never without the GM.
+**Refs:** crc-Folks.md
+**Code:** tests/viewas.spec.ts
+**Alarm:** 35
+**Fire alarm:** the switch reloads the page, as before; red: the wire is not the one noted, and Dana's page counts the GM gone
+**Inject:** src/main.ts
+**Pulled:** 2026-11-27 — rang: with the switch reloading, the GM's page held another wire (line 37, Chromium); restored clean
+
+## Test: the views before a switch hear nothing
+**Purpose:** R600: a switch ends the old build, so the game has no more listeners after a round trip than before it.
+**Input:** as above.
+**Expected:** as many listening after GM → Dana → GM as before.
+**Refs:** crc-Folks.md
+**Code:** tests/viewas.spec.ts
+**Alarm:** 36
+**Fire alarm:** the switch builds again without aborting the build before; red: more listening after than before
+**Inject:** src/main.ts
+**Pulled:** 2026-11-27 — rang, by another route than the count: with the old build left alive, its TableView and the new one snapped a gathered card back and forth until the stack overflowed (console), the first switch never finished, and the spec timed out at line 35 (Chromium); restored clean. The count itself is proven by alarm 38
+
+## Test: a listener ends with its signal
+**Purpose:** R600: `game.listen(fn, signal)` stops hearing when the signal aborts.
+**Input:** as above.
+**Expected:** as many listening after the round trip as before.
+**Refs:** crc-Game.md, crc-Folks.md
+**Code:** tests/viewas.spec.ts
+**Alarm:** 37
+**Fire alarm:** Game.listen ignores its signal; red: more listening after than before
+**Inject:** src/model/game.ts:Game
+**Pulled:** 2026-11-27 — rang as alarm 36 did: with Game.listen ignoring its signal, the old and new TableViews fought over a gathered card until the stack overflowed, and the spec timed out at line 35 (Chromium); restored clean
+
+## Test: a quiet view left behind is counted
+**Purpose:** R600: a view that keeps hearing after its build ends, without fighting the new build, still shows: the game has more listeners after a round trip than before.
+**Input:** as above.
+**Expected:** as many listening after GM → Dana → GM as before.
+**Refs:** crc-Folks.md, crc-Game.md
+**Code:** tests/viewas.spec.ts
+**Alarm:** 38
+**Fire alarm:** TrayView listens without the build's signal; red: more listening after than before
+**Inject:** src/ui/tray.ts:TrayView
+**Pulled:** 2026-11-27 — rang: with TrayView listening without the signal, 18 listened after the round trip against 14 before (line 42, Chromium); restored clean
+
+## Test: a new tab is asked its name on the table's card
+**Purpose:** R601: an invited page asks its player's name on the table's question card as it opens, never the browser's `prompt()`, which a browser without dialogs refuses.
+**Input:** the two-tabs spec: a second tab of Dana's browser opens the invite.
+**Expected:** the card asks, listing Dana; answered "Sam", the page opens as Sam; no browser dialog opens (`person()` fails any spec in which one does).
+**Refs:** crc-Ask.md
+**Code:** tests/sync.spec.ts, tests/page.ts
+**Alarm:** 39
+**Fire alarm:** askName asks with `prompt()` again; red: a browser dialog opens and the spec fails
+**Inject:** src/main.ts
+**Pulled:** 2026-11-27 — rang: with askName on prompt() again, no card asked and the spec timed out answering it (line 114, Chromium); restored clean
+
+## Test: when the clipboard refuses, the invite shows under its button
+**Purpose:** R602: Copy invite, the clipboard refusing, puts the link in a line under the button, selected; a press elsewhere or Escape puts it away.
+**Input:** the GM's table open; the page's `clipboard.writeText` made to refuse; Copy invite clicked, a press on the table, Copy invite again, Escape.
+**Expected:** the line shows the invite, focused and wholly selected, the button still "Copy invite"; gone after the press; back, then gone after Escape.
+**Refs:** crc-Folks.md
+**Code:** tests/ask.spec.ts
+**Alarm:** 40
+**Fire alarm:** a refused clipboard shows nothing; red: no link line
+**Inject:** src/ui/folks.ts:FolksView
+**Pulled:** 2026-11-27 — rang: with a refused clipboard showing nothing, no link line appeared (line 39, Chromium); restored clean
+
+## Test: viewing as a player shows the table as it reaches them
+**Purpose:** R603: the GM's page viewing as a player draws each record as it would reach that player: the Opinion Records revealed to them, their revealed lines alone; no Connection Table, no paper they don't read, no burial they wouldn't see.
+**Input:** the GM's page alone. Devreux's row holds a record of Sam with "Grudge -Min" revealed and published on his card, and one of Beauford revealed to no one; the Connection Table out; a note to no one; Boot Hill holding a note anyone reads and one the GM's alone. The GM, then "You are" Player 1, then the GM again.
+**Expected:** the GM: two record tabs, the table, the note, both burials. Player 1: the one tab "Sam", slid out its torn line "Grudge -Min" and no "Reputation"; no table, no note; Boot Hill "buried for all" alone. The GM again: all of it.
+**Refs:** crc-PieceView.md, crc-TableView.md, crc-BootHillView.md
+**Code:** tests/viewas.spec.ts
+**Alarm:** 41
+**Fire alarm:** TableView draws each record as held, not as it reaches the viewer; red: as Player 1 the Connection Table and the note are drawn
+**Inject:** src/ui/table.ts:TableView
+**Pulled:** 2026-11-27 — rang: with TableView drawing each record as held, the Connection Table was drawn for Player 1 (line 84, Chromium); restored clean
+
+## Test: a card's records, viewing as a player
+**Purpose:** R603: viewing as a player, a card's records are redacted and found by the cards they're published on.
+**Input:** as above.
+**Expected:** as Player 1, the one tab "Sam", its revealed line alone.
+**Refs:** crc-PieceView.md
+**Code:** tests/viewas.spec.ts
+**Alarm:** 42
+**Fire alarm:** a card's records come from the Connection Table whole, whoever views; red: as Player 1 both tabs show
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-27 — rang: with a card's records taken whole from the Connection Table, Player 1 saw both tabs (line 79, Chromium); restored clean
+
+## Test: Boot Hill, viewing as a player
+**Purpose:** R603: viewing as a player, Boot Hill lists only the burials that player would see.
+**Input:** as above.
+**Expected:** as Player 1, "buried for all" alone.
+**Refs:** crc-BootHillView.md
+**Code:** tests/viewas.spec.ts
+**Alarm:** 43
+**Fire alarm:** Boot Hill lists every burial, whoever views; red: "buried for the GM" listed for Player 1
+**Inject:** src/ui/boothill.ts:BootHillView
+**Pulled:** 2026-11-27 — rang: with Boot Hill listing every burial, 'buried for the GM' was listed for Player 1 (line 88, Chromium); restored clean
+

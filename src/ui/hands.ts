@@ -15,7 +15,7 @@ import { GATHER_GAP, type TableView } from './table.ts';
 /** How long a piece another page let go waits for the drop's change before going back (R300). */
 export const LAND_MS = 1000;
 
-export type HandsWith = { game: Game; table: TableView };
+export type HandsWith = { game: Game; table: TableView; signal: AbortSignal };
 
 // R243: a card over the slots is a chip: its points in the middle, its name on hover.
 function asChip(el: HTMLElement, i: Item): void {
@@ -43,7 +43,7 @@ export class Hands {
     // change, which can overtake the drop itself (and then the late drop is stale).
     w.game.listen(rids => {
       for (const [hand, pieces] of this.#hands) for (const [key, p] of pieces) if (!p.own && rids.has(p.rid)) this.#land(hand, key);
-    });
+    }, w.signal);
   }
 
   // Seq: seq-move.md#1.4, seq-drag.md#1.3 | R298, R218: each piece lifted at its place, with what follows it.

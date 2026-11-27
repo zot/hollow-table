@@ -3,6 +3,7 @@
 // Who is shown and in what order is pure (tags); the view draws it once a second and on changes.
 
 import type { Role } from '../net/presence.ts';
+import { askYes } from './ask.ts';
 import { gesture } from './gesture.ts';
 
 export type Tag = {
@@ -58,6 +59,8 @@ export function viewAsChoices(present: string[], owners: string[]): string[] {
 }
 
 export type FolksWith = {
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   me: () => Me;
   people: () => Here[];
   held: (name: string) => string | undefined;
@@ -76,12 +79,15 @@ export class FolksView {
   #folks: HTMLElement;
   #youAre: HTMLElement;
   #shown = '';
+  /** R602: the invite link shown under its button when the clipboard refused, until put away. */
+  #link: HTMLInputElement | null = null;
 
   constructor(folks: HTMLElement, youAre: HTMLElement, w: FolksWith) {
     this.#w = w;
     this.#folks = folks;
     this.#youAre = youAre;
-    setInterval(() => this.render(), 1000);
+    const tick = setInterval(() => this.render(), 1000);
+    w.signal.addEventListener('abort', () => clearInterval(tick), { once: true });
     this.render();
   }
 
@@ -101,7 +107,9 @@ export class FolksView {
       else if (t.warn === 'impostor') {
         e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees. Click to hand ${t.name} to them.`;
         e.addEventListener('click', () => {
-          if (confirm(`${t.name} is held by another computer. Hand ${t.name} to this one?\n\nThe other one will see ${t.name}'s things as a stranger does.`)) this.#w.handOver?.(t.name, t.browser!);
+          // R601: on the table's question card.
+          void askYes(doc, `${t.name} is held by another computer. Hand ${t.name} to this one?\n\nThe other one will see ${t.name}'s things as a stranger does.`)
+            .then(yes => { if (yes) this.#w.handOver?.(t.name, t.browser!); });
         });
       } else if (t.impostor) e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees.`;
       else if (t.you) {
@@ -125,15 +133,18 @@ export class FolksView {
         b.textContent = 'Copy invite';
         b.title = `Copy the link players open to join:\n${url}\nShift-click or long-press to close the table.`;
         gesture(b, {
-          click: () => void navigator.clipboard?.writeText(url).then(() => {
-            b.textContent = 'Copied';
-            setTimeout(() => { b.textContent = 'Copy invite'; }, 1200);
-          }, () => prompt('Copy the invite link', url)),
+          click: () => {
+            const copied = () => { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy invite'; }, 1200); };
+            if (!navigator.clipboard) this.#showLink(url);
+            else navigator.clipboard.writeText(url).then(copied, () => this.#showLink(url));
+          },
           // R14: shift-click or a long press closes the table.
           shift: () => { table.close(); this.#shown = ''; this.render(); },
         });
       }
       this.#folks.append(b);
+      // R602: the link line stays under the button through a redraw.
+      if (this.#link) b.after(this.#link);
     }
     // R153: the real GM's "You are", a tag that cycles; a player's page has none (R154).
     const va = this.#w.viewAs;
@@ -150,5 +161,25 @@ export class FolksView {
       });
       this.#youAre.append(label, b);
     }
+  }
+
+  // R602: the clipboard refused, so the link shows in a line under Copy invite, selected to copy by hand;
+  // a press anywhere but the line, or Escape, puts it away.
+  #showLink(url: string): void {
+    const doc = this.#folks.ownerDocument;
+    this.#link?.remove();
+    const line = doc.createElement('input');
+    line.className = 'invitelink';
+    line.readOnly = true;
+    line.value = url;
+    line.title = 'The invite link: copy it with Ctrl+C (⌘C)';
+    this.#link = line;
+    this.#folks.querySelector('.invite')?.after(line);
+    line.focus();
+    line.select();
+    const off = new AbortController(), away = () => { off.abort(); line.remove(); if (this.#link === line) this.#link = null; };
+    const signal = AbortSignal.any([off.signal, this.#w.signal]);
+    doc.addEventListener('pointerdown', e => { if (e.target !== line) away(); }, { capture: true, signal });
+    doc.addEventListener('keydown', e => { if (e.key === 'Escape') away(); }, { capture: true, signal });
   }
 }

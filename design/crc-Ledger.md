@@ -1,5 +1,5 @@
 # Ledger
-**Requirements:** R132, R133, R134, R139, R141, R291, R455, R457, R485
+**Requirements:** R132, R133, R134, R139, R141, R291, R455, R457, R485, R601
 
 The green cloth-bound book between the register and Boot Hill, opening to a ruled ledger page.
 
@@ -17,7 +17,7 @@ The green cloth-bound book between the register and Boot Hill, opening to a rule
 - status (R291): GameStore.status() ("Saving…", "Not saved: …", "Saved hh:mm:ss"), every second
   while open; "Not a game file: " and the file's name when an import is refused.
 - words (pure): stamp(at) "Nov 12, 14:03:22"; offer(round, now) "Round N, hh:mm:ss", what Checkpoint
-  offers; named(answer): blank is "Checkpoint", cancel makes none; newGame(now) "New game <stamp>".
+  offers, asked on the table's question card (Ask, R601); named(answer): blank is "Checkpoint", cancel makes none; newGame(now) "New game <stamp>".
 - checkpoints (R134): newest first, automatic ones in grey; clicking one restores it, unasked (the
   page keeps the seat, pruned of whatever vanished, R136).
 - games: the current one greyed; clicking another saves this one and reloads onto it. New game

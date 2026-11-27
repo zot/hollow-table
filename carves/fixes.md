@@ -21,9 +21,10 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [x] ~~**Item 13 — reference pages, each page's own.**~~ **LANDED (2026-11-25 — `#77`.)** Bill, 2026-11-25.
 - [ ] **Item 14 — a pencil to write on a card.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
 - [ ] **Item 15 — loud presence changes.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
-- [ ] **Item 16 — what an Opinion shows, reaching the wrong pages.** **OPEN (not queued.)** Bill's playtest, 2026-11-27; needs what was seen.
-- [ ] **Item 17 — "You are" without leaving the table.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
+- [x] ~~**Item 16 — what an Opinion shows, reaching the wrong pages.**~~ **LANDED (2026-11-27 — `#81`.)** Bill's playtest, 2026-11-27: viewing as a player, the GM's page drew records whole.
+- [x] ~~**Item 17 — "You are" without leaving the table.**~~ **LANDED (2026-11-27 — `#79`.)** Bill's playtest, 2026-11-27.
 - [x] ~~**Item 18 — a desk that looks like a desk.**~~ **LANDED (2026-11-27 — `#78`.)** Bill's playtest, 2026-11-27.
+- [x] ~~**Item 20 — the table asks in its own page, not the browser's dialogs.**~~ **LANDED (2026-11-27 — `#80`.)** Bill, 2026-11-27. (Item 19, a player's White die, was withdrawn: it works as ruled.)
 
 ## Item 1
 
@@ -350,7 +351,7 @@ is succeed at cost". Hollow Folks and the table's dice (R91) already read it so;
 with page 18, the Quick Reference, updated to match ("4-6: Clean Success", "3: Success with cost"), so
 the sheet copies the book with no exception and the dice code needs no change.
 
-## Items 14 to 19: playtest feedback
+## Items 14 to 18: playtest feedback
 
 Bill's notes from a playtest (`.scratch/NOTES.md`, 2026-11-27), one item each, checked against the table as
 it was that day.
@@ -391,6 +392,21 @@ an Opinion today: the Opinion Records revealed to it by a successful Infer, draw
 Connection Table changes. The item starts from a repro: who inferred, what was revealed, and which
 page showed more or less than that.
 
+Found (2026-11-27). Bill: "A new opinion sheet was sent entirely revealed"; then "Switching 'you are'
+doesn't show Opinion redaction properly", and, a real player's page reloaded, "it still does not show
+the Opinion card for Beatrice, which is as it should be". So the wire is right: what reaches a
+player's page is redacted (R435). The fault is the GM's page viewing as a player: it holds every record
+whole, and its views drew them as held. A card's records came from the Connection Table, which the GM's
+page always has, with their full text, so viewing as a player showed every record and every line. The
+same went for the Connection Table itself (R410) and paper the viewer doesn't read (R501), and Boot
+Hill's burials.
+
+DECIDED (Bill, 2026-11-27): viewing as a player, the GM's page draws each record as it would reach that
+player ("I think that's correct"), all of it, not Opinions alone ("Everything"): the pieces on the
+table, a card's records (found, as a player's page finds them, by the cards they're published on), and
+Boot Hill's list. Only the drawing: the page's writes keep the whole records, so nothing written back
+is ever the redacted copy.
+
 ## Item 17
 
 Bill (2026-11-27): "switching views disconnects from the p2p network -- does it need to disconnect?"
@@ -402,6 +418,16 @@ it starts: every view, and what the page lets itself do, is built for that viewe
 the GM's page holds the whole game whoever it views as, and what it sends doesn't depend on the view,
 so switching could redraw the table for the new viewer while the connection stays. The work is making
 the viewer changeable in place.
+
+DECIDED (Bill, 2026-11-27: "Rebuild them"): on a switch the page keeps its connection (room, presence,
+authority, rolls, images and moves, none of which reads the viewer) and builds its views again for the
+new viewer, rather than redrawing the old ones for a viewer that changes under them: building afresh
+gets every decision made at construction right without finding each one. The old views are torn down
+first, by one `AbortSignal` per build that ends their document and window listeners, their game
+subscriptions, their intervals and the table's ResizeObserver; the page's body goes back to its
+starting `#bar`, `#table` and `#world`. Measured 2026-11-27 (by grep, a sizing, not a census): 27
+document or window listeners in eight view files plus `main.ts`'s own, 11 `game.listen` calls, 2
+intervals, 1 ResizeObserver.
 
 ## Item 18
 
@@ -426,3 +452,36 @@ DECIDED (Bill, 2026-11-27: "the three suggestions look good"):
 - The board of desks (R562) draws a little roll-top for each desk; it takes the new desk too.
 - The legs take a third of its height; if it looks slight beside the wordmark in the real bar, it
   takes a few pixels more width.
+
+## Item 20
+
+Bill (2026-11-27), trying the table in the Claude Desktop browser pane: "the Claude Desktop browser seems
+to have trouble connecting to other peers in the same machine and clicking 'copy invite' doesn't put
+the link in the clipboard"; then "Yes, write it up".
+
+Measured in the pane that day (its user agent says Chromium 156): `prompt()` throws "prompt() is not
+supported", the clipboard-write permission is denied, and WebRTC gathers host (`.local`) and
+server-reflexive candidates as Chrome does, so the connection itself is probably not at fault. The
+table calls the browser's dialogs in six places (`grep prompt(\|confirm(` over `src/`), and each fails
+the same way where dialogs are off:
+
+- `main.ts`, `askName`: an invited page asks its player's name with `prompt()` as it starts. In the
+  pane that throws, so the player's page stops before it joins the room; likely the "trouble
+  connecting". Not yet watched failing.
+- `folks.ts`, Copy invite: when the clipboard refuses, the fallback shows the link with `prompt()`,
+  which throws, so nothing shows at all.
+- `main.ts`, a player's rename and the GM's rename (`prompt()`): nothing happens.
+- `ledger.ts`, naming a checkpoint (`prompt()`): the checkpoint fails.
+- `folks.ts`, handing a held name to this browser (`confirm()`): it fails.
+
+The table asks in its own page instead: a small form in the page for each question, answered or
+cancelled as the dialog was, and the invite link shown in the page, selected, when the clipboard
+refuses. To decide: one shared little form for all six, or each where it is asked (the name on
+arrival before anything else is drawn; a rename by its tag; a checkpoint's name in the Ledger); and
+how the invite link shows (beside the button, selected for a copy).
+
+DECIDED (Bill, 2026-11-27): "One shared form": a small card centered over the page, as `prompt()` was:
+the question, a text line (or Yes and No), OK and Cancel; Enter answers, Escape cancels; all six use it.
+And the invite link "Under the button": when the clipboard refuses, a text line just below Copy invite
+holds the link, selected for a copy; a press elsewhere or Escape puts it away.
+

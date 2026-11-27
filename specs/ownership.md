@@ -95,7 +95,11 @@ The die by the character's name shows GM, open, or the player.
 - **Roll Ups happen behind the screen**: outside Stagger, piles are worked out only where the private mat is seen;
   a pool you can't see shows its contributions as they were put, never piled (Bill, 11-16: "The
   public view should only show publicly contributed influences and chips and should not do rollup").
-- **The GM sees the private mats**; "You are" shows the table as a player sees it.
+- **The GM sees the private mats**; "You are" shows the table as a player sees it: each record drawn as
+  it would reach that player, so an Opinion Record shows only once a line of it is revealed, and only
+  that line, and the Connection Table, paper they don't read and burials they wouldn't see aren't shown
+  at all (Bill, 2026-11-27, from a playtest: "Switching 'you are' doesn't show Opinion redaction
+  properly"; then "Everything").
 
 ## Private paper
 
@@ -153,6 +157,10 @@ question." The note passed across a real table, and the GM's handout (`carves/do
 - **Real identity is separate from who you're viewing as.** Only a real GM gets the "You are"
   chooser (a thing at the table, not a dropdown), which lists the GM, the players present, and the defaults, and keeps it while viewing as
   a player. A player's page has none and is fixed to that player.
+- **Switching "You are" keeps the GM at the table** (Bill, 2026-11-27, from a playtest: "switching views
+  disconnects from the p2p network -- does it need to disconnect?"; then "Rebuild them"): the GM's page
+  redraws the table as the person chosen without leaving the room, so no page sees the GM go and come
+  back, and nothing the old view was doing goes on behind the new one.
 - The plain page is the GM's. An invite link makes a player, named per tab, so one browser can seat
   several players, a tab each (Bill, 11-22).
 

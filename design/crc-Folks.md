@@ -1,5 +1,5 @@
 # Folks
-**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445-447, R469, R476, R531, R545
+**Requirements:** R14, R153, R154, R158, R161, R163, R167, R168, R293, R294, R296, R445-447, R469, R476, R531, R545, R599, R600, R601, R602
 
 The people in the bar: a name tag each, the GM's invite, and the real GM's "You are".
 
@@ -23,10 +23,19 @@ The people in the bar: a name tag each, the GM's invite, and the real GM's "You 
 - viewAsChoices(present, owners): the GM, the players present, every character's owner and the
   defaults "Player 1", "Player 2", never open.
 - FolksView: draws the tags once a second and when anything changed. The GM's own tag asks for a
-  new name; a red impostor tag asks, then hands the name over. The GM's invite button reads "Open
-  the table", then "Copy invite"; a copy says "Copied" for about a second, or shows the link if the
-  clipboard refuses; shift-click or a long press closes the table (R14). "You are", on the real GM's page only, is a tag
-  that cycles to the next choice, kept in the GM's seat, and reloads the page as that person.
+  new name, and a player's own for theirs, on the table's question card (Ask.ask, R601); a red impostor
+  tag asks (Ask.askYes), then hands the name over. The GM's invite button reads "Open
+  the table", then "Copy invite"; a copy says "Copied" for about a second, or, when the clipboard
+  refuses, puts the link in a line just under the button, selected, until a press elsewhere or Escape
+  (R602); shift-click or a long press closes the table (R14). "You are", on the real GM's page only, is a tag
+  that cycles to the next choice, kept in the GM's seat.
+- switching (R599, R600, main.ts): a choice in "You are" keeps the connection (room, presence, authority,
+  rolls, images, moves: none of them reads the viewer) and rebuilds the views for the new viewer. The
+  current build is one record (the views, its FolksView, and the AbortController whose signal they were
+  built with); a switch aborts it, puts the body back to its starting `#bar`, `#table` and `#world`, and
+  builds again from the seat. The network's hooks into the views (Moves' `place` through the hands,
+  Presence's `gone`, ImageExchange's redraw through the table view) and the test hook's `view` and
+  `drag` read the current build, never one captured at start.
 - repinned (R531, R545): after every change, Dockets.repin's puts, made as one change of this page's, so paper follows its holder; a holder counts as deleted when the book holds its tombstone or this page saw it go.
 
 ## Collaborators

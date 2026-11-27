@@ -9,7 +9,7 @@ import { levelName } from '../rules/influence.ts';
 import { cardClick, chipClick } from './actions.ts';
 import type { Item } from '../rules/pool.ts';
 import { claim, gesture, paced } from './gesture.ts';
-import { draw, tiedHere, type PieceWith } from './piece.ts';
+import { draw, seen, tiedHere, type PieceWith } from './piece.ts';
 import { chipFace, drawPool, type Box, type PoolWith } from './pool.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -58,6 +58,8 @@ export function pushClear(mat: Box, pieces: readonly { rid: Rid; box: Box }[], g
 
 export type TableWith = PieceWith & PoolWith & {
   game: Game;
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** The view (the Seat's), and where to keep it. */
   view: View | null;
   keepView: (v: View) => void;
@@ -109,7 +111,8 @@ export class TableView {
     this.#tapeLayer.classList.add('tapes');
     world.prepend(this.#tapeLayer);
     this.#place();
-    w.game.listen(rids => this.render(rids));
+    w.game.listen(rids => this.render(rids), w.signal);
+    w.signal.addEventListener('abort', () => this.#sized.disconnect(), { once: true });
     this.render(w.game.all().map(([rid]) => rid));
     this.#panZoom();
     this.#images();
@@ -354,9 +357,10 @@ export class TableView {
     let items = false;
     for (const rid of rids) {
       if (!onTable(rid)) continue;   // R486: this page's torn rolls too
-      const r = this.#w.game.get(rid) as PieceRecord | undefined;
-      if (!r || r.kind === 'character') characters.add(rid);
-      if (!r || r.kind === 'chip' || r.kind === 'influence') { items = true; this.#drawLoose(rid); if (r) continue; }
+      // R603: the page holds every record whole; a viewer who isn't the GM is drawn each as it reaches them.
+      const raw = this.#w.game.get(rid) as PieceRecord | undefined, r = raw && seen(raw, this.#w);
+      if (!raw || raw.kind === 'character') characters.add(rid);
+      if (!raw || raw.kind === 'chip' || raw.kind === 'influence') { items = true; this.#drawLoose(rid); if (raw) continue; }
       const old = this.#els.get(rid);
       // R220: a piece in hand isn't redrawn under it; the drop draws it (gone, it still goes).
       if (r && this.#held.has(rid)) continue;

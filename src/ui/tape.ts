@@ -46,6 +46,8 @@ export function mayChoose(viewer: Viewer, r: Receipt): boolean {
 
 export type TapeWith = {
   game: Game; viewer: Viewer;
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** Rolled up or down, kept in the Seat (R112). */
   up: () => boolean;
   setUp: (up: boolean) => void;
@@ -87,11 +89,11 @@ export class TapeView {
     doc.addEventListener('pointerdown', e => {
       const t = e.target as HTMLElement;
       if (!t.closest?.('#tape, #paperroll, .roller .roll')) this.#el.classList.remove('raised');
-    }, true);
+    }, { capture: true, signal: w.signal });
     this.#strip.addEventListener('pointerdown', e => this.#press(e));
     // The wheel scrolls the tape, never the table under it.
     this.#strip.addEventListener('wheel', e => e.stopPropagation(), { passive: true });
-    w.game.listen(rids => { if (rids.has('tape')) this.render(); });
+    w.game.listen(rids => { if (rids.has('tape')) this.render(); }, w.signal);
     this.render();
   }
 

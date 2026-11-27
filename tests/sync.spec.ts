@@ -1,7 +1,7 @@
 // CRC: crc-Wire.md | Test: test-Network.md | R483, R141, R156, R157, R158, R159, R161, R162, R166, R172, R173, R297, R475, R476, R485
 // Two pages find each other through the local relay, prove who they are, and sync both ways.
 import { expect, test, type Page } from '@playwright/test';
-import { gmTable, hook, join, open, records, synced } from './page.ts';
+import { answer, gmTable, hook, join, open, records, synced } from './page.ts';
 
 const STICKY = 'o:00000008', SAM = 'o:00000001', DEVREUX = 'o:00000003';
 
@@ -109,9 +109,10 @@ test('two tabs of one browser are two players, and a reload keeps the tab\'s nam
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
   const sam = await dana.context().newPage();
-  let asked = '';
-  sam.on('dialog', d => { asked = d.message(); void d.accept('Sam'); });
-  await open(sam, invite);
+  // R601: asked on the table's card, as it opens.
+  const opening = open(sam, invite);
+  const asked = await answer(sam, 'Sam');
+  await opening;
   await synced(sam, gm);
   expect(asked).toContain('Dana');
   const ids = await Promise.all([dana, sam].map(p => hook(p, h => h.identity.id as string)));
@@ -119,13 +120,11 @@ test('two tabs of one browser are two players, and a reload keeps the tab\'s nam
   await expect(gm.locator('#bar span.tag', { hasText: 'Dana' })).toHaveCount(1);
   await expect(gm.locator('#bar span.tag', { hasText: 'Sam' })).toHaveCount(1);
   // A reload keeps the tab's name without asking.
-  let reasked = false;
-  dana.on('dialog', () => { reasked = true; });
   await dana.reload();
   await dana.waitForFunction(() => (window as any).hollow?.ready);
   expect(await hook(dana, h => h.identity.id as string)).toBe(ids[0]);
   await expect(dana.locator('#bar span.tag.you')).toHaveText('Dana');
-  expect(reasked).toBe(false);
+  await expect(dana.locator('.askcard')).toHaveCount(0);
 });
 
 
@@ -134,8 +133,9 @@ test('two names in one browser keep copies of their own', async ({ browser }) =>
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
   const sam = await dana.context().newPage();
-  sam.on('dialog', d => { void d.accept('Sam'); });
-  await open(sam, invite);
+  const opening = open(sam, invite);
+  await answer(sam, 'Sam');
+  await opening;
   await synced(sam, gm);
   const copyOf = (p: Page) => hook(p, h => h.store.current.id as string);
   const [d, s] = [await copyOf(dana), await copyOf(sam)];

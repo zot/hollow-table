@@ -8,6 +8,12 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 
 ## Cross-cutting Concerns
 
+- **A build's views end with its signal** (R600; crc-Folks.md, switching). The GM's page may build its
+  views more than once, so everything a view hooks outside its own elements is tied to the build's
+  `AbortSignal`: document and window listeners take `{ signal }`, `game.listen(fn, signal)` unsubscribes
+  on abort, and intervals and observers stop on its abort event. Each view's With type requires the
+  signal, so a view that hooks the page without it doesn't compile. Listeners on a view's own elements
+  need nothing: they go with the elements.
 - **Records are the lingua franca** (crc-Records.md). The game is typed records; the DOM is a view
   of them. Saving, the wire, redaction, checkpoints and export all carry records, and every record
   arriving from outside (a peer, an import) passes `check` before anything reads it. Nothing from
@@ -98,6 +104,7 @@ person may know. Written in TypeScript; the page is `src/index.html`, built into
 - [x] crc-Desktops.md → `src/rules/desktops.ts`
 - [x] crc-Tray.md → `src/ui/tray.ts`
 - [x] crc-Folks.md → `src/ui/folks.ts`, `src/main.ts`
+- [x] crc-Ask.md → `src/ui/ask.ts`
 - [x] crc-Build.md → `package.json`, `tsconfig.json`, `build.mjs`, `publish.sh`, `.github/workflows/pages.yml`, `src/main.ts`, `playwright.config.ts`, `tests/page.ts`, `tests/relay.ts`, `tools/relays.ts`
 - [ ] crc-Theme.md → `src/ui/theme.css`
 

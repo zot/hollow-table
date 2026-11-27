@@ -16,6 +16,8 @@ export type Mode = 'press' | 'loose' | 'below';
 export type At = { clientX: number; clientY: number };
 
 export type DeskWith = {
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** R518: the GM's desk has the Connection Table's pigeonhole. */
   gm: boolean;
   /** Makes a supply at `move` and carries it (R512-R514). */
@@ -227,7 +229,7 @@ export class DeskView {
     this.el.addEventListener('pointerdown', ev => { if (!this.#drawers.contains(ev.target as Node)) this.#press(ev); });
     this.render();
     // R516: an open desk closes on a press anywhere else.
-    doc.addEventListener('pointerdown', ev => { if (this.#open && !this.el.contains(ev.target as Node)) this.#show(false); }, true);
+    doc.addEventListener('pointerdown', ev => { if (this.#open && !this.el.contains(ev.target as Node)) this.#show(false); }, { capture: true, signal: w.signal });
   }
 
   // R517: the image pigeonhole says the browser won't keep an image, and the desk is edged red.

@@ -306,12 +306,20 @@ var Game = class {
     for (const rid2 of this.#records.keys()) changed.add(rid2);
     this.#tell(changed);
   }
-  /** Hear each change's rids; the function returned stops it. */
-  listen(fn) {
-    this.#listeners.add(fn);
-    return () => {
+  /** Hear each change's rids; the function returned stops it, and so does `signal` aborting (R600: a
+   * build's views stop hearing with their build). */
+  listen(fn, signal) {
+    const stop = () => {
       this.#listeners.delete(fn);
     };
+    if (signal?.aborted) return stop;
+    this.#listeners.add(fn);
+    signal?.addEventListener("abort", stop, { once: true });
+    return stop;
+  }
+  /** R600: how many hear changes now, so the specs can see a switch in "You are" leaves none behind. */
+  get listening() {
+    return this.#listeners.size;
   }
   #tell(rids) {
     if (rids.size) for (const fn of [...this.#listeners]) fn(rids);
@@ -764,11 +772,11 @@ function lowerChip(chip2) {
   if (chip2.points === 2) return { ...chip2, points: 1, rider: false };
   return { ...chip2, points: chip2.points - STEP };
 }
-function raiseCard(card2) {
-  return { ...card2, points: card2.points + STEP };
+function raiseCard(card3) {
+  return { ...card3, points: card3.points + STEP };
 }
-function lowerCard(card2) {
-  return { ...card2, points: Math.max(MIN, card2.points - STEP) };
+function lowerCard(card3) {
+  return { ...card3, points: Math.max(MIN, card3.points - STEP) };
 }
 function levelName(points3) {
   if (points3 < MIN) return String(points3);
@@ -867,16 +875,16 @@ function fill(char, kind, page, by) {
     let n = page.use[row2];
     if (!n) continue;
     const s = column2[row2], n0 = boxCount(char, d, row2);
-    const next2 = { ...s, boxes: Array.from({ length: Math.max(s.boxes.length, n0) }, (_, k) => !!s.boxes[k]) };
+    const next3 = { ...s, boxes: Array.from({ length: Math.max(s.boxes.length, n0) }, (_, k) => !!s.boxes[k]) };
     if (namedFree(s)) {
-      next2.naming = { by: by.name, id: by.id };
+      next3.naming = { by: by.name, id: by.id };
       n--;
     }
-    for (let k = 0; k < next2.boxes.length && n > 0; k++) if (!next2.boxes[k]) {
-      next2.boxes[k] = true;
+    for (let k = 0; k < next3.boxes.length && n > 0; k++) if (!next3.boxes[k]) {
+      next3.boxes[k] = true;
       n--;
     }
-    column2[row2] = next2;
+    column2[row2] = next3;
   }
   const back3 = { ...char.back, damage: { ...char.back.damage, [d]: column2 } };
   if (page.overflow <= 0) return { ...char, back: back3 };
@@ -1903,10 +1911,10 @@ var Eyes = class {
     const o = this.#open.get(oid), c = this.#card(oid);
     this.#open.delete(oid);
     if (o && c) {
-      const next2 = withShown(c, o.draft), recs = this.#shownRecords(c, o.draft);
-      const card2 = JSON.stringify(next2.shown ?? []) !== JSON.stringify(c.shown ?? []);
-      if (card2 || recs.length) this.#game.change((w) => {
-        if (card2) w.put(ridOf(oid), next2);
+      const next3 = withShown(c, o.draft), recs = this.#shownRecords(c, o.draft);
+      const card3 = JSON.stringify(next3.shown ?? []) !== JSON.stringify(c.shown ?? []);
+      if (card3 || recs.length) this.#game.change((w) => {
+        if (card3) w.put(ridOf(oid), next3);
         for (const r of recs) w.put(ridOf(r.oid), r);
       });
     }
@@ -2028,7 +2036,7 @@ function leftOf(chars, src) {
 function tap(chars, src, where2, oid) {
   const s = source(chars, src);
   if (!s || s.left < 1) return null;
-  const card2 = {
+  const card3 = {
     kind: "influence",
     oid,
     home: s.char.oid,
@@ -2043,21 +2051,21 @@ function tap(chars, src, where2, oid) {
     ...s.damage && { damage: s.damage },
     ...s.mot && { mot: true }
   };
-  return { card: card2, changed: [s.spend(1)] };
+  return { card: card3, changed: [s.spend(1)] };
 }
 var PLAIN = "Tapped into a plain card";
 var USED = "Tapped into a used card";
 var MIXED = "A Resource and a Motivation on one card";
-function feed(chars, card2, src, _oid) {
-  const id = src ?? card2.tap?.current;
+function feed(chars, card3, src, _oid) {
+  const id = src ?? card3.tap?.current;
   if (!id) return null;
   const s = source(chars, id);
-  if (!s || s.left < 1 || s.damage !== card2.damage) return null;
-  if ((s.points ?? MIN) < MIN || card2.points < MIN) return null;
-  const why3 = !card2.tap ? PLAIN : card2.used ? USED : !!s.mot !== !!card2.mot ? MIXED : null;
-  const ledger = { ...card2.tap?.ledger, [id]: (card2.tap?.ledger[id] ?? 0) + 1 };
-  const flag = why3 ? flagged(card2.flag, why3, id, !card2.tap) : card2.flag;
-  return { card: { ...card2, points: card2.points + STEP, tap: { ledger, current: id }, ...flag && { flag } }, changed: [s.spend(1)] };
+  if (!s || s.left < 1 || s.damage !== card3.damage) return null;
+  if ((s.points ?? MIN) < MIN || card3.points < MIN) return null;
+  const why3 = !card3.tap ? PLAIN : card3.used ? USED : !!s.mot !== !!card3.mot ? MIXED : null;
+  const ledger = { ...card3.tap?.ledger, [id]: (card3.tap?.ledger[id] ?? 0) + 1 };
+  const flag = why3 ? flagged(card3.flag, why3, id, !card3.tap) : card3.flag;
+  return { card: { ...card3, points: card3.points + STEP, tap: { ledger, current: id }, ...flag && { flag } }, changed: [s.spend(1)] };
 }
 function flagged(was, why3, id, plain2) {
   const whys = new Set(was?.why.split("; "));
@@ -2068,17 +2076,17 @@ function flagged(was, why3, id, plain2) {
     ...(was?.plain || plain2) && { plain: true }
   };
 }
-function allowFlag(card2) {
-  const { flag: _gone, ...rest } = card2;
+function allowFlag(card3) {
+  const { flag: _gone, ...rest } = card3;
   return rest;
 }
-function undoFlag(chars, card2) {
-  const f = card2.flag;
-  if (!f?.fed || !card2.tap) return null;
+function undoFlag(chars, card3) {
+  const f = card3.flag;
+  if (!f?.fed || !card3.tap) return null;
   const out = /* @__PURE__ */ new Map();
   const now2 = (oid) => out.get(oid) ?? chars(oid);
-  const ledger = { ...card2.tap.ledger };
-  let points3 = card2.points;
+  const ledger = { ...card3.tap.ledger };
+  let points3 = card3.points;
   for (const [id, n] of Object.entries(f.fed)) {
     const back3 = source(now2, id)?.spend(-n);
     if (back3) out.set(back3.oid, back3);
@@ -2086,24 +2094,24 @@ function undoFlag(chars, card2) {
     if (ledger[id] <= 0) delete ledger[id];
     points3 -= n * STEP;
   }
-  const { flag: _f, tap: _t, ...rest } = card2;
+  const { flag: _f, tap: _t, ...rest } = card3;
   const keys2 = Object.keys(ledger);
-  const tapped = f.plain && !keys2.length ? rest : { ...rest, tap: { ledger, current: ledger[card2.tap.current] ? card2.tap.current : keys2.at(-1) ?? card2.tap.current } };
+  const tapped = f.plain && !keys2.length ? rest : { ...rest, tap: { ledger, current: ledger[card3.tap.current] ? card3.tap.current : keys2.at(-1) ?? card3.tap.current } };
   return { card: { ...tapped, points: points3 }, changed: [...out.values()] };
 }
-function unfeed(chars, card2) {
-  const id = card2.tap?.current;
-  if (!card2.tap || !id || !(card2.tap.ledger[id] > 0) || card2.points - STEP < MIN) return null;
+function unfeed(chars, card3) {
+  const id = card3.tap?.current;
+  if (!card3.tap || !id || !(card3.tap.ledger[id] > 0) || card3.points - STEP < MIN) return null;
   const s = source(chars, id);
   if (!s) return null;
-  const ledger = { ...card2.tap.ledger, [id]: card2.tap.ledger[id] - 1 };
-  return { card: { ...card2, points: card2.points - STEP, tap: { ledger, current: id } }, changed: [s.spend(-1)] };
+  const ledger = { ...card3.tap.ledger, [id]: card3.tap.ledger[id] - 1 };
+  return { card: { ...card3, points: card3.points - STEP, tap: { ledger, current: id } }, changed: [s.spend(-1)] };
 }
-function kill(chars, card2) {
-  if (!card2.tap || card2.used) return [];
+function kill(chars, card3) {
+  if (!card3.tap || card3.used) return [];
   const out = /* @__PURE__ */ new Map();
   const now2 = (oid) => out.get(oid) ?? chars(oid);
-  for (const [id, n] of Object.entries(card2.tap.ledger)) {
+  for (const [id, n] of Object.entries(card3.tap.ledger)) {
     const s = n > 0 ? source(now2, id) : null;
     const back3 = s?.spend(-n);
     if (back3) out.set(back3.oid, back3);
@@ -2116,13 +2124,13 @@ function recharge(char) {
   return { ...char, back: { ...char.back, damage: damage3, ...lasting2 && { lasting: lasting2 } } };
 }
 var MILD = new RegExp(`:(${DAMAGE.join("|")})/mild(?:#\\d+)?$`);
-function mildGone(card2) {
-  const ledger = card2.tap?.ledger ?? {}, sum2 = (es) => es.reduce((a, [, n]) => a + n, 0);
+function mildGone(card3) {
+  const ledger = card3.tap?.ledger ?? {}, sum2 = (es) => es.reduce((a, [, n]) => a + n, 0);
   const all2 = Object.entries(ledger), rest = all2.filter(([s]) => !MILD.test(s)), lost = sum2(all2) - sum2(rest);
-  if (!lost) return card2;
+  if (!lost) return card3;
   if (sum2(rest) <= 0) return null;
-  const keep2 = Object.fromEntries(rest), current = card2.tap.current in keep2 ? card2.tap.current : rest[0][0];
-  return { ...card2, points: Math.max(MIN, card2.points - STEP * lost), tap: { ledger: keep2, current } };
+  const keep2 = Object.fromEntries(rest), current = card3.tap.current in keep2 ? card3.tap.current : rest[0][0];
+  return { ...card3, points: Math.max(MIN, card3.points - STEP * lost), tap: { ledger: keep2, current } };
 }
 function rechargeMotives(char) {
   let lines2 = parse(char.front);
@@ -2261,9 +2269,9 @@ function apply(lines2, a, b, tag) {
   }
   const line = lines2[from.line] ?? [];
   if (from.line === to.line && from.run === to.run && from.offset === to.offset) {
-    const r2 = line[from.run], prev2 = line[from.run - 1], next2 = line[from.run + 1];
+    const r2 = line[from.run], prev2 = line[from.run - 1], next3 = line[from.run + 1];
     if (from.offset === 0 && prev2 && typeof prev2 !== "string") return unmark(lines2, { line: from.line, run: from.run - 1 });
-    if (typeof r2 === "string" && from.offset === r2.length && next2 && typeof next2 !== "string") return unmark(lines2, { line: from.line, run: from.run + 1 });
+    if (typeof r2 === "string" && from.offset === r2.length && next3 && typeof next3 !== "string") return unmark(lines2, { line: from.line, run: from.run + 1 });
   }
   if (from.line !== to.line || from.run !== to.run) return lines2;
   const r = line[from.run];
@@ -2872,9 +2880,9 @@ function damage2(box2, c, w) {
               b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
               return ch;
             }
-            const next2 = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_2, i) => !!cur.boxes[i]);
-            next2[k] = !next2[k];
-            return slotAt(ch, d, row2, { boxes: next2 });
+            const next3 = Array.from({ length: Math.max(cur.boxes.length, k + 1) }, (_2, i) => !!cur.boxes[i]);
+            next3[k] = !next3[k];
+            return slotAt(ch, d, row2, { boxes: next3 });
           }) });
           return b;
         }));
@@ -3014,7 +3022,7 @@ function infos(e, c, w, secret, draft) {
   const doc = e.ownerDocument, box2 = e.querySelector(":scope > .infos"), rid2 = ridOf(c.oid);
   const shown3 = new Set(c.shown ?? []), cards = (c.info ?? []).map((i) => secret ? blankInfo(i, shown3) : i);
   const showing = cards.flatMap((t, k) => secret && !t.trim() ? [] : [k]);
-  const recs = c.owner === GM ? records(w.game, c).filter((r) => !secret || r.rec.text.trim()) : [];
+  const recs = c.owner === GM ? records(w, c).filter((r) => !secret || r.rec.text.trim()) : [];
   const mine = `${c.oid}:`, at4 = [...w.slid()].find((s) => s.startsWith(mine)), key = at4?.slice(mine.length) ?? "";
   const rec = key.startsWith("o") ? recs.find((r) => r.rec.oid === key.slice(1)) : void 0;
   const out = key && !key.startsWith("o") && showing.includes(Number(key)) ? Number(key) : -1;
@@ -3081,8 +3089,16 @@ function infos(e, c, w, secret, draft) {
   box2.querySelector(":scope > .infotabs")?.remove();
   box2.append(tabs);
 }
-function records(game2, c) {
-  const all2 = game2.all().map(([, r]) => r), t = tableOf(all2);
+function seen(r, w) {
+  if (w.viewer?.gm) return r;
+  return redact(r, w.viewer, (oid) => w.game.get(ridOf(oid)));
+}
+function records(w, c) {
+  const gm = !!w.viewer?.gm, all2 = w.game.all().flatMap(([, r]) => {
+    const s = seen(r, w);
+    return s ? [s] : [];
+  });
+  const t = gm ? tableOf(all2) : void 0;
   const chars = all2.filter((r) => r.kind === "character");
   const recs = recordsOn(all2.filter((r) => r.kind === "opinion"), c, t);
   return order(recs.map((rec) => ({ rec, name: t ? nameOf(t, chars, rec.of) : rec.name ?? "" })));
@@ -3196,10 +3212,10 @@ function selfName(viewer) {
   return viewer?.gm ? GM : viewer?.name;
 }
 var owns = (r, viewer) => ownerOf(r) === selfName(viewer);
-function rekey(w, rid2, next2) {
+function rekey(w, rid2, next3) {
   const cur = w.game.get(rid2);
   if (!cur) return;
-  const rec = next2(cur), to = ridFor(rec);
+  const rec = next3(cur), to = ridFor(rec);
   w.game.change((wr) => {
     if (to !== rid2) wr.del(rid2);
     wr.put(to, rec);
@@ -3265,10 +3281,10 @@ function fillMenu(m, e, r, w) {
       box2.type = "checkbox";
       box2.checked = to.has(n);
       box2.addEventListener("change", () => {
-        const next2 = new Set(to);
-        if (box2.checked) next2.add(n);
-        else next2.delete(n);
-        rekey(w, rid2, (cur) => withReaders(cur, [...next2]));
+        const next3 = new Set(to);
+        if (box2.checked) next3.add(n);
+        else next3.delete(n);
+        rekey(w, rid2, (cur) => withReaders(cur, [...next3]));
       });
       l.append(box2, n);
       return l;
@@ -3416,10 +3432,10 @@ function atText(el4, needle, from) {
   const offset = whole.indexOf(needle, slash);
   if (offset < 0) return null;
   const walk = el4.ownerDocument.createTreeWalker(el4, NodeFilter.SHOW_TEXT);
-  let seen3 = 0;
+  let seen4 = 0;
   for (let n = walk.nextNode(); n; n = walk.nextNode()) {
-    if (offset < seen3 + n.length) return { node: n, local: offset - seen3, offset: offset + needle.length };
-    seen3 += n.length;
+    if (offset < seen4 + n.length) return { node: n, local: offset - seen4, offset: offset + needle.length };
+    seen4 += n.length;
   }
   return null;
 }
@@ -3537,7 +3553,7 @@ function referenceSheet(doc, rid2, r, w) {
     table.append(row2(["Description", "Cha (4)", "Int (3)", "Wis (1)"], "th"), ...ATTRIBUTES.map((a) => row2(a, "td")));
     body = [el2(doc, "div", "rhd", "Quick character creation"), said(doc, "p", "", "Some 16XP **Attribute** combinations:"), table, ...lines(doc, FIELDS)];
   }
-  const turn2 = (to, label2, glyph2) => {
+  const turn3 = (to, label2, glyph2) => {
     const b = el2(doc, "button", "turn", glyph2);
     b.setAttribute("aria-label", label2);
     b.disabled = to < 0 || to >= n;
@@ -3545,7 +3561,7 @@ function referenceSheet(doc, rid2, r, w) {
     return b;
   };
   const foot = el2(doc, "div", "rfoot");
-  foot.append(turn2(at4 - 1, "Previous page", "\u2039"), ` ${at4 + 1} of ${n} `, turn2(at4 + 1, "Next page", "\u203A"));
+  foot.append(turn3(at4 - 1, "Previous page", "\u2039"), ` ${at4 + 1} of ${n} `, turn3(at4 + 1, "Next page", "\u203A"));
   return [...body, foot];
 }
 
@@ -3776,7 +3792,7 @@ function check2(raw) {
 var stampOf = (o) => o.by === void 0 ? { s: o.s } : { s: o.s, by: o.by };
 var kindOf = (r) => r && "kind" in r ? r.kind : void 0;
 var characters2 = (game2) => (oid) => game2.get(`o:${oid}`);
-var seen = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
+var seen2 = (rec, viewer, chars) => same(redact(rec, viewer, chars), rec);
 var forged = (old, rec, who) => "kind" in rec && rec.kind === "chip" && rec.by !== void 0 && rec.by !== who && rec.by !== (old && "kind" in old && old.kind === "chip" ? old.by : void 0);
 var paperOf = (r) => r && "kind" in r && isPaper(r) ? r : void 0;
 var handing = (old, rec, who) => {
@@ -3805,7 +3821,7 @@ function mergeYards(real2, mine, viewer, chars, deleted) {
     }
     for (const r of b.records) {
       truth.set(r.oid, r);
-      if (!seen(r, viewer, chars)) secret.add(r.oid);
+      if (!seen2(r, viewer, chars)) secret.add(r.oid);
     }
   }
   const kept = /* @__PURE__ */ new Set();
@@ -3871,8 +3887,8 @@ function judge(game2, edit, who, tab2) {
   if (edit.puts.some((p) => p.rid === "yards") && edit.base < (book2.hillGv ?? 0)) return { puts: [], dels: [], refused: all2 };
   const viewer = { name: who, gm: false };
   const mine = (old, rec) => {
-    if (old && !seen(old, viewer, chars)) return false;
-    if (rec && !seen(rec, viewer, chars) && !handing(old, rec, who)) return false;
+    if (old && !seen2(old, viewer, chars)) return false;
+    if (rec && !seen2(rec, viewer, chars) && !handing(old, rec, who)) return false;
     const gms = (r) => !!r && "kind" in r && (r.kind === "connections" || r.kind === "opinion");
     if (gms(old) || gms(rec)) return false;
     const c = (r) => r && "kind" in r && r.kind === "character" ? r : void 0;
@@ -5322,10 +5338,10 @@ var Rolls = class {
     if (c?.kind !== "character" || by?.kind !== "character") return this.#work;
     if (from && c.owner !== this.#w.whoIs?.(from)) return this.#work;
     if (!pages(c, a.kind, a.result).some((p) => same2(p, body.page))) return this.#work;
-    const next2 = fill(c, a.kind, body.page, { name: by.name, id: body.id }), d = COLUMN_OF[a.kind];
+    const next3 = fill(c, a.kind, body.page, { name: by.name, id: body.id }), d = COLUMN_OF[a.kind];
     const named4 = (ch, r) => waitsIn(ch, d, r)?.naming?.id === body.id;
-    const waiting = [...ROWS, "lasting"].filter((r) => named4(next2, r) && !named4(c, r)).map((row2) => ({ damage: d, row: row2 }));
-    game2.change((w) => w.put(ridOf(c.oid), next2));
+    const waiting = [...ROWS, "lasting"].filter((r) => named4(next3, r) && !named4(c, r)).map((row2) => ({ damage: d, row: row2 }));
+    game2.change((w) => w.put(ridOf(c.oid), next3));
     this.#attack(k, (x) => ({ ...x, taken: true, ...waiting.length && { waiting } }));
     return this.#resend(k);
   }
@@ -6675,9 +6691,9 @@ var getAppController = (appKey) => {
   return ctrl;
 };
 var enqueueControllerOp = (ctrl, fn) => {
-  const next2 = ctrl.opTail.catch(noOp2).then(fn);
-  ctrl.opTail = next2.catch(noOp2);
-  return next2;
+  const next3 = ctrl.opTail.catch(noOp2).then(fn);
+  ctrl.opTail = next3.catch(noOp2);
+  return next3;
 };
 var nextIdentityClientSeq = 0;
 var createIdentityClientId = () => `c${++nextIdentityClientSeq}`;
@@ -6843,7 +6859,7 @@ var verifySig = (pub, payload, sig) => {
   }
 };
 var canonicalizeAndMeasureJson = (value2, maxBytes = Number.POSITIVE_INFINITY) => {
-  const seen3 = /* @__PURE__ */ new Set();
+  const seen4 = /* @__PURE__ */ new Set();
   const walk = (item2, depth) => {
     if (depth > maxJsonDepth) return null;
     if (item2 === null || typeof item2 === "boolean") return String(item2);
@@ -6851,13 +6867,13 @@ var canonicalizeAndMeasureJson = (value2, maxBytes = Number.POSITIVE_INFINITY) =
     if (typeof item2 === "string") return toJson(item2);
     if (typeof item2 !== "object") return null;
     const obj2 = item2;
-    if (seen3.has(obj2)) return null;
+    if (seen4.has(obj2)) return null;
     const isArr = Array.isArray(obj2);
     if (!isArr) {
       const proto = Object.getPrototypeOf(obj2);
       if (proto !== Object.prototype && proto !== null) return null;
     }
-    seen3.add(obj2);
+    seen4.add(obj2);
     try {
       if (isArr) {
         const parts3 = [];
@@ -6881,7 +6897,7 @@ var canonicalizeAndMeasureJson = (value2, maxBytes = Number.POSITIVE_INFINITY) =
       }
       return `{${parts2.join(",")}}`;
     } finally {
-      seen3.delete(obj2);
+      seen4.delete(obj2);
     }
   };
   const json = walk(value2, 0);
@@ -7373,9 +7389,9 @@ var startIdleTimer = (getLast, onTimeout, onReschedule) => {
   const tick = () => {
     const remaining = transferTimeoutMs - (Date.now() - getLast());
     if (remaining > 0) {
-      const next2 = setTimeout(tick, remaining);
-      unrefTimer(next2);
-      onReschedule(next2);
+      const next3 = setTimeout(tick, remaining);
+      unrefTimer(next3);
+      onReschedule(next3);
     } else onTimeout();
   };
   const initial = setTimeout(tick, transferTimeoutMs);
@@ -7473,9 +7489,9 @@ var createActionWireManager = ({ resolveTransport, getPeerIds, canReceiveFromPee
     if (count > 0) decisions.set(peerId, count);
     else decisions.delete(peerId);
   };
-  const transitionBulk = (transfer2, next2) => {
+  const transitionBulk = (transfer2, next3) => {
     const from = bulkPhaseClass[transfer2.state.phase];
-    const to = bulkPhaseClass[next2.phase];
+    const to = bulkPhaseClass[next3.phase];
     const { peerId, size } = transfer2.message;
     const peer = peers.get(peerId);
     if (from.reserved !== to.reserved) {
@@ -7493,8 +7509,8 @@ var createActionWireManager = ({ resolveTransport, getPeerIds, canReceiveFromPee
         rotateWaitingForPeer(peerId);
       }
     }
-    transfer2.state = next2;
-    if (next2.phase === "buffered") markDrainDirty();
+    transfer2.state = next3;
+    if (next3.phase === "buffered") markDrainDirty();
   };
   const releaseTransfer = (transfer2) => {
     if (transfer2.state.phase === "closed") return false;
@@ -10808,12 +10824,12 @@ var createMediaManager = ({ iterate, isActive, preparePeer, getPeerUserId, onPee
   };
   const resolveTrack = (track) => {
     let current = track;
-    const seen3 = /* @__PURE__ */ new Set();
-    while (!seen3.has(current)) {
-      const next2 = globalReplacedTracks.get(current);
-      if (!next2) break;
-      seen3.add(current);
-      current = next2;
+    const seen4 = /* @__PURE__ */ new Set();
+    while (!seen4.has(current)) {
+      const next3 = globalReplacedTracks.get(current);
+      if (!next3) break;
+      seen4.add(current);
+      current = next3;
     }
     return current;
   };
@@ -11322,14 +11338,14 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
   const getOnlineEpoch = (uid) => onlineEpoch.get(uid) ?? 0;
   const bumpOnlineEpoch = (uid) => {
     if (!uid) return;
-    const next2 = getOnlineEpoch(uid) + 1;
+    const next3 = getOnlineEpoch(uid) + 1;
     if (!onlineEpoch.has(uid) && onlineEpoch.size >= 4096) {
       for (const k of onlineEpoch.keys()) if (!activeOnlineUsers.has(k) && !isUserOnline(k)) {
         onlineEpoch.delete(k);
         break;
       }
     }
-    onlineEpoch.set(uid, next2);
+    onlineEpoch.set(uid, next3);
   };
   const setUserPresence = (userId, online) => {
     if (isDestroyed() || !userId) return;
@@ -11340,8 +11356,8 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
       }
     } else if (activeOnlineUsers.delete(userId)) bumpOnlineEpoch(userId);
   };
-  const setSlotOptimistic = (slot2, next2) => {
-    slot2.optimistic = next2;
+  const setSlotOptimistic = (slot2, next3) => {
+    slot2.optimistic = next3;
     slot2.snapshot = null;
   };
   const clearSlotOptimistic = (slot2) => {
@@ -11524,26 +11540,26 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
     const suppressForPendingOptimistic = !skipValidate && isLocalTarget && slot2.optimistic !== null && (slot2.ops.length > 0 || slot2.flushState.phase === "stepping" && compareHlc(rec.hlc, slot2.flushState.signingHlc ?? [slot2.optimistic.timestamp, 0]) <= 0) && rec.hlc[0] <= Date.now() + 1e4;
     if (rec.del) {
       if (slot2.kind !== "u" || !withinUserQuota(key, slot2, bytes)) return null;
-      const next3 = {
+      const next4 = {
         rec,
         value: slot2.initialValue,
         prev: prevVal,
         roles: [...roles2],
         bytes
       };
-      slot2.entries.set(key, next3);
+      slot2.entries.set(key, next4);
       if (suppressForPendingOptimistic) {
         slot2.optimistic.prev = slot2.initialValue;
-        return next3;
+        return next4;
       }
       if (!skipValidate && isLocalTarget) clearSlotOptimistic(slot2);
       slot2.snapshot = null;
       if (!silentCommit && curLive) slot2.emit(void 0, toUserCtx(rec, prevVal, roles2, true));
-      return next3;
+      return next4;
     }
     if (bytes > slot2.maxBytes || slot2.kind === "u" && !withinUserQuota(key, slot2, bytes)) return null;
     const nextVal = rec.val;
-    const next2 = {
+    const next3 = {
       rec,
       value: nextVal,
       prev: prevVal,
@@ -11562,15 +11578,15 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
         }
         if (!valid) return null;
       }
-      slot2.entries.set(key, next2);
+      slot2.entries.set(key, next3);
       if (suppressForPendingOptimistic) {
         slot2.optimistic.prev = nextVal;
-        return next2;
+        return next3;
       }
       if (!skipValidate) clearSlotOptimistic(slot2);
       slot2.snapshot = null;
       if (!silentCommit) slot2.emit(nextVal, emitPrev2 === prevVal ? ctx2 : toSharedCtx(rec, emitPrev2, roles2));
-      return next2;
+      return next3;
     }
     const emitPrev = !skipValidate && isLocalTarget && slot2.optimistic !== null && !suppressForPendingOptimistic ? slot2.optimistic.value : prevVal;
     const ctx = toUserCtx(rec, prevVal, roles2, false);
@@ -11583,15 +11599,15 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
       }
       if (!valid) return null;
     }
-    slot2.entries.set(key, next2);
+    slot2.entries.set(key, next3);
     if (suppressForPendingOptimistic) {
       slot2.optimistic.prev = nextVal;
-      return next2;
+      return next3;
     }
     if (!skipValidate && isLocalTarget) clearSlotOptimistic(slot2);
     slot2.snapshot = null;
     if (!silentCommit) slot2.emit(nextVal, emitPrev === prevVal ? ctx : toUserCtx(rec, emitPrev, roles2, false));
-    return next2;
+    return next3;
   };
   const captureUserIngress = (uid) => ({
     startedOnline: isUserOnline(uid),
@@ -12138,13 +12154,13 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
     if (!slot2.requiredRoles.some((r) => held.includes(r))) return mkErr(`${insufficientAuthPrefix} to update state "${slot2.namespace}": requires [${slot2.requiredRoles.join(", ")}]`);
     return "sync";
   };
-  const enqueueSlotOp = (slot2, del2, next2) => {
+  const enqueueSlotOp = (slot2, del2, next3) => {
     const mode = resolveOptimisticMode(slot2);
     if (mode === "noop") return Promise.resolve();
     if (mode instanceof Error) return Promise.reject(mode);
     if (mode === "defer") return enqueuePendingOp(slot2, {
       del: del2,
-      next: next2
+      next: next3
     });
     const localUid = getLocalUserId();
     const selfId = getSelfId();
@@ -12178,7 +12194,7 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
     }
     let cand;
     try {
-      cand = typeof next2 === "function" ? next2(prevVal) : next2;
+      cand = typeof next3 === "function" ? next3(prevVal) : next3;
     } catch (err) {
       return Promise.reject(err);
     }
@@ -12223,7 +12239,7 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
     return enqueuePendingOp(slot2, {
       del: false,
       next: cand,
-      ...typeof next2 === "function" ? { updater: next2 } : {},
+      ...typeof next3 === "function" ? { updater: next3 } : {},
       ...baseSig !== void 0 ? { baseSig } : {},
       optimisticGen: gen,
       prevalidatedJson: json,
@@ -12276,7 +12292,7 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
     };
     return registerSlot(mapKey, slot2, lockMethods({
       get: () => getEffectiveLocalValue(slot2),
-      set: (next2) => enqueueSlotOp(slot2, false, next2),
+      set: (next3) => enqueueSlotOp(slot2, false, next3),
       getMeta: currentMeta,
       onChange: (handler, options) => subEmitter(handler, options, () => {
         const meta = currentMeta();
@@ -12341,7 +12357,7 @@ var createStateManager = ({ appId, getRoomId, getSelfId, getLocalUserId, ensureR
         if (isSelf && slot2.optimistic) return !slot2.optimistic.del;
         return Boolean(uid !== void 0 && getLiveEntry(slot2, uid));
       },
-      set: (next2) => enqueueSlotOp(slot2, false, next2),
+      set: (next3) => enqueueSlotOp(slot2, false, next3),
       clear: () => enqueueSlotOp(slot2, true),
       getMeta: (...args) => {
         const [isSelf, uid] = resolveTarget(args);
@@ -12872,10 +12888,10 @@ var createRoomWithBridge = (onPeer, onPeerLeave, onSelfLeave, roomOptions = {}) 
   const resolveSendTarget = (targets, includePending = false) => {
     if (!targets) return;
     const resolved = [];
-    const seen3 = /* @__PURE__ */ new Set();
+    const seen4 = /* @__PURE__ */ new Set();
     const addPeer = (pid) => {
-      if (!seen3.has(pid)) {
-        seen3.add(pid);
+      if (!seen4.has(pid)) {
+        seen4.add(pid);
         resolved.push(pid);
       }
     };
@@ -14897,12 +14913,12 @@ var getRelayHealth = (client) => {
   const state = relayHealth.get(client);
   if (!state) return { phase: "healthy" };
   if (state.phase === "cooldown" && Date.now() >= state.untilMs) {
-    const next2 = {
+    const next3 = {
       phase: "probation",
       lastDelayMs: state.delayMs
     };
-    relayHealth.set(client, next2);
-    return next2;
+    relayHealth.set(client, next3);
+    return next3;
   }
   return state;
 };
@@ -15407,7 +15423,7 @@ var TrayView = class {
     }
     this.#tray.append(label2, this.#value);
     slot2.replaceChildren(this.#button, this.#tray);
-    w.game.listen(() => this.render());
+    w.game.listen(() => this.render(), w.signal);
     this.render();
   }
   // R376, R350: the world's mark: the tray while it is out, else its button.
@@ -15440,16 +15456,16 @@ var TrayView = class {
     field2.value = w?.set ? String(w.total) : "";
   }
   #commit(field2) {
-    const next2 = worldFrom(field2.value), was = this.#world();
-    if (!next2) {
+    const next3 = worldFrom(field2.value), was = this.#world();
+    if (!next3) {
       this.#show(field2);
       return;
     }
-    if (was?.set === next2.set && (was.total === next2.total || !next2.set)) {
+    if (was?.set === next3.set && (was.total === next3.total || !next3.set)) {
       this.#show(field2);
       return;
     }
-    this.#w.game.change((x) => x.put("world", next2));
+    this.#w.game.change((x) => x.put("world", next3));
   }
   #paint() {
     for (const el4 of [this.#button, this.#tray]) el4.classList.toggle("targeted", this.#ringed && el4 === this.mark());
@@ -15501,10 +15517,10 @@ function toDrawer(game2, rid2, owner, at4) {
   const i = item(game2, rid2);
   if (!i || i.kind !== "influence") return null;
   const order2 = drawerCards(game2, owner).filter((k) => ridOf(k.oid) !== rid2);
-  const card2 = { ...i, home: owner, where: "drawer", used: false };
-  order2.splice(at4 === void 0 ? order2.length : Math.max(0, Math.min(at4, order2.length)), 0, card2);
+  const card3 = { ...i, home: owner, where: "drawer", used: false };
+  order2.splice(at4 === void 0 ? order2.length : Math.max(0, Math.min(at4, order2.length)), 0, card3);
   return (w) => order2.forEach((k, n) => {
-    if (k === card2 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
+    if (k === card3 || k.n !== n) w.put(ridOf(k.oid), { ...k, n });
   });
 }
 function toTable(game2, rid2, at4) {
@@ -15529,9 +15545,9 @@ function vanish(game2, rid2) {
 function chipClick(game2, rid2, shift, _mint) {
   const c = item(game2, rid2);
   if (c?.kind !== "chip") return null;
-  const next2 = shift ? lowerChip(c) : raiseChip(c);
+  const next3 = shift ? lowerChip(c) : raiseChip(c);
   return (w) => {
-    if (next2) w.put(rid2, next2);
+    if (next3) w.put(rid2, next3);
     else w.del(rid2);
   };
 }
@@ -15561,23 +15577,23 @@ function cardClick(game2, rid2, shift, mint2) {
     const t = shift ? unfeed(lookup(game2), c) : feed(lookup(game2), c, void 0, mint2());
     return t ? apply2(t, c) : null;
   }
-  const next2 = shift ? lowerCard(c) : raiseCard(c);
-  return next2.points === c.points ? null : (w) => w.put(rid2, next2);
+  const next3 = shift ? lowerCard(c) : raiseCard(c);
+  return next3.points === c.points ? null : (w) => w.put(rid2, next3);
 }
 function ruleFlag(game2, rid2, allow) {
   const c = item(game2, rid2);
   if (c?.kind !== "influence" || !c.flag) return null;
   if (allow) {
-    const next2 = allowFlag(c);
-    return (w) => w.put(rid2, next2);
+    const next3 = allowFlag(c);
+    return (w) => w.put(rid2, next3);
   }
   const t = undoFlag(lookup(game2), c);
   return t ? apply2(t, c) : null;
 }
 function writeCard(game2, owner, sign2, name2, mint2) {
   const n = drawerCards(game2, owner).reduce((m, k) => Math.max(m, k.n + 1), 0);
-  const card2 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
-  return (w) => w.put(ridOf(card2.oid), card2);
+  const card3 = { kind: "influence", oid: mint2(), home: owner, where: "drawer", n, name: name2, sign: sign2, points: MIN, used: false, crit: false };
+  return (w) => w.put(ridOf(card3.oid), card3);
 }
 function restoreUsed(game2, rid2) {
   const c = item(game2, rid2);
@@ -15600,12 +15616,12 @@ function mergeTap(game2, fromRid, intoRid, mint2) {
   const chars = /* @__PURE__ */ new Map();
   const now2 = (oid) => chars.get(oid) ?? lookup(game2)(oid);
   for (const c of kill(now2, from)) chars.set(c.oid, c);
-  let card2 = into, fed = false;
+  let card3 = into, fed = false;
   for (const [src, n] of Object.entries(from.tap.ledger)) {
     for (let k = 0; k < n; k++) {
-      const t = feed(now2, card2, src, mint2());
+      const t = feed(now2, card3, src, mint2());
       if (!t || t.card.oid !== into.oid) return null;
-      card2 = t.card;
+      card3 = t.card;
       fed = true;
       for (const c of t.changed) chars.set(c.oid, c);
     }
@@ -15613,7 +15629,7 @@ function mergeTap(game2, fromRid, intoRid, mint2) {
   if (!fed) return null;
   return (w) => {
     w.del(fromRid);
-    w.put(intoRid, card2);
+    w.put(intoRid, card3);
     for (const c of chars.values()) w.put(ridOf(c.oid), c);
   };
 }
@@ -15785,20 +15801,20 @@ var RollRowView = class {
     document.addEventListener("pointerdown", (e) => {
       if (e.target.closest?.(".advmenu, .white")) return;
       for (const { menu } of this.#els.values()) menu.hidden = true;
-    }, true);
-    w.game.listen(() => this.render());
+    }, { capture: true, signal: w.signal });
+    w.game.listen(() => this.render(), w.signal);
     if (w.viewer?.gm) w.game.listen(() => queueMicrotask(() => {
       const changed = whites(w.game);
       if (Object.keys(changed).length) w.game.change((x) => x.put("rows", { rows: { ...rowsOf(w.game), ...changed } }));
-    }));
+    }), w.signal);
     this.render();
   }
   // R381: a row is the game's; R362, R353: the card its action suffers follows it, in the same change.
   #set(r) {
-    const { game: game2 } = this.#w, was = rowsOf(game2)[r.pool] ?? null, card2 = onceCard(game2, was, r, this.#w.mint);
+    const { game: game2 } = this.#w, was = rowsOf(game2)[r.pool] ?? null, card3 = onceCard(game2, was, r, this.#w.mint);
     game2.change((x) => {
       x.put("rows", { rows: { ...rowsOf(game2), [r.pool]: r } });
-      card2?.(x);
+      card3?.(x);
     });
     this.#w.redraw([r.pool]);
     this.render();
@@ -15824,10 +15840,10 @@ var RollRowView = class {
       this.#set(dock(null, oid));
       return;
     }
-    const { [oid]: _, ...rows } = rowsOf(game2), card2 = onceCard(game2, was, null, this.#w.mint);
+    const { [oid]: _, ...rows } = rowsOf(game2), card3 = onceCard(game2, was, null, this.#w.mint);
     game2.change((x) => {
       x.put("rows", { rows });
-      card2?.(x);
+      card3?.(x);
     });
     this.#w.redraw([oid]);
     this.render();
@@ -16198,17 +16214,17 @@ function rangeOf(text, p) {
   const div = text.children[p.line];
   if (!div) return null;
   const doc = text.ownerDocument, walk = doc.createTreeWalker(div, NodeFilter.SHOW_TEXT), range = doc.createRange();
-  let seen3 = 0, started = false;
+  let seen4 = 0, started = false;
   for (let n = walk.nextNode(); n; n = walk.nextNode()) {
-    if (!started && p.start <= seen3 + n.length) {
-      range.setStart(n, p.start - seen3);
+    if (!started && p.start <= seen4 + n.length) {
+      range.setStart(n, p.start - seen4);
       started = true;
     }
-    if (started && p.end <= seen3 + n.length) {
-      range.setEnd(n, p.end - seen3);
+    if (started && p.end <= seen4 + n.length) {
+      range.setEnd(n, p.end - seen4);
       return range;
     }
-    seen3 += n.length;
+    seen4 += n.length;
   }
   return null;
 }
@@ -16253,12 +16269,12 @@ var TapeView = class {
     doc.addEventListener("pointerdown", (e) => {
       const t = e.target;
       if (!t.closest?.("#tape, #paperroll, .roller .roll")) this.#el.classList.remove("raised");
-    }, true);
+    }, { capture: true, signal: w.signal });
     this.#strip.addEventListener("pointerdown", (e) => this.#press(e));
     this.#strip.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
     w.game.listen((rids) => {
       if (rids.has("tape")) this.render();
-    });
+    }, w.signal);
     this.render();
   }
   /** The paper roll on the register: up to a sliver, and down again (raised as it comes down). */
@@ -16429,9 +16445,9 @@ var RegisterView = class {
       return e;
     };
     this.#el = el4("div", "register");
-    const win = el4("div", "window"), confirm2 = el4("span", "tab", "End conflict?");
+    const win = el4("div", "window"), confirm = el4("span", "tab", "End conflict?");
     this.#tab = el4("span", "rtab");
-    win.append(el4("small", "label", "Round"), this.#tab, confirm2);
+    win.append(el4("small", "label", "Round"), this.#tab, confirm);
     const keys2 = el4("div", "keys"), up = el4("button", "key up", "\u25B2"), down = el4("button", "key down", "\u25BC"), end = el4("button", "key end", "End");
     const roll3 = el4("button", "paperroll");
     roll3.id = "paperroll";
@@ -16452,13 +16468,13 @@ var RegisterView = class {
       this.#armed = null;
       this.#el.classList.remove("armed");
     };
-    confirm2.title = "Shift-click or long-press to cancel";
-    gesture(confirm2, { shift: lower });
+    confirm.title = "Shift-click or long-press to cancel";
+    gesture(confirm, { shift: lower });
     gesture(end, { click: () => {
       const round = w.game.get("meta").round;
       if (this.#armed === null) {
         this.#scene = round === 0;
-        confirm2.textContent = this.#scene ? "End scene?" : "End conflict?";
+        confirm.textContent = this.#scene ? "End scene?" : "End conflict?";
         this.#el.classList.add("armed");
         this.#armed = setTimeout(() => {
           this.#armed = null;
@@ -16473,7 +16489,7 @@ var RegisterView = class {
     gesture(roll3, { click: () => w.paperRoll() });
     w.game.listen((rids) => {
       if (rids.has("meta")) this.render();
-    });
+    }, w.signal);
     this.render();
   }
   // R284: a changed Round drops its tab and brings it back up with the new number.
@@ -16662,7 +16678,7 @@ var DeskView = class {
     this.render();
     doc.addEventListener("pointerdown", (ev) => {
       if (this.#open && !this.el.contains(ev.target)) this.#show(false);
-    }, true);
+    }, { capture: true, signal: w.signal });
   }
   // R517: the image pigeonhole says the browser won't keep an image, and the desk is edged red.
   /** Marks the image pigeonhole refused (`label`, and `why` on hover), or plain again with null. */
@@ -16970,8 +16986,8 @@ function drawPool(c, items, old, w) {
   const pileUp = canSee(w.viewer, c);
   slotEls.forEach((slotEl, k) => units(slotEl, mine[k], w, shown3, drawn, pileUp || slotEl.dataset.slot === "stagger"));
   drawer(e.querySelector(".drawer"), c, items.filter((i) => i.kind === "influence" && i.home === c.oid), w, shown3, drawn);
-  for (const k of pops(seen2.get(e), shown3)) pop(drawn.get(k));
-  seen2.set(e, shown3);
+  for (const k of pops(seen3.get(e), shown3)) pop(drawn.get(k));
+  seen3.set(e, shown3);
   e.dataset.rid = rid2;
   return e;
 }
@@ -16991,7 +17007,7 @@ function reach(pool, at4, from) {
   else reaching.delete(pool);
   layout(pool);
 }
-var seen2 = /* @__PURE__ */ new WeakMap();
+var seen3 = /* @__PURE__ */ new WeakMap();
 function pop(e) {
   if (!e) return;
   e.classList.remove("rolled");
@@ -17086,20 +17102,20 @@ function chipFace(i) {
   return `${i.sign < 0 ? "\u2212" : ""}${i.points}`;
 }
 function chip(doc, i, w) {
-  const card2 = i.kind === "influence";
+  const card3 = i.kind === "influence";
   const b = el3(
     doc,
     "button",
-    `chip ${i.sign > 0 ? "pos" : "neg"}${card2 ? " card-chip" : ""}${card2 && i.tap ? " res" : ""}${card2 && i.used ? " used" : ""}`,
+    `chip ${i.sign > 0 ? "pos" : "neg"}${card3 ? " card-chip" : ""}${card3 && i.tap ? " res" : ""}${card3 && i.used ? " used" : ""}`,
     chipFace(i)
   );
   const rid2 = ridOf(i.oid);
   b.dataset.rid = rid2;
-  if (card2) {
+  if (card3) {
     b.title = i.name;
     b.dataset.name = i.name;
   }
-  if (card2 && i.flag) b.append(flagMark(doc, i, rid2, w));
+  if (card3 && i.flag) b.append(flagMark(doc, i, rid2, w));
   if (i.kind === "chip" && i.rider) {
     const r = el3(doc, "span", "rider", "+1");
     gesture(r, { click: () => void 0, shift: () => run(w.game, riderClick(w.game, rid2, true)) });
@@ -17220,14 +17236,14 @@ function flagMark(doc, k, rid2, w) {
 }
 var drawerCardEls = (cards) => [...cards.querySelectorAll(":scope > .icard")];
 function gapAt(drawer2, x, y) {
-  const cards = drawer2.querySelector(".cards"), gap = cards.querySelector(".gap"), next2 = gap?.nextSibling ?? null;
+  const cards = drawer2.querySelector(".cards"), gap = cards.querySelector(".gap"), next3 = gap?.nextSibling ?? null;
   gap?.remove();
   const r = cards.getBoundingClientRect(), k = r.width / cards.offsetWidth || 1;
   const boxes = drawerCardEls(cards).map((e) => {
     const left = e.offsetLeft - cards.offsetLeft, top = e.offsetTop - cards.offsetTop;
     return { left, top, right: left + e.offsetWidth, bottom: top + e.offsetHeight };
   });
-  if (gap) cards.insertBefore(gap, next2);
+  if (gap) cards.insertBefore(gap, next3);
   return insertAt(boxes, (x - r.left) / k, (y - r.top) / k);
 }
 function showGap(drawer2, at4, animate = true) {
@@ -17278,7 +17294,7 @@ var BarView = class {
     const mark2 = el4("div", "wordmark", "Hollow");
     mark2.append(el4("span", "stamp version", w.version, "Which version this is: a release's tag, or dev"));
     if (w.date) mark2.append(el4("span", "stamp date", w.date, "When it was released (on the test rig, when it was published)"));
-    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut, cur: w.cur, setDesks: w.setDesks, setOut: w.setOut });
+    this.desk = new DeskView(doc, { signal: w.signal, gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut, cur: w.cur, setDesks: w.setDesks, setOut: w.setOut });
     const chips = el4("div", "supplychips", "", "Influence chips: drag one out");
     for (const sign2 of [1, -1]) for (const points3 of [2, 4, 6, 1]) {
       const c = el4("div", `supply chip ${sign2 > 0 ? "pos" : "neg"}${points3 === 1 ? " one" : ""}`, chipFace({ sign: sign2, points: points3 }));
@@ -17417,14 +17433,20 @@ var BootHillView = class {
       if (!this.#w.open() || e.target.closest?.("#graves, #boothill")) return;
       this.#w.setOpen(false);
       this.render();
-    }, true);
+    }, { capture: true, signal: w.signal });
     w.game.listen((rids) => {
       if (rids.has("yards") || rids.has("hill")) this.render();
-    });
+    }, w.signal);
     this.render();
   }
   #yards() {
     return this.#w.game.get("yards") ?? empty();
+  }
+  /** R603: a burial as it reaches this page's viewer (itself for the GM); undefined when it wouldn't. */
+  #seen(yard, burial2) {
+    if (this.#w.viewer?.gm) return burial2;
+    const one = redact({ yards: [{ ...yard, items: [burial2] }] }, this.#w.viewer, (oid) => this.#w.game.get(ridOf(oid)));
+    return one.yards[0].items[0];
   }
   #cur() {
     return Math.min(this.#w.cur(), this.#yards().yards.length - 1);
@@ -17440,7 +17462,7 @@ var BootHillView = class {
   // R289: the badge counts every graveyard; the stone fades when nothing is buried.
   render() {
     const y = this.#yards(), cur = this.#cur(), g = y.yards[cur], doc = this.#panel.ownerDocument;
-    const total3 = y.yards.reduce((n, x) => n + x.items.length, 0) + this.#hill().hill.length;
+    const total3 = y.yards.reduce((n, x) => n + x.items.filter((b) => this.#seen(x, b)).length, 0) + this.#hill().hill.length;
     this.#badge.textContent = total3 ? String(total3) : "";
     this.#stone.classList.toggle("empty", !total3);
     this.#panel.hidden = !this.#w.open();
@@ -17448,13 +17470,17 @@ var BootHillView = class {
     if (doc.activeElement !== this.#name && this.#dooms.armed !== this.#name) this.#name.value = g.name;
     if (this.#dooms.armed && this.#dooms.armed !== this.#name) this.#dooms.drop();
     const own2 = this.#own(), hill = this.#hill();
-    if (!g.items.length && !own2.length) {
+    const shown3 = g.items.flatMap((burial2, item2) => {
+      const s = this.#seen(g, burial2);
+      return s ? [{ s, item: item2 }] : [];
+    });
+    if (!shown3.length && !own2.length) {
       const p = doc.createElement("p");
       p.textContent = "Nothing is buried here.";
       this.#items.replaceChildren(p);
       return;
     }
-    this.#items.replaceChildren(...g.items.map((burial2, item2) => {
+    this.#items.replaceChildren(...shown3.map(({ s: burial2, item: item2 }) => {
       const b = doc.createElement("button");
       b.textContent = burial2.name;
       b.title = "Drag this back onto the table. Shift-click or long-press twice to delete it forever.";
@@ -17494,8 +17520,8 @@ var BootHillView = class {
     if (record?.kind !== "opinion") return void 0;
     const all2 = this.#w.game.all().map(([, r]) => r);
     const table = tableOf(all2);
-    const card2 = table && all2.find((c) => c.kind === "character" && rowOf(table, c)?.id === record.holder);
-    return table && card2 ? { record, table, card: card2 } : void 0;
+    const card3 = table && all2.find((c) => c.kind === "character" && rowOf(table, c)?.id === record.holder);
+    return table && card3 ? { record, table, card: card3 } : void 0;
   }
   #cardUp(at4) {
     const b = this.#yards().yards[at4.yard]?.items[at4.item];
@@ -17574,6 +17600,78 @@ function isPageUndo(ev) {
   return !(t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? ""));
 }
 
+// src/ui/ask.ts
+var turn2 = Promise.resolve();
+function next2(f) {
+  const mine = turn2.then(f);
+  turn2 = mine.catch(() => void 0);
+  return mine;
+}
+function card2(doc, question, value2, yes, no) {
+  return new Promise((done2) => {
+    const veil = doc.createElement("div"), form = doc.createElement("form");
+    veil.className = "askveil";
+    form.className = "askcard";
+    const q = doc.createElement("p");
+    q.className = "question";
+    q.textContent = question;
+    form.append(q);
+    let line = null;
+    if (value2 !== null) {
+      line = doc.createElement("input");
+      line.className = "line";
+      line.value = value2;
+      line.spellcheck = false;
+      form.append(line);
+    }
+    const keys2 = doc.createElement("div"), cancel = doc.createElement("button"), ok = doc.createElement("button");
+    keys2.className = "keys";
+    cancel.type = "button";
+    cancel.textContent = no;
+    ok.type = "submit";
+    ok.textContent = yes;
+    keys2.append(cancel, ok);
+    form.append(keys2);
+    veil.append(form);
+    const win = doc.defaultView, off = new AbortController(), { signal } = off;
+    const end = (answer) => {
+      off.abort();
+      veil.remove();
+      done2(answer);
+    };
+    win.addEventListener("pointerdown", (e) => {
+      if (veil.contains(e.target)) e.stopPropagation();
+    }, { capture: true, signal });
+    win.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        end(null);
+      } else if (e.key === "Enter" && !line) {
+        e.preventDefault();
+        e.stopPropagation();
+        end("");
+      } else if (!form.contains(e.target)) e.stopPropagation();
+    }, { capture: true, signal });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      end(line ? line.value : "");
+    });
+    cancel.addEventListener("click", () => end(null));
+    doc.body.append(veil);
+    if (line) {
+      line.focus();
+      line.select();
+    } else ok.focus();
+  });
+}
+function ask(doc, question, value2 = "") {
+  return next2(() => card2(doc, question, value2, "OK", "Cancel"));
+}
+function askYes(doc, question) {
+  return next2(() => card2(doc, question, null, "Yes", "No")).then((a) => a !== null);
+}
+
 // src/ui/folks.ts
 function tags(me, people, held = () => void 0) {
   const warn2 = me.why !== void 0 ? "offline" : me.notYours !== void 0 ? "notyours" : me.said !== void 0 ? "said" : void 0;
@@ -17612,11 +17710,14 @@ var FolksView = class {
   #folks;
   #youAre;
   #shown = "";
+  /** R602: the invite link shown under its button when the clipboard refused, until put away. */
+  #link = null;
   constructor(folks, youAre, w) {
     this.#w = w;
     this.#folks = folks;
     this.#youAre = youAre;
-    setInterval(() => this.render(), 1e3);
+    const tick = setInterval(() => this.render(), 1e3);
+    w.signal.addEventListener("abort", () => clearInterval(tick), { once: true });
     this.render();
   }
   render() {
@@ -17637,9 +17738,11 @@ var FolksView = class {
       } else if (t.warn === "impostor") {
         e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees. Click to hand ${t.name} to them.`;
         e.addEventListener("click", () => {
-          if (confirm(`${t.name} is held by another computer. Hand ${t.name} to this one?
+          void askYes(doc, `${t.name} is held by another computer. Hand ${t.name} to this one?
 
-The other one will see ${t.name}'s things as a stranger does.`)) this.#w.handOver?.(t.name, t.browser);
+The other one will see ${t.name}'s things as a stranger does.`).then((yes) => {
+            if (yes) this.#w.handOver?.(t.name, t.browser);
+          });
         });
       } else if (t.impostor) e.title = `${t.name}, from another computer than the one that holds ${t.name}. They see only what anyone sees.`;
       else if (t.you) {
@@ -17667,12 +17770,16 @@ The other one will see ${t.name}'s things as a stranger does.`)) this.#w.handOve
 ${url}
 Shift-click or long-press to close the table.`;
         gesture(b, {
-          click: () => void navigator.clipboard?.writeText(url).then(() => {
-            b.textContent = "Copied";
-            setTimeout(() => {
-              b.textContent = "Copy invite";
-            }, 1200);
-          }, () => prompt("Copy the invite link", url)),
+          click: () => {
+            const copied = () => {
+              b.textContent = "Copied";
+              setTimeout(() => {
+                b.textContent = "Copy invite";
+              }, 1200);
+            };
+            if (!navigator.clipboard) this.#showLink(url);
+            else navigator.clipboard.writeText(url).then(copied, () => this.#showLink(url));
+          },
           // R14: shift-click or a long press closes the table.
           shift: () => {
             table.close();
@@ -17682,6 +17789,7 @@ Shift-click or long-press to close the table.`;
         });
       }
       this.#folks.append(b);
+      if (this.#link) b.after(this.#link);
     }
     const va = this.#w.viewAs;
     this.#youAre.replaceChildren();
@@ -17697,6 +17805,33 @@ Shift-click or long-press to close the table.`;
       });
       this.#youAre.append(label2, b);
     }
+  }
+  // R602: the clipboard refused, so the link shows in a line under Copy invite, selected to copy by hand;
+  // a press anywhere but the line, or Escape, puts it away.
+  #showLink(url) {
+    const doc = this.#folks.ownerDocument;
+    this.#link?.remove();
+    const line = doc.createElement("input");
+    line.className = "invitelink";
+    line.readOnly = true;
+    line.value = url;
+    line.title = "The invite link: copy it with Ctrl+C (\u2318C)";
+    this.#link = line;
+    this.#folks.querySelector(".invite")?.after(line);
+    line.focus();
+    line.select();
+    const off = new AbortController(), away = () => {
+      off.abort();
+      line.remove();
+      if (this.#link === line) this.#link = null;
+    };
+    const signal = AbortSignal.any([off.signal, this.#w.signal]);
+    doc.addEventListener("pointerdown", (e) => {
+      if (e.target !== line) away();
+    }, { capture: true, signal });
+    doc.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") away();
+    }, { capture: true, signal });
   }
 };
 
@@ -17726,14 +17861,14 @@ var blankBack2 = () => ({
   notes: ""
 });
 function newCharacter(oid, maker, at4) {
-  const card2 = place2(at4, CARD.w, CARD.h);
+  const card3 = place2(at4, CARD.w, CARD.h);
   return {
     kind: "character",
     oid,
     owner: maker?.gm || !maker ? GM : maker.name,
     name: "Name",
-    pool: { ...card2, y: card2.y - POOL_H },
-    card: card2,
+    pool: { ...card3, y: card3.y - POOL_H },
+    card: card3,
     flipped: false,
     gathered: true,
     front: BLANK_FRONT,
@@ -18494,7 +18629,8 @@ var LedgerView = class {
     gesture(this.#book, { click: () => this.#page.hidden ? this.show() : this.hide() });
     doc.addEventListener("pointerdown", (e) => {
       if (!this.#page.hidden && !e.target.closest?.("#ledger, #ledgerbtn")) this.hide();
-    }, true);
+    }, { capture: true, signal: w.signal });
+    w.signal.addEventListener("abort", () => this.hide(), { once: true });
   }
   hide() {
     this.#page.hidden = true;
@@ -18547,7 +18683,7 @@ var LedgerView = class {
       acts.append(a);
     };
     if (!w.player) act("Checkpoint", "Save a named copy of the table as it is now", async () => {
-      const n = named3(prompt("Name this checkpoint", offer2(w.round(), w.now())));
+      const n = named3(await ask(doc, "Name this checkpoint", offer2(w.round(), w.now())));
       if (n === null) return;
       await w.checkpoint(n).catch(() => void 0);
       await this.render();
@@ -18740,8 +18876,8 @@ var Drag = class {
           table.pinLine(rid2, f, this.#middle(held), [ridOf(held.oid)]);
           return f;
         }
-        const card2 = pins ? this.#cardAt(el4.ownerDocument, cx, cy, el4) : void 0;
-        if (card2) return { ...f, aim: { card: ridOf(card2.oid) } };
+        const card3 = pins ? this.#cardAt(el4.ownerDocument, cx, cy, el4) : void 0;
+        if (card3) return { ...f, aim: { card: ridOf(card3.oid) } };
         const joins = pins || rec.kind === "character" && this.#may(rec);
         const docket = joins ? aimed(table.targets(rid2), { left: f.x, top: f.y, right: f.x + el4.offsetWidth, bottom: f.y + el4.offsetHeight }) : null;
         return docket ? { ...f, aim: { docket: ridOf(docket) } } : f;
@@ -18836,10 +18972,10 @@ var Drag = class {
       if (gone) return;
       to(e);
       stop();
-      const card2 = over, now2 = game2.get(rid2);
-      if (!card2 || card2.oid === from.oid || !now2) return;
-      const at4 = this.#spot(card2);
-      game2.change((w) => w.put(rid2, { ...now2, pin: { card: card2.oid, dx: now2.place.x - at4.x, dy: now2.place.y - at4.y } }));
+      const card3 = over, now2 = game2.get(rid2);
+      if (!card3 || card3.oid === from.oid || !now2) return;
+      const at4 = this.#spot(card3);
+      game2.change((w) => w.put(rid2, { ...now2, pin: { card: card3.oid, dx: now2.place.x - at4.x, dy: now2.place.y - at4.y } }));
     });
   }
   // R32, R251: dragging a pool brings its card, gathered or not, and what's pinned to it (Hands).
@@ -19133,8 +19269,8 @@ var Drag = class {
   #cardAt(doc, x, y, not) {
     for (const hit of doc.elementsFromPoint?.(x, y) ?? []) {
       const el4 = hit.closest?.(".obj.card");
-      const card2 = el4 && el4 !== not ? this.#w.game.get(el4.dataset.rid) : void 0;
-      if (card2) return card2;
+      const card3 = el4 && el4 !== not ? this.#w.game.get(el4.dataset.rid) : void 0;
+      if (card3) return card3;
     }
     return void 0;
   }
@@ -19159,8 +19295,8 @@ var Drag = class {
       if (rec.kind === "character") {
         if (part === "pool") {
           const s = cardFrom ?? this.#spot(rec);
-          const card3 = rec.gathered ? { ...rec.card, x: Math.round(s.x + dx), y: Math.round(s.y + dy) } : moved(rec.card);
-          w.put(rid2, docketed({ ...rec, pool: moved(rec.pool), card: card3 }));
+          const card4 = rec.gathered ? { ...rec.card, x: Math.round(s.x + dx), y: Math.round(s.y + dy) } : moved(rec.card);
+          w.put(rid2, docketed({ ...rec, pool: moved(rec.pool), card: card4 }));
           bringPapers(w, rec.oid);
           return;
         }
@@ -19185,10 +19321,10 @@ var Drag = class {
         w.put(rid2, { ...rec, place: place3 });
         return;
       }
-      const card2 = this.#tackedTo(rec) ?? (aim2?.card ? game2.get(aim2.card) : void 0);
+      const card3 = this.#tackedTo(rec) ?? (aim2?.card ? game2.get(aim2.card) : void 0);
       const docket = aim2?.docket ? game2.get(aim2.docket) : void 0;
       let holder = null;
-      if (card2?.kind === "character") holder = { oid: card2.oid, at: this.#spot(card2) };
+      if (card3?.kind === "character") holder = { oid: card3.oid, at: this.#spot(card3) };
       else if (docket?.kind === "docket") holder = { oid: docket.oid, at: docket.place };
       const { pin: _old, ...loose } = rec;
       w.put(rid2, holder ? { ...loose, place: place3, pin: { card: holder.oid, dx: place3.x - holder.at.x, dy: place3.y - holder.at.y } } : { ...loose, place: place3 });
@@ -19265,7 +19401,8 @@ var TableView = class {
     this.#tapeLayer.classList.add("tapes");
     world.prepend(this.#tapeLayer);
     this.#place();
-    w.game.listen((rids) => this.render(rids));
+    w.game.listen((rids) => this.render(rids), w.signal);
+    w.signal.addEventListener("abort", () => this.#sized.disconnect(), { once: true });
     this.render(w.game.all().map(([rid2]) => rid2));
     this.#panZoom();
     this.#images();
@@ -19362,10 +19499,10 @@ var TableView = class {
   }
   // R33: a gathered card is drawn under its pool's drawer, wherever that ends; the same on every page.
   #snap(rid2) {
-    const { game: game2 } = this.#w, c = game2.get(rid2), card2 = this.#els.get(rid2), mat = this.#pools.get(rid2);
-    if (!c || c.kind !== "character" || !card2 || !mat || !c.gathered || this.#held.has(rid2)) return;
-    card2.style.left = `${c.pool.x}px`;
-    card2.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
+    const { game: game2 } = this.#w, c = game2.get(rid2), card3 = this.#els.get(rid2), mat = this.#pools.get(rid2);
+    if (!c || c.kind !== "character" || !card3 || !mat || !c.gathered || this.#held.has(rid2)) return;
+    card3.style.left = `${c.pool.x}px`;
+    card3.style.top = `${c.pool.y + mat.offsetHeight + GATHER_GAP}px`;
     const at4 = this.gatheredAt(rid2);
     if (!at4 || !game2.get("book") || mat.ownerDocument.body.classList.contains("dragging")) return;
     const x = Math.round(at4.x), y = Math.round(at4.y);
@@ -19524,12 +19661,12 @@ var TableView = class {
     let items = false;
     for (const rid2 of rids) {
       if (!onTable(rid2)) continue;
-      const r = this.#w.game.get(rid2);
-      if (!r || r.kind === "character") characters3.add(rid2);
-      if (!r || r.kind === "chip" || r.kind === "influence") {
+      const raw = this.#w.game.get(rid2), r = raw && seen(raw, this.#w);
+      if (!raw || raw.kind === "character") characters3.add(rid2);
+      if (!raw || raw.kind === "chip" || raw.kind === "influence") {
         items = true;
         this.#drawLoose(rid2);
-        if (r) continue;
+        if (raw) continue;
       }
       const old = this.#els.get(rid2);
       if (r && this.#held.has(rid2)) continue;
@@ -19609,8 +19746,8 @@ var TableView = class {
   }
   #raisePins() {
     const mark2 = (e, on) => {
-      const card2 = e.target.closest?.(".obj.card");
-      const oid = card2?.dataset.rid?.slice(2);
+      const card3 = e.target.closest?.(".obj.card");
+      const oid = card3?.dataset.rid?.slice(2);
       if (oid) for (const p of this.#world.querySelectorAll(`.obj.pinned[data-pin="${oid}"]`)) p.classList.toggle("atop", on);
     };
     this.#root.addEventListener("focusin", (e) => mark2(e, true));
@@ -19706,9 +19843,9 @@ var TableView = class {
       if (r.kind === "character" && !pool) this.#snap(rid2);
     }
     for (const e of piled) e.classList.add("piled");
-    const seen3 = /* @__PURE__ */ new Set();
+    const seen4 = /* @__PURE__ */ new Set();
     for (const k of dockets) {
-      seen3.add(k.rid);
+      seen4.add(k.rid);
       const isTied = tied.has(k.d.oid);
       const back3 = (r) => !this.#leads.has(r) || this.#leads.get(r) === k.rid;
       const boxes = this.#boxes({ ...k, papers: k.papers.filter(back3), chars: k.chars.filter(back3) }, null, isTied);
@@ -19725,7 +19862,7 @@ var TableView = class {
       line.setAttribute("d", path(tapeOf(boxes)));
       this.#bow(k.rid, isTied ? boxes.slice(1) : [], [...k.papers, ...k.chars]);
     }
-    for (const [rid2, line] of this.#tapes) if (!seen3.has(rid2)) {
+    for (const [rid2, line] of this.#tapes) if (!seen4.has(rid2)) {
       line.remove();
       this.#tapes.delete(rid2);
       this.#bow(rid2, [], []);
@@ -19771,8 +19908,8 @@ var TableView = class {
       svg.append(this.#pin);
       this.#world.append(svg);
     }
-    const m = new DOMMatrix(getComputedStyle(e).transform), turn2 = Math.atan2(m.b, m.a), h = e.offsetHeight / 2;
-    const from = { x: at4.x + e.offsetWidth / 2 + h * Math.sin(turn2), y: at4.y + h - h * Math.cos(turn2) };
+    const m = new DOMMatrix(getComputedStyle(e).transform), turn3 = Math.atan2(m.b, m.a), h = e.offsetHeight / 2;
+    const from = { x: at4.x + e.offsetWidth / 2 + h * Math.sin(turn3), y: at4.y + h - h * Math.cos(turn3) };
     const l = this.#pin, f = (n) => String(Math.round(n));
     l.ownerSVGElement.style.zIndex = String((parseInt(getComputedStyle(e).zIndex, 10) || 1) - 1);
     l.setAttribute("x1", f(from.x));
@@ -19917,7 +20054,7 @@ var Hands = class {
     this.#w = w;
     w.game.listen((rids) => {
       for (const [hand, pieces] of this.#hands) for (const [key, p] of pieces) if (!p.own && rids.has(p.rid)) this.#land(hand, key);
-    });
+    }, w.signal);
   }
   // Seq: seq-move.md#1.4, seq-drag.md#1.3 | R298, R218: each piece lifted at its place, with what follows it.
   /** A hand's pieces are at these places, aimed so. Another page's slide there (`carried`). */
@@ -19937,15 +20074,15 @@ var Hands = class {
       if (!keys2.length) continue;
       const r = game2.get(i.rid);
       if (r?.kind === "character") {
-        let card2 = at4;
+        let card3 = at4;
         if (i.part === "pool") {
           const mat = table.pool(i.rid);
-          card2 = r.gathered && mat ? { x: at4.x, y: at4.y + mat.offsetHeight + GATHER_GAP } : { x: r.card.x + at4.x - r.pool.x, y: r.card.y + at4.y - r.pool.y };
-          keys2.push(...this.#hold(i.rid, i.rid, card2, own2));
+          card3 = r.gathered && mat ? { x: at4.x, y: at4.y + mat.offsetHeight + GATHER_GAP } : { x: r.card.x + at4.x - r.pool.x, y: r.card.y + at4.y - r.pool.y };
+          keys2.push(...this.#hold(i.rid, i.rid, card3, own2));
         }
         for (const [r2, o] of game2.all()) {
           const q = o;
-          if ("kind" in q && isPinnable(q) && q.pin?.card === r.oid) keys2.push(...this.#hold(r2, r2, { x: card2.x + q.pin.dx, y: card2.y + q.pin.dy }, own2));
+          if ("kind" in q && isPinnable(q) && q.pin?.card === r.oid) keys2.push(...this.#hold(r2, r2, { x: card3.x + q.pin.dx, y: card3.y + q.pin.dy }, own2));
         }
       } else if (r?.kind === "docket") keys2.push(...this.#papers(r.oid, i.rid, at4, own2));
       pieces.set(key, { rid: i.rid, keys: [...new Set(keys2)], aim: i.aim, t: ++this.#t, own: own2 });
@@ -19976,9 +20113,9 @@ var Hands = class {
     }
     for (const [r2, { pin: pin2 }] of papers) keys2.push(...this.#hold(r2, r2, { x: at4.x + pin2.dx, y: at4.y + pin2.dy }, own2));
     for (const [r2, c] of chars) {
-      const card2 = { x: at4.x + c.pin.dx, y: at4.y + c.pin.dy }, spot = (c.gathered ? table.gatheredAt(r2) : null) ?? c.card;
-      keys2.push(...this.#hold(r2, r2, card2, own2), ...this.#hold(`${r2}#pool`, r2, { x: card2.x + c.pool.x - spot.x, y: card2.y + c.pool.y - spot.y }, own2));
-      for (const [r3, q] of onCard(c.oid)) keys2.push(...this.#hold(r3, r3, { x: card2.x + q.pin.dx, y: card2.y + q.pin.dy }, own2));
+      const card3 = { x: at4.x + c.pin.dx, y: at4.y + c.pin.dy }, spot = (c.gathered ? table.gatheredAt(r2) : null) ?? c.card;
+      keys2.push(...this.#hold(r2, r2, card3, own2), ...this.#hold(`${r2}#pool`, r2, { x: card3.x + c.pool.x - spot.x, y: card3.y + c.pool.y - spot.y }, own2));
+      for (const [r3, q] of onCard(c.oid)) keys2.push(...this.#hold(r3, r3, { x: card3.x + q.pin.dx, y: card3.y + q.pin.dy }, own2));
     }
     return keys2;
   }
@@ -20170,7 +20307,7 @@ function shown2(hands, cs, may = () => true) {
     if (g.dropped.length) hands?.drop(tab2, g.dropped, false);
   }
 }
-function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolling, checkpoint, self, present = () => []) {
+function views(game2, gameId, viewer, signal, blobs, moves, hand, missing, ledger, rolling, checkpoint, self, present = () => []) {
   const who = viewer?.name ?? "nobody", gm = !!viewer?.gm;
   let seat = load(localStorage, gameId, who);
   const keep2 = (s) => {
@@ -20203,8 +20340,8 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
   };
   let pressedOff = null;
   const onTakePress = (e) => {
-    const card2 = taking && document.querySelector(`.obj.card[data-rid="${ridOf(taking.oid)}"]`);
-    pressedOff = card2 && !card2.contains(e.target) ? { x: e.clientX, y: e.clientY } : null;
+    const card3 = taking && document.querySelector(`.obj.card[data-rid="${ridOf(taking.oid)}"]`);
+    pressedOff = card3 && !card3.contains(e.target) ? { x: e.clientX, y: e.clientY } : null;
   };
   const onTakeUp = (e) => {
     if (pressedOff && Math.hypot(e.clientX - pressedOff.x, e.clientY - pressedOff.y) < 5) cancelTake();
@@ -20282,6 +20419,7 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
     version: "dev",
     date: "",
     gm,
+    signal,
     // R512-R514: made at the pointer and carried on the press or loose, or put just below the strip.
     take: (what, down, e, mode) => {
       if (what === "connections") {
@@ -20343,10 +20481,11 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
   });
   game2.listen((rids) => {
     if (rids.has("desk")) bar.desk.render();
-  });
+  }, signal);
   const table = new TableView(document.getElementById("table"), document.getElementById("world"), {
     game: game2,
     viewer,
+    signal,
     view: seat.view,
     keepView: (v) => keep2({ ...seat, view: v }),
     schedule: frame,
@@ -20475,13 +20614,14 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
     const y = game2.get("yards") ?? empty(), cur = Math.min(seat.boothill.cur, y.yards.length - 1);
     return { cur, name: y.yards[cur].name };
   };
-  const hands = new Hands({ game: game2, table });
+  const hands = new Hands({ game: game2, table, signal });
   table.after = () => hands.react();
   hands.react();
   drag = new Drag({ game: game2, table, hands, hand, moves, mint: mint2, schedule: frame, yard, who: () => viewer?.name, gm });
   const tape = new TapeView(document.getElementById("table"), {
     game: game2,
     viewer,
+    signal,
     up: () => seat.tapeUp,
     setUp: (up) => keep2({ ...seat, tapeUp: up }),
     crit: (id, choice, lock) => rolling().crit(id, choice, lock),
@@ -20494,7 +20634,7 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
     toWorld: (x, y) => table.toWorld(x, y),
     carry: (rid2, down, move) => drag?.start(rid2, down, move)
   });
-  const register = new RegisterView(document.getElementById("bar"), { game: game2, viewer, checkpoint, paperRoll: () => tape.toggleUp() });
+  const register = new RegisterView(document.getElementById("bar"), { game: game2, viewer, signal, checkpoint, paperRoll: () => tape.toggleUp() });
   const hang = () => {
     const t = document.getElementById("tape");
     if (t) {
@@ -20502,7 +20642,7 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
       t.style.left = `${Math.max(8, Math.min(innerWidth - 258, register.left() + 2))}px`;
     }
   };
-  new LedgerView(document.getElementById("bar"), document.body, { ...ledger, restore: async (id) => {
+  new LedgerView(document.getElementById("bar"), document.body, { ...ledger, signal, restore: async (id) => {
     await ledger.restore(id);
     const yards = game2.get("yards") ?? empty();
     keep2(prune(seat, (rid2) => game2.get(rid2) !== void 0, yards.yards.length));
@@ -20510,6 +20650,8 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
   } });
   const hill = new BootHillView(document.getElementById("bar"), document.body, {
     game: game2,
+    viewer,
+    signal,
     cur: () => seat.boothill.cur,
     setCur: (cur) => keep2({ ...seat, boothill: { ...seat.boothill, cur } }),
     open: () => seat.boothill.open,
@@ -20521,7 +20663,7 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
   });
   if (gm) addEventListener("keydown", (ev) => {
     if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault();
-  });
+  }, { signal });
   const deleted = /* @__PURE__ */ new Set();
   const repinned = () => {
     const book2 = game2.get("book");
@@ -20552,10 +20694,11 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
     queueMicrotask(repinned);
     queueMicrotask(handed);
     queueMicrotask(unshared);
-  });
+  }, signal);
   handed();
   unshared();
   void table.settled.then(() => {
+    if (signal.aborted) return;
     const own2 = who === self ? seat : load(localStorage, gameId, self);
     if (own2.given) return;
     const at4 = table.toWorld(innerWidth / 2, innerHeight / 2), sheet2 = newHowTo(mint2()(), at4);
@@ -20566,20 +20709,20 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
   });
   if (gm) {
     const sig = (c) => `${c.name.trim()}
-${groupOf(c.front) ?? ""}`, seen3 = /* @__PURE__ */ new Map();
+${groupOf(c.front) ?? ""}`, seen4 = /* @__PURE__ */ new Map();
     const npc = (r) => {
       const p = r;
       return p?.kind === "character" && p.owner === GM;
     };
-    for (const [, r] of game2.all()) if (npc(r)) seen3.set(r.oid, sig(r));
+    for (const [, r] of game2.all()) if (npc(r)) seen4.set(r.oid, sig(r));
     game2.listen((rids) => queueMicrotask(() => {
       const found = game2.all().find(([, r]) => r.kind === "connections");
       let t = found?.[1];
       for (const rid2 of rids) {
         const c = game2.get(rid2);
         if (!npc(c)) continue;
-        const was = seen3.get(c.oid), now2 = sig(c);
-        seen3.set(c.oid, now2);
+        const was = seen4.get(c.oid), now2 = sig(c);
+        seen4.set(c.oid, now2);
         if (t && was !== void 0 && was !== now2) t = keep(t, c, mint2()());
       }
       if (found && t !== found[1]) game2.change((w) => w.put(found[0], t));
@@ -20593,15 +20736,18 @@ ${groupOf(c.front) ?? ""}`, seen3 = /* @__PURE__ */ new Map();
       if (moved.length) game2.change((w) => {
         for (const r of moved) w.put(ridOf(r.oid), r);
       });
-    }));
+    }), signal);
   }
   hang();
-  addEventListener("resize", hang);
-  void document.fonts?.ready.then(hang);
-  const tray2 = new TrayView(bar.oppo, { game: game2, viewer });
+  addEventListener("resize", hang, { signal });
+  void document.fonts?.ready.then(() => {
+    if (!signal.aborted) hang();
+  });
+  const tray2 = new TrayView(bar.oppo, { game: game2, viewer, signal });
   rollRow = new RollRowView({
     game: game2,
     viewer,
+    signal,
     tray: tray2,
     mint: () => mint2()(),
     inferring: () => eyes.any(),
@@ -20630,11 +20776,11 @@ ${groupOf(c.front) ?? ""}`, seen3 = /* @__PURE__ */ new Map();
   });
   return { table, drag, bar, hands };
 }
-function askName(held, last) {
-  const ask = held.length ? `Your name at the table
+async function askName(held, last) {
+  const q = held.length ? `Your name at the table
 Yours in this browser: ${held.join(", ")}` : "Your name at the table";
   for (; ; ) {
-    const n = arrivalName(prompt(ask, last ?? void 0), held);
+    const n = arrivalName(await ask(document, q, last ?? ""), held);
     if (n) return n;
   }
 }
@@ -20684,6 +20830,13 @@ function redrawImages(game2, table, hash) {
   table.render(game2.all().filter(([, r]) => r.kind === "image" && r.blob === hash).map(([rid2]) => rid2));
 }
 var OLD_INVITE = "This invite is from an older version of the table. Ask the GM for a new link.";
+function freshBody() {
+  const bar = Object.assign(document.createElement("header"), { id: "bar" });
+  const table = Object.assign(document.createElement("main"), { id: "table" });
+  table.append(Object.assign(document.createElement("div"), { id: "world" }));
+  document.body.className = "";
+  document.body.replaceChildren(bar, table);
+}
 async function main() {
   const db = await IdbDb.open();
   const store = new GameStore(db, clock, localStorage, async () => !!navigator.storage?.persist && (await navigator.storage.persisted() || await navigator.storage.persist()));
@@ -20702,7 +20855,7 @@ async function main() {
   }
   if (invited) {
     const last = local("hollow.name"), held = await Identity.held(db, last);
-    const name2 = session("hollow.name") ?? session("hollow.name", askName(held, last)) ?? "Player";
+    const name2 = session("hollow.name") ?? session("hollow.name", await askName(held, last)) ?? "Player";
     local("hollow.name", name2);
     const identity2 = await Identity.player(db, name2), own2 = identity2.id === (await Identity.load(db)).id;
     const { id: copyId } = await store.copyFor(invited.room, identity2.id, own2, name2);
@@ -20721,14 +20874,14 @@ async function main() {
       gm: invited.gm,
       held: (rid2) => moves2.holds(rid2)
     });
-    let hands2;
+    let hands;
     const moves2 = new Moves({ stamps, tab: tab2, send: (m) => {
       void wire.send("move", m);
-    }, shared: shared(game3), place: (cs) => shown2(hands2, cs), timers: clock, schedule: frame });
+    }, shared: shared(game3), place: (cs) => shown2(hands, cs), timers: clock, schedule: frame });
     wire.on("move", (b, from) => moves2.receive(from.tab, b));
     const presence = new Presence({ net: wire, clock, role: "player", name: name2, gone: (tab3) => {
       rolls2.left(tab3);
-      hands2?.leave(tab3);
+      hands?.leave(tab3);
     } });
     let notYours = null;
     wire.on("claim", (b, from) => {
@@ -20755,8 +20908,8 @@ async function main() {
       local("hollow.name", to);
       void Identity.renamed(db, name2, to).then(() => location.reload());
     });
-    const rename3 = () => {
-      const answer = prompt("Your name at the table", name2);
+    const rename3 = async () => {
+      const answer = await ask(document, "Your name at the table", name2);
       if (answer === null || answer.trim() === name2) return;
       const gmTab = here(presence).find((p) => p.role === "gm" && !p.stale)?.tab;
       if (!gmTab) {
@@ -20772,10 +20925,12 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
+    const signal = new AbortController().signal;
     const v = views(
       game3,
       store.current.id,
       { name: name2, gm: false },
+      signal,
       blobs,
       moves2,
       tab2,
@@ -20786,14 +20941,14 @@ async function main() {
       name2,
       () => [name2, ...[...presence.people.values()].filter((p) => p.role === "player").map((p) => p.name)]
     );
-    const { table: table2, drag: drag2, bar: bar2 } = v;
-    hands2 = v.hands;
-    new FolksView(bar2.folks, bar2.youAre, { me: () => ({
+    const { table: table2, drag, bar } = v;
+    hands = v.hands;
+    new FolksView(bar.folks, bar.youAre, { signal, me: () => ({
       ...meOf(presence, name2, false),
       ...notYours !== null && { notYours },
       ...said2 !== null && clock.now() < saidUntil && { said: said2 }
     }), people: () => here(presence), held: (n) => claims[n], rename: rename3 });
-    return { version: "dev", date: "", role: "player", tab: tab2, identity: identity2, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag: drag2 };
+    return { version: "dev", date: "", role: "player", tab: tab2, identity: identity2, store, blobs, wire, presence, copy, rolls: rolls2, images, moves: moves2, view: table2, drag };
   }
   const identity = await Identity.load(db);
   await store.start();
@@ -20817,7 +20972,7 @@ async function main() {
       void table?.wire.send("move", m);
     },
     shared: shared(game2),
-    place: (cs) => shown2(hands, cs, (c) => !!table?.authority.mayMove(c.tab, c.rid)),
+    place: (cs) => shown2(built?.hands, cs, (c) => !!table?.authority.mayMove(c.tab, c.rid)),
     timers: clock,
     schedule: frame
   });
@@ -20834,7 +20989,7 @@ async function main() {
       here: (p, from) => {
         if (p.role === "player") authority.join(from.tab, p.name, from.browser, from.sealKey);
       },
-      gone: (tab3) => hands.leave(tab3)
+      gone: (tab3) => built?.hands.leave(tab3)
     });
     const authority = new Authority({ game: game2, stamps, sealer, link: wire, schedule: queueMicrotask });
     const whoIs2 = (from) => {
@@ -20844,7 +20999,9 @@ async function main() {
     rolls = new Rolls({ game: game2, sealer, clock, rng, link: wire, session: sessionStorage, gm: true, whoIs: whoIs2 });
     const images = new ImageExchange(wire, blobs, clock);
     images.watch(game2);
-    images.changed((hash) => redrawImages(game2, view, hash));
+    images.changed((hash) => {
+      if (built) redrawImages(game2, built.view, hash);
+    });
     images.start();
     presence.start();
     wire.on("move", (b, from) => moves.receive(from.tab, b));
@@ -20858,47 +21015,58 @@ async function main() {
     table = null;
     rolls = new Rolls({ game: game2, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
   };
-  const gmSeat = load(localStorage, store.current.id, GM), viewer = gmSeat.viewAs ? { name: gmSeat.viewAs, gm: false } : { name: GM, gm: true };
-  const { table: view, drag, bar, hands } = views(
-    game2,
-    store.current.id,
-    viewer,
-    blobs,
-    moves,
-    tab2,
-    (hash) => table?.images.missing.get(hash),
-    ledgerOf(store, blobs, false),
-    () => rolls,
-    // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
-    (name2) => store.checkpoint(name2, true).finally(() => void store.images().then((i) => blobs.free(new Set(i))).catch(() => void 0)),
-    GM
-  );
-  new FolksView(bar.folks, bar.youAre, {
-    me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
-    people: () => table ? here(table.presence) : [],
-    held: (name2) => game2.get("book").claims[name2],
-    rename: () => {
-      gmShown = gmName(prompt("Your name, as players see it", gmShown), gmShown);
-      local("hollow.gmname", gmShown);
-      table?.presence.rename(gmShown);
-    },
-    handOver: (name2, browser) => {
-      handOver2(game2, name2, browser);
-      table?.authority.handedOver(name2);
-    },
-    table: { opened: () => !!table, open: () => void open(), invite: link, close },
-    viewAs: {
-      current: () => gmSeat.viewAs ?? GM,
-      choices: () => viewAsChoices(
-        [...table?.presence.people.values() ?? []].filter((p) => p.role === "player").map((p) => p.name),
-        game2.all().map(([, r]) => r).filter((c) => c.kind === "character").map((c) => c.owner)
-      ),
-      choose: (name2) => {
-        save(localStorage, store.current.id, GM, { ...gmSeat, viewAs: name2 === GM ? null : name2 });
-        location.reload();
+  let built;
+  const build = () => {
+    const viewAs = load(localStorage, store.current.id, GM).viewAs, end = new AbortController();
+    const viewer = viewAs ? { name: viewAs, gm: false } : { name: GM, gm: true };
+    const v = views(
+      game2,
+      store.current.id,
+      viewer,
+      end.signal,
+      blobs,
+      moves,
+      tab2,
+      (hash) => table?.images.missing.get(hash),
+      ledgerOf(store, blobs, false),
+      () => rolls,
+      // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
+      (name2) => store.checkpoint(name2, true).finally(() => void store.images().then((i) => blobs.free(new Set(i))).catch(() => void 0)),
+      GM
+    );
+    new FolksView(v.bar.folks, v.bar.youAre, {
+      signal: end.signal,
+      me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
+      people: () => table ? here(table.presence) : [],
+      held: (name2) => game2.get("book").claims[name2],
+      rename: async () => {
+        gmShown = gmName(await ask(document, "Your name, as players see it", gmShown), gmShown);
+        local("hollow.gmname", gmShown);
+        table?.presence.rename(gmShown);
+      },
+      handOver: (name2, browser) => {
+        handOver2(game2, name2, browser);
+        table?.authority.handedOver(name2);
+      },
+      table: { opened: () => !!table, open: () => void open(), invite: link, close },
+      viewAs: {
+        current: () => viewAs ?? GM,
+        choices: () => viewAsChoices(
+          [...table?.presence.people.values() ?? []].filter((p) => p.role === "player").map((p) => p.name),
+          game2.all().map(([, r]) => r).filter((c) => c.kind === "character").map((c) => c.owner)
+        ),
+        choose: (name2) => {
+          const id = store.current.id;
+          save(localStorage, id, GM, { ...load(localStorage, id, GM), viewAs: name2 === GM ? null : name2 });
+          built.end.abort();
+          freshBody();
+          build();
+        }
       }
-    }
-  });
+    });
+    built = { view: v.table, drag: v.drag, bar: v.bar, hands: v.hands, end };
+  };
+  build();
   return {
     version: "dev",
     date: "",
@@ -20910,8 +21078,12 @@ async function main() {
     open,
     invite: link,
     moves,
-    view,
-    drag,
+    get view() {
+      return built.view;
+    },
+    get drag() {
+      return built.drag;
+    },
     get table() {
       return table;
     },

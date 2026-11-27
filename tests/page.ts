@@ -53,8 +53,21 @@ export async function person(browser: Browser, name = 'Player', publicRelays = f
     if (!localStorage.getItem('hollow.name')) { localStorage.setItem('hollow.name', n); sessionStorage.setItem('hollow.name', n); }
   }, [publicRelays ? '' : RELAY, name] as const);
   const page = await context.newPage();
-  page.on('dialog', d => void d.accept());
+  // R601: the table never opens the browser's dialogs; one that opens fails the spec.
+  page.on('dialog', d => { void d.dismiss(); throw new Error(`the page opened a browser ${d.type()} (R601): ${d.message()}`); });
   return page;
+}
+
+/** R601: answers the table's question card: `text` written in its line (none for a yes-or-no), then OK
+ * (or Cancel, when `ok` is false); the question it asked. */
+export async function answer(page: Page, text?: string, ok = true): Promise<string> {
+  const card = page.locator('.askcard');
+  await card.waitFor({ timeout: 15_000 });
+  const asked = (await card.locator('.question').textContent()) ?? '';
+  if (text !== undefined) await card.locator('.line').fill(text);
+  await card.locator(ok ? 'button[type="submit"]' : 'button[type="button"]').click();
+  await card.waitFor({ state: 'detached' });
+  return asked;
 }
 
 /** Runs `fn` on the page's assembled parts (the test hook). */

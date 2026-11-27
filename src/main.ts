@@ -36,6 +36,7 @@ import { BarView, type Supply } from './ui/bar.ts';
 import type { Mode } from './ui/desk.ts';
 import type { PointerLike } from './ui/gesture.ts';
 import { BootHillView, isPageUndo } from './ui/boothill.ts';
+import { ask } from './ui/ask.ts';
 import { FolksView, arrivalName, gmName, viewAsChoices, type Here, type Me } from './ui/folks.ts';
 import { newCharacter, newChip, newDocket, newHowTo, newSticky, newText } from './rules/supplies.ts';
 import { handOver, oldClaims } from './net/claims.ts';
@@ -108,7 +109,8 @@ function shown(hands: Hands | undefined, cs: Command[], may: (c: Command) => boo
   }
 }
 
-function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, moves: Moves, hand: string, missing: (hash: string) => string | undefined, ledger: LedgerWith,
+// R600: everything a build hooks outside its own elements ends when `signal` aborts.
+function views(game: Game, gameId: string, viewer: Viewer, signal: AbortSignal, blobs: BlobStore, moves: Moves, hand: string, missing: (hash: string) => string | undefined, ledger: Omit<LedgerWith, 'signal'>,
   rolling: () => Rolls, checkpoint: ((name: string) => Promise<unknown>) | undefined, self: string, present: () => string[] = () => []): { table: TableView; drag: Drag; bar: BarView; hands: Hands } {
   const who = viewer?.name ?? 'nobody', gm = !!viewer?.gm;
   let seat: Seat = loadSeat(localStorage, gameId, who);
@@ -217,7 +219,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     if (dy > 0) game.change(w => w.put(rid, { ...c, pool: { ...c.pool, y: top }, card: { ...c.card, y: c.card.y + dy } }));
   };
   const bar = new BarView(document.getElementById('bar')!, {
-    version: HOLLOW_VERSION, date: HOLLOW_DATE, gm,
+    version: HOLLOW_VERSION, date: HOLLOW_DATE, gm, signal,
     // R512-R514: made at the pointer and carried on the press or loose, or put just below the strip.
     take: (what, down, e, mode) => {
       if (what === 'connections') { takeTable(e, mode); return; }
@@ -262,9 +264,9 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     },
   });
   // R526: the drawers are drawn again when this page's desk changes.
-  game.listen(rids => { if (rids.has('desk')) bar.desk.render(); });
+  game.listen(rids => { if (rids.has('desk')) bar.desk.render(); }, signal);
   const table = new TableView(document.getElementById('table')!, document.getElementById('world')!, {
-    game, viewer, view: seat.view, keepView: v => keep({ ...seat, view: v }), schedule: frame,
+    game, viewer, signal, view: seat.view, keepView: v => keep({ ...seat, view: v }), schedule: frame,
     imageUrl: hash => blobs.url(hash), imageGone: hash => blobs.release(hash), missing,
     addImage,
     opened: () => new Set(seat.open.columns), setOpened: o => { keep({ ...seat, open: { ...seat.open, columns: [...o] } }); redraw(); },
@@ -364,14 +366,14 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     return { cur, name: y.yards[cur]!.name };
   };
   // R298, R299: every hand, this page's and others', drawn alike, again after every redraw.
-  const hands = new Hands({ game, table });
+  const hands = new Hands({ game, table, signal });
   table.after = () => hands.react();
   // R534: the table drew the game before it had `after`; the tapes (and hands) now, not at the first change.
   hands.react();
   drag = new Drag({ game, table, hands, hand, moves, mint, schedule: frame, yard, who: () => viewer?.name, gm });
   // R110–R113: this page's tape, under the pieces; a torn roll is carried off like any piece.
   const tape = new TapeView(document.getElementById('table')!, {
-    game, viewer, up: () => seat.tapeUp, setUp: up => keep({ ...seat, tapeUp: up }),
+    game, viewer, signal, up: () => seat.tapeUp, setUp: up => keep({ ...seat, tapeUp: up }),
     crit: (id, choice, lock) => rolling().crit(id, choice, lock), mint: () => mint()(),
     owner: oid => (game.get(ridOf(oid)) as Character | undefined)?.owner,
     take: startTake,
@@ -380,14 +382,14 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     toWorld: (x, y) => table.toWorld(x, y), carry: (rid, down, move) => drag?.start(rid, down, move),
   });
   // R115–R117: the register at the bar's right end; the tape hangs under it (R282).
-  const register = new RegisterView(document.getElementById('bar')!, { game, viewer, checkpoint, paperRoll: () => tape.toggleUp() });
+  const register = new RegisterView(document.getElementById('bar')!, { game, viewer, signal, checkpoint, paperRoll: () => tape.toggleUp() });
   const hang = () => {
     const t = document.getElementById('tape');
     if (t) { t.style.right = 'auto'; t.style.left = `${Math.max(8, Math.min(innerWidth - 258, register.left() + 2))}px`; }
   };
   // R132, R291: the Ledger between the register and Boot Hill; a restore keeps the seat, skipping
   // whatever has vanished (R136).
-  new LedgerView(document.getElementById('bar')!, document.body, { ...ledger, restore: async id => {
+  new LedgerView(document.getElementById('bar')!, document.body, { ...ledger, signal, restore: async id => {
     await ledger.restore(id);
     const yards = (game.get('yards') as Yards | undefined) ?? emptyYards();
     keep(pruneSeat(seat, rid => game.get(rid) !== undefined, yards.yards.length));
@@ -395,14 +397,14 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   } });
   // R118–R125, R289: Boot Hill after the register; a dug-up piece is carried from the press.
   const hill = new BootHillView(document.getElementById('bar')!, document.body, {
-    game, cur: () => seat.boothill.cur, setCur: cur => keep({ ...seat, boothill: { ...seat.boothill, cur } }),
+    game, viewer, signal, cur: () => seat.boothill.cur, setCur: cur => keep({ ...seat, boothill: { ...seat.boothill, cur } }),
     open: () => seat.boothill.open, setOpen: open => keep({ ...seat, boothill: { ...seat.boothill, open } }),
     toWorld: (x, y) => table.toWorld(x, y), top: topZ,
     slideInfo,
     carry: (lead, down, move) => lead.kind === 'character' ? drag?.startPool(ridOf(lead.oid), down, move) : drag?.start(ridFor(lead), down, move),
   });
   // R404: on the GM's page, Ctrl+Z / ⌘Z outside written text digs up the newest Info card buried.
-  if (gm) addEventListener('keydown', ev => { if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault(); });
+  if (gm) addEventListener('keydown', ev => { if (isPageUndo(ev) && hill.undoCard()) ev.preventDefault(); }, { signal });
   // R531, R545, R587: pinned paper and a docket's characters follow their holder: on the GM's page (whoever
   // it is viewed as) the table's; on every page its own "just me" paper. A holder was deleted when the book
   // holds its tombstone or this page saw it go (a docket another page put away).
@@ -430,13 +432,14 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
     queueMicrotask(repinned);
     queueMicrotask(handed);
     queueMicrotask(unshared);
-  });
+  }, signal);
   handed();
   unshared();
   // R594: a page is given its reference sheet, open at How to use the table, the first time it opens a
   // game, in the middle of its view once that is fitted (R271); remembered on the seat of the page's own
   // person, whoever it views as.
   void table.settled.then(() => {
+    if (signal.aborted) return;
     const own = who === self ? seat : loadSeat(localStorage, gameId, self);
     if (own.given) return;
     const at = table.toWorld(innerWidth / 2, innerHeight / 2), sheet = newHowTo(mint()(), at);
@@ -470,15 +473,15 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
         return JSON.stringify(now) === JSON.stringify(r) ? [] : [now];
       });
       if (moved.length) game.change(w => { for (const r of moved) w.put(ridOf(r.oid), r); });
-    }));
+    }), signal);
   }
   hang();
-  addEventListener('resize', hang);
-  void document.fonts?.ready.then(hang);
+  addEventListener('resize', hang, { signal });
+  void document.fonts?.ready.then(() => { if (!signal.aborted) hang(); });
   // R347: the Opposition button and the world's tray, in the bar.
-  const tray = new TrayView(bar.oppo, { game, viewer });
+  const tray = new TrayView(bar.oppo, { game, viewer, signal });
   rollRow = new RollRowView({
-    game, viewer, tray, mint: () => mint()(),
+    game, viewer, signal, tray, mint: () => mint()(),
     inferring: () => eyes.any(),
     // R364: the type last chosen for an action on a card, in this viewer's seat.
     remembered: (oid, label) => seat.types[`${oid}:${label}`],
@@ -499,9 +502,10 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
 
 // R294: arriving by an invite asks for a name until one that isn't "GM" is given; cancel is "Player".
 // R476: it lists the names this browser holds, offering the last one used.
-function askName(held: string[], last: string | null): string {
-  const ask = held.length ? `Your name at the table\nYours in this browser: ${held.join(', ')}` : 'Your name at the table';
-  for (;;) { const n = arrivalName(prompt(ask, last ?? undefined), held); if (n) return n; }
+// R601: on the table's question card, never the browser's prompt().
+async function askName(held: string[], last: string | null): Promise<string> {
+  const q = held.length ? `Your name at the table\nYours in this browser: ${held.join(', ')}` : 'Your name at the table';
+  for (;;) { const n = arrivalName(await ask(document, q, last ?? ''), held); if (n) return n; }
 }
 
 // R163, R293: this page's tag: lit while live, "offline" with why.
@@ -519,7 +523,7 @@ function here(p: Presence): Here[] {
 /** R455: what the Ledger adds to its status once the browser has been asked to keep the storage. */
 const keptNote = (k: boolean | null) => k === null ? '' : k ? ' · Storage kept' : ' · The browser may clear this storage';
 
-function ledgerOf(store: GameStore, blobs: BlobStore, player: boolean): LedgerWith {
+function ledgerOf(store: GameStore, blobs: BlobStore, player: boolean): Omit<LedgerWith, 'signal'> {
   const onto = async (id: string) => { await store.open(id); location.reload(); };
   // R459: after a deletion, images nothing uses go.
   const free = async () => { await blobs.free(new Set(await store.images())); };
@@ -545,6 +549,15 @@ function redrawImages(game: Game, table: TableView, hash: string): void {
 
 const OLD_INVITE = 'This invite is from an older version of the table. Ask the GM for a new link.';
 
+// R600: the body as the page starts: the bar, and the table with its world, empty.
+function freshBody(): void {
+  const bar = Object.assign(document.createElement('header'), { id: 'bar' });
+  const table = Object.assign(document.createElement('main'), { id: 'table' });
+  table.append(Object.assign(document.createElement('div'), { id: 'world' }));
+  document.body.className = '';
+  document.body.replaceChildren(bar, table);
+}
+
 async function main() {
   const db = await IdbDb.open();
   // R455: once a game is first saved, the browser is asked to keep this storage.
@@ -569,7 +582,7 @@ async function main() {
     // key, R477: the browser's name from before keeping the browser's own. R483: with that name's copy of
     // the GM's table, kept per room and name; the name keeping the browser's key keeps the copy from before.
     const last = local('hollow.name'), held = await Identity.held(db, last);
-    const name = session('hollow.name') ?? session('hollow.name', askName(held, last)) ?? 'Player';
+    const name = session('hollow.name') ?? session('hollow.name', await askName(held, last)) ?? 'Player';
     local('hollow.name', name);
     const identity = await Identity.player(db, name), own = identity.id === (await Identity.load(db)).id;
     const { id: copyId } = await store.copyFor(invited.room, identity.id, own, name);
@@ -603,8 +616,8 @@ async function main() {
       // R478: the name's key goes with it, so the id holds.
       void Identity.renamed(db, name, to).then(() => location.reload());
     });
-    const rename = () => {
-      const answer = prompt('Your name at the table', name);
+    const rename = async () => {
+      const answer = await ask(document, 'Your name at the table', name);
       if (answer === null || answer.trim() === name) return;
       const gmTab = here(presence).find(p => p.role === 'gm' && !p.stale)?.tab;
       if (!gmTab) { say("The GM's page must be at the table to rename"); return; }
@@ -617,11 +630,13 @@ async function main() {
     images.start();
     presence.start();
     copy.start();
-    const v = views(game, store.current!.id, { name, gm: false }, blobs, moves, tab, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls, undefined, name,
+    // A player's page is one person, so one build: its signal never aborts.
+    const signal = new AbortController().signal;
+    const v = views(game, store.current!.id, { name, gm: false }, signal, blobs, moves, tab, hash => images.missing.get(hash), ledgerOf(store, blobs, true), () => rolls, undefined, name,
       () => [name, ...[...presence.people.values()].filter(p => p.role === 'player').map(p => p.name)]);
     const { table, drag, bar } = v;
     hands = v.hands;
-    new FolksView(bar.folks, bar.youAre, { me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }),
+    new FolksView(bar.folks, bar.youAre, { signal, me: () => ({ ...meOf(presence, name, false), ...(notYours !== null && { notYours }),
       ...(said !== null && clock.now() < saidUntil && { said }) }), people: () => here(presence), held: n => claims[n], rename });
     return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'player' as const, tab, identity, store, blobs, wire, presence, copy, rolls, images, moves, view: table, drag };
   }
@@ -645,7 +660,7 @@ async function main() {
   let rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
   // Drags go to the room once there is one; players' drags are judged like their changes.
   const moves = new Moves({ stamps, tab, send: m => { void table?.wire.send('move', m); }, shared: shared(game),
-    place: cs => shown(hands, cs, c => !!table?.authority.mayMove(c.tab, c.rid)), timers: clock, schedule: frame });
+    place: cs => shown(built?.hands, cs, c => !!table?.authority.mayMove(c.tab, c.rid)), timers: clock, schedule: frame });
 
   // R157: Open the table makes the room (or reopens this game's); the GM's URL is never rewritten.
   const open = () => {
@@ -655,7 +670,7 @@ async function main() {
     const wire = new Wire(room, { identity, sealer, tab, relay });
     const presence = new Presence({ net: wire, clock, role: 'gm', name: gmShown,
       here: (p, from) => { if (p.role === 'player') authority.join(from.tab, p.name, from.browser, from.sealKey); },
-      gone: tab => hands.leave(tab) });
+      gone: tab => built?.hands.leave(tab) });
     const authority = new Authority({ game, stamps, sealer, link: wire, schedule: queueMicrotask });
     const whoIs = (from: { tab: string; browser: string }) => {
       const p = presence.people.get(from.tab), held = p && (game.get('book') as Book).claims[p.name];
@@ -665,7 +680,7 @@ async function main() {
     const images = new ImageExchange(wire, blobs, clock);
     // R26: the GM's page fetches a player's images too.
     images.watch(game);
-    images.changed(hash => redrawImages(game, view, hash));
+    images.changed(hash => { if (built) redrawImages(game, built.view, hash); });
     images.start();
     presence.start();
     wire.on('move', (b: Move, from) => moves.receive(from.tab, b));
@@ -680,30 +695,47 @@ async function main() {
     table = null;
     rolls = new Rolls({ game, sealer, clock, rng, link: null, session: sessionStorage, gm: true });
   };
-  // R153: the real GM views as someone else from the seat's viewAs; the page reloads to change it.
-  const gmSeat = loadSeat(localStorage, store.current!.id, GM), viewer: Viewer = gmSeat.viewAs ? { name: gmSeat.viewAs, gm: false } : { name: GM, gm: true };
-  const { table: view, drag, bar, hands } = views(game, store.current!.id, viewer, blobs, moves, tab, hash => table?.images.missing.get(hash), ledgerOf(store, blobs, false), () => rolls,
-    // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
-    name => store.checkpoint(name, true).finally(() => void store.images().then(i => blobs.free(new Set(i))).catch(() => undefined)), GM);
-  new FolksView(bar.folks, bar.youAre, {
-    me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
-    people: () => table ? here(table.presence) : [],
-    held: name => (game.get('book') as Book).claims[name],
-    rename: () => {
-      gmShown = gmName(prompt('Your name, as players see it', gmShown), gmShown);
-      local('hollow.gmname', gmShown);
-      table?.presence.rename(gmShown);
-    },
-    handOver: (name, browser) => { handOver(game, name, browser); table?.authority.handedOver(name); },
-    table: { opened: () => !!table, open: () => void open(), invite: link, close },
-    viewAs: {
-      current: () => gmSeat.viewAs ?? GM,
-      choices: () => viewAsChoices([...(table?.presence.people.values() ?? [])].filter(p => p.role === 'player').map(p => p.name),
-        game.all().map(([, r]) => r as Character).filter(c => c.kind === 'character').map(c => c.owner)),
-      choose: name => { saveSeat(localStorage, store.current!.id, GM, { ...gmSeat, viewAs: name === GM ? null : name }); location.reload(); },
-    },
-  });
-  return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'gm' as const, tab, identity, store, blobs, open, invite: link, moves, view, drag,
+  // R153, R599, R600: the real GM views as someone else from the seat's viewAs. A build is the views for
+  // that viewer and the signal that ends them; choosing another in "You are" ends this one, puts the body
+  // back as it started, and builds again, while the table (room, presence, authority, rolls, images,
+  // moves) stays: nothing in it reads the viewer, and its hooks into the views read `built`.
+  let built: { view: TableView; drag: Drag; bar: BarView; hands: Hands; end: AbortController } | undefined;
+  const build = () => {
+    const viewAs = loadSeat(localStorage, store.current!.id, GM).viewAs, end = new AbortController();
+    const viewer: Viewer = viewAs ? { name: viewAs, gm: false } : { name: GM, gm: true };
+    const v = views(game, store.current!.id, viewer, end.signal, blobs, moves, tab, hash => table?.images.missing.get(hash), ledgerOf(store, blobs, false), () => rolls,
+      // R459: End's checkpoint may prune old ones, so images nothing uses go after it.
+      name => store.checkpoint(name, true).finally(() => void store.images().then(i => blobs.free(new Set(i))).catch(() => undefined)), GM);
+    new FolksView(v.bar.folks, v.bar.youAre, {
+      signal: end.signal,
+      me: () => table ? meOf(table.presence, gmShown, true) : { name: gmShown, gm: true, live: false },
+      people: () => table ? here(table.presence) : [],
+      held: name => (game.get('book') as Book).claims[name],
+      rename: async () => {
+        gmShown = gmName(await ask(document, 'Your name, as players see it', gmShown), gmShown);
+        local('hollow.gmname', gmShown);
+        table?.presence.rename(gmShown);
+      },
+      handOver: (name, browser) => { handOver(game, name, browser); table?.authority.handedOver(name); },
+      table: { opened: () => !!table, open: () => void open(), invite: link, close },
+      viewAs: {
+        current: () => viewAs ?? GM,
+        choices: () => viewAsChoices([...(table?.presence.people.values() ?? [])].filter(p => p.role === 'player').map(p => p.name),
+          game.all().map(([, r]) => r as Character).filter(c => c.kind === 'character').map(c => c.owner)),
+        choose: name => {
+          const id = store.current!.id;
+          saveSeat(localStorage, id, GM, { ...loadSeat(localStorage, id, GM), viewAs: name === GM ? null : name });
+          built!.end.abort();
+          freshBody();
+          build();
+        },
+      },
+    });
+    built = { view: v.table, drag: v.drag, bar: v.bar, hands: v.hands, end };
+  };
+  build();
+  return { version: HOLLOW_VERSION, date: HOLLOW_DATE, role: 'gm' as const, tab, identity, store, blobs, open, invite: link, moves,
+    get view() { return built!.view; }, get drag() { return built!.drag; },
     get table() { return table; }, get rolls() { return rolls; },
     // R361: for the browser specs, the records someone who owns nothing may see at all.
     forNobody: () => game.all().map(([rid]) => rid).filter(shared(game)) };

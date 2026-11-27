@@ -41,6 +41,11 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
 - **Say it once, on paper.** Instructions are not permanent chrome. They live on the reference sheet's
   "How to use the table" page, which every page is given once and puts away when known (see
   *Pieces*).
+- **The table asks on a card of its own, never in the browser's dialogs** (Bill, 2026-11-27, after the
+  Claude Desktop browser, which has none, couldn't join a table or copy an invite: "One shared form").
+  A question is a small card laid in the middle of the table, the page dimmed behind it: the question,
+  a line to write in (or Yes and No), and OK and Cancel; Enter answers and Escape cancels. A name on
+  arrival, a rename, a checkpoint's name and handing a name over all ask on it.
 - **One shape, one job.** Controls that do different things look different, even when they are
   small and sit side by side on one card.
 - **Nothing depends on color alone.** Where color carries meaning (green and red chips, Bias, Affliction and Injury),

@@ -2,7 +2,7 @@
 // Names are held by browsers: a second browser coming as Dana is nobody until the GM hands the name
 // over. And a page that was away can't bring back what the table has since buried.
 import { expect, test, type Page } from '@playwright/test';
-import { gmTable, hook, join, open, synced } from './page.ts';
+import { answer, gmTable, hook, join, open, synced } from './page.ts';
 
 const SAM = 'o:00000001', BEAUFORD = 'o:00000002', STICKY = 'o:00000008';
 const recOf = (page: Page, rid: string) => page.evaluate(async rid => (await (window as any).hollow.ready).store.game.get(rid), rid);
@@ -41,9 +41,10 @@ test('names held by browsers', async ({ browser }) => {
   await dana.waitForTimeout(2000);
   await expect(barred(dana)).toHaveText('Dana');
 
-  // The GM hands Dana over (its dialog answered yes): the new page gets the sheet and its change is
-  // taken; the old page is now the one told (R296).
+  // The GM hands Dana over (asked on the table's card, R601, answered yes): the new page gets the sheet
+  // and its change is taken; the old page is now the one told (R296).
   await gm.locator('#bar .folks .tag.warn').click();
+  expect(await answer(gm)).toContain('Hand Dana to this one?');
   await expect(imp.locator('#bar .folks .tag.you')).toHaveText('Dana', { timeout: 15_000 });
   await expect(dana.locator('#bar .folks .tag.you')).toHaveText('not yours', { timeout: 15_000 });
   await expect(barred(imp)).toHaveText('Dana', { timeout: 15_000 });
@@ -108,15 +109,15 @@ test('a player renames, and everything they hold follows', async ({ browser }) =
   const { gm, invite } = await gmTable(browser);
   const dana = await join(browser, invite, 'Dana', gm);
   await give(gm, SAM, 'Dana');
-  const answer = (to: string) => { dana.removeAllListeners('dialog'); dana.once('dialog', d => void d.accept(to)); };
   const mine = dana.locator('#bar .folks .tag.you');
-  answer('GM');
+  // R601: asked on the table's card.
   await mine.click();
+  await answer(dana, 'GM');
   await expect(mine).toHaveClass(/\bwarn\b/, { timeout: 15_000 });
   await expect(mine).toHaveAttribute('title', /keeps for itself/);
   await expect(mine).toHaveText('Dana');
-  answer('Dee');
   await mine.click();
+  await answer(dana, 'Dee');
   await expect(dana.locator('#bar .folks .tag.you')).toHaveText('Dee', { timeout: 20_000 });
   await expect.poll(async () => (await recOf(gm, SAM)).owner, { timeout: 15_000 }).toBe('Dee');
   expect(await hook(gm, h => h.store.game.get('book').claims.Dee)).toBe(await hook(dana, h => h.identity.id));

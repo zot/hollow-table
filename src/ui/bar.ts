@@ -11,6 +11,8 @@ import { chipFace } from './pool.ts';
 export type Supply = Exclude<Paper, 'image'> | { sign: Sign; points: number };
 
 export type BarWith = {
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** The version (a release's tag, or "dev") and the date (a release's day, the test rig's publish time, or none). */
   version: string;
   date: string;
@@ -56,7 +58,7 @@ export class BarView {
     mark.append(el('span', 'stamp version', w.version, 'Which version this is: a release\'s tag, or dev'));
     if (w.date) mark.append(el('span', 'stamp date', w.date, 'When it was released (on the test rig, when it was published)'));
     // R591: the desk holds the paper supplies.
-    this.desk = new DeskView(doc, { gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut, cur: w.cur, setDesks: w.setDesks, setOut: w.setOut });
+    this.desk = new DeskView(doc, { signal: w.signal, gm: w.gm, take: w.take, images: w.images, filed: w.filed, takeOut: w.takeOut, cur: w.cur, setDesks: w.setDesks, setOut: w.setOut });
     // R591, R510: chips 2, 4, 6 and +1 of each color, in two rows, on the bar itself.
     const chips = el('div', 'supplychips', '', 'Influence chips: drag one out');
     for (const sign of [1, -1] as const) for (const points of [2, 4, 6, 1]) {

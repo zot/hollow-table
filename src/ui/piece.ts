@@ -12,7 +12,7 @@ import {
 } from '../model/records.ts';
 import { awaits, cardName, connection, fixed, level, opinionItems, recordsOn, nameOf, order, respected, rowOf, synced, tableOf } from '../rules/connections.ts';
 import { handOver, mayWrite } from '../rules/ownership.ts';
-import { blankFront, blankInfo, canSee, type Viewer } from '../rules/visibility.ts';
+import { blankFront, blankInfo, canSee, redact, type Viewer } from '../rules/visibility.ts';
 import { CATEGORIES, type Category, type Eyes } from './eyes.ts';
 import { clues, entries, type Entry } from '../rules/readmarks.ts';
 import { action as readAction, influence, suffered, suffers, unadjusted, variants } from '../rules/readmarks.ts';
@@ -611,7 +611,7 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draf
   const showing = cards.flatMap((t, k) => (secret && !t.trim() ? [] : [k]));
   // R419, R426: the records of the NPC's row (its group's) follow its Info cards; R438: on a player's
   // page, those revealed on it.
-  const recs = c.owner === GM ? records(w.game, c).filter(r => !secret || r.rec.text.trim()) : [];
+  const recs = c.owner === GM ? records(w, c).filter(r => !secret || r.rec.text.trim()) : [];
   // Which is slid out: an Info card by its place, a record as `o<oid>` (R397, R419).
   const mine = `${c.oid}:`, at = [...w.slid()].find(s => s.startsWith(mine)), key = at?.slice(mine.length) ?? '';
   const rec = key.startsWith('o') ? recs.find(r => r.rec.oid === key.slice(1)) : undefined;
@@ -678,9 +678,20 @@ function infos(e: HTMLElement, c: Character, w: PieceWith, secret: boolean, draf
   box.append(tabs);
 }
 
+/** R603: a record as it reaches this page's viewer: itself for the GM, else as the GM's page would send it
+ * (`redact`); undefined when it wouldn't reach them at all. */
+export function seen<R extends PieceRecord>(r: R, w: PieceWith): R | undefined {
+  if (w.viewer?.gm) return r;
+  return redact(r, w.viewer, oid => w.game.get(ridOf(oid)) as Character | undefined) as R | undefined;
+}
+
 /** R419, R426: the records an NPC's card shows: its row's (its group's), by their character's name; R438: on a player's page, those published on it. */
-function records(game: Game, c: Character): { rec: Opinion; name: string }[] {
-  const all = game.all().map(([, r]) => r as PieceRecord), t = tableOf(all);
+function records(w: PieceWith, c: Character): { rec: Opinion; name: string }[] {
+  // R603: viewing as a player, the GM's page shows the records as they reach that player: only those
+  // with a line revealed, only that line, and only on the cards they are published on, as a player's
+  // page, which holds no Connection Table, finds them.
+  const gm = !!w.viewer?.gm, all = w.game.all().flatMap(([, r]) => { const s = seen(r as PieceRecord, w); return s ? [s] : []; });
+  const t = gm ? tableOf(all) : undefined;
   const chars = all.filter((r): r is Character => r.kind === 'character');
   const recs = recordsOn(all.filter((r): r is Opinion => r.kind === 'opinion'), c, t);
   return order(recs.map(rec => ({ rec, name: t ? nameOf(t, chars, rec.of) : rec.name ?? '' })));

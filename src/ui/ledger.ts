@@ -3,6 +3,7 @@
 // with the game's name, the save status, the actions written on it, the checkpoints and the games.
 // The words are pure (stamp, offer, named, newGame); the view draws the page and does the asking.
 
+import { ask } from './ask.ts';
 import type { CheckpointInfo, GameInfo } from '../store/gamestore.ts';
 import { Doom } from './doom.ts';
 import { gesture } from './gesture.ts';
@@ -24,6 +25,8 @@ export function named(answer: string | null): string | null {
 export function newGame(now: number): string { return `New game ${stamp(now)}`; }
 
 export type LedgerWith = {
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** A player's copy: the name, the status, Export and Tables joined (R141, R485). */
   player: boolean;
   now: () => number;
@@ -79,7 +82,8 @@ export class LedgerView {
     // R291: a press anywhere else closes it.
     doc.addEventListener('pointerdown', e => {
       if (!this.#page.hidden && !(e.target as HTMLElement).closest?.('#ledger, #ledgerbtn')) this.hide();
-    }, true);
+    }, { capture: true, signal: w.signal });
+    w.signal.addEventListener('abort', () => this.hide(), { once: true });
   }
 
   hide(): void {
@@ -130,7 +134,7 @@ export class LedgerView {
       acts.append(a);
     };
     if (!w.player) act('Checkpoint', 'Save a named copy of the table as it is now', async () => {
-      const n = named(prompt('Name this checkpoint', offer(w.round(), w.now())));
+      const n = named(await ask(doc, 'Name this checkpoint', offer(w.round(), w.now())));   // R601
       if (n === null) return;
       await w.checkpoint(n).catch(() => undefined);   // R454: a refused one is said in the status
       await this.render();

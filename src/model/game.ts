@@ -70,11 +70,18 @@ export class Game {
     this.#tell(changed);
   }
 
-  /** Hear each change's rids; the function returned stops it. */
-  listen(fn: Listener): () => void {
+  /** Hear each change's rids; the function returned stops it, and so does `signal` aborting (R600: a
+   * build's views stop hearing with their build). */
+  listen(fn: Listener, signal?: AbortSignal): () => void {
+    const stop = () => { this.#listeners.delete(fn); };
+    if (signal?.aborted) return stop;
     this.#listeners.add(fn);
-    return () => { this.#listeners.delete(fn); };
+    signal?.addEventListener('abort', stop, { once: true });
+    return stop;
   }
+
+  /** R600: how many hear changes now, so the specs can see a switch in "You are" leaves none behind. */
+  get listening(): number { return this.#listeners.size; }
 
   #tell(rids: ReadonlySet<Rid>): void {
     if (rids.size) for (const fn of [...this.#listeners]) fn(rids);

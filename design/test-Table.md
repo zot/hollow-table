@@ -721,3 +721,26 @@ pool's labels selects as text but the build stamp
 **Fire alarm:** the GM's page deletes no shared card; red: the card is still there
 **Inject:** src/main.ts
 **Pulled:** 2026-11-25 — 2026-11-25 — rang: with no shared cards deleted, o:0000c0de stayed (line 53, Chromium); restored clean, dist rebuilt
+
+## Test: a checkpoint is named on the table's question card, or cancelled
+**Purpose:** R601: the Ledger's Checkpoint asks its name on the table's card, the offer selected; OK makes it, Escape makes none, and answering leaves the Ledger open.
+**Input:** the GM's page, the Ledger open; Checkpoint, "Before the duel" written, OK; Checkpoint again, Escape.
+**Expected:** the card asks "Name this checkpoint" offering "Round N, hh:mm:ss", all selected; the newest checkpoint "Before the duel", one more than before; after Escape no card and no other checkpoint.
+**Refs:** crc-Ask.md, crc-Ledger.md
+**Code:** tests/ask.spec.ts
+**Alarm:** 61
+**Fire alarm:** the Ledger names a checkpoint with `prompt()` again; red: a browser dialog opens and the spec fails
+**Inject:** src/ui/ledger.ts:LedgerView
+**Pulled:** 2026-11-27 — rang: with the Ledger on prompt() again, the dialog guard failed the spec, the page opened a browser prompt 'Name this checkpoint' (Chromium); restored clean
+
+## Test: a press on the question card is the card's alone
+**Purpose:** R601: pressing OK on the card doesn't count as a press elsewhere, so the Ledger asking a checkpoint's name stays open.
+**Input:** as above.
+**Expected:** after OK, the Ledger still open, its Checkpoint pressed again.
+**Refs:** crc-Ask.md
+**Code:** tests/ask.spec.ts
+**Alarm:** 62
+**Fire alarm:** the window doesn't keep the card's press from the page; red: the Ledger closes on OK and its Checkpoint can't be pressed again
+**Inject:** src/ui/ask.ts
+**Pulled:** 2026-11-27 — rang: with the card's press reaching the page, OK closed the Ledger and its Checkpoint could not be pressed again (line 26, Chromium); restored clean
+

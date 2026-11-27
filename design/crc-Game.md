@@ -1,5 +1,5 @@
 # Game
-**Requirements:** R126, R128, R129, R170
+**Requirements:** R126, R128, R129, R170, R600
 
 The open game in memory: every record by rid, and the one door every change goes through. It knows
 what changed since the last save, so saving and sending never diff the whole table.
@@ -18,7 +18,9 @@ what changed since the last save, so saving and sending never diff the whole tab
   what is there changes nothing.
 - load(records): replace everything (open a game, restore a checkpoint, a full table arriving);
   listeners hear every rid, old and new.
-- listen(fn): fn hears each change's rids; returns a function that stops it.
+- listen(fn, signal?): fn hears each change's rids; returns a function that stops it, and the signal's
+  aborting stops it too (R600: a build's views stop hearing with their build).
+- listening: how many hear now, for the specs that check a switch in "You are" leaves none behind.
 - Seat-tier state never enters here; it lives in Seat.
 
 ## Collaborators

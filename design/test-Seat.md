@@ -13,7 +13,8 @@ has their own (R153); a restore keeps it (R136)
 3. reload: the seat exactly as set, and drawn so
 4. "You are" another viewer: Devreux's row shows, the table's, with no Roll key for them; Boot Hill
    closed
-5. "You are" back to the GM: the GM's seat again
+5. "You are" back to the GM: the GM's seat again, but for Boot Hill's list, which the press on "You
+   are" closed (R289), never an older copy of the seat (R599)
 6. restore a checkpoint from the Ledger: the seat as it was just before
 **Refs:** crc-Seat.md, crc-Game.md
 **Code:** `tests/seat.spec.ts`
@@ -66,3 +67,15 @@ kept view comes back, and a partial one is filled in
 **Fire alarm:** delete at the first shift-click (no arming); red: "Doomed" is gone at once, and the second shift-click finds nothing
 **Inject:** src/ui/doom.ts:Doom.arm
 **Pulled:** 2026-11-19 — re-pulled after the simplifier rewrote Doom.arm: rang, Doomed went at the first shift-click (Chromium); restored clean *Earlier —* 2026-11-19 — rang: Doomed went at the first shift-click, and the second timed out finding nothing (Chromium); restored clean
+
+## Test: a switch keeps the seat as it is now
+**Purpose:** R599: "You are" saves the GM's seat as it is when chosen, never the copy read when the page opened.
+**Input:** the seat spec's steps 4 and 5.
+**Expected:** back as the GM, the GM's seat as set, Boot Hill's list closed by the press (R289).
+**Refs:** crc-Folks.md, crc-Seat.md
+**Code:** `tests/seat.spec.ts`
+**Alarm:** 6
+**Fire alarm:** the switch saves the seat read when the page opened (the old `gmSeat`); red: Boot Hill's list open again
+**Inject:** src/main.ts
+**Pulled:** 2026-11-27 — rang: with the switch saving the seat read at page start, Boot Hill's list came back open (line 90, Chromium); restored clean
+

@@ -83,7 +83,11 @@ test('the seat is not the game', async ({ page }) => {
     await page.locator('.tag.viewas').click();
     await open(page);
   }
-  expect(await seatOf(page, 'GM')).toBe(kept);
+  // The press on "You are" was a press outside Boot Hill's list, which closes it (R289); the rest of the
+  // GM's seat is as it was (R599: a switch keeps the seat, never an older copy of it).
+  const closed = JSON.parse(kept!);
+  closed.boothill.open = false;
+  expect(JSON.parse((await seatOf(page, 'GM'))!)).toEqual(closed);
   await expect(page.locator(`${DEVREUX} .roller`)).toBeVisible();
 
   // 6. A restore keeps the seat (R136).

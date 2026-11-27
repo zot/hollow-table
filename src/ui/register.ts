@@ -51,6 +51,8 @@ export function ended(game: Game, scene = false): (w: Writer) => void {
 
 export type RegisterWith = {
   game: Game; viewer: Viewer;
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** The GM's page checkpoints before End (R117); players' pages can't press the keys. */
   checkpoint?: (name: string) => Promise<unknown>;
   /** The paper roll: the tape up to a sliver and back (R112). */
@@ -116,7 +118,7 @@ export class RegisterView {
       void w.checkpoint?.(scene ? 'End of scene' : `End of conflict, round ${round}`).then(end, end);
     } });
     gesture(roll, { click: () => w.paperRoll() });
-    w.game.listen(rids => { if (rids.has('meta')) this.render(); });
+    w.game.listen(rids => { if (rids.has('meta')) this.render(); }, w.signal);
     this.render();
   }
 

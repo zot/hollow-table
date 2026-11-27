@@ -193,6 +193,8 @@ export const ownerWord = (c: Character) => c.owner === GM ? 'GM' : c.owner === O
 
 export type RollRowWith = {
   game: Game; viewer: Viewer;
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** A character's pool mat, where its row shows. */
   pool: (oid: Oid) => HTMLElement | undefined;
   /** R362: new oids, for the card an action suffers. */
@@ -249,13 +251,13 @@ export class RollRowView {
     document.addEventListener('pointerdown', e => {
       if ((e.target as HTMLElement).closest?.('.advmenu, .white')) return;
       for (const { menu } of this.#els.values()) menu.hidden = true;
-    }, true);
-    w.game.listen(() => this.render());
+    }, { capture: true, signal: w.signal });
+    w.game.listen(() => this.render(), w.signal);
     // R373: the GM's page keeps each aimed row's White, written back only when it changed.
     if (w.viewer?.gm) w.game.listen(() => queueMicrotask(() => {
       const changed = whites(w.game);
       if (Object.keys(changed).length) w.game.change(x => x.put('rows', { rows: { ...rowsOf(w.game), ...changed } }));
-    }));
+    }), w.signal);
     this.render();
   }
 

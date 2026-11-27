@@ -1,5 +1,5 @@
 # TableView
-**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573, R575, R576, R585, R588, R594
+**Requirements:** R2, R15-17, R128, R215, R220, R226, R241, R269-273, R419, R421, R438, R451, R479-482, R486, R534, R535, R537, R539, R542, R543, R568, R571-573, R575, R576, R585, R588, R594, R603
 
 The walnut surface and everything on it: renders pieces from Game, pans and zooms, and keeps the
 DOM a view of the records.
@@ -18,7 +18,10 @@ DOM a view of the records.
 - R419, R421, R438: a change to an Opinion Record or the Connection Table, or a piece going, redraws
   the cards, whose folders show them, on every page: a player's shows the records revealed to it.
 - render(changed): on Game changes, makes, updates or removes the view of each changed rid on the table
-  (Records.onTable: a torn roll's `t:` too, R486); nothing else is touched.
+  (Records.onTable: a torn roll's `t:` too, R486); nothing else is touched. Each is drawn as it reaches
+  the viewer (PieceView.seen, R603), so the GM viewing as a player sees no Connection Table and no
+  paper that player doesn't read; what kind a record is (a character, a loose chip) is still read
+  from the record as held.
 - lift(key, el, at) / place(key, at) / letGo(key) (R220): the hand, for anything held, this page's
   or another's (Hands): key is the rid, or `rid#pool` for a pool. The piece is put in the world
   layer at `at`, squared up and raised (`lifted`); every layer skips it while held, so a redraw

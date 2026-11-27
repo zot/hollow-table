@@ -1,5 +1,5 @@
 # BootHillView
-**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405, R428, R457, R488, R489
+**Requirements:** R118, R120, R121, R123, R124, R125, R289, R295, R404, R405, R428, R457, R488, R489, R603
 
 The gravestone and its graveyard list.
 
@@ -28,6 +28,9 @@ The gravestone and its graveyard list.
 - doom (R125): a shift-click or a long press arms an item red, saying "Delete forever? Shift-click again"; the
   graveyard's name (shift-click or long press) says "Delete everything here? Shift-click again".
   Either reverts after 3 s; a second one deletes (Yards.forget, Yards.forgetAll).
+- seen (R603): viewing as a player, each burial is listed as it would reach that player (`redact` of a
+  graveyard holding it alone): a burial they wouldn't see isn't listed, and the badge doesn't count it.
+  Each keeps its place in the graveyard, which digging up and deleting use.
 
 ## Collaborators
 - Yards, Drag, Seat (which graveyard, open or not), Gesture, TableView (screen to table)

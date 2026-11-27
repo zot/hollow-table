@@ -8,7 +8,8 @@ them. Nothing to install, no local-network grant, no daemon.
 - **Open the table** makes a room. The room name is random (about 128 bits) and is the capability:
   whoever has the invite can join, and nobody else hears anything.
 - **Copy invite** copies a link carrying the room and the GM's browser id, and says "Copied" for about a
-  second (if the clipboard refuses, the link is shown to copy by hand). Shift-clicking it closes
+  second. If the clipboard refuses, the link shows in a line just under the button, selected to copy by
+  hand, until a press elsewhere or Escape (Bill, 2026-11-27: "Under the button"). Shift-clicking it closes
   the table. Arriving by an invite asks for your name until you give one that isn't "GM" (cancel
   gives "Player"), listing the names this browser already holds (Bill, 11-22: "Offer held names"): one
   of those, in any case, is that name, and any other is a new one. The name is the tab's: a reload keeps
@@ -26,7 +27,7 @@ them. Nothing to install, no local-network grant, no daemon.
 - **The tags** (Bill, 11-12, as the mockup): each name in the hand font beside a dot, green and
   glowing when that page is live; the GM's tag reddish, your own outlined. The GM first, then you,
   then everyone else alphabetically. A tag dims after 25 s unheard and goes after 60 s. The GM
-  renames by a prompt (up to 32 characters; blank is "GM"). Red tags, with no dot: on the GM's
+  renames on the table's question card (up to 32 characters; blank is "GM"). Red tags, with no dot: on the GM's
   page, someone who came as a name another browser holds (clicking hands them the name, after
   asking); on a player's page, "not yours" and "offline" with why. That someone's tag is barred on
   every page (below).

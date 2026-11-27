@@ -8,10 +8,15 @@ import { empty, exhume, exhumeOwn, forget, forgetAll, forgetOwn, forgetOwnIn, la
 import { rowOf, synced, tableOf } from '../rules/connections.ts';
 import { Doom } from './doom.ts';
 import { gesture, type PointerLike } from './gesture.ts';
+import { redact, type Viewer } from '../rules/visibility.ts';
 
 
 export type BootHillWith = {
   game: Game;
+  /** R603: who the page shows the burials to; viewing as a player, they are drawn as they reach them. */
+  viewer: Viewer;
+  /** R600: this build's; its page hooks end when it aborts. */
+  signal: AbortSignal;
   /** The graveyard browsed and whether the list is open, kept in the Seat (R127). */
   cur: () => number; setCur: (cur: number) => void;
   open: () => boolean; setOpen: (open: boolean) => void;
@@ -98,12 +103,19 @@ export class BootHillView {
       if (!this.#w.open() || (e.target as HTMLElement).closest?.('#graves, #boothill')) return;
       this.#w.setOpen(false);
       this.render();
-    }, true);
-    w.game.listen(rids => { if (rids.has('yards') || rids.has('hill')) this.render(); });
+    }, { capture: true, signal: w.signal });
+    w.game.listen(rids => { if (rids.has('yards') || rids.has('hill')) this.render(); }, w.signal);
     this.render();
   }
 
   #yards(): Yards { return (this.#w.game.get('yards') as Yards | undefined) ?? empty(); }
+
+  /** R603: a burial as it reaches this page's viewer (itself for the GM); undefined when it wouldn't. */
+  #seen(yard: Yards['yards'][number], burial: Burial): Burial | undefined {
+    if (this.#w.viewer?.gm) return burial;
+    const one = redact({ yards: [{ ...yard, items: [burial] }] }, this.#w.viewer, oid => this.#w.game.get(ridOf(oid)) as Character | undefined) as Yards;
+    return one.yards[0]!.items[0];
+  }
   #cur(): number { return Math.min(this.#w.cur(), this.#yards().yards.length - 1); }
   /** R488: this page's own burials, never sent. */
   #hill(): Hill { return (this.#w.game.get('hill') as Hill | undefined) ?? { hill: [] }; }
@@ -113,7 +125,7 @@ export class BootHillView {
   // R289: the badge counts every graveyard; the stone fades when nothing is buried.
   render(): void {
     const y = this.#yards(), cur = this.#cur(), g = y.yards[cur]!, doc = this.#panel.ownerDocument;
-    const total = y.yards.reduce((n, x) => n + x.items.length, 0) + this.#hill().hill.length;   // R488
+    const total = y.yards.reduce((n, x) => n + x.items.filter(b => this.#seen(x, b)).length, 0) + this.#hill().hill.length;   // R488
     this.#badge.textContent = total ? String(total) : '';
     this.#stone.classList.toggle('empty', !total);
     this.#panel.hidden = !this.#w.open();
@@ -122,13 +134,15 @@ export class BootHillView {
     if (this.#dooms.armed && this.#dooms.armed !== this.#name) this.#dooms.drop();
     // R289: oldest first; an empty graveyard says so.
     const own = this.#own(), hill = this.#hill();
-    if (!g.items.length && !own.length) {
+    // R603: each burial as it reaches the viewer, by its place in the graveyard, which digging uses.
+    const shown = g.items.flatMap((burial, item) => { const s = this.#seen(g, burial); return s ? [{ s, item }] : []; });
+    if (!shown.length && !own.length) {
       const p = doc.createElement('p');
       p.textContent = 'Nothing is buried here.';
       this.#items.replaceChildren(p);
       return;
     }
-    this.#items.replaceChildren(...g.items.map((burial, item) => {
+    this.#items.replaceChildren(...shown.map(({ s: burial, item }) => {
       const b = doc.createElement('button');
       b.textContent = burial.name;
       b.title = 'Drag this back onto the table. Shift-click or long-press twice to delete it forever.';
