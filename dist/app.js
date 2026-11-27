@@ -3526,7 +3526,7 @@ function lines(doc, text) {
 function referenceSheet(doc, rid2, r, w) {
   const at4 = SHEET_PAGES.indexOf(r.which), n = SHEET_PAGES.length;
   let body;
-  if (r.which === "howto") body = [el2(doc, "div", "rhd", "How to play the table"), ...lines(doc, HOWTO)];
+  if (r.which === "howto") body = [el2(doc, "div", "rhd", "How to use the table"), ...lines(doc, HOWTO)];
   else if (r.which === "quick") body = [el2(doc, "div", "rhd", "Quick reference"), ...lines(doc, QUICK)];
   else {
     const table = doc.createElement("table"), row2 = (cells, tag) => {
@@ -16511,11 +16511,44 @@ var HOLES = [
   ["sticky", "supply note", "note", "Sticky note"],
   ["text", "supply aa", "Aa", "Write on the table"],
   ["image", "supply image", "image", "Add an image"],
-  ["howto", "supply howto", "how to play", 'The "How to play the table" card'],
+  ["howto", "supply howto", "how to play", "The reference sheet: how to use the table, the quick reference, quick character creation"],
   // R591, R530: a docket's label on its red tape.
   ["docket", "supply docket", "docket", "A docket: a named bundle of paper, tied in red tape"]
 ];
 var LINKS = ["connections", "supply links", "connections", "The Connection Table: how the characters view each other"];
+var ART = `
+<path d="M15 40h2l-.5 11h-1zM49 40h2l-.5 11h-1z" fill="#6e4b33"/>
+<path d="M5 40h4l-1 16H6zM57 40h4l-1 16h-2z" fill="#7a5337"/>
+<path d="M9 7q5-4 11-2t13-2q7 4 13 2t11 2v2H9z" fill="#6e4b33"/>
+<rect x="8" y="8" width="50" height="16" rx="1" fill="#8f6444"/>
+<rect x="8" y="8" width="50" height="1.5" fill="#a0714b"/>
+<g class="holes">
+<path d="M10 23V12q3.25-2 6.5 0v11zM18 23V12q3.25-2 6.5 0v11zM41.5 23V12q3.25-2 6.5 0v11zM49.5 23V12q3.25-2 6.5 0v11z"/>
+</g>
+<rect x="11" y="15" width="4.5" height="8" fill="#fbfaf6"/>
+<rect x="19" y="17" width="4.5" height="6" fill="#fff200"/>
+<rect x="42.5" y="14" width="4.5" height="9" fill="#ecd9a8"/>
+<rect x="50.5" y="16" width="4.5" height="7" fill="#fbfaf6"/>
+<g fill="#8a5d3d" stroke="rgba(0,0,0,.4)" stroke-width=".5">
+<rect x="27" y="10" width="12" height="4"/><rect x="27" y="15" width="12" height="4"/><rect x="27" y="20" width="12" height="3.5"/>
+</g>
+<g fill="#d9b45a"><circle cx="33" cy="12" r=".8"/><circle cx="33" cy="17" r=".8"/><circle cx="33" cy="21.8" r=".8"/></g>
+<path d="M7 24h52l4 7H3z" fill="#7a5337"/>
+<path d="M9 24.6h48l3.5 5.6h-55z" fill="#5f6b2e"/>
+<path d="M10.5 25.3h45l3.1 4.2H7.4z" fill="none" stroke="#c9a84a" stroke-width=".5" opacity=".8"/>
+<rect x="3" y="31" width="60" height="10" rx="1" fill="#8f6444"/>
+<rect x="3" y="31" width="60" height="1.2" fill="#a0714b"/>
+<g fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8"><rect x="5" y="32.5" width="27" height="7"/><rect x="34" y="32.5" width="27" height="7"/></g>
+<g fill="none" stroke="#d9b45a" stroke-width=".9"><circle cx="18.5" cy="36" r="1.7"/><circle cx="47.5" cy="36" r="1.7"/></g>
+<rect x="3" y="41" width="60" height="1.2" fill="rgba(0,0,0,.3)"/>`;
+function deskArt(doc) {
+  const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "art");
+  svg.setAttribute("viewBox", "0 0 66 58");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = ART;
+  return svg;
+}
 var CLICK = 4;
 var BELOW = 110;
 var THROW = "Set this desk out: everyone's table switches to its desktop";
@@ -16554,7 +16587,7 @@ var DeskView = class {
       return e;
     };
     this.el = el4("div", "desk", "", "The desk: press for paper; click to open it");
-    this.el.append(el4("div", "rolltop"), el4("div", "desktop"));
+    this.el.append(deskArt(doc));
     this.#strip = el4("div", "deskpanel");
     const holes = el4("div", "pigeonholes");
     this.#drawers = el4("div", "drawers");
@@ -16668,7 +16701,9 @@ var DeskView = class {
       const row2 = make4("div", "deskrow"), name2 = deskName(desks.desks[i]);
       row2.dataset.desk = String(i);
       row2.dataset.name = name2;
-      row2.append(make4("span", "minitop"), make4("span", "holder", name2));
+      const mini = make4("span", "minidesk");
+      mini.append(deskArt(doc));
+      row2.append(mini, make4("span", "holder", name2));
       if (i === out) row2.append(make4("span", "switch", "", "Set out"));
       return row2;
     }));
@@ -20442,6 +20477,7 @@ function views(game2, gameId, viewer, blobs, moves, hand, missing, ledger, rolli
   };
   const hands = new Hands({ game: game2, table });
   table.after = () => hands.react();
+  hands.react();
   drag = new Drag({ game: game2, table, hands, hand, moves, mint: mint2, schedule: frame, yard, who: () => viewer?.name, gm });
   const tape = new TapeView(document.getElementById("table"), {
     game: game2,

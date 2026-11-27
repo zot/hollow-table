@@ -11,12 +11,12 @@ const turn = (page: Page, label: 'Next page' | 'Previous page') => page.locator(
 
 test('a reference sheet: given once, turned, kept, put away, given again', async ({ page }) => {
   await open(page, '/', true);
-  // R594, R593: one sheet, this page's own under m:, open at How to play the table.
+  // R594, R593: one sheet, this page's own under m:, open at How to use the table.
   await expect.poll(() => sheets(page)).toHaveLength(1);
   const [rid, at] = (await sheets(page))[0]!;
   expect(rid.startsWith('m:') && at === 'howto').toBe(true);
   const sheet = page.locator('.obj.reference');
-  await expect(sheet.locator('.rhd')).toHaveText(/How to play the table/i);
+  await expect(sheet.locator('.rhd')).toHaveText(/How to use the table/i);
   await expect(sheet.locator('.rfoot')).toHaveText(/1 of 3/);
 
   // R592: turned, the Quick Reference, its die read as the dice read it; then Quick Character Creation.
@@ -44,7 +44,7 @@ test('a reference sheet: given once, turned, kept, put away, given again', async
   await open(page, '/', true);
   expect(await sheets(page)).toEqual([]);
 
-  // R591: the desk gives another, open at How to play the table.
+  // R591: the desk gives another, open at How to use the table.
   await fromDesk(page, 'howto', 500, 400);
   await expect.poll(() => sheets(page).then(s => s.map(([r, w]) => [r.slice(0, 2), w]))).toEqual([['m:', 'howto']]);
 
@@ -67,7 +67,7 @@ test("each page's own sheet: never sent, turned alone", async ({ browser }) => {
   const mine = (await sheets(dana))[0]![0], theirs = (await sheets(gm))[0]![0];
   expect(mine).not.toBe(theirs);
   expect(await rec(dana, theirs)).toBeUndefined();
-  // R593: Dana turns hers; the GM's stays at How to play the table.
+  // R593: Dana turns hers; the GM's stays at How to use the table.
   await turn(dana, 'Next page');
   await expect.poll(() => sheets(dana).then(s => s[0]![1])).toBe('quick');
   await synced(dana, gm);

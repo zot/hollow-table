@@ -1,5 +1,5 @@
 // CRC: crc-Desk.md | R591, R530, R512, R513, R514, R515, R516, R517, R520, R526, R527, R546, R547, R548, R551, R552, R553, R562, R556, R559, R560
-// The desk on the bar: a little roll-top whose pigeonholes hold the paper supplies. A press opens the
+// The desk on the bar: a little writing desk whose pigeonholes hold the paper supplies. A press opens the
 // strip of pigeonholes and follows the pointer: dragged across them it holds each one's piece small,
 // dragged out it hands the piece to the page to make and carry, and let go it decides what the
 // release means (release, pure).
@@ -66,12 +66,52 @@ const HOLES: [Paper, string, string, string][] = [
   ['sticky', 'supply note', 'note', 'Sticky note'],
   ['text', 'supply aa', 'Aa', 'Write on the table'],
   ['image', 'supply image', 'image', 'Add an image'],
-  ['howto', 'supply howto', 'how to play', 'The "How to play the table" card'],
+  ['howto', 'supply howto', 'how to play', 'The reference sheet: how to use the table, the quick reference, quick character creation'],
   // R591, R530: a docket's label on its red tape.
   ['docket', 'supply docket', 'docket', 'A docket: a named bundle of paper, tied in red tape'],
 ];
 // R518: the GM's alone.
 const LINKS: [Paper, string, string, string] = ['connections', 'supply links', 'connections', 'The Connection Table: how the characters view each other'];
+
+// R597: the writing desk, 66 × 58, seen a little from above: legs, the gallery's scalloped rail and case,
+// its pigeonholes (a group the CSS lights, R598) with paper standing in them (a card, a sticky, manila,
+// a sheet), three little drawers, the green leather top, and the apron's two drawers with brass rings.
+// Flat fills: the drawing appears more than once, so it carries no gradient ids to collide.
+const ART = `
+<path d="M15 40h2l-.5 11h-1zM49 40h2l-.5 11h-1z" fill="#6e4b33"/>
+<path d="M5 40h4l-1 16H6zM57 40h4l-1 16h-2z" fill="#7a5337"/>
+<path d="M9 7q5-4 11-2t13-2q7 4 13 2t11 2v2H9z" fill="#6e4b33"/>
+<rect x="8" y="8" width="50" height="16" rx="1" fill="#8f6444"/>
+<rect x="8" y="8" width="50" height="1.5" fill="#a0714b"/>
+<g class="holes">
+<path d="M10 23V12q3.25-2 6.5 0v11zM18 23V12q3.25-2 6.5 0v11zM41.5 23V12q3.25-2 6.5 0v11zM49.5 23V12q3.25-2 6.5 0v11z"/>
+</g>
+<rect x="11" y="15" width="4.5" height="8" fill="#fbfaf6"/>
+<rect x="19" y="17" width="4.5" height="6" fill="#fff200"/>
+<rect x="42.5" y="14" width="4.5" height="9" fill="#ecd9a8"/>
+<rect x="50.5" y="16" width="4.5" height="7" fill="#fbfaf6"/>
+<g fill="#8a5d3d" stroke="rgba(0,0,0,.4)" stroke-width=".5">
+<rect x="27" y="10" width="12" height="4"/><rect x="27" y="15" width="12" height="4"/><rect x="27" y="20" width="12" height="3.5"/>
+</g>
+<g fill="#d9b45a"><circle cx="33" cy="12" r=".8"/><circle cx="33" cy="17" r=".8"/><circle cx="33" cy="21.8" r=".8"/></g>
+<path d="M7 24h52l4 7H3z" fill="#7a5337"/>
+<path d="M9 24.6h48l3.5 5.6h-55z" fill="#5f6b2e"/>
+<path d="M10.5 25.3h45l3.1 4.2H7.4z" fill="none" stroke="#c9a84a" stroke-width=".5" opacity=".8"/>
+<rect x="3" y="31" width="60" height="10" rx="1" fill="#8f6444"/>
+<rect x="3" y="31" width="60" height="1.2" fill="#a0714b"/>
+<g fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8"><rect x="5" y="32.5" width="27" height="7"/><rect x="34" y="32.5" width="27" height="7"/></g>
+<g fill="none" stroke="#d9b45a" stroke-width=".9"><circle cx="18.5" cy="36" r="1.7"/><circle cx="47.5" cy="36" r="1.7"/></g>
+<rect x="3" y="41" width="60" height="1.2" fill="rgba(0,0,0,.3)"/>`;
+
+/** R597: the writing desk's drawing, for the bar's desk and each row of the board. */
+export function deskArt(doc: Document): SVGSVGElement {
+  const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'art');
+  svg.setAttribute('viewBox', '0 0 66 58');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML = ART;
+  return svg;
+}
 
 /** How far a press may wander and still be a click. */
 const CLICK = 4;
@@ -115,9 +155,9 @@ export class DeskView {
       if (title) e.title = title;
       return e;
     };
-    // R591, R510: a little roll-top, right after the wordmark.
+    // R591, R510, R597: a little writing desk, right after the wordmark.
     this.el = el('div', 'desk', '', 'The desk: press for paper; click to open it');
-    this.el.append(el('div', 'rolltop'), el('div', 'desktop'));
+    this.el.append(deskArt(doc));
     this.#strip = el('div', 'deskpanel');
     const holes = el('div', 'pigeonholes');
     this.#drawers = el('div', 'drawers');
@@ -216,7 +256,7 @@ export class DeskView {
     };
     const desks = this.#w.filed(), cur = this.#cur(), several = desks.desks.length > 1;
     if (doc.activeElement !== this.#name) this.#name.value = desks.desks[cur]?.name ?? '';
-    // R562: the board: a row per desk, each a little roll-top and its name.
+    // R562, R597: the board: a row per desk, each a miniature of the desk and its name.
     this.el.classList.toggle('several', several);
     const out = Math.min(desks.out ?? 0, desks.desks.length - 1);
     if (this.#knife) {
@@ -229,7 +269,9 @@ export class DeskView {
       const row = make('div', 'deskrow'), name = deskName(desks.desks[i]!);
       row.dataset.desk = String(i);
       row.dataset.name = name;
-      row.append(make('span', 'minitop'), make('span', 'holder', name));
+      const mini = make('span', 'minidesk');
+      mini.append(deskArt(doc));
+      row.append(mini, make('span', 'holder', name));
       if (i === out) row.append(make('span', 'switch', '', 'Set out'));
       return row;
     }));

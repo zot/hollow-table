@@ -1,4 +1,4 @@
-// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R591, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527, R546, R547, R548, R549, R551, R552, R553, R562, R555, R556
+// CRC: crc-Desk.md, crc-Bar.md, crc-Drag.md, crc-Drawers.md | Test: test-Desk.md | R591, R510, R530, R512, R513, R514, R515, R516, R518, R519, R520, R521, R524, R525, R526, R527, R546, R547, R548, R549, R551, R552, R553, R562, R555, R556, R597, R598
 // The desk on the bar: its pigeonholes hold the paper supplies; a press takes one out, small while
 // over the strip; let go in a pigeonhole it follows the pointer until the next press.
 import { expect, test, type Page } from '@playwright/test';
@@ -9,6 +9,31 @@ const PNG = { name: 'dot.png', mimeType: 'image/png', buffer: Buffer.from('iVBOR
 const middle = async (page: Page, sel: string) => { const b = (await page.locator(sel).boundingBox())!; return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
 const hole = (page: Page, paper: string) => middle(page, `#bar .hole[data-paper="${paper}"]`);
 const count = async (page: Page, kind: string) => (await kinds(page, kind)).length;
+/** The fill of a drawing's pigeonholes, as drawn. */
+const holes = (page: Page, sel: string) => page.locator(`${sel} > .art .holes`).evaluate(g => getComputedStyle(g).fill);
+const DARK = 'rgb(29, 20, 15)';
+
+test('the desk is a little writing desk, its pigeonholes lit under the pointer', async ({ page }) => {
+  await open(page);
+  // R597: the drawing, paper standing in its four pigeonholes, the size of the chips beside it.
+  const desk = page.locator('#bar .desk');
+  await expect(desk.locator(':scope > .art .holes path')).toHaveCount(1);
+  expect(await desk.locator(':scope > .art rect[fill="#fff200"]').count()).toBe(1);
+  const b = (await desk.boundingBox())!;
+  expect([Math.round(b.width), Math.round(b.height)]).toEqual([74, 65]);
+  // R598: dark at rest; lit under the pointer and while pressed; dark again away.
+  await page.mouse.move(5, 400);
+  await expect.poll(() => holes(page, '#bar .desk')).toBe(DARK);
+  const m = await middle(page, '#bar .desk');
+  await page.mouse.move(m.x, m.y);
+  await expect.poll(() => holes(page, '#bar .desk')).not.toBe(DARK);
+  await page.mouse.down();
+  await expect(page.locator('#bar .pigeonholes')).toBeVisible();
+  await expect.poll(() => holes(page, '#bar .desk')).not.toBe(DARK);
+  await page.mouse.up();
+  await page.mouse.click(5, 400);
+  await expect.poll(() => holes(page, '#bar .desk')).toBe(DARK);
+});
 
 test('the desk holds the paper supplies', async ({ browser }) => {
   const { gm, invite } = await gmTable(browser);
@@ -298,6 +323,10 @@ test("the GM's desks: browsed, named, and filed into by the board", async ({ pag
   await page.mouse.move(desk.x, row.y - 30, { steps: 4 });
   await page.mouse.move(row.x, row.y, { steps: 6 });
   await expect(page.locator('#bar .deskrow[data-desk="1"]')).toHaveClass(/\bover\b/);
+  // R562, R597, R598: each row a miniature of the desk; the row under the piece lights its pigeonholes.
+  await expect(page.locator('#bar .deskrow .minidesk .art')).toHaveCount(2);
+  await expect.poll(() => holes(page, '#bar .deskrow[data-desk="1"] .minidesk')).not.toBe(DARK);
+  await expect.poll(() => holes(page, '#bar .deskrow[data-desk="0"] .minidesk')).toBe(DARK);
   await expect(page.locator('#bar .desk')).toHaveAttribute('data-drawer', '→ Act 2: NPCs');
   await page.mouse.up();
   await expect.poll(() => rec(page, DEVREUX)).toBeUndefined();

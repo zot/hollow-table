@@ -12,8 +12,8 @@ to that player."
 - [ ] **Item 2 — a player's fresh browser gets them back.** **OPEN (not queued.)** After Item 1.
 - [ ] **Item 3 — "You are" shows a player's private things.** **OPEN (not queued.)** After Item 1.
 - [ ] **Item 4 — saved games and exports carry the backup.** **OPEN (not queued.)** After Item 1.
-- [ ] **Item 5 — the disclaimer on the "How to play the table" card.** **OPEN (not queued.)**
-- [ ] **Item 6 — an empty table starts with the "How to play the table" card.** **OPEN (not queued.)**
+- [ ] **Item 5 — the disclaimer on the "How to use the table" page.** **OPEN (not queued.)**
+- [ ] **Item 6 — an empty table starts with the "How to use the table" page.** **OPEN (not queued.)**
 
 ## What's private today
 
@@ -48,13 +48,13 @@ A checkpoint, a saved game and an export carry the backup, so they hold everythi
 
 ## Item 5
 
-The "How to play the table" card says at its top that everything is shared with the GM's browser and
+The "How to use the table" page says at its top that everything is shared with the GM's browser and
 visible to the GM at the GM's discretion. That's the disclaimer, said once: the "Just me" choice keeps its
 label and nothing else in the table's text repeats it.
 
 ## Item 6
 
-A new game's table starts with the "How to play the table" card on it, and nothing else, so the
+A new game's table starts with the "How to use the table" page on it, and nothing else, so the
 disclaimer is the first thing on an empty table. (Today New game starts an empty table: `specs/games.md`.)
 
 ## Decisions

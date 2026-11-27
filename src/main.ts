@@ -366,6 +366,8 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   // R298, R299: every hand, this page's and others', drawn alike, again after every redraw.
   const hands = new Hands({ game, table });
   table.after = () => hands.react();
+  // R534: the table drew the game before it had `after`; the tapes (and hands) now, not at the first change.
+  hands.react();
   drag = new Drag({ game, table, hands, hand, moves, mint, schedule: frame, yard, who: () => viewer?.name, gm });
   // R110–R113: this page's tape, under the pieces; a torn roll is carried off like any piece.
   const tape = new TapeView(document.getElementById('table')!, {
@@ -431,7 +433,7 @@ function views(game: Game, gameId: string, viewer: Viewer, blobs: BlobStore, mov
   });
   handed();
   unshared();
-  // R594: a page is given its reference sheet, open at How to play the table, the first time it opens a
+  // R594: a page is given its reference sheet, open at How to use the table, the first time it opens a
   // game, in the middle of its view once that is fitted (R271); remembered on the seat of the page's own
   // person, whoever it views as.
   void table.settled.then(() => {

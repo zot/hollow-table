@@ -51,7 +51,7 @@ export function newDocket(oid: Oid, at: Point, by?: string): Docket {
   return { kind: 'docket', oid, place: place(at, DOCKET.w, DOCKET.h), name: 'Docket', ...(by && { by }) };
 }
 
-// R592, R593: a reference sheet, this page's own, open at How to play the table, its middle at `at`.
+// R592, R593: a reference sheet, this page's own, open at How to use the table, its middle at `at`.
 export function newHowTo(oid: Oid, at: Point): Reference {
   return { kind: 'reference', oid, place: place(at, SHEET.w, SHEET.h), which: 'howto' };
 }

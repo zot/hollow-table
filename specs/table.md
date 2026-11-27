@@ -39,7 +39,7 @@ draggable sheets of paper and cards. No deep game integration yet (no XP calcula
   of a book, never web buttons, pills, dropdowns or floating panels. A panel opens as the object it
   belongs to (the Ledger as a ledger page, Boot Hill as its graveyard list).
 - **Say it once, on paper.** Instructions are not permanent chrome. They live on the reference sheet's
-  "How to play the table" page, which every page is given once and puts away when known (see
+  "How to use the table" page, which every page is given once and puts away when known (see
   *Pieces*).
 - **One shape, one job.** Controls that do different things look different, even when they are
   small and sit side by side on one card.
@@ -120,9 +120,15 @@ The bar runs along the top. It holds:
 wordmark, with the version under it and the date under that (Bill, 11-13: a release shows its tag,
 `v0.1.0`, and its day, `Nov 13, 2026`; the test rig shows "dev" and when it was published; a page
 built locally just "dev"). They are the one thing in the bar you can select, to copy into a bug
-report; the desk, a little roll-top; the chips, 2, 4, 6 and +1 in each color, in a grid of two rows
+report; the desk, a little writing desk (below); the chips, 2, 4, 6 and +1 in each color, in a grid of two rows
 (the +1 smaller); the Opposition button, a small brass plate; the people; "You are" (the GM's); then
 the register, the Ledger and Boot Hill.
+- **The desk is a little writing desk** (Bill, 2026-11-27, from a playtest: "the desk image in the top
+  bar confused the play tester; they didn't know what it was"; then "Yes, B" for the drawing): seen a
+  little from above, a gallery of arched pigeonholes with paper standing in them, white, yellow and
+  manila, and three little drawers between them; a green leather top; two drawers below with brass
+  rings; four tapered legs. Under the pointer, or pressed, its pigeonholes light (Bill, 2026-11-27:
+  "the three suggestions look good").
 - **Pressing the desk shows its pigeonholes** (Bill, 2026-11-23): a strip opens below it, one pigeonhole
   for each paper supply, each holding its supply drawn small: a character as a little stack of white
   card, a note as a yellow square, "Aa" for loose text, an image, the reference sheet, a docket's label
@@ -208,7 +214,7 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
   supply, and a **big sticky** (330 by 300) for the GM's long notes (Bill, 11-12).
 - **Loose text**: handwriting straight on the table.
 - **The reference sheet** (`carves/fixes.md`, Item 13): a printed page of the rules, in PT Mono, with
-  pages turned at its foot, "‹ 1 of 3 ›": **How to play the table**, then Bunkum's **Quick Reference**
+  pages turned at its foot, "‹ 1 of 3 ›": **How to use the table** (Bill, 2026-11-26: "Let's change 'How to play the table' to 'how to use the table'"), then Bunkum's **Quick Reference**
   and **Quick Character Creation** (its Appendices B and A), under their own titles and in their words.
   The Quick Reference reads the Resolution Die as Hollow Folks and the table's dice do, 4-6 a clean
   Success and only a 3 a Success with cost (Bill, 2026-11-25: "4-6 is a clean success and only a 3 is
@@ -218,7 +224,7 @@ chip, a torn-off roll of receipts (this page's alone, see `rolls.md`).
   never sent, kept through reloads, its moves and its turned page this page's alone; put away, it
   vanishes. A desktop set out leaves it on the table.
 - **Every page is given one** ("new peers should get a how to play card on their table
-  automatically"), the GM's too: once per game, open at How to play the table, on open table in view.
+  automatically"), the GM's too: once per game, open at How to use the table, on open table in view.
   Put away, it doesn't come back on a reload; the desk's pigeonhole gives another.
 - **The shared reference cards of older games go**: the GM's page deletes them from the game, since
   every page has its own sheet.

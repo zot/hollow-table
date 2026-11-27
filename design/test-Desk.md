@@ -99,3 +99,36 @@
 **Fire alarm:** put the open desk first, as #68 did: Act 2 comes first
 **Inject:** src/ui/desk.ts:DeskView
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with the desks in their own order, the GM's desks spec failed in Chromium (rows Act 1, Act 2); restored clean
+
+## Test: the desk is a little writing desk, its pigeonholes lit under the pointer
+**Purpose:** R597, R598: the bar's desk is the writing desk with paper in its pigeonholes, the size of the chips, its pigeonholes dark at rest and lit under the pointer and while pressed.
+**Input:** the GM's page; the pointer moved over the desk, pressed and released, then away.
+**Expected:** the desk's own drawing, one pigeonhole group with the sticky's yellow among the paper, 74 × 65; the pigeonholes dark, then lit over the desk and while the strip is open, dark again away.
+**Refs:** crc-Desk.md
+**Code:** tests/desk.spec.ts
+**Alarm:** 10
+**Fire alarm:** the bar's desk draws nothing (no `deskArt` in the constructor); red: no pigeonhole group
+**Inject:** src/ui/desk.ts:DeskView
+**Pulled:** 2026-11-27 — rang: with no drawing in the constructor, the desk test found no pigeonhole group, 0 for 1 (line 20, Chromium); restored clean
+
+## Test: the desk's pigeonholes light
+**Purpose:** R598: under the pointer the desk's pigeonholes light.
+**Input:** as above.
+**Expected:** the pigeonholes' fill changes from the dark at rest.
+**Refs:** crc-Desk.md
+**Code:** tests/desk.spec.ts
+**Alarm:** 11
+**Fire alarm:** no lit rule for the desk; red: the pigeonholes stay dark under the pointer
+**Inject:** src/ui/theme.css
+**Pulled:** 2026-11-27 — rang: with no lit rule, the pigeonholes stayed dark under the pointer (line 29) and the board's row under the piece too (line 328, Chromium); restored clean
+
+## Test: on the board, only the row under the piece lights
+**Purpose:** R562, R597, R598: each row of the board is a miniature of the desk, and only the row under the carried piece lights its pigeonholes, not every row inside the hovered desk.
+**Input:** the GM's desks spec, Devreux carried over the desk and down onto Act 2's row.
+**Expected:** two miniatures; Act 2's pigeonholes lit, Act 1's dark.
+**Refs:** crc-Desk.md
+**Code:** tests/desk.spec.ts
+**Alarm:** 12
+**Fire alarm:** the desk's hover lights every drawing inside it (`.desk:hover .art`, not its own `> .art`); red: Act 1's row lights too
+**Inject:** src/ui/theme.css
+**Pulled:** 2026-11-27 — rang: with the desk's hover lighting every drawing inside it, Act 1's row lit beside Act 2's (line 329, Chromium); restored clean

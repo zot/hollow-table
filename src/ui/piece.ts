@@ -1048,7 +1048,7 @@ function slotGlyphs(line: HTMLElement, s: DamageSlot, base: string, w: PieceWith
   for (const source of want) name.before(glyph(doc, source, w));
 }
 
-// ---- R590, R592: the reference sheet: How to play the table, then Bunkum's Quick Reference and Quick
+// ---- R590, R592: the reference sheet: How to use the table, then Bunkum's Quick Reference and Quick
 // Character Creation (its Appendices B and A), in its words (Making Rolls reads the die as the dice do, R91).
 
 /** A line of the sheet, its `**bold**` and `*italic*` runs set as the book sets them. */
@@ -1145,7 +1145,7 @@ function lines(doc: Document, text: string[]): HTMLElement[] {
 function referenceSheet(doc: Document, rid: Rid, r: Reference, w: PieceWith): HTMLElement[] {
   const at = SHEET_PAGES.indexOf(r.which), n = SHEET_PAGES.length;
   let body: HTMLElement[];
-  if (r.which === 'howto') body = [el(doc, 'div', 'rhd', 'How to play the table'), ...lines(doc, HOWTO)];
+  if (r.which === 'howto') body = [el(doc, 'div', 'rhd', 'How to use the table'), ...lines(doc, HOWTO)];
   else if (r.which === 'quick') body = [el(doc, 'div', 'rhd', 'Quick reference'), ...lines(doc, QUICK)];
   else {
     const table = doc.createElement('table'), row = (cells: (string | number)[], tag: 'th' | 'td') => {

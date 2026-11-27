@@ -21,12 +21,12 @@
 └────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- The bar: wordmark (build stamp under it), the desk (a little roll-top; pressed, its pigeonholes open
+- The bar: wordmark (build stamp under it), the desk (a little writing desk, paper in its pigeonholes; pressed, its pigeonholes open
   below it holding the paper supplies drawn small), chips by sign (red ones signed), the
   Opposition button (a brass plate; its brass tray slides out under the bar with the world's number), the people at
   the table (name tags; the GM's renames on click), Copy invite / Open the table, then the
   register, the Ledger (▤) and Boot Hill (⛫) at the right end.
-- "how to" is the reference sheet, open at How to play the table, in its pigeonhole; there is no instruction
+- "how to" is the reference sheet, open at How to use the table, in its pigeonhole; there is no instruction
   text in the bar.
 - The tape hangs from the register at the table's right edge.
 - Refs: crc-TableView.md, crc-Bar.md, crc-Desk.md, crc-Tray.md, crc-PoolView.md, crc-RollRow.md, crc-Tape.md

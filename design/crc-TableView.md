@@ -28,7 +28,9 @@ DOM a view of the records.
   piece from the hand. A chip in the world layer is placed absolutely, like any piece.
 - handFor(rid): the element drawing a chip or card (in a slot, a drawer or loose), or a new one
   shaped as a loose one for a piece drawn only in a pile.
-- after: run at the end of every redraw (Hands draws its reactions again).
+- after: run at the end of every redraw (Hands draws its reactions again, and the tapes with them). The
+  page sets it after the table's first redraw, so it draws the hands once then (R534): without that, a
+  reloaded page shows no tape until something changes.
 - push (R241): on the GM's page, when a pool's mat grows (not counting the docked roll row, which is
   this page's alone), the pieces it now covers (other characters'
   cards with what's pinned to them, unpinned paper, other pools with their gathered cards) move

@@ -220,3 +220,14 @@
 **Fire alarm:** TableView.tapes reads the boxes before the untied papers go back; red: the untied tape still goes round the pile
 **Inject:** src/ui/table.ts:tapes
 **Pulled:** 2026-11-25 — 2026-11-25 — rang before the fix, the bug itself: untied, the tape kept the pile's shape (Chromium and Firefox); passes after
+
+## Test: reloaded, a docket's tape goes round its papers
+**Purpose:** R534: the tapes are drawn when the page opens, not first at the next change.
+**Input:** the GM's docket "Kept" with two stickies pinned well apart; the page reloaded.
+**Expected:** a tape is drawn, and its box holds both stickies.
+**Refs:** crc-TableView.md
+**Code:** tests/dockets.spec.ts
+**Alarm:** 19
+**Fire alarm:** the page draws no hands when it sets TableView's after; red: no tape until something changes
+**Inject:** src/main.ts
+**Pulled:** 2026-11-26 — 2026-11-26 — rang before the fix, the bug itself: reloaded, no tape was drawn at all (Chromium and Firefox); passes after

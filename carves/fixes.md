@@ -19,6 +19,11 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [x] ~~**Item 11 — paper's owner: no maker is the GM's; owners reassign and share.**~~ **LANDED (2026-11-25 — `#75`.)** Bill, 2026-11-24.
 - [x] ~~**Item 12 — characters in dockets.**~~ **LANDED (2026-11-25 — `#76`.)** Bill, 2026-11-25.
 - [x] ~~**Item 13 — reference pages, each page's own.**~~ **LANDED (2026-11-25 — `#77`.)** Bill, 2026-11-25.
+- [ ] **Item 14 — a pencil to write on a card.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
+- [ ] **Item 15 — loud presence changes.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
+- [ ] **Item 16 — what an Opinion shows, reaching the wrong pages.** **OPEN (not queued.)** Bill's playtest, 2026-11-27; needs what was seen.
+- [ ] **Item 17 — "You are" without leaving the table.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
+- [x] ~~**Item 18 — a desk that looks like a desk.**~~ **LANDED (2026-11-27 — `#78`.)** Bill's playtest, 2026-11-27.
 
 ## Item 1
 
@@ -345,3 +350,79 @@ is succeed at cost". Hollow Folks and the table's dice (R91) already read it so;
 with page 18, the Quick Reference, updated to match ("4-6: Clean Success", "3: Success with cost"), so
 the sheet copies the book with no exception and the dice code needs no change.
 
+## Items 14 to 19: playtest feedback
+
+Bill's notes from a playtest (`.scratch/NOTES.md`, 2026-11-27), one item each, checked against the table as
+it was that day.
+
+## Item 14
+
+Bill (2026-11-27): "pencil button to edit cards -- play tester clicked name to activate an action instead
+of clicking the blue die. The card switched to edit mode. A pencil icon for edit mode would remove
+ambiguity."
+
+What the table has today, read from the code: a card's front is always open to write for whoever may
+write it (R567: its owner and the GM), so any press on its words, an action's name included, puts the
+caret there. An action is rolled only from the die glyph before it (`frontGlyphs`, `piece.ts`; "Roll
+this: …"). A pencil would make writing a mode the card enters on purpose. To decide: whether the pencil
+is on every card or only shown to its writers; whether a press on an action's name then rolls it, or
+does nothing; whether the back's notes wait for the pencil too; and how writing ends (Escape, a press
+elsewhere, the pencil again).
+
+## Item 15
+
+Bill (2026-11-27): "LOUD presence warnings -- I changed 'you are' from GM to another player and it
+disconnected me but I wasn't looking at the top bar and didn't notice the presence changes. We need a
+note in the top bar to show presence changes."
+
+What the table has today (`specs/network.md`, Presence): presence shows only in the name tags, a dot
+that dims after 25 s unheard and a tag that goes after 60 s, and "offline" with why on the page that
+lost the table. Nothing announces an arrival, a departure or this page's own disconnection. To decide:
+which changes get a note (someone arriving, leaving, going quiet; this page offline), how long it stays,
+and where in the bar. The disconnection here came from "You are" reloading the page (Item 17).
+
+## Item 16
+
+Bill (2026-11-27): "info about Opinions seems to propagate incorrectly"
+
+Not yet reproduced: which page showed what, and what it should have shown. What reaches a page about
+an Opinion today: the Opinion Records revealed to it by a successful Infer, drawn in the card's folders
+(R419, R421, R438; `carves/done/infer-reveals.md`), redrawn on every page when a record or the
+Connection Table changes. The item starts from a repro: who inferred, what was revealed, and which
+page showed more or less than that.
+
+## Item 17
+
+Bill (2026-11-27): "switching views disconnects from the p2p network -- does it need to disconnect?"
+
+What the table has today: choosing someone in "You are" saves the choice in the GM's seat and reloads
+the page (`main.ts`, R153; `crc-Folks.md`), so the GM's page leaves the room and joins it again, and
+every page sees the GM go and come back. The reload is there because the page's viewer is fixed when
+it starts: every view, and what the page lets itself do, is built for that viewer. It need not leave:
+the GM's page holds the whole game whoever it views as, and what it sends doesn't depend on the view,
+so switching could redraw the table for the new viewer while the connection stays. The work is making
+the viewer changeable in place.
+
+## Item 18
+
+Bill (2026-11-27): "better desk image -- the desk image in the top bar confused the play tester; they
+didn't know what it was"
+
+What the table has today: the desk is a little roll-top drawn right after the wordmark (R591, R510;
+`desk.ts`), titled "The desk: press for paper; click to open it", which only shows on hover. Shut, its lid
+hides the pigeonholes, the one thing that would say "desk".
+
+DECIDED (Bill, 2026-11-27): a small writing desk after a photo Bill chose (a gallery of arched pigeonholes
+and three little drawers over a green leather top, two drawers below, four tapered legs), drawn from a
+little above so the green shows, with paper standing in its pigeonholes: "Yes, B". Version B of the
+mockup in `.scratch/desk-mock/index.html` (an SVG at the bar's 66 × 58, on the bar's colors): white,
+yellow and manila edges in the four openings, the paper the desk hands out, the brightest thing on it at
+bar size. Drawn, not the photo: its rights are unknown and a photo would sit oddly in the drawn bar.
+
+DECIDED (Bill, 2026-11-27: "the three suggestions look good"):
+
+- On hover the pigeonholes light (the roll-top's slats did the same job); the mockup's pulled drawer
+  (version C) read as a shelf and is dropped.
+- The board of desks (R562) draws a little roll-top for each desk; it takes the new desk too.
+- The legs take a third of its height; if it looks slight beside the wordmark in the real bar, it
+  takes a few pixels more width.

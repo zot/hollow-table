@@ -1,7 +1,7 @@
 # Desk
-**Requirements:** R512-517, R520, R526, R527, R591, R530, R546-548, R551-554, R556, R559, R560, R562
+**Requirements:** R512-517, R520, R526, R527, R591, R530, R546-548, R551-554, R556, R559, R560, R562, R597, R598
 
-The desk on the bar (`carves/done/organizing.md`): a little roll-top right after the wordmark, its
+The desk on the bar (`carves/done/organizing.md`): a little writing desk right after the wordmark (R597), its
 pigeonholes holding the paper supplies and its drawers what is filed (Drawers). Pressing it opens the
 strip of pigeonholes; the press, wherever it goes, decides what is taken and how. A click opens it whole,
 the drawers showing below the pigeonholes.
@@ -43,7 +43,11 @@ the drawers showing below the pigeonholes.
   above the search line; the drawers list the open desk's (the seat's `desk.cur`). None on a player's.
 - the board (R562, R560): `.deskboard`, hung below the desk while a piece that would be filed is over it and
   there is more than one desk: a `.deskrow` per desk, the one set out first (its row marked with a closed knife switch), each with `data-desk`, its
-  roll-top and its name; Drag lights the row under the pointer.
+  miniature desk and its name; Drag lights the row under the pointer, and its miniature's pigeonholes (R598).
+- art (R597, R598): `deskArt(doc)`, the drawing, one inline SVG of flat fills (no gradients, whose ids
+  would repeat across the bar's desk and the board's), its pigeonholes' insides in a `holes` group that
+  the CSS lights under the pointer, pressed, or on the board's row under the piece. The bar's desk and
+  every board row draw it.
 - the knife switch (R559, R560): beside the open desk's name on the GM's page; open while the open desk
   isn't set out, a click sets it out (Desktops.setOut, one change); thrown and inert on the desk set out.
 

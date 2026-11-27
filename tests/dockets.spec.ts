@@ -2,7 +2,7 @@
 // Dockets: a label from the desk, the paper in its red tape pinned to it, moved within and taken out,
 // carried by its label, tied up, filed and brought back; across pages, paper the carrier can't read.
 import { expect, test, type Page } from '@playwright/test';
-import { barMiddle, dragFromTo, fromDesk, gmTable, hook, join, kinds, open, rec } from './page.ts';
+import { barMiddle, dragFromTo, fromDesk, gmTable, hook, join, kinds, open, rec, records } from './page.ts';
 
 const box = async (page: Page, sel: string) => (await page.locator(sel).boundingBox())!;
 const middle = async (page: Page, sel: string) => { const b = await box(page, sel); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
@@ -263,4 +263,27 @@ test('untied, the tape goes round the papers where they lie again', async ({ pag
   await page.locator(`[data-rid="${D}"] .knot`).click();
   await expect(page.locator('.bow')).toHaveCount(0);
   expect(await tape()).toBe(before);
+});
+
+test("reloaded, a docket's tape goes round its papers", async ({ page }) => {
+  await open(page);
+  await seed(page, [
+    { kind: 'docket', oid: 'dd000004', place: P(300, 120, 10), name: 'Kept', by: 'GM' },
+    { kind: 'sticky', oid: 'aa000006', place: P(320, 400, 11), text: 'a note with words on it', pin: { card: 'dd000004', dx: 20, dy: 280 } },
+    { kind: 'sticky', oid: 'aa000007', place: P(600, 200, 12), text: 'another', pin: { card: 'dd000004', dx: 300, dy: 80 } },
+  ]);
+  const tapeBox = () => box(page, '.tapes path');
+  const encloses = async () => {
+    const t = await tapeBox();
+    for (const rid of ['o:aa000006', 'o:aa000007']) {
+      const b = await box(page, `[data-rid="${rid}"]`);
+      if (b.x < t.x || b.y < t.y || b.x + b.width > t.x + t.width + 1 || b.y + b.height > t.y + t.height + 1) return `${rid} ${JSON.stringify(b)} outside ${JSON.stringify(t)}`;
+    }
+    return 'ok';
+  };
+  await expect.poll(encloses).toBe('ok');
+  await expect.poll(async () => (await records(page)).saved).toContain('aa000007');
+  // R534: after a reload the tape still goes round the papers where they lie.
+  await open(page);
+  await expect.poll(encloses, { timeout: 3000 }).toBe('ok');
 });

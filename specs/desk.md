@@ -62,8 +62,9 @@ could show arrows and a desk name when you click it to expand"; "Same rules"; "G
   walnut board below it, a row per desk: let go on the desk and the piece is filed in the first, or
   drag down the board and let go on another. The first is the desk set out ("Yes, the current desk";
   Bill, 2026-11-24: "yes", once there was a switch), marked with a tiny closed knife switch, then the
-  rest in order. Each row is a miniature roll-top and its name in a small brass label holder,
-  at least 44 px high; the row under the piece rolls its lid up, and down again when the piece leaves.
+  rest in order. Each row is a miniature of the desk (`table.md`, Bill 2026-11-27: the board "takes the
+  new desk too") and its name in a small brass label holder, at least 44 px high; the row under the
+  piece lights its pigeonholes, and darkens them again when the piece leaves.
   The "→" hint names the desk and the drawer: "→ Act 2: NPCs".
 - **Search reads every desk**, and with more than one a result says its desk and drawer ("Act 2:
   NPCs").

@@ -59,21 +59,16 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 }
 #bar .wordmark { font: 34px/1 "Sancreek", var(--hand); color: #f3e9d8; }
 #bar .stamp { font: 10px/1 var(--mono); opacity: .6; display: block; text-align: center; margin-top: 2px; user-select: text; -webkit-user-select: text; cursor: text; }
-/* R591, R510, R530: the desk, a little roll-top after the wordmark; pressed, its pigeonholes open below the bar,
+/* R591, R510, R530: the desk, a little writing desk after the wordmark; pressed, its pigeonholes open below the bar,
    each holding its paper supply drawn small. R510: the chips in two rows on the bar itself. */
-#bar .desk { position: relative; width: 66px; height: 58px; flex: none; cursor: grab; touch-action: none; }
-#bar .desk .rolltop { position: absolute; left: 5px; right: 5px; top: 3px; height: 24px; border-radius: 16px 16px 2px 2px;
-  background: repeating-linear-gradient(180deg, #8f6444 0 3px, #6e4b33 3px 4px); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
-#bar .desk .desktop { position: absolute; left: 0; right: 0; top: 27px; height: 29px; border-radius: 2px;
-  background: linear-gradient(#a0714b, #7a5337); box-shadow: 0 2px 0 rgba(0,0,0,.45); }
-/* Two drawers with brass pulls. */
-#bar .desk .desktop::before, #bar .desk .desktop::after { content: ""; position: absolute; top: 9px; width: 22px; height: 11px;
-  border: 1px solid rgba(0,0,0,.35); border-radius: 1px; background: radial-gradient(circle at 50% 50%, #d9b45a 0 2px, transparent 2.5px); }
-#bar .desk .desktop::before { left: 6px; } #bar .desk .desktop::after { right: 6px; }
-#bar .desk:hover .rolltop, #bar .desk.pressed .rolltop { background: repeating-linear-gradient(180deg, #9d7050 0 3px, #7a5439 3px 4px); }
+#bar .desk { position: relative; width: 74px; height: 65px; flex: none; cursor: grab; touch-action: none; }
+/* R597: the writing desk, drawn whole by one SVG; R598: under the pointer, or pressed, its pigeonholes light. */
+#bar .desk > .art { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#bar .desk > .art .holes, #bar .deskrow .minidesk .holes { fill: #1d140f; transition: fill .15s; }
+#bar .desk:hover > .art .holes, #bar .desk.pressed > .art .holes, #bar .deskrow.over .minidesk .holes { fill: #b8884a; }
 /* R517: a refused image edges the desk red. */
-#bar .desk.refused .desktop, #bar .desk.refused .rolltop { outline: 2px solid var(--chip-neg); }
-#bar .deskpanel { display: none; position: absolute; top: calc(100% + 19px); left: -12px; z-index: 50; padding: 8px;
+#bar .desk.refused > .art { outline: 2px solid var(--chip-neg); }
+#bar .deskpanel { display: none; position: absolute; top: calc(100% + 14.5px); left: -12px; z-index: 50; padding: 8px;
   background: linear-gradient(#8a5e3f, #6e4a31); border: 3px solid #4a3121; border-top-width: 5px; border-radius: 4px;
   box-shadow: 0 8px 18px rgba(0,0,0,.5); cursor: default; width: max-content; }
 #bar .desk.pressed .deskpanel { display: block; }
@@ -103,7 +98,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 #bar .drawers .search:focus { box-shadow: 0 0 0 2px var(--amber); }
 #bar .drawers .filed .where { margin-left: 10px; font: 11px var(--mono); color: #6a5a4a; }
 /* R520: over the desk, the drawer a piece would be filed in. */
-#bar .desk.file .desktop, #bar .desk.file .rolltop { outline: 2px solid #d9b45a; }
+#bar .desk.file > .art { outline: 2px solid #d9b45a; }
 #bar .desk.file::after { content: attr(data-drawer); position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
   white-space: nowrap; margin-top: 2px; font: 12px var(--mono); color: #f3e9d8; z-index: 61; }
 /* R551, R553: the GM's desks, browsed as graveyards: ‹, the open desk's name in its brass holder, ›. */
@@ -132,7 +127,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
   box-shadow: inset 0 -4px 0 -1px #c9773a, inset 0 0 0 1px #24272a; }
 /* R562: carrying a piece to be filed, with several desks, a walnut board hangs from the desk's foot (no gap
    to cross, the hint on its top edge): a row each,
-   a little roll-top and its name in a brass holder; the row under the piece rolls its lid up. */
+   a miniature desk and its name in a brass holder; the row under the piece lights its pigeonholes. */
 #bar .deskboard { display: none; position: absolute; top: 100%; left: -14px; z-index: 60; padding: 22px 6px 6px;
   background: linear-gradient(#5a3d2a, #3e2c22); border: 2px solid #2b1e17; border-radius: 4px;
   box-shadow: 0 8px 18px rgba(0,0,0,.5); width: max-content; min-width: 170px; }
@@ -140,12 +135,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--walnut
 #bar .deskrow { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px 0 6px; border-radius: 3px; }
 #bar .deskrow + .deskrow { border-top: 1px solid rgba(0,0,0,.35); }
 #bar .deskrow.over { background: rgba(217,180,90,.18); }
-#bar .deskrow .minitop { position: relative; width: 30px; height: 26px; flex: none; border-radius: 2px;
-  background: linear-gradient(#a0714b, #7a5337); }
-#bar .deskrow .minitop::before { content: ""; position: absolute; left: 3px; right: 3px; top: 1px; height: 12px;
-  border-radius: 8px 8px 1px 1px; background: repeating-linear-gradient(180deg, #8f6444 0 2px, #6e4b33 2px 3px);
-  transform-origin: top; transition: transform .15s; }
-#bar .deskrow.over .minitop::before { transform: scaleY(.25); }
+#bar .deskrow .minidesk { width: 30px; height: 26px; flex: none; }
+#bar .deskrow .minidesk .art { width: 100%; height: 100%; display: block; }
 #bar .deskrow .holder { font: 700 17px/1.2 var(--hand); color: var(--ink); background: var(--paper); padding: 2px 8px;
   border-radius: 2px; box-shadow: 0 0 0 2px #c9a24e, 0 0 0 3px #7d6129; white-space: nowrap; }
 #bar .hole { width: 84px; height: 60px; display: grid; place-items: center; border-radius: 10px 10px 2px 2px;

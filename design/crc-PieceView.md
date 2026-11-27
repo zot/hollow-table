@@ -94,9 +94,9 @@ stickies, loose text, images, torn rolls and the reference sheet.
 - tornroll: its receipts, scrolling inside (the wheel scrolls it rather than zooming); its element
   carries its `t:` rid (Records.ridFor, R486).
 - reference sheet (R592, R593): a printed page in PT Mono, its page (`which`) drawn when it differs from
-  the one shown: How to play the table, then Bunkum's Quick Reference and Quick Character Creation in its
+  the one shown: How to use the table, then Bunkum's Quick Reference and Quick Character Creation in its
   words, with "‹ n of 3 ›" at its foot, whose turns write `which` on this page's own record (`m:`).
-- the sheet given (R594, main.ts): the first time a page opens a game, a sheet open at How to play the
+- the sheet given (R594, main.ts): the first time a page opens a game, a sheet open at How to use the
   table is put in the middle of its view, and the seat of the page's own person (`self`, whoever it views
   as) remembers `given`, so neither a reload nor a sheet put away brings another.
 - shared cards gone (R595, main.ts): the GM's page deletes any `reference` under `o:`, at start and after

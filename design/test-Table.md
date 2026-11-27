@@ -646,9 +646,9 @@ pool's labels selects as text but the build stamp
 **Pulled:** 2026-11-24 — 2026-11-24 — rang: with repin skipping gathered cards, 'paper follows its holder' failed in the unit tests; restored clean
 
 ## Test: every page is given a reference sheet
-**Purpose:** R594: a page opening a game for the first time is given a sheet, open at How to play the table.
+**Purpose:** R594: a page opening a game for the first time is given a sheet, open at How to use the table.
 **Input:** the GM's page opened afresh, its sheet kept.
-**Expected:** one reference under `m:`, at `howto`, its heading "How to play the table".
+**Expected:** one reference under `m:`, at `howto`, its heading "How to use the table".
 **Refs:** crc-PieceView.md
 **Code:** tests/reference.spec.ts
 **Alarm:** 54
@@ -674,7 +674,7 @@ pool's labels selects as text but the build stamp
 **Refs:** crc-PieceView.md
 **Code:** tests/reference.spec.ts
 **Alarm:** 56
-**Fire alarm:** a turn writes nothing; red: the heading stays How to play the table
+**Fire alarm:** a turn writes nothing; red: the heading stays How to use the table
 **Inject:** src/ui/piece.ts
 **Pulled:** 2026-11-25 — 2026-11-25 — rang: with a turn writing nothing, the heading stayed How to play the table (line 24, Chromium); restored clean, dist rebuilt
 
@@ -701,7 +701,7 @@ pool's labels selects as text but the build stamp
 **Pulled:** 2026-11-25 — 2026-11-25 — rang: with a reference keyed o:, the GM's own sheet went to the table and the GM's page deleted it as a shared card, leaving none (line 15, Chromium); restored clean, dist rebuilt
 
 ## Test: the desk gives a sheet of the page's own
-**Purpose:** R591, R593: the "how to play" pigeonhole makes a sheet under `m:`, open at How to play the table.
+**Purpose:** R591, R593: the "how to play" pigeonhole makes a sheet under `m:`, open at How to use the table.
 **Input:** the GM's page with no sheet; the pigeonhole's piece let go on the table.
 **Expected:** one sheet, keyed `m:`, at `howto`.
 **Refs:** crc-Desk.md
