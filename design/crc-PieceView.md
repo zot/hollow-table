@@ -1,5 +1,5 @@
 # PieceView
-**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503, R505, R577-580, R532, R533, R542, R566-568, R570, R571, R583, R592, R593, R594, R595, R596, R603
+**Requirements:** R5, R22-27, R62, R75-77, R202, R209, R213, R245, R248-250, R252-256, R258, R259, R263-265, R309, R310, R312, R316, R318, R331, R332, R334, R335, R339, R341-343, R354, R355, R363, R384, R388, R390, R392, R393, R397-404, R407, R409, R414, R419, R421, R425, R426, R428, R429, R432, R436, R438, R450, R486, R496, R500, R503, R505, R577-580, R532, R533, R542, R566-568, R570, R571, R583, R592, R593, R594, R595, R596, R603, R604, R605
 
 Draws one paper piece from its record and turns edits back into Game changes: character cards,
 stickies, loose text, images, torn rolls and the reference sheet.
@@ -147,7 +147,14 @@ stickies, loose text, images, torn rolls and the reference sheet.
 - toggleCheck(lines, line) (R335): the lines with that Field Skill's ✓ written (`✓ ` at the start of its text) or taken out; the same lines when the line isn't one `skillIndents` indents.
 - The ghost ✓ (R334) is CSS on a `sklpad` line without `sklhang`, shown only while the card is written on; a press in an indented Skill's margin while the front holds the caret toggles its ✓ through toggleCheck and saves through the front's own `input`, as a pen does (R335).
 - docket (R532, R533): a small tag of card, its name written in place in the hand font (40 characters at most), a knot at its left end whose click ties or unties it on this page (R542), and the folded corner of paper.
-- the card's writing (R566, R567): front and notes writable only where Ownership.mayWrite allows; an edit
+- the pencil (R604, R605): beside the flip, shown only where Ownership.mayWrite allows; pressed, the
+  card is `writing` (a class on its element, this page's alone, gone with a reload or a rebuild) and its
+  front and notes take the caret; the pencil again, Escape in its text, or a press off the card (a
+  capture listener held only while writing) puts it down. Not writing, a press on an action's name
+  rolls it: the die before the press in its line (each die carries its `label` and `alt`), as that die's
+  click does.
+- the card's writing (R566, R567): front and notes writable only where Ownership.mayWrite allows, and
+  only while the card is `writing` (R604); an edit
   that changes Connections.cardName of the front sets the character's name to it.
 - the tack (R568, R570, R571): every sticky, loose text and image has a `.tack`, shown while it is pinned
   to a card (TableView marks it `tacked`); a click on it unpins the paper where it lies, a drag hands it

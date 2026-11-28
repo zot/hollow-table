@@ -2,7 +2,7 @@
 // The table as a person uses it, on the GM's page: characters made from the bar, pools and cards
 // carried together or apart, put away and dug up, and the strips a pool keeps narrow.
 import { expect, test, type Page } from '@playwright/test';
-import { at, barMiddle, dragFromTo, fromDesk, hook, kinds, open, rec, records } from './page.ts';
+import { at, barMiddle, dragFromTo, fromDesk, hook, kinds, open, rec, records, write } from './page.ts';
 
 const SAM = 'o:00000001', BEAUFORD = 'o:00000002', STICKY = 'o:00000008', CHIP = 'o:00000007';
 
@@ -255,6 +255,9 @@ test('writing shows the text cursor', async ({ page }) => {
   const cursor = (sel: string) => page.locator(sel).first().evaluate(e => getComputedStyle(e).cursor);
   const SAM = '.obj.card[data-rid="o:00000001"] .front .writes';
   expect(await cursor(SAM)).toBe('grab');
+  // R605: at rest an action's name is pressed to roll it.
+  expect(await cursor(`${SAM} .act`)).toBe('pointer');
+  await write(page, '.obj.card[data-rid="o:00000001"]');
   await page.locator(SAM).focus();
   expect(await cursor(SAM)).toBe('text');
   expect(await cursor(`${SAM} .act`)).toBe('text');
@@ -343,6 +346,7 @@ test('the GM keeps the Connection Table', async ({ page }) => {
   // R414, R412: `(` on Devreux's first line opens the chooser; a new group is written and closed, and
   // its row appears.
   const front = page.locator('.obj.card[data-rid="o:00000003"] .front .text');
+  await write(page, '.obj.card[data-rid="o:00000003"]');
   await front.locator('.head').first().click();
   await page.keyboard.press('End');
   await page.keyboard.type(' (');

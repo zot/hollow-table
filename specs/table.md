@@ -265,6 +265,14 @@ Text on cards, stickies and loose writing is handwriting with **marks**: a very 
 says what a run of text *is* in the game, instead of how it looks (Bill, 11-11). There is no bold,
 italic or underline.
 
+- **A character card is written once its pencil is pressed** (Bill, 2026-11-27, from a playtest: "play
+  tester clicked name to activate an action instead of clicking the blue die. The card switched to edit
+  mode. A pencil icon for edit mode would remove ambiguity."). The pencil sits beside the flip, shown
+  only to whoever may write the card (its owner and the GM). Pressed, the card takes the caret, front
+  and back alike; the pencil again, Escape, or a press off the card puts it down. Not being written, a
+  press on an action's name rolls it, as the die before it does. An Info card and a record's paper,
+  slid out from the card, are written as before.
+
 | Mark | Marks | The table reads |
 |---|---|---|
 | `<act>` | an action line | Base, Yellows and bonus; gets a die |

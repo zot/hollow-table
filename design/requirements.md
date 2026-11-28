@@ -345,6 +345,7 @@
 - **R493:** End's tooltip says that at Round 0 it ends the scene, and that stepping to Round 1 first ends only the Conflict.
 - **R494:** A shift-click or long press on the raised "End conflict?" or "End scene?" tab lowers it at once and ends nothing: no checkpoint, the Round unchanged.
 - **R495:** The Round's tab is a white card shaped like a cash register's number flag: a flat top on rounded shoulders that curves up, concave, to a small tip in the middle, the number below.
+- **R605:** While a character card isn't being written, a press on an action's name rolls it as the die before it does; an alternative's name rolls that alternative.
 
 ## Feature: Boot Hill
 **Source:** specs/boothill.md
@@ -467,6 +468,7 @@
 - **R599:** Choosing someone in "You are" redraws the GM's page as that person without leaving the table: the room, its connections and the GM's presence hold, so no page sees the GM go.
 - **R600:** After a switch in "You are", nothing of the views drawn for the viewer before acts: one press, key or change does what the new views do, once.
 - **R603:** Viewing as a player ("You are"), the GM's page draws each record as it would reach that player: an Opinion Record only once a line of it is revealed, only that line, and on the cards it is published on; the Connection Table, paper they don't read and burials they wouldn't see not at all. The page's own records stay whole.
+- **R604:** A character card is written only once its pencil is pressed: the pencil sits beside the flip, shown only to whoever may write the card (its owner and the GM); pressed, the card takes the caret, front and back; the pencil again, Escape, or a press off the card ends the writing.
 
 ## Feature: the network
 **Source:** specs/network.md

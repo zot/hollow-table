@@ -2,7 +2,7 @@
 // The character card and the table's view, measured: a flat card that flips; the damage columns
 // rotating; the notes' ruled lines; Levels clicked; the Motivation slot rule; zoom, fit and drop.
 import { expect, test, type Page } from '@playwright/test';
-import { at, dragFromTo, hook, open, rec } from './page.ts';
+import { at, dragFromTo, hook, open, rec, write } from './page.ts';
 
 const SAM = 'o:00000001', DEVREUX = 'o:00000003', PEACE = 'o:00000004';
 const CARD = `.obj.card[data-rid="${SAM}"]`, DPOOL = `.obj.pool[data-rid="${DEVREUX}"]`, SPOOL = `.obj.pool[data-rid="${SAM}"]`;
@@ -128,9 +128,11 @@ test('ghost checks on a Field Skill', async ({ page }) => {
   const front = async () => (await rec(page, SAM)).front as string;
   expect(await ghost()).toBe('none');
   const margin = async () => { const b = (await line.boundingBox())!; await page.mouse.click(b.x + 4, b.y + b.height / 2); };
-  // Alarm 8: at rest there is no ghost, and a press in the margin only starts the writing.
+  // Alarm 8: at rest there is no ghost, and a press in the margin writes nothing (R604: the card is
+  // written only once its pencil is down).
   await margin();
   expect(await front()).toContain('<skl>Investigation (x2)</skl>');
+  await write(page, CARD);
   await line.click({ position: { x: 60, y: 6 } });
   expect(await ghost()).toBe('"✓"');
   await margin();
@@ -199,6 +201,7 @@ test('the name above a pool: set by the card, or written as a nickname', async (
   const front = async () => (await rec(page, DEVREUX)).front as string;
   /** Puts the caret at the end of the card's first line and types `s`. */
   const onFirstLine = async (s: string) => {
+    await write(page, DCARD);
     await page.locator(`${DCARD} .front .text`).click();
     await page.evaluate(sel => {
       const t = document.querySelector(sel)!, line = t.firstElementChild ?? t, r = document.createRange();
@@ -222,6 +225,7 @@ test('the name above a pool: set by the card, or written as a nickname', async (
   await expect.poll(async () => (await rec(page, DEVREUX)).name).toBe('Madam');
   expect(await front()).toBe(kept);
   // An edit elsewhere on the card keeps the nickname; the next change to the card's name replaces it.
+  await write(page, DCARD);
   await page.locator(`${DCARD} .front .text`).click();
   await page.keyboard.press('ControlOrMeta+End');
   await page.keyboard.type(' x');
@@ -368,4 +372,63 @@ test("Gather, and a drawer that grows, bring a gathered card's paper with it", a
   await expect.poll(async () => (await rec(page, SAM)).card.y).toBeGreaterThan(y0);
   await expect.poll(async () => near(await rel(), on)).toBe(true);
   await expect.poll(recs).toEqual([0, 0]);
+});
+
+test("a card's pencil: written only once it's down, and put down three ways", async ({ page }) => {
+  const card = page.locator(CARD), front = card.locator('.front > .text'), pencil = card.locator(':scope > .pencil');
+  // R604: at rest the card takes no caret; its pencil is there for the GM, who may write it.
+  await expect(pencil).toBeVisible();
+  await expect(front).toHaveAttribute('contenteditable', 'false');
+  await expect(card.locator('.back .notes')).toHaveAttribute('contenteditable', 'false');
+  // Down: front and back written, the front holding the caret; the pencil again puts it up.
+  await pencil.click();
+  await expect(card).toHaveClass(/\bwriting\b/);
+  await expect(front).toHaveAttribute('contenteditable', 'true');
+  await expect(card.locator('.back .notes')).toHaveAttribute('contenteditable', 'true');
+  await expect(front).toBeFocused();
+  await pencil.click();
+  await expect(card).not.toHaveClass(/\bwriting\b/);
+  await expect(front).toHaveAttribute('contenteditable', 'false');
+  // Escape puts it up; so does a press off the card.
+  await pencil.click();
+  await page.keyboard.press('Escape');
+  await expect(card).not.toHaveClass(/\bwriting\b/);
+  await pencil.click();
+  await page.mouse.click(5, 400);
+  await expect(card).not.toHaveClass(/\bwriting\b/);
+  // R604: viewing as a player, the pencil only on the cards they may write.
+  const owners: Record<string, string> = await hook(page, h => Object.fromEntries(h.store.game.all()
+    .filter(([, r]: [string, any]) => r.kind === 'character').map(([rid, r]: [string, any]) => [rid, r.owner])));
+  for (let i = 0; i < 6 && await page.locator('.tag.viewas').textContent() !== 'Player 1'; i++) await page.locator('.tag.viewas').click();
+  for (const [rid, owner] of Object.entries(owners)) {
+    const p = page.locator(`.obj.card[data-rid="${rid}"] > .pencil`);
+    if (owner === 'Player 1') await expect(p, rid).toBeVisible(); else await expect(p, rid).toBeHidden();
+  }
+});
+
+test("a press on an action's name rolls it, as its die does", async ({ page }) => {
+  // R605: not being written, a press on "Infer: 4, +2" brings Sam's row with Infer; on "Req" in
+  // "Mental Atk / Req", with Req.
+  const pool = page.locator(`.obj.pool[data-rid="${SAM}"]`), line = (t: string) => page.locator(`${CARD} .front .text > div`, { hasText: t });
+  await line('Infer:').locator('span.act').click({ position: { x: 30, y: 6 } });
+  await expect(pool.locator('.rollinfo .base')).toContainText('Infer');
+  // Where "Req" is drawn: its text node, wherever the dice split the label.
+  const req = await line('Mental Atk /').evaluate(l => {
+    const walk = document.createTreeWalker(l, NodeFilter.SHOW_TEXT);
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const at = (n.textContent ?? '').indexOf('Req');
+      if (at < 0) continue;
+      const r = document.createRange();
+      r.setStart(n, at); r.setEnd(n, at + 3);
+      const x = r.getBoundingClientRect();
+      return { x: x.left + x.width / 2, y: x.top + x.height / 2 };
+    }
+    throw new Error('no Req');
+  });
+  await page.mouse.click(req.x, req.y);
+  await expect(pool.locator('.rollinfo .base')).toContainText('Req');
+  // Being written, a press on the name places the caret and rolls nothing.
+  await write(page, CARD);
+  await line('Infer:').locator('span.act').click({ position: { x: 30, y: 6 } });
+  await expect(pool.locator('.rollinfo .base')).toContainText('Req');
 });

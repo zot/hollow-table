@@ -983,3 +983,14 @@ body.tapping, body.tapping * { cursor: pointer !important; }
 /* R602: the invite link under Copy invite, when the clipboard refused. */
 #bar .invitelink { position: absolute; top: calc(100% + 6px); right: 0; z-index: 70; width: 46ch; font: 12px var(--mono);
   color: var(--ink); background: var(--paper); border: 1px solid #a8957b; border-radius: 3px; padding: 4px 6px; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+
+/* R604: a card's pencil, beside the flip, for whoever may write it; down, the card is being written. */
+.card > .pencil { position: absolute; right: 30px; bottom: 3px; width: 20px; height: 20px; border: none; padding: 0; z-index: 3; cursor: pointer;
+  border-radius: 50%; opacity: .5; background: center / 15px no-repeat
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 14l1-4 8-8 3 3-8 8z' fill='%23f4d58a' stroke='%23333' stroke-width='1.1' stroke-linejoin='round'/%3E%3Cpath d='M3 10l3 3M10 3l3 3' stroke='%23333' stroke-width='1.1'/%3E%3Cpath d='M2 14l1.4-.4-1-1z' fill='%23333'/%3E%3C/svg%3E"); }
+.card > .pencil[hidden] { display: none; }
+.card > .pencil:hover { opacity: 1; }
+.card > .pencil:focus-visible { opacity: 1; outline: 2px solid var(--amber); outline-offset: 1px; }
+.card.writing > .pencil { opacity: 1; box-shadow: 0 0 0 2px var(--amber); background-color: #fff6df; }
+/* R605: not being written, an action's name is pressed to roll it. */
+.card:not(.writing) .face.front .text span.act { cursor: pointer; }

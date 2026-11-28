@@ -2377,23 +2377,23 @@ function tray(piece2) {
   });
   function use(b, tag) {
     const t = last;
-    const ends = t && selection(t);
-    if (!t || !ends) return shake2(b);
-    const lines2 = read(t), out = apply(lines2, ends[0], ends[1], tag);
+    const ends2 = t && selection(t);
+    if (!t || !ends2) return shake2(b);
+    const lines2 = read(t), out = apply(lines2, ends2[0], ends2[1], tag);
     if (out === lines2) return shake2(b);
     render(out, t);
     t.dispatchEvent(new Event("input", { bubbles: true }));
-    caretAt(t, Math.min(ends[0].line, ends[1].line));
+    caretAt(t, Math.min(ends2[0].line, ends2[1].line));
     raise();
   }
   function shake2(b) {
     b.animate?.([{ transform: "translateX(-3px)" }, { transform: "translateX(3px)" }], 200);
   }
   function raise() {
-    const t = last, ends = t && t.contains(doc.getSelection()?.anchorNode ?? null) ? selection(t) : null;
+    const t = last, ends2 = t && t.contains(doc.getSelection()?.anchorNode ?? null) ? selection(t) : null;
     let k = -1, div;
-    if (t && ends) {
-      const line = ends[1].line, tag = offered(read(t), line);
+    if (t && ends2) {
+      const line = ends2[1].line, tag = offered(read(t), line);
       k = pens.findIndex((p) => p.dataset.mark === tag);
       if (k >= 0) div = t.children[line];
     }
@@ -2649,6 +2649,13 @@ function make(doc, r, w) {
         ruled(doc, writable(doc, "notes", r.back.notes, (s) => change(w, rid2, (c) => ({ ...c, back: { ...c.back, notes: s } }))))
       );
       flipper.append(front, back3);
+      const pencil = el2(doc, "button", "pencil");
+      pencil.setAttribute("aria-label", "Write on this card");
+      pencil.title = "Write on this card (the pencil again, Escape or a press elsewhere puts it down)";
+      gesture(pencil, { click: () => writing(e, !e.classList.contains("writing")) });
+      text.addEventListener("click", (ev) => {
+        if (!e.classList.contains("writing")) rollName(ev, text, r.oid, w);
+      });
       const flip = el2(doc, "button", "flip");
       flip.setAttribute("aria-label", "Flip the card");
       gesture(flip, { click: () => change(w, rid2, (c) => ({ ...c, flipped: !c.flipped })) });
@@ -2660,7 +2667,7 @@ function make(doc, r, w) {
         w.eyes.flip(r.oid);
       } });
       gesture(pick, { click: () => eyeMenu(e, r.oid, w) });
-      e.append(flipper, flip, eye, pick, tray(e), el2(doc, "div", "infos"));
+      e.append(flipper, pencil, flip, eye, pick, tray(e), el2(doc, "div", "infos"));
       break;
     }
     case "sticky":
@@ -2718,9 +2725,12 @@ function update(e, r, w) {
       e.classList.toggle("eyed", eyed);
       e.classList.toggle("inferring", !!draft);
       const front = e.querySelector(".front > .text");
-      const writes = mayWrite(w.viewer, r);
-      front.contentEditable = back3 || !writes ? "false" : "true";
-      e.querySelector(".back .notes").contentEditable = writes ? "true" : "false";
+      const writes = mayWrite(w.viewer, r) && !back3;
+      if (!writes && e.classList.contains("writing")) writing(e, false);
+      e.querySelector(":scope > .pencil").hidden = !writes;
+      const on = writes && e.classList.contains("writing");
+      front.contentEditable = on ? "true" : "false";
+      e.querySelector(".back .notes").contentEditable = on ? "true" : "false";
       const body = secret ? blankFront(r) : r.front;
       if (!draft && front.querySelector("[data-entries]")) delete front.dataset.source;
       rewrite(front, back3 ? named2(body, r.name) : body);
@@ -3354,6 +3364,8 @@ function frontGlyphs(text, c, w) {
       d.className = "actdie";
       d.contentEditable = "false";
       d.title = title;
+      d.dataset.label = label2;
+      if (alt) d.dataset.alt = alt;
       d.addEventListener("pointerdown", (ev) => ev.preventDefault());
       gesture(d, { click: () => {
         if (!w.useAction(c.oid, label2, alt)) shake(d);
@@ -3412,6 +3424,46 @@ function toggleCheck(lines2, line) {
   const runs = lines2[line], k = runs.findIndex((r2) => typeof r2 !== "string" && r2.mark === "skl"), r = runs[k];
   const text = /^\s*✓/.test(r.text) ? r.text.replace(/^(\s*)✓\s*/, "$1") : r.text.replace(/^(\s*)/, "$1\u2713 ");
   return lines2.map((l, i) => i === line ? l.map((x, j) => j === k ? { ...r, text } : x) : l);
+}
+var ends = /* @__PURE__ */ new WeakMap();
+function writing(e, on) {
+  if (e.classList.contains("writing") === on) return;
+  e.classList.toggle("writing", on);
+  const texts = [...e.querySelectorAll(".front > .text, .back .notes")];
+  for (const t of texts) t.contentEditable = on ? "true" : "false";
+  ends.get(e)?.abort();
+  ends.delete(e);
+  const doc = e.ownerDocument;
+  if (!on) {
+    const a = doc.activeElement;
+    if (a && e.contains(a)) a.blur();
+    return;
+  }
+  const off = new AbortController();
+  ends.set(e, off);
+  const { signal } = off;
+  doc.addEventListener("pointerdown", (ev) => {
+    if (!e.contains(ev.target)) writing(e, false);
+  }, { capture: true, signal });
+  e.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") {
+      ev.preventDefault();
+      writing(e, false);
+    }
+  }, { signal });
+  texts[e.classList.contains("flipped") ? 1 : 0]?.focus();
+}
+function rollName(ev, text, oid, w) {
+  const act = ev.target.closest?.("span.act");
+  if (!act || !text.contains(act)) return;
+  const doc = text.ownerDocument;
+  const at4 = doc.caretPositionFromPoint?.(ev.clientX, ev.clientY)?.offsetNode ?? doc.caretRangeFromPoint?.(ev.clientX, ev.clientY)?.startContainer ?? act;
+  let line = act;
+  while (line.parentElement && line.parentElement !== text) line = line.parentElement;
+  const dice = [...line.querySelectorAll(".actdie")].filter((d2) => d2.compareDocumentPosition(at4) & Node.DOCUMENT_POSITION_FOLLOWING);
+  const d = dice.at(-1);
+  if (!d?.dataset.label) return;
+  if (!w.useAction(oid, d.dataset.label, d.dataset.alt)) shake(d);
 }
 function checkPress(ev, t) {
   if (t.ownerDocument.activeElement !== t) return;

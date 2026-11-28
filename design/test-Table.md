@@ -125,7 +125,7 @@ pool's labels selects as text but the build stamp
 
 ## Test: ghost checks on a Field Skill
 **Purpose:** R334, R335: in the browser, a ghost ✓ shows before an unchecked Field Skill only while the card is written on; a press in its margin writes the ✓ into the text and saves it, a press on the real ✓ takes it out, and a press on the Skill's name changes nothing
-**Input:** the GM's page; Sam's card at rest; then the caret in its front; a press in Investigation's margin; a click on the name; a press in the margin again
+**Input:** the GM's page; Sam's card at rest, a press in Investigation's margin (no check: the card isn't written until its pencil is down, R604); then the pencil and the caret in its front; a press in Investigation's margin; a click on the name; a press in the margin again
 **Expected:** at rest the Investigation line's `::before` has no content; writing, it is `"✓"`; after the press the record's front holds `✓ Investigation` and the line hangs (`sklhang`); the click on the name leaves it checked; the second press takes the ✓ out of the record
 **Refs:** crc-PieceView.md, ui-card.md
 **Code:** `tests/card.spec.ts`
@@ -287,8 +287,8 @@ pool's labels selects as text but the build stamp
 
 ## Test: writing shows the text cursor
 **Purpose:** R384: text holding the caret shows the I-beam over its words and marks, while the controls inside it keep the pointing hand; text without the caret keeps the open hand
-**Input:** Sam's card text before and after clicking into it; a mark, a Resource glyph and an action die in it; a pen; a sticky's text and a Damage slot's name, each holding the caret
-**Expected:** `grab` before; `text` on the text and the mark; `pointer` on the glyph, the die and the pen; `text` on the sticky and the slot name
+**Input:** Sam's card text at rest, its action's name (R605), then with the pencil down and the caret in it (R604); a mark, a Resource glyph and an action die in it; a pen; a sticky's text and a Damage slot's name, each holding the caret
+**Expected:** `grab` before, `pointer` on the action's name at rest; `text` on the text and the mark; `pointer` on the glyph, the die and the pen; `text` on the sticky and the slot name
 **Refs:** manifest-ui.md
 **Code:** `tests/table.spec.ts`
 **Alarm:** 21
@@ -744,3 +744,58 @@ pool's labels selects as text but the build stamp
 **Inject:** src/ui/ask.ts
 **Pulled:** 2026-11-27 — rang: with the card's press reaching the page, OK closed the Ledger and its Checkpoint could not be pressed again (line 26, Chromium); restored clean
 
+
+## Test: a card's pencil: written only once it's down, and put down three ways
+**Purpose:** R604: a character card takes no caret at rest; its pencil, shown only to whoever may write it, puts it down for writing, front and back, and the pencil again, Escape, or a press off the card puts it up.
+**Input:** the GM's page, Sam's card: at rest; the pencil; the pencil again; the pencil and Escape; the pencil and a press on the table; then "You are" Player 1.
+**Expected:** at rest, front and notes not editable, the pencil visible; down, `writing`, both editable, the front focused; up after each of the three. As Player 1, the pencil only on the cards Player 1 owns.
+**Refs:** crc-PieceView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 63
+**Fire alarm:** the front is editable for its writers whether the pencil is down or not, as before; red: at rest the front is editable
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-27 — rang: with the front editable for its writers whatever the pencil, at rest it read contenteditable true (line 381, Chromium); restored clean
+
+## Test: a press off the card puts its pencil up
+**Purpose:** R604: a press anywhere off the card ends the writing.
+**Input:** as above.
+**Expected:** after the press on the table, the card is not `writing`.
+**Refs:** crc-PieceView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 64
+**Fire alarm:** no press off the card is heard while writing; red: the card stays `writing`
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-27 — rang: with no press off the card heard, the card stayed writing after the press on the table (line 398, Chromium); restored clean
+
+## Test: the pencil only for the card's writers
+**Purpose:** R604: the pencil is shown only to whoever may write the card.
+**Input:** as above.
+**Expected:** as Player 1, the pencil shows only on Player 1's cards.
+**Refs:** crc-PieceView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 67
+**Fire alarm:** the pencil shows on every card; red: a pencil on a card Player 1 doesn't own
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-27 — rang: with the pencil on every card, one showed on a card Player 1 doesn't own (line 405, Chromium); restored clean
+
+## Test: a press on an action's name rolls it, as its die does
+**Purpose:** R605: not being written, a press on an action's name rolls it; on a later alternative's name, that alternative; being written, it places the caret and rolls nothing.
+**Input:** the GM's page, Sam's card: a press on "Infer: 4, +2"; a press on "Req" in "Mental Atk / Req"; the pencil down, a press on "Infer".
+**Expected:** Sam's row with Infer; then with Req; then still Req.
+**Refs:** crc-PieceView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 65
+**Fire alarm:** a press on an action's name does nothing; red: no Infer in the row
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-27 — rang: with a press on an action's name doing nothing, no Infer in Sam's row (line 414, Chromium); restored clean
+
+## Test: an alternative's name rolls that alternative
+**Purpose:** R605: the die rolled is the last before the words pressed, so "Req" rolls Req.
+**Input:** as above.
+**Expected:** after the press on "Req", the row's Base names Req.
+**Refs:** crc-PieceView.md
+**Code:** tests/card.spec.ts
+**Alarm:** 66
+**Fire alarm:** the die is found from the press's target, the span, not the words under the pointer; red: "Req" rolls Mental Atk
+**Inject:** src/ui/piece.ts
+**Pulled:** 2026-11-27 — rang: with the die found from the press's target, 'Req' rolled Mental Atk (line 429, Chromium); restored clean

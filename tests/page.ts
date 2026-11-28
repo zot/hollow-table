@@ -172,3 +172,8 @@ export async function fromDesk(page: Page, paper: string, x: number, y: number):
   await page.mouse.move(x, y, { steps: 10 });
   await page.mouse.up();
 }
+
+/** R604: puts a character card's pencil down, so the card can be written, unless it already is. */
+export async function write(page: Page, card: string): Promise<void> {
+  if (!(await page.locator(card).evaluate(e => e.classList.contains('writing')))) await page.locator(`${card} > .pencil`).click();
+}

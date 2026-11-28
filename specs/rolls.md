@@ -50,7 +50,8 @@ The program does the arithmetic of a Hollow roll; the table sees the dice land.
   is offered the Action pen.
 - Each action gets a small **die** at its start, **drawn like the roll row's Blue die**: blank,
   blue, rounded and shaded (Bill, 11-13: the old one-pip face read as a "box with a dot"), so it
-  can't be taken for a Slot box or a Resource glyph on the same card; the text stays editable, and actions marked later get
+  can't be taken for a Slot box or a Resource glyph on the same card; the text is written once its pencil is pressed
+  (`table.md`), and a press on an action's name, while it isn't, rolls it as its die does; actions marked later get
   dice too. **A label with alternatives split by `/` gets a die before each one** (Bill, 11-13):
   `Mental Atk / Req: 2, +2` has a die before *Mental Atk* and one before *Req*, and the die clicked
   names the action (*Mental Atk* or *Req*), with the same numbers, and preselects its type. Clicking it brings the roll row to that character (its owner, or the GM)

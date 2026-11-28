@@ -221,6 +221,12 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       back.append(el(doc, 'div', 'damage'), el(doc, 'div', 'notes-hd', 'Notes'),
         ruled(doc, writable(doc, 'notes', r.back.notes, s => change<Character>(w, rid, c => ({ ...c, back: { ...c.back, notes: s } })))));
       flipper.append(front, back);
+      // R604: written once its pencil is pressed; R605: not writing, a press on an action's name rolls it.
+      const pencil = el(doc, 'button', 'pencil');
+      pencil.setAttribute('aria-label', 'Write on this card');
+      pencil.title = 'Write on this card (the pencil again, Escape or a press elsewhere puts it down)';
+      gesture(pencil, { click: () => writing(e, !e.classList.contains('writing')) });
+      text.addEventListener('click', ev => { if (!e.classList.contains('writing')) rollName(ev, text, r.oid, w); });
       // R22: it flips at the corner.
       const flip = el(doc, 'button', 'flip');
       flip.setAttribute('aria-label', 'Flip the card');
@@ -231,7 +237,7 @@ function make(doc: Document, r: PieceRecord, w: PieceWith): HTMLElement {
       pick.setAttribute('aria-label', 'Open the eye on a category');
       gesture(eye, { click: () => { e.querySelector('.eyemenu')?.remove(); w.eyes.flip(r.oid); } });
       gesture(pick, { click: () => eyeMenu(e, r.oid, w) });
-      e.append(flipper, flip, eye, pick, tray(e), el(doc, 'div', 'infos'));
+      e.append(flipper, pencil, flip, eye, pick, tray(e), el(doc, 'div', 'infos'));
       break;
     }
     case 'sticky': case 'text':
@@ -286,9 +292,13 @@ function update(e: HTMLElement, r: PieceRecord, w: PieceWith): void {
       e.classList.toggle('inferring', !!draft);
       const front = e.querySelector<HTMLElement>('.front > .text')!;
       // R567: written only by its owner and the GM (an open one's by the GM).
-      const writes = mayWrite(w.viewer, r);
-      front.contentEditable = back || !writes ? 'false' : 'true';
-      e.querySelector<HTMLElement>('.back .notes')!.contentEditable = writes ? 'true' : 'false';
+      // R604: and only while its pencil is down; the pencil only for them.
+      const writes = mayWrite(w.viewer, r) && !back;
+      if (!writes && e.classList.contains('writing')) writing(e, false);
+      e.querySelector<HTMLElement>(':scope > .pencil')!.hidden = !writes;
+      const on = writes && e.classList.contains('writing');
+      front.contentEditable = on ? 'true' : 'false';
+      e.querySelector<HTMLElement>('.back .notes')!.contentEditable = on ? 'true' : 'false';
       // Secret blanks all but the shown lines; the draft keeps the words. The name takes the first line.
       const body = secret ? blankFront(r) : r.front;
       // The Infer state's entry targets are drawn over the text; once it ends, draw the text afresh.
@@ -961,6 +971,9 @@ function frontGlyphs(text: HTMLElement, c: Character, w: PieceWith): void {
       d.className = 'actdie';
       d.contentEditable = 'false';
       d.title = title;
+      // R605: what a press on the action's name rolls.
+      d.dataset.label = label;
+      if (alt) d.dataset.alt = alt;
       d.addEventListener('pointerdown', ev => ev.preventDefault());
       gesture(d, { click: () => { if (!w.useAction(c.oid, label, alt)) shake(d); } });
       return d;
@@ -1016,6 +1029,42 @@ export function toggleCheck(lines: Line[], line: number): Line[] {
   const runs = lines[line]!, k = runs.findIndex(r => typeof r !== 'string' && r.mark === 'skl'), r = runs[k] as MarkRun;
   const text = /^\s*✓/.test(r.text) ? r.text.replace(/^(\s*)✓\s*/, '$1') : r.text.replace(/^(\s*)/, '$1✓ ');
   return lines.map((l, i) => i === line ? l.map((x, j) => j === k ? { ...r, text } : x) : l);
+}
+
+// R604: a card's pencil put down or taken up. Down, the card is `writing` and its front and notes take the
+// caret, the visible one focused; the pencil again, Escape, or a press off the card takes it up.
+const ends = new WeakMap<HTMLElement, AbortController>();
+function writing(e: HTMLElement, on: boolean): void {
+  if (e.classList.contains('writing') === on) return;
+  e.classList.toggle('writing', on);
+  const texts = [...e.querySelectorAll<HTMLElement>('.front > .text, .back .notes')];
+  for (const t of texts) t.contentEditable = on ? 'true' : 'false';
+  ends.get(e)?.abort();
+  ends.delete(e);
+  const doc = e.ownerDocument;
+  if (!on) { const a = doc.activeElement; if (a && e.contains(a)) (a as HTMLElement).blur(); return; }
+  const off = new AbortController();
+  ends.set(e, off);
+  const { signal } = off;
+  doc.addEventListener('pointerdown', ev => { if (!e.contains(ev.target as Node)) writing(e, false); }, { capture: true, signal });
+  e.addEventListener('keydown', ev => { if (ev.key === 'Escape') { ev.preventDefault(); writing(e, false); } }, { signal });
+  texts[e.classList.contains('flipped') ? 1 : 0]?.focus();
+}
+
+// R605: a press on an action's name, the card not being written, rolls it as the die before the press
+// in its line does: an alternative's name, that alternative.
+function rollName(ev: MouseEvent, text: HTMLElement, oid: Oid, w: PieceWith): void {
+  const act = (ev.target as Element).closest?.('span.act');
+  if (!act || !text.contains(act)) return;
+  // The words under the pointer, not the span: a later alternative's die sits inside the label, before them.
+  const doc = text.ownerDocument as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node } | null };
+  const at: Node = doc.caretPositionFromPoint?.(ev.clientX, ev.clientY)?.offsetNode ?? doc.caretRangeFromPoint?.(ev.clientX, ev.clientY)?.startContainer ?? act;
+  let line: Element = act;
+  while (line.parentElement && line.parentElement !== text) line = line.parentElement;
+  const dice = [...line.querySelectorAll<HTMLElement>('.actdie')].filter(d => d.compareDocumentPosition(at) & Node.DOCUMENT_POSITION_FOLLOWING);
+  const d = dice.at(-1);
+  if (!d?.dataset.label) return;
+  if (!w.useAction(oid, d.dataset.label, d.dataset.alt)) shake(d);
 }
 
 // R335: while the front holds the caret, a press in an indented Skill's margin, where the ghost or the

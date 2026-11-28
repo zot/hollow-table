@@ -19,7 +19,7 @@ checked by hand only) and O10 (old receipts' words) stay as gaps.
 - [x] ~~**Item 11 — paper's owner: no maker is the GM's; owners reassign and share.**~~ **LANDED (2026-11-25 — `#75`.)** Bill, 2026-11-24.
 - [x] ~~**Item 12 — characters in dockets.**~~ **LANDED (2026-11-25 — `#76`.)** Bill, 2026-11-25.
 - [x] ~~**Item 13 — reference pages, each page's own.**~~ **LANDED (2026-11-25 — `#77`.)** Bill, 2026-11-25.
-- [ ] **Item 14 — a pencil to write on a card.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
+- [x] ~~**Item 14 — a pencil to write on a card.**~~ **LANDED (2026-11-27 — `#82`.)** Bill's playtest, 2026-11-27.
 - [ ] **Item 15 — loud presence changes.** **OPEN (not queued.)** Bill's playtest, 2026-11-27.
 - [x] ~~**Item 16 — what an Opinion shows, reaching the wrong pages.**~~ **LANDED (2026-11-27 — `#81`.)** Bill's playtest, 2026-11-27: viewing as a player, the GM's page drew records whole.
 - [x] ~~**Item 17 — "You are" without leaving the table.**~~ **LANDED (2026-11-27 — `#79`.)** Bill's playtest, 2026-11-27.
@@ -369,6 +369,12 @@ this: …"). A pencil would make writing a mode the card enters on purpose. To d
 is on every card or only shown to its writers; whether a press on an action's name then rolls it, or
 does nothing; whether the back's notes wait for the pencil too; and how writing ends (Escape, a press
 elsewhere, the pencil again).
+
+DECIDED (Bill, 2026-11-27): the pencil is shown only to the card's writers (its owner and the GM,
+R567); while the card isn't being written, a press on an action's name rolls it, as its die does; the
+whole card waits for the pencil, front and back; writing ends with the pencil again, Escape, or a press
+off the card. The character card only: an Info card and a record's paper, slid out from it, are written
+as they are now.
 
 ## Item 15
 
